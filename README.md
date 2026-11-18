@@ -15,6 +15,14 @@ and the server finds the path (A*) and moves players one tile per 600ms tick.
 Other people on your home Wi-Fi can join too: the terminal prints a "Network" address
 like `http://192.168.1.20:5173`; open that on their device.
 
+## Foraging (gathering skill)
+
+Click a tree to walk next to it and start chopping. Every tick (0.6s) you have
+a chance to get logs, which go into your 28-slot inventory (bottom right).
+After each log there's a chance the tree falls and becomes a stump, which grows
+back after 30 seconds. Click a log in your inventory to drop it. Moving stops
+chopping. The numbers live in `shared/foraging.ts` so they're easy to tune.
+
 ## How it's laid out
 
 | Folder | What it is |
@@ -25,6 +33,9 @@ like `http://192.168.1.20:5173`; open that on their device.
 | `server/src/index.ts` | Starts the Colyseus game server on port 2567 |
 | `client/src/WorldScene.ts` | Phaser scene: draws the map and players, handles clicks |
 | `client/src/network.ts` | Connects to the game server |
+| `client/src/ui.ts` | Inventory panel, message box, hover text |
+| `shared/foraging.ts` | Chop chance, tree fall chance, regrow time |
+| `shared/items.ts` | Item list (just Logs for now) and inventory size |
 
 To change the map, edit the text grid in `shared/map.ts`
 (`.` grass, `,` path, `~` water, `T` tree, `#` rock, `=` bridge) and restart.
