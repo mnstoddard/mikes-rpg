@@ -1,0 +1,18 @@
+# Render Blueprint: one free web service that runs the game server and
+# serves the built Phaser client from the same address (WebSockets included).
+# Render redeploys automatically every time new code lands on main.
+services:
+  - type: web
+    name: mikes-rpg
+    runtime: node
+    plan: free
+    branch: main
+    autoDeploy: true
+    # --include=dev: the build needs Vite and the server runs with tsx,
+    # which are dev dependencies.
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
