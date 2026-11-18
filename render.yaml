@@ -16,3 +16,7 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "22"
+      # Neon Postgres connection string for accounts and saves. It's a secret,
+      # so it isn't written here: set it in the Render dashboard (Environment tab).
+      - key: DATABASE_URL
+        sync: false

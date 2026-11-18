@@ -10,7 +10,8 @@ and the server finds the path (A*) and moves players one tile per 600ms tick.
 2. Open a terminal in this folder (on Windows: right-click the folder → "Open in Terminal").
 3. Run once:  `npm install`
 4. Run:       `npm run dev`
-5. Open http://localhost:5173 in two browser tabs, pick a name in each, and click around.
+5. Open http://localhost:5173 in two browser tabs, click **Create account** in each
+   (pick any username and a password of 6+ characters), and click around.
 
 Other people on your home Wi-Fi can join too: the terminal prints a "Network" address
 like `http://192.168.1.20:5173`; open that on their device.
@@ -23,6 +24,19 @@ After each log there's a chance the tree falls and becomes a stump, which grows
 back after 30 seconds. Click a log in your inventory to drop it. Moving stops
 chopping. The numbers live in `shared/foraging.ts` so they're easy to tune.
 
+## Accounts and saving
+
+Players log in with a username and password. Passwords are never stored, only a
+salted scrypt hash. Your position and inventory are saved when you log out, about
+once a minute while you play, and within 10 seconds of gaining or losing an item.
+They come back when you log in again. One login per account at a time.
+
+Where saves go:
+- **On your computer:** if `DATABASE_URL` isn't set, accounts are kept in
+  `server/data/accounts.json` (not committed to git). Delete that file to start fresh.
+- **On Render:** set the `DATABASE_URL` environment variable to your Neon Postgres
+  connection string. The `accounts` table is created automatically on first start.
+
 ## How it's laid out
 
 | Folder | What it is |
@@ -31,6 +45,8 @@ chopping. The numbers live in `shared/foraging.ts` so they're easy to tune.
 | `shared/pathfinding.ts` | A* pathfinding used by the server |
 | `server/src/WorldRoom.ts` | The game room: players joining/leaving, the tick loop, move requests |
 | `server/src/index.ts` | Starts the Colyseus game server on port 2567 |
+| `server/src/storage.ts` | Accounts, password hashing, and saving to Postgres or a local file |
+| `client/src/login.ts` | The login / create account box |
 | `client/src/WorldScene.ts` | Phaser scene: draws the map and players, handles clicks |
 | `client/src/network.ts` | Connects to the game server |
 | `client/src/ui.ts` | Inventory panel, message box, hover text |

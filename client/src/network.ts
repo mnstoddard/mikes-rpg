@@ -8,7 +8,10 @@ function serverUrl(): string {
   return `${proto}://${host}`;
 }
 
-export async function joinWorld(name: string): Promise<Room> {
+export interface LoginDetails { username: string; password: string; create: boolean }
+
+/** Logs in (or creates an account) and joins the world. Rejects with the server's reason. */
+export async function joinWorld(login: LoginDetails): Promise<Room> {
   const client = new Client(serverUrl());
-  return client.joinOrCreate("world", { name });
+  return client.joinOrCreate("world", login);
 }
