@@ -48,3 +48,11 @@ This is how it'll run on your domain later.
 ## Tech
 
 TypeScript, Phaser 3 (client), Colyseus 0.16 (multiplayer server), Vite (dev server).
+
+## Online on Render
+
+`render.yaml` sets the game up as one free Render web service. Render runs
+`npm ci --include=dev && npm run build` (builds the client), then `npm start`
+(the game server, which also serves the client and WebSockets on the same address).
+Every push to `main` redeploys it automatically. The free plan sleeps after about
+15 minutes with no visitors, so the first visit after that takes ~30-60 seconds to wake.
