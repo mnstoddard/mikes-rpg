@@ -1,0 +1,143 @@
+// Accounts and saved games.
+//
+// With DATABASE_URL set (e.g. a Neon Postgres connection string on Render),
+// everything is stored in Postgres. Without it (running on your own computer),
+// accounts and saves go into server/data/accounts.json so you can play locally
+// without setting up a database.
+import { promises as fs } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { randomBytes, scrypt as scryptCb, timingSafeEqual } from "node:crypto";
+import { promisify } from "node:util";
+import pg from "pg";
+
+const scrypt = promisify(scryptCb) as (pw: string, salt: Buffer, len: number) => Promise<Buffer>;
+
+/** Everything about a character that survives logging out. */
+export interface SaveData {
+  x?: number;
+  y?: number;
+  inventory?: (string | null)[];
+  // Add more here later (skills, bank, quests...). Stored as JSON, so no
+  // database migration is needed for new fields.
+}
+
+export interface Account {
+  username: string; // as the player typed it, e.g. "Mike"
+  passwordHash: string;
+  save: SaveData;
+}
+
+interface Store {
+  init(): Promise<void>;
+  get(username: string): Promise<Account | null>;
+  /** Returns false if the username is already taken. */
+  create(username: string, passwordHash: string): Promise<boolean>;
+  save(username: string, data: SaveData): Promise<void>;
+  touchLogin(username: string): Promise<void>;
+  close(): Promise<void>;
+}
+
+// Usernames are matched case-insensitively ("mike" and "Mike" are the same account).
+export const usernameKey = (username: string) => username.trim().toLowerCase();
+
+class PostgresStore implements Store {
+  private pool: pg.Pool;
+  constructor(url: string) {
+    this.pool = new pg.Pool({ connectionString: url, max: 5 });
+    this.pool.on("error", (err) => console.error("Database connection error:", err.message));
+  }
+  async init() {
+    await this.pool.query(`
+      CREATE TABLE IF NOT EXISTS accounts (
+        username_key  TEXT PRIMARY KEY,
+        username      TEXT NOT NULL,
+        password_hash TEXT NOT NULL,
+        save          JSONB NOT NULL DEFAULT '{}'::jsonb,
+        created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+        last_login_at TIMESTAMPTZ,
+        saved_at      TIMESTAMPTZ
+      )`);
+  }
+  async get(username: string) {
+    const { rows } = await this.pool.query(
+      "SELECT username, password_hash, save FROM accounts WHERE username_key = $1", [usernameKey(username)]);
+    if (!rows.length) return null;
+    return { username: rows[0].username, passwordHash: rows[0].password_hash, save: rows[0].save ?? {} };
+  }
+  async create(username: string, passwordHash: string) {
+    const res = await this.pool.query(
+      `INSERT INTO accounts (username_key, username, password_hash) VALUES ($1, $2, $3)
+       ON CONFLICT (username_key) DO NOTHING`, [usernameKey(username), username.trim(), passwordHash]);
+    return res.rowCount === 1;
+  }
+  async save(username: string, data: SaveData) {
+    await this.pool.query("UPDATE accounts SET save = $2, saved_at = now() WHERE username_key = $1",
+      [usernameKey(username), JSON.stringify(data)]);
+  }
+  async touchLogin(username: string) {
+    await this.pool.query("UPDATE accounts SET last_login_at = now() WHERE username_key = $1", [usernameKey(username)]);
+  }
+  async close() { await this.pool.end(); }
+}
+
+class FileStore implements Store {
+  private accounts: Record<string, Account> = {};
+  private writing: Promise<void> = Promise.resolve();
+  constructor(private file: string) {}
+  async init() {
+    try {
+      this.accounts = JSON.parse(await fs.readFile(this.file, "utf8"));
+    } catch (err: any) {
+      if (err.code !== "ENOENT") throw err;
+    }
+  }
+  async get(username: string) { return this.accounts[usernameKey(username)] ?? null; }
+  async create(username: string, passwordHash: string) {
+    if (this.accounts[usernameKey(username)]) return false;
+    this.accounts[usernameKey(username)] = { username: username.trim(), passwordHash, save: {} };
+    await this.flush();
+    return true;
+  }
+  async save(username: string, data: SaveData) {
+    const acct = this.accounts[usernameKey(username)];
+    if (!acct) return;
+    acct.save = data;
+    await this.flush();
+  }
+  async touchLogin() {}
+  async close() { await this.writing; }
+  private flush() {
+    // Write one at a time, to a temp file first, so a crash can't leave half a file.
+    this.writing = this.writing.catch(() => {}).then(async () => {
+      await fs.mkdir(path.dirname(this.file), { recursive: true });
+      const tmp = `${this.file}.tmp`;
+      await fs.writeFile(tmp, JSON.stringify(this.accounts, null, 2));
+      await fs.rename(tmp, this.file);
+    });
+    return this.writing;
+  }
+}
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const dbUrl = process.env.DATABASE_URL?.trim();
+export const store: Store = dbUrl
+  ? new PostgresStore(dbUrl)
+  : new FileStore(path.resolve(here, "../data/accounts.json"));
+export const storageName = dbUrl ? "Postgres database (DATABASE_URL)" : "local file server/data/accounts.json";
+
+// ---- Passwords: never stored as-is, only as a salted scrypt hash. ----
+
+export async function hashPassword(password: string): Promise<string> {
+  const salt = randomBytes(16);
+  const hash = await scrypt(password, salt, 64);
+  return `scrypt$${salt.toString("base64")}$${hash.toString("base64")}`;
+}
+
+export async function checkPassword(password: string, stored: string): Promise<boolean> {
+  const [scheme, saltB64, hashB64] = stored.split("$");
+  if (scheme !== "scrypt" || !saltB64 || !hashB64) return false;
+  const expected = Buffer.from(hashB64, "base64");
+  const actual = await scrypt(password, Buffer.from(saltB64, "base64"), expected.length);
+  return timingSafeEqual(actual, expected);
+}

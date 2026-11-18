@@ -5,6 +5,7 @@ import { treeKey } from "../../shared/foraging";
 import { ItemId } from "../../shared/items";
 import { joinWorld } from "./network";
 import { renderInventory, setHoverText, showMessage } from "./ui";
+import { showLogin } from "./login";
 
 const TILE_COLORS: Record<Tile, number> = {
   grass: 0x4a8f3c, path: 0xb89b6a, water: 0x2d6fa3, tree: 0x2e5e22, rock: 0x7d7d7d, bridge: 0x8b5a2b,
@@ -35,16 +36,8 @@ export class WorldScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE);
     renderInventory([], () => {});
 
-    const name = new URLSearchParams(location.search).get("name")
-      ?? prompt("Pick a name", "")?.trim() ?? "";
-
-    try {
-      this.room = await joinWorld(name);
-    } catch (err) {
-      this.hud.textContent = "Couldn't reach the game server. Is it running?";
-      console.error(err);
-      return;
-    }
+    this.hud.textContent = "Log in to play";
+    this.room = await showLogin(joinWorld);
 
     const room = this.room;
     room.onMessage("message", (text: string) => showMessage(text));
