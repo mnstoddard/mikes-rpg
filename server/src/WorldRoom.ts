@@ -4,13 +4,24 @@ import { MAP, MAP_HEIGHT, MAP_WIDTH, TICK_MS, isWalkable, randomSpawn } from "..
 import { findPath, Point } from "../../shared/pathfinding";
 import {
   RESOURCES, ROCK_EMPTY_CHANCE, ResourceId, TREE_FALL_CHANCE,
-  RESOURCE_IDS, fishAt, gatherChancePerTick, gatherSuccessChance, masteryIn, nodeAt, resourcesFor, sellPriceFor, treeKey,
+  fishAt, gatherChancePerTick, gatherSuccessChance, masteryIn, nodeAt, resourcesFor, treeKey,
 } from "../../shared/foraging";
-import { ItemMasteryXp, masteryLevelForXp, speedBonusPercent, valueBonusPercent } from "../../shared/mastery";
 import {
-  DISCIPLINES, DISCIPLINE_IDS, DisciplineId, DisciplineXp, SkillId, SkillXp, emptyDisciplines, emptySkills, findSkill,
-  levelForXp, xpForLevel,
+  ItemMasteryXp, MasteryId, masteryIn as masteryLevelIn, masteryLevelForXp, masterySuccess, percent,
+  speedBonusPercent, valueBonusPercent,
+} from "../../shared/mastery";
+import {
+  DISCIPLINES, DISCIPLINE_IDS, DisciplineId, DisciplineXp, GatherSkill, SkillId, SkillXp, emptyDisciplines,
+  emptySkills, findSkill, isCraftSkill, levelForXp, xpForLevel,
 } from "../../shared/disciplines";
+import {
+  ALL_MASTERY_IDS, Recipe, SHOP_STOCK, buyPriceFor, failXp, masteryName, recipeFor, recipeWear, sellPriceFor,
+  successFor,
+} from "../../shared/crafting";
+import {
+  Belt, METALS, TOOL_TYPES, TOOL_TYPE_IDS, TOOL_WARN_AT, ToolType, emptyBelt, isTool, maxDurability, parseTool,
+  toolBonus, toolForSkill, wearFor,
+} from "../../shared/tools";
 import { INVENTORY_SIZE, ITEMS, ItemId, LEGACY_ITEMS } from "../../shared/items";
 import { NPCS, NpcDef, npcById } from "../../shared/npcs";
 import { formatMoney } from "../../shared/money";
@@ -21,6 +32,7 @@ const AUTOSAVE_TICKS = 100; // 100 x 0.6s = once a minute
 const MIN_SAVE_GAP_MS = 10_000; // "important" saves happen right away, but at most every 10s per player
 const USERNAME_RE = /^[A-Za-z0-9][A-Za-z0-9 _-]{0,11}$/;
 const MIN_PASSWORD = 6;
+const CRAFT_TICKS = 3; // one smelt or smith every 3 ticks (1.8s); crafting is about success, not speed
 
 // Shared by every room on this server process.
 const online = new Set<string>(); // username keys currently logged in
@@ -32,7 +44,7 @@ export class Player extends Schema {
   @type("number") x = 0; // tile coordinates
   @type("number") y = 0;
   @type("number") color = 0xffffff;
-  @type("string") action = "idle"; // "idle" | "chopping" | "fishing" | "mining" (so others see the animation)
+  @type("string") action = "idle"; // "idle" | "chopping" | "fishing" | "mining" | "smelting" | "smithing" (so others see the animation)
   @type("number") faceX = 0; // tile the player is working on, for the animation
   @type("number") faceY = 0;
 
@@ -42,6 +54,10 @@ export class Player extends Schema {
   activity: SkillId | null = null; // what they'll do when they get there
   resource: ResourceId | null = null; // which type of tree / rock / fish
   inventory: (ItemId | null)[] = new Array(INVENTORY_SIZE).fill(null);
+  durability: (number | null)[] = new Array(INVENTORY_SIZE).fill(null); // per slot: uses left, for tools
+  belt: Belt = emptyBelt(); // equipped tools (don't use bag space)
+  crafting: { recipe: Recipe; remaining: number; station: NpcDef } | null = null; // smelting / smithing in progress
+  craftTimer = 0;
   disciplines: DisciplineXp = emptyDisciplines(); // XP per Discipline
   skillXp: SkillXp = emptySkills(); // XP per skill (Woodcutting level etc.)
   mastery: ItemMasteryXp = {}; // Mastery XP per type (Pine, Copper, Trout...)
@@ -150,9 +166,9 @@ export class WorldRoom extends Room<WorldState> {
       const item = p.inventory[msg.slot];
       if (!item) return;
       if (p.locked[msg.slot]) return this.say(client, `That ${ITEMS[item].single} is locked. Unlock it to sell it.`);
-      if (!this.nearMerchant(p)) return this.say(client, "You need to be next to the Merchant to sell.");
+      if (!this.nearNpc(p, "merchant")) return this.say(client, "You need to be next to the Merchant to sell.");
+      const price = sellPriceFor(item, p.mastery, p.durability[msg.slot]);
       p.inventory[msg.slot] = null;
-      const price = sellPriceFor(item, p.mastery);
       p.coins += price;
       this.sendInventory(client, p);
       this.say(client, `You sell 1 ${ITEMS[item].single} for ${formatMoney(price)}.`);
@@ -163,21 +179,106 @@ export class WorldRoom extends Room<WorldState> {
     this.onMessage("sellAll", (client) => {
       const p = this.state.players.get(client.sessionId);
       if (!p) return;
-      if (!this.nearMerchant(p)) return this.say(client, "You need to be next to the Merchant to sell.");
+      if (!this.nearNpc(p, "merchant")) return this.say(client, "You need to be next to the Merchant to sell.");
       let count = 0;
       let total = 0;
       for (let i = 0; i < INVENTORY_SIZE; i++) {
         const item = p.inventory[i];
         if (!item || p.locked[i]) continue;
+        total += sellPriceFor(item, p.mastery, p.durability[i]);
         p.inventory[i] = null;
         count++;
-        total += sellPriceFor(item, p.mastery);
       }
       if (!count) return this.say(client, "You have nothing to sell that isn't locked.");
       p.coins += total;
       this.sendInventory(client, p);
       this.say(client, `You sell ${count} item${count === 1 ? "" : "s"} for ${formatMoney(total)}.`);
       this.saveSoon(p);
+    });
+
+    // Buy from the Merchant (he has endless stock). Prices don't use your Mastery.
+    this.onMessage("buy", (client, msg: { item: string; count?: number }) => {
+      const p = this.state.players.get(client.sessionId);
+      const item = msg?.item as ItemId;
+      if (!p || !SHOP_STOCK.includes(item)) return;
+      if (!this.nearNpc(p, "merchant")) return this.say(client, "You need to be next to the Merchant to buy.");
+      const want = Math.max(1, Math.min(28, Math.floor(Number(msg.count) || 1)));
+      const price = buyPriceFor(item);
+      let bought = 0;
+      while (bought < want) {
+        const free = p.inventory.indexOf(null);
+        if (free === -1 || p.coins < price) break;
+        p.coins -= price;
+        this.place(p, free, item);
+        bought++;
+      }
+      if (!bought) {
+        return this.say(client, p.inventory.includes(null)
+          ? `You need ${formatMoney(price)} for a ${ITEMS[item].single}.` : "Your inventory is full.");
+      }
+      this.sendInventory(client, p);
+      this.say(client, `You buy ${bought} ${bought === 1 ? ITEMS[item].single : ITEMS[item].name.toLowerCase()} for ${formatMoney(price * bought)}.`);
+      this.saveSoon(p);
+    });
+
+    // Click a tool in your bag to put it on your tool belt (swapping out the one there).
+    this.onMessage("equip", (client, msg: { slot: number }) => {
+      const p = this.state.players.get(client.sessionId);
+      if (!p || !Number.isInteger(msg?.slot)) return;
+      const item = p.inventory[msg.slot];
+      if (!isTool(item)) return;
+      const type = parseTool(item).type;
+      const old = p.belt[type];
+      p.belt[type] = { item, durability: p.durability[msg.slot] ?? maxDurability(item) };
+      p.inventory[msg.slot] = null;
+      if (old) this.place(p, msg.slot, old.item, old.durability);
+      this.sendInventory(client, p);
+      this.say(client, `You put the ${ITEMS[item].single} on your belt: ${this.toolEffect(item)}.` +
+        (old ? ` Your ${ITEMS[old.item].single} goes in your bag.` : ""));
+      this.saveSoon(p);
+    });
+
+    // Click a tool on your belt to put it back in your bag.
+    this.onMessage("unequip", (client, msg: { type: string }) => {
+      const p = this.state.players.get(client.sessionId);
+      const type = msg?.type as ToolType;
+      if (!p || !TOOL_TYPE_IDS.includes(type) || !p.belt[type]) return;
+      const free = p.inventory.indexOf(null);
+      if (free === -1) return this.say(client, "Your inventory is full.");
+      const t = p.belt[type]!;
+      p.belt[type] = null;
+      this.place(p, free, t.item, t.durability);
+      this.sendInventory(client, p);
+      this.say(client, `You take the ${ITEMS[t.item].single} off your belt.`);
+      this.saveSoon(p);
+    });
+
+    // At the furnace or anvil: make one, or keep going until you run out.
+    this.onMessage("craft", (client, msg: { item: string; all?: boolean }) => {
+      const p = this.state.players.get(client.sessionId);
+      const recipe = p && recipeFor(msg?.item as ItemId);
+      if (!p || !recipe) return;
+      const station = NPCS.find((n) => n.id === (recipe.skill === "smelting" ? "furnace" : "anvil"))!;
+      if (!this.nearNpc(p, station.id)) return this.say(client, `You need to be next to the ${station.name.toLowerCase()}.`);
+      const { def } = findSkill(recipe.skill);
+      const level = levelForXp(p.skillXp[recipe.skill]);
+      if (level < recipe.level) {
+        return this.say(client, `You need ${def.name} level ${recipe.level} to make a ${ITEMS[recipe.output].single}. (You're level ${level}.)`);
+      }
+      const missing = this.missingInputs(p, recipe);
+      if (missing) return this.say(client, `You need ${missing} to make a ${ITEMS[recipe.output].single}.`);
+      this.stopActions(p);
+      p.crafting = { recipe, remaining: msg.all ? Infinity : 1, station };
+      p.target = { x: station.x, y: station.y };
+      p.activity = recipe.skill;
+      p.craftTimer = 0;
+      p.action = recipe.skill;
+      p.faceX = station.x;
+      p.faceY = station.y;
+      const chance = successFor(recipe, p.mastery, p.belt);
+      const tool = toolForSkill(recipe.skill)!;
+      this.say(client, `You start ${recipe.skill === "smelting" ? "smelting" : "making"} ${msg.all ? "" : "a "}${msg.all ? ITEMS[recipe.output].name.toLowerCase() : ITEMS[recipe.output].single}. ` +
+        `${percent(chance)} chance each.` + (p.belt[tool] ? "" : ` (No ${TOOL_TYPES[tool].name.toLowerCase()} on your belt: half the chance.)`));
     });
 
     // Lock or unlock one item (the one in this inventory slot).
@@ -197,7 +298,8 @@ export class WorldRoom extends Room<WorldState> {
       this.sendDisciplines(client, p);
       this.sendMastery(client, p);
       this.say(client, "Welcome! Chop trees for logs (fish from Foraging level 3, mine from level 5), then sell them to the Merchant.");
-      this.say(client, "Skill levels unlock better trees, rocks and fish. Mastery in each type makes you faster at it and makes it sell for more.");
+      this.say(client, "Tools on your belt make gathering faster; without one it's 3 times slower. The Merchant sells basic tools.");
+      this.say(client, "Smelt ore into bars at the furnace and make tools at the anvil, both next to the Merchant.");
     });
 
     this.onMessage("drop", (client, msg: { slot: number }) => {
@@ -221,7 +323,8 @@ export class WorldRoom extends Room<WorldState> {
     });
 
     this.state.players.forEach((p, sessionId) => {
-      if (!p.path.length && p.target) this.gatherTick(p, sessionId);
+      if (p.path.length || !p.target) return;
+      if (p.crafting) this.craftTick(p, sessionId); else this.gatherTick(p, sessionId);
     });
   }
 
@@ -286,31 +389,36 @@ export class WorldRoom extends Room<WorldState> {
 
     const res = RESOURCES[resource];
     const item = ITEMS[res.item];
+    const gather = skill as GatherSkill;
+    const tool = toolForSkill(skill)!;
+    const belt = p.belt[tool];
     const ACTIONS = { woodcutting: "chopping", fishing: "fishing", mining: "mining" } as const;
     const START = {
       woodcutting: `You swing at the ${res.node.toLowerCase()}.`,
       fishing: "You cast out your line...",
       mining: `You swing your pick at the ${res.node.toLowerCase()}.`,
     };
-    const action = ACTIONS[skill];
+    const action = ACTIONS[gather];
     if (p.action !== action) {
       p.action = action;
       p.faceX = t.x;
       p.faceY = t.y;
-      if (client) this.say(client, START[skill]);
+      if (client) {
+        this.say(client, START[gather] + (belt ? "" : ` You have no ${TOOL_TYPES[tool].name.toLowerCase()} on your belt, so it's 3 times slower. The Merchant sells them.`));
+      }
       return;
     }
 
     const mastery = masteryIn(p.mastery, resource);
-    if (Math.random() >= gatherChancePerTick(resource, mastery)) return;
+    if (Math.random() >= gatherChancePerTick(resource, mastery, belt ? toolBonus(belt.item) : null)) return;
     if (Math.random() >= gatherSuccessChance(resource, mastery)) {
       // Never happens yet (success is always 100%); here for harder types later.
       if (client) this.say(client, skill === "fishing" ? "Something bites, but it gets away." : "You don't manage to get anything.");
       return;
     }
 
-    p.inventory[free] = res.item;
-    p.locked[free] = false; // new items start unlocked
+    this.place(p, free, res.item);
+    this.wearTool(p, client, tool, wearFor(res.level));
     if (client) {
       this.sendInventory(client, p);
       const GOT = {
@@ -318,7 +426,7 @@ export class WorldRoom extends Room<WorldState> {
         mining: `You mine some ${item.name.toLowerCase()}.`,
         fishing: `You catch a ${item.single}!`,
       };
-      this.say(client, GOT[skill]);
+      this.say(client, GOT[gather]);
     }
     this.addXp(p, client, "foraging", res.xp);
     this.addMasteryXp(p, client, resource, res.xp);
@@ -337,16 +445,111 @@ export class WorldRoom extends Room<WorldState> {
     }
   }
 
+  /** One try at the furnace or anvil every few ticks: it works or it fails (losing the inputs). */
+  private craftTick(p: Player, sessionId: string) {
+    const client = this.clients.getById(sessionId);
+    const job = p.crafting!;
+    const { recipe, station } = job;
+    if (!this.nearNpc(p, station.id)) return this.stopActions(p);
+    if (++p.craftTimer < CRAFT_TICKS) return;
+    p.craftTimer = 0;
+
+    const missing = this.missingInputs(p, recipe);
+    if (missing) {
+      if (client) this.say(client, `You've run out: you need ${missing}.`);
+      return this.stopActions(p);
+    }
+    // Use the inputs (never locked ones).
+    let freed = -1;
+    for (const input of recipe.inputs) {
+      const slot = p.inventory.findIndex((it, i) => it === input && !p.locked[i]);
+      p.inventory[slot] = null;
+      if (freed === -1) freed = slot;
+    }
+    const output = ITEMS[recipe.output];
+    const chance = successFor(recipe, p.mastery, p.belt);
+    const worked = Math.random() < chance;
+    const xp = worked ? recipe.xp : failXp(recipe.xp);
+    if (worked) this.place(p, freed, recipe.output);
+    const tool = toolForSkill(recipe.skill)!;
+    this.wearTool(p, client, tool, recipeWear(recipe));
+    if (client) {
+      this.sendInventory(client, p);
+      if (worked) {
+        this.say(client, recipe.skill === "smelting" ? `You smelt a ${output.single}.` : `You make a ${output.single}!`);
+      } else {
+        this.say(client, recipe.skill === "smelting"
+          ? `The ore burns away. You fail to smelt a ${output.single}.`
+          : `You ruin the metal. You fail to make a ${output.single}.`);
+      }
+    }
+    this.addXp(p, client, "crafting", xp);
+    this.addMasteryXp(p, client, recipe.mastery, xp);
+    this.addSkillXp(p, client, recipe.skill, xp);
+    this.saveSoon(p);
+
+    if (--job.remaining <= 0) return this.stopActions(p);
+    const next = this.missingInputs(p, recipe);
+    if (next) {
+      if (client) this.say(client, `You've run out: you need ${next}.`);
+      this.stopActions(p);
+    }
+  }
+
+  /** "1 tin ore" if you're short of something for this recipe (locked items don't count), else null. */
+  private missingInputs(p: Player, recipe: Recipe): string | null {
+    const need = new Map<ItemId, number>();
+    for (const i of recipe.inputs) need.set(i, (need.get(i) ?? 0) + 1);
+    const short: string[] = [];
+    for (const [item, n] of need) {
+      const have = p.inventory.filter((it, i) => it === item && !p.locked[i]).length;
+      if (have < n) short.push(`${n - have} ${n - have === 1 ? ITEMS[item].single : ITEMS[item].name.toLowerCase()}`);
+    }
+    return short.length ? short.join(" and ") : null;
+  }
+
+  /** Put an item in a bag slot. Tools keep the uses they have left (new ones are full). */
+  private place(p: Player, slot: number, item: ItemId, durability?: number) {
+    p.inventory[slot] = item;
+    p.locked[slot] = false; // new items start unlocked
+    p.durability[slot] = isTool(item) ? durability ?? maxDurability(item) : null;
+  }
+
+  /** Each use wears the belt tool down. Warn at 10%; at 0 it breaks and is gone. */
+  private wearTool(p: Player, client: Client | undefined, type: ToolType, amount: number) {
+    const t = p.belt[type];
+    if (!t) return;
+    const max = maxDurability(t.item);
+    const before = t.durability;
+    t.durability = Math.max(0, t.durability - amount);
+    if (t.durability <= 0) {
+      p.belt[type] = null;
+      if (client) this.say(client, `Your ${ITEMS[t.item].single} breaks!`);
+    } else if (before > max * TOOL_WARN_AT && t.durability <= max * TOOL_WARN_AT) {
+      if (client) this.say(client, `Your ${ITEMS[t.item].single} is about to break (${t.durability} uses left).`);
+    }
+    if (client) client.send("belt", p.belt);
+  }
+
+  /** "+10% gathering speed, 150 uses" */
+  private toolEffect(item: ItemId) {
+    if (!isTool(item)) return "";
+    const { type } = parseTool(item);
+    const bonus = Math.round(toolBonus(item) * 100);
+    return TOOL_TYPES[type].helps === "speed" ? `+${bonus}% ${findSkill(TOOL_TYPES[type].skill).def.name} speed` : `${bonus}% fewer ${findSkill(TOOL_TYPES[type].skill).def.name} failures`;
+  }
+
   private openShop(client: Client, p: Player, npc: NpcDef) {
     p.faceX = npc.x;
     p.faceY = npc.y;
     this.say(client, `${npc.name}: ${npc.greeting}`);
-    client.send("shop", { npc: npc.id });
+    client.send(npc.kind === "station" ? "station" : "shop", { npc: npc.id });
   }
 
-  private nearMerchant(p: Player) {
-    const merchant = NPCS.find((n) => n.id === "merchant")!;
-    return Math.max(Math.abs(p.x - merchant.x), Math.abs(p.y - merchant.y)) <= 1;
+  /** Standing on one of the 8 tiles around the Merchant, furnace or anvil. */
+  private nearNpc(p: Player, id: string) {
+    const npc = NPCS.find((n) => n.id === id)!;
+    return Math.max(Math.abs(p.x - npc.x), Math.abs(p.y - npc.y)) <= 1;
   }
 
   private stopActions(p: Player) {
@@ -354,6 +557,7 @@ export class WorldRoom extends Room<WorldState> {
     p.activity = null;
     p.resource = null;
     p.talkTo = null;
+    p.crafting = null;
     p.action = "idle";
   }
 
@@ -402,23 +606,33 @@ export class WorldRoom extends Room<WorldState> {
     if (after > before) {
       const { def } = findSkill(skill);
       this.say(client, `Your ${def.name} level is now ${after}!`);
-      for (const id of resourcesFor(skill)) {
-        const r = RESOURCES[id];
-        if (r.level > before && r.level <= after) this.say(client, `You can now ${verbFor(id)}!`);
+      if (isCraftSkill(skill)) {
+        for (const m of Object.values(METALS)) {
+          if (m.level > before && m.level <= after) {
+            this.say(client, skill === "smelting" ? `You can now smelt ${m.name.toLowerCase()} bars!` : `You can now make ${m.name.toLowerCase()} tools!`);
+          }
+        }
+      } else {
+        for (const id of resourcesFor(skill)) {
+          const r = RESOURCES[id];
+          if (r.level > before && r.level <= after) this.say(client, `You can now ${verbFor(id)}!`);
+        }
       }
       client.send("skillup", { skill, level: after });
     }
   }
 
   /** Mastery in one type (no cap): faster at it, and it sells for more. */
-  private addMasteryXp(p: Player, client: Client | undefined, resource: ResourceId, xp: number) {
-    const before = masteryIn(p.mastery, resource);
-    p.mastery[resource] = (p.mastery[resource] ?? 0) + xp;
-    const after = masteryIn(p.mastery, resource);
+  private addMasteryXp(p: Player, client: Client | undefined, id: MasteryId, xp: number) {
+    const before = masteryLevelIn(p.mastery, id);
+    p.mastery[id] = (p.mastery[id] ?? 0) + xp;
+    const after = masteryLevelIn(p.mastery, id);
     if (!client || after <= before) return;
-    const name = ITEMS[RESOURCES[resource].item].name;
-    this.say(client, `${name} Mastery ${after}! ${speedBonusPercent(after)}% faster, sells for ${valueBonusPercent(after)}% more.`);
-    client.send("masteryup", { resource, level: after });
+    const crafted = !(id in RESOURCES);
+    this.say(client, `${masteryName(id)} Mastery ${after}! ` + (crafted
+      ? `${percent(masterySuccess(after))} base success, sells for ${valueBonusPercent(after)}% more.`
+      : `${speedBonusPercent(after)}% faster, sells for ${valueBonusPercent(after)}% more.`));
+    client.send("masteryup", { resource: id, level: after });
   }
 
   private sendDisciplines(client: Client, p: Player) {
@@ -438,6 +652,8 @@ export class WorldRoom extends Room<WorldState> {
   // The inventory goes only to its owner, not to every player.
   private sendInventory(client: Client, p: Player) {
     client.send("locks", p.locked);
+    client.send("durability", p.durability);
+    client.send("belt", p.belt);
     client.send("inventory", p.inventory);
     client.send("coins", p.coins);
   }
@@ -528,6 +744,17 @@ export class WorldRoom extends Room<WorldState> {
         let item = save.inventory[i];
         if (typeof item === "string" && item in LEGACY_ITEMS) item = LEGACY_ITEMS[item]; // logs -> pine logs, etc.
         p.inventory[i] = typeof item === "string" && item in ITEMS ? (item as ItemId) : null;
+        const it = p.inventory[i];
+        if (isTool(it)) {
+          const d = save.durability?.[i];
+          p.durability[i] = typeof d === "number" && d > 0 ? Math.min(Math.floor(d), maxDurability(it)) : maxDurability(it);
+        }
+      }
+    }
+    for (const type of TOOL_TYPE_IDS) {
+      const t = save.belt?.[type];
+      if (t && isTool(t.item) && parseTool(t.item).type === type && typeof t.durability === "number" && t.durability > 0) {
+        p.belt[type] = { item: t.item, durability: Math.min(Math.floor(t.durability), maxDurability(t.item)) };
       }
     }
     if (typeof save.coins === "number" && Number.isFinite(save.coins) && save.coins >= 0) p.coins = Math.floor(save.coins);
@@ -552,14 +779,14 @@ export class WorldRoom extends Room<WorldState> {
       }
     }
     if (save.skillXp) {
-      for (const id of RESOURCE_IDS) if (ok(save.mastery?.[id])) p.mastery[id] = Math.floor(save.mastery![id]);
+      for (const id of ALL_MASTERY_IDS) if (ok(save.mastery?.[id])) p.mastery[id] = Math.floor(save.mastery![id]);
     }
   }
 
   private snapshot(p: Player): SaveData {
     // Save where the player is heading, so walking off mid-path doesn't lose the move.
     const dest = p.path.length ? p.path[p.path.length - 1] : p;
-    return { x: dest.x, y: dest.y, inventory: [...p.inventory], coins: p.coins, skills: { ...p.disciplines }, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, lockedSlots: p.locked.flatMap((on, i) => (on && p.inventory[i] ? [i] : [])) };
+    return { x: dest.x, y: dest.y, inventory: [...p.inventory], coins: p.coins, skills: { ...p.disciplines }, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: [...p.durability], belt: { ...p.belt }, lockedSlots: p.locked.flatMap((on, i) => (on && p.inventory[i] ? [i] : [])) };
   }
 
   private async save(p: Player) {

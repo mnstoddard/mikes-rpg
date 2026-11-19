@@ -5,8 +5,10 @@
 // Discipline's level goes up. All XP from a Discipline's skills goes into the
 // Discipline. Shared so the client shows the same numbers the server uses.
 
-export type DisciplineId = "foraging";
-export type SkillId = "woodcutting" | "fishing" | "mining";
+export type DisciplineId = "foraging" | "crafting";
+export type GatherSkill = "woodcutting" | "fishing" | "mining";
+export type CraftSkill = "smelting" | "smithing";
+export type SkillId = GatherSkill | CraftSkill;
 
 export interface SkillDef {
   id: SkillId;
@@ -32,6 +34,14 @@ export const DISCIPLINES: Record<DisciplineId, DisciplineDef> = {
       { id: "woodcutting", name: "Woodcutting", icon: "🪓", unlockLevel: 1, description: "Click a tree to chop logs." },
       { id: "fishing", name: "Fishing", icon: "🎣", unlockLevel: 3, description: "Click the water's edge to fish." },
       { id: "mining", name: "Mining", icon: "⛏️", unlockLevel: 5, description: "Click a rock to mine ore." },
+    ],
+  },
+  crafting: {
+    name: "Crafting", icon: "⚒️",
+    description: "Making things from what you gather.",
+    skills: [
+      { id: "smelting", name: "Smelting", icon: "🔥", unlockLevel: 1, description: "Use the furnace by the Merchant to turn ore into bars." },
+      { id: "smithing", name: "Smithing", icon: "🔨", unlockLevel: 1, description: "Use the anvil by the Merchant to make tools from a bar and a log." },
     ],
   },
 };
@@ -68,5 +78,6 @@ export type DisciplineXp = Record<DisciplineId, number>;
 
 /** Each skill also has its own level (same curve, up to 99). It unlocks better types. */
 export type SkillXp = Record<SkillId, number>;
-export const emptySkills = (): SkillXp => ({ woodcutting: 0, fishing: 0, mining: 0 });
-export const emptyDisciplines = (): DisciplineXp => ({ foraging: 0 });
+export const emptySkills = (): SkillXp => ({ woodcutting: 0, fishing: 0, mining: 0, smelting: 0, smithing: 0 });
+export const emptyDisciplines = (): DisciplineXp => ({ foraging: 0, crafting: 0 });
+export const isCraftSkill = (skill: SkillId): skill is CraftSkill => skill === "smelting" || skill === "smithing";

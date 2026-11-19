@@ -1,5 +1,10 @@
 // Item definitions shared by server and client.
-export type ItemId =
+import {
+  ALL_TOOL_IDS, BAR_IDS, BarId, METALS, TOOL_TYPES, ToolItemId, WOODS, barId, metalOfBar, parseTool,
+} from "./tools";
+
+/** Things you gather. */
+export type BaseItemId =
   // Woodcutting
   | "pine_logs" | "oak_logs" | "birch_logs" | "maple_logs" | "yew_logs" | "ironwood_logs" | "elderwood_logs"
   // Mining
@@ -14,11 +19,19 @@ export interface ItemDef {
   icon: string; // emoji for now, swapped for pixel art later
   /** CSS filter that tints the emoji so similar items look different, e.g. oak vs pine logs. */
   tint?: string;
-  /** What the Merchant pays for one, in bronze coins. */
+  /** What the Merchant pays for one, in bronze coins (before Mastery). */
   sellPrice: number;
+  /** Crafted items: what goes into one. Its value is these inputs plus 25%. */
+  inputs?: ItemId[];
 }
 
-export const ITEMS: Record<ItemId, ItemDef> = {
+/** Bars (smelted from ore) and tools (smithed from a bar and a log). */
+export type ItemId = BaseItemId | BarId | ToolItemId;
+
+/** A crafted item is worth what goes into it, plus 25%. */
+export const CRAFT_MARKUP = 1.25;
+
+const BASE_ITEMS: Record<BaseItemId, ItemDef> = {
   pine_logs: { name: "Pine logs", single: "pine log", icon: "🪵", sellPrice: 1 },
   oak_logs: { name: "Oak logs", single: "oak log", icon: "🪵", tint: "sepia(.6) brightness(.85)", sellPrice: 3 },
   birch_logs: { name: "Birch logs", single: "birch log", icon: "🪵", tint: "grayscale(.8) brightness(1.5)", sellPrice: 5 },
@@ -45,6 +58,31 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   swordfish: { name: "Swordfish", single: "swordfish", icon: "🐬", tint: "hue-rotate(20deg) brightness(.9)", sellPrice: 70 },
   eel: { name: "Eel", single: "eel", icon: "🐍", tint: "hue-rotate(100deg) brightness(.75)", sellPrice: 120 },
 };
+
+export const ITEMS = { ...BASE_ITEMS } as Record<ItemId, ItemDef>;
+
+/** Value before rounding, so a tool's price isn't rounded twice. */
+function exactBase(item: ItemId): number {
+  const def = ITEMS[item];
+  return def.inputs ? def.inputs.reduce((sum, i) => sum + exactBase(i), 0) * CRAFT_MARKUP : def.sellPrice;
+}
+
+for (const bar of BAR_IDS) {
+  const metal = METALS[metalOfBar(bar)];
+  ITEMS[bar] = { name: `${metal.name} bar`, single: `${metal.name.toLowerCase()} bar`, icon: "🧈", tint: metal.tint, sellPrice: 0, inputs: metal.ores };
+  ITEMS[bar].sellPrice = Math.floor(exactBase(bar));
+}
+for (const tool of ALL_TOOL_IDS) {
+  const { type, metal, wood } = parseTool(tool);
+  const name = `${METALS[metal].name} ${TOOL_TYPES[type].name.toLowerCase()}`;
+  ITEMS[tool] = {
+    name: wood ? `${name} (${WOODS[wood].name})` : name,
+    single: wood ? `${name.toLowerCase()} (${WOODS[wood].name.toLowerCase()})` : name.toLowerCase(),
+    icon: TOOL_TYPES[type].icon, tint: METALS[metal].tint, sellPrice: 0,
+    inputs: wood ? [barId(metal), `${wood}_logs` as BaseItemId] : [barId(metal)],
+  };
+  ITEMS[tool].sellPrice = Math.floor(exactBase(tool));
+}
 
 /**
  * Items from before each skill had several types. Old saves turn them into

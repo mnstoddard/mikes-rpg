@@ -24,6 +24,8 @@ export interface SaveData {
   // Mastery XP per type, e.g. { pine: 300, oak: 12 }. (Saves from before skillXp
   // existed had Mastery per skill here instead, e.g. { woodcutting: 120 }.)
   mastery?: Record<string, number>;
+  durability?: (number | null)[]; // per inventory slot: uses left on a tool
+  belt?: Record<string, { item: string; durability: number } | null>; // tools on the belt, e.g. { axe: { item: "axe_bronze_pine", durability: 120 } }
   lockedSlots?: number[]; // inventory slots holding locked items, e.g. [0, 3], so Sell all skips them
   locked?: string[]; // old: item types that were locked; turned into lockedSlots when loaded
   // Add more here later (skills, bank, quests...). Stored as JSON, so no

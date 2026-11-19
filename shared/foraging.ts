@@ -2,8 +2,8 @@
 import { MAP, MAP_HEIGHT, MAP_NODES, MAP_WIDTH, TICK_MS, isWalkable } from "./map";
 import type { SkillId } from "./disciplines";
 import type { ItemId } from "./items";
-import { ItemMasteryXp, masteryLevelForXp, masterySpeed, masteryValue } from "./mastery";
-import { ITEMS } from "./items";
+import { ItemMasteryXp, masteryIn as masteryLevelIn, masterySpeed } from "./mastery";
+import { NO_TOOL_SLOWDOWN } from "./tools";
 
 export type ResourceId =
   | "pine" | "oak" | "birch" | "maple" | "yew" | "ironwood" | "elderwood"
@@ -65,12 +65,16 @@ export const RESOURCE_IDS = Object.keys(RESOURCES) as ResourceId[];
 export const resourcesFor = (skill: SkillId) =>
   RESOURCE_IDS.filter((id) => RESOURCES[id].skill === skill).sort((a, b) => RESOURCES[a].level - RESOURCES[b].level);
 
+/** How a tool changes gathering speed: 1.1 = 10% faster. No tool (null): 3 times slower. */
+export const toolSpeed = (toolBonus: number | null) => toolBonus === null ? 1 / NO_TOOL_SLOWDOWN : 1 + toolBonus;
+
 /**
  * Chance per tick (0.6s) of getting an item. Works out to `seconds` on average
- * at Mastery 1, and faster as your Mastery in this type goes up.
+ * at Mastery 1, and faster as your Mastery in this type goes up and with a
+ * better tool. With no tool for the job it's 3 times slower.
  */
-export function gatherChancePerTick(id: ResourceId, masteryLevel: number): number {
-  return Math.min(1, (TICK_MS / 1000) * masterySpeed(masteryLevel) / RESOURCES[id].seconds);
+export function gatherChancePerTick(id: ResourceId, masteryLevel: number, toolBonus: number | null): number {
+  return Math.min(1, (TICK_MS / 1000) * masterySpeed(masteryLevel) * toolSpeed(toolBonus) / RESOURCES[id].seconds);
 }
 
 /**
@@ -83,20 +87,10 @@ export function gatherSuccessChance(_id: ResourceId, _masteryLevel: number): num
 }
 
 /** Which type an item comes from (oak_logs -> oak). */
-export const RESOURCE_FOR_ITEM = Object.fromEntries(RESOURCE_IDS.map((id) => [RESOURCES[id].item, id])) as Record<ItemId, ResourceId>;
+export const RESOURCE_FOR_ITEM = Object.fromEntries(RESOURCE_IDS.map((id) => [RESOURCES[id].item, id])) as Partial<Record<ItemId, ResourceId>>;
 
 /** Your Mastery level in one type (Pine, Copper, Trout...). */
-export const masteryIn = (mastery: ItemMasteryXp, id: ResourceId) => masteryLevelForXp(mastery[id] ?? 0);
-
-/**
- * What the Merchant pays you for one item: its base price, raised by your
- * Mastery in that type, rounded down to whole bronze coins.
- */
-export function sellPriceFor(item: ItemId, mastery: ItemMasteryXp): number {
-  const id = RESOURCE_FOR_ITEM[item];
-  const base = ITEMS[item].sellPrice;
-  return id ? Math.floor(base * masteryValue(masteryIn(mastery, id))) : base;
-}
+export const masteryIn = (mastery: ItemMasteryXp, id: ResourceId) => masteryLevelIn(mastery, id);
 
 // ---- Trees and rocks ----
 

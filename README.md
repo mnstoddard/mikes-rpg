@@ -81,6 +81,60 @@ saved with your character.
 inventory and doesn't use a slot. It's stored as one number (total bronze) and
 saved with your character. Prices live in `shared/items.ts`, people in `shared/npcs.ts`.
 
+## Tools and the tool belt
+
+The **tool belt** sits above your bag (it doesn't use bag slots) and has one slot
+each for an 🪓 axe, ⛏️ pickaxe, 🎣 fishing rod, 🔨 hammer and 🗜️ tongs. Click a
+tool in your bag to put it on the belt (the one already there goes back in your
+bag); click a belt slot to take it off. Only the tool on the belt counts.
+
+- **Gathering tools** (axe, pickaxe, rod) make you faster. Without one, gathering
+  takes **3 times longer**. The metal and the handle's wood each add a bonus:
+  Bronze 5%, Iron 10%, Steel 15%, Mithril 25%; Pine 5%, Oak 7%, Birch 9%,
+  Maple 12%, Yew 15%, Ironwood 20%, Elderwood 25%. So a Bronze + Pine axe is
+  10% faster, a Mithril + Elderwood one 50% faster. Anyone can use any tool.
+- **Crafting tools**: the hammer helps Smithing, the tongs help Smelting. They
+  remove that share of your failures (a 10% hammer turns a 75% fail chance into
+  67.5%). Without one, your success chance is **cut in half**. Tongs have no
+  handle, so their metal counts twice.
+- **Wear:** every use costs a tool some of its uses: 1 for level 1-9 trees,
+  rocks, fish and recipes, up to 8 for level 70+. Uses: Bronze 150, Iron 300,
+  Steel 500, Mithril 900, times the wood (Pine x1 up to Elderwood x2.5; tongs
+  x1.5). You get a warning at 10% and the tool breaks at 0. No repairs yet.
+  A worn tool sells for its share of uses left.
+
+## Crafting: Smelting and Smithing
+
+**Crafting** is a second Discipline (unlocked from the start) with two skills.
+They're about **success, not speed**: each try takes 1.8 seconds and either
+works or fails. A failed try **loses the materials** and gives half the XP (at
+least 1). The window shows your chance before you start. Crafting never uses
+locked items.
+
+- 🔥 **Smelting** at the **furnace** (left of the Merchant): Bronze bar = copper
+  ore + tin ore (level 1), Iron bar = iron ore (15), Steel bar = iron ore + coal
+  (30), Mithril bar = mithril ore + coal (60).
+- 🔨 **Smithing** at the **anvil** (right of the Merchant): axe, pickaxe, rod and
+  hammer = 1 bar + 1 log; tongs = 1 bar. Metals unlock at Smithing 1 / 15 / 30 / 60.
+
+**Mastery** for crafting is per bar (Bronze bar...) and per kind of tool (all
+axes share one). Better materials give more XP. Success from Mastery: 25% at
+Mastery 1, about 50% at 10, 91% at 50, 99% at 100, and never 100%. Mastery
+also raises the selling price by 2% per level, like gathering.
+
+## Prices
+
+- A crafted item is worth what goes into it **plus 25%** (rounded down). When you
+  sell, your Mastery counts on every layer: your ore Mastery, your bar Mastery and
+  your tool Mastery all raise the price.
+- The Merchant sells basic tools (Bronze + Pine, Bronze tongs), all four bars,
+  and every log and ore, with endless stock. He charges **3 times** the base
+  price, and Mastery doesn't lower it, so buying to resell always loses.
+  Open the **Buy** tab in his window; tap an item to buy one, or **x5**.
+
+Rules live in `shared/tools.ts` (metals, woods, bonuses, uses), `shared/crafting.ts`
+(recipes, prices, success with your tool) and `shared/mastery.ts` (success curve).
+
 ## How it's laid out
 
 | Folder | What it is |
@@ -95,7 +149,10 @@ saved with your character. Prices live in `shared/items.ts`, people in `shared/n
 | `client/src/network.ts` | Connects to the game server |
 | `client/src/ui.ts` | Inventory panel, message box, hover text |
 | `shared/foraging.ts` | Chop chance, tree fall chance, regrow time |
-| `shared/items.ts` | Item list (just Logs for now) and inventory size |
+| `shared/items.ts` | Every item (gathered, bars, tools) and inventory size |
+| `shared/tools.ts` | Metals, woods, tool bonuses and how long tools last |
+| `shared/crafting.ts` | Recipes, success chances and prices |
+| `shared/npcs.ts` | The Merchant, furnace and anvil |
 
 To change the map, edit the text grid in `shared/map.ts`
 (`.` grass, `,` path, `~` water, `T` tree, `#` rock, `=` bridge) and restart.
