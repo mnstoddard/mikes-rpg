@@ -8,3 +8,6 @@ export const TREE_FALL_CHANCE = 1 / 4;
 export const TREE_RESPAWN_TICKS = 50;
 
 export const treeKey = (x: number, y: number) => `${x},${y}`;
+
+/** Foraging XP for each log you get. */
+export const XP_PER_LOG = 1;

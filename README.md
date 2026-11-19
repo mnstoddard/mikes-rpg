@@ -20,14 +20,16 @@ like `http://192.168.1.20:5173`; open that on their device.
 
 - **Walk / chop:** click or tap a tile or a tree.
 - **Zoom:** pinch with two fingers, scroll the mouse wheel, or use the + / − buttons (top right). Your zoom is remembered.
-- **Phones:** the inventory hides behind the 🎒 button (bottom right) so it doesn't cover the map.
+- **Skills / Inventory:** the 📊 and 🎒 buttons (bottom right) open each panel; tap again to close. On phones both start closed so they don't cover the map.
 
 ## Foraging (gathering skill)
 
 Click a tree to walk next to it and start chopping. Every tick (0.6s) you have
 a chance to get logs, which go into your 28-slot inventory (bottom right).
 After each log there's a chance the tree falls and becomes a stump, which grows
-back after 30 seconds. Click a log in your inventory to drop it. Moving stops
+back after 30 seconds. Each log gives 1 Foraging XP; the level curve is in
+`shared/skills.ts` (level 2 at 10 XP, level 10 at 521, level 99 at 38,389).
+XP is saved with your character. Click a log in your inventory to drop it. Moving stops
 chopping. The numbers live in `shared/foraging.ts` so they're easy to tune.
 
 ## Accounts and saving

@@ -4,7 +4,8 @@ import { MAP, MAP_HEIGHT, MAP_WIDTH, TICK_MS, TILE_SIZE, Tile, isWalkable } from
 import { treeKey } from "../../shared/foraging";
 import { ItemId } from "../../shared/items";
 import { joinWorld } from "./network";
-import { renderInventory, setHoverText, showMessage } from "./ui";
+import { flashSkill, renderInventory, renderSkills, setHoverText, showMessage } from "./ui";
+import { SKILLS, SkillId, SkillXp } from "../../shared/skills";
 import { showLogin } from "./login";
 
 const TILE_COLORS: Record<Tile, number> = {
@@ -35,6 +36,7 @@ export class WorldScene extends Phaser.Scene {
   private pinchStartDist = 0;
   private pinchStartZoom = 1;
   private gestureWasPinch = false;
+  private lastSkills?: SkillXp;
 
   constructor() { super("world"); }
 
@@ -53,13 +55,27 @@ export class WorldScene extends Phaser.Scene {
 
     const room = this.room;
     room.onMessage("message", (text: string) => showMessage(text));
+    room.onMessage("skills", (skills: SkillXp) => {
+      // Floating "+1 XP" over your head whenever you earn XP.
+      if (this.lastSkills) {
+        for (const id of Object.keys(skills) as SkillId[]) {
+          const gained = skills[id] - (this.lastSkills[id] ?? 0);
+          if (gained > 0) this.floatText(`+${gained} ${SKILLS[id].name} XP`, "#9be28a");
+        }
+      }
+      this.lastSkills = skills;
+      renderSkills(skills);
+    });
+    room.onMessage("levelup", (msg: { skill: SkillId; level: number }) => this.celebrateLevelUp(msg.skill));
     room.onMessage("inventory", (items: (ItemId | null)[]) =>
       renderInventory(items, (slot) => room.send("drop", { slot })));
     this.listenToState(room);
     room.send("ready");
 
-    // Act on release, not press, so a pinch or a wobbly finger isn't read as a tap.
-    this.input.on("pointerup", (p: Phaser.Input.Pointer) => this.onPointerUp(p));
+    // A mouse click acts the moment you press. A finger acts on release, so a
+    // pinch or a wobbly finger isn't read as a tap.
+    this.input.on("pointerdown", (p: Phaser.Input.Pointer) => { if (!p.wasTouch && p.leftButtonDown()) this.onClick(p); });
+    this.input.on("pointerup", (p: Phaser.Input.Pointer) => { if (p.wasTouch) this.onPointerUp(p); });
     this.input.on("pointermove", (p: Phaser.Input.Pointer) => { if (!p.wasTouch) this.onHover(p); });
     this.input.on("gameout", () => setHoverText(null));
     room.onLeave(() => { this.hud.textContent = "Disconnected from server."; });
@@ -217,6 +233,30 @@ export class WorldScene extends Phaser.Scene {
     const moved = Phaser.Math.Distance.Between(pointer.downX, pointer.downY, pointer.upX, pointer.upY);
     if (moved > TAP_SLOP) return;
     this.onClick(pointer);
+  }
+
+  /** Text that floats up from your character and fades, e.g. "+1 Foraging XP". */
+  private floatText(text: string, color: string, big = false) {
+    const me = this.room && this.players.get(this.room.sessionId);
+    if (!me) return;
+    const t = this.add.text(me.container.x, me.container.y - 34, text, {
+      fontSize: big ? "18px" : "13px", color, stroke: "#000", strokeThickness: big ? 4 : 3, fontStyle: big ? "bold" : "",
+    }).setOrigin(0.5).setDepth(1000);
+    this.tweens.add({
+      targets: t, y: t.y - (big ? 50 : 32), alpha: 0, duration: big ? 2500 : 1400, ease: "Cubic.easeOut",
+      onComplete: () => t.destroy(),
+    });
+  }
+
+  private celebrateLevelUp(skill: SkillId) {
+    this.time.delayedCall(350, () => this.floatText(`${SKILLS[skill].name} level up!`, "#ffd84a", true));
+    flashSkill(skill);
+    const me = this.room && this.players.get(this.room.sessionId);
+    if (me) {
+      // A ring of light around you.
+      const ring = this.add.circle(me.container.x, me.container.y, 12).setStrokeStyle(3, 0xffd84a).setDepth(999);
+      this.tweens.add({ targets: ring, scale: 3.5, alpha: 0, duration: 900, onComplete: () => ring.destroy() });
+    }
   }
 
   private isStandingTree(x: number, y: number) {

@@ -2,10 +2,12 @@ import { Room, Client, ServerError } from "colyseus";
 import { MapSchema, Schema, type } from "@colyseus/schema";
 import { MAP, MAP_HEIGHT, MAP_WIDTH, TICK_MS, isWalkable, randomSpawn } from "../../shared/map";
 import { findPath, Point } from "../../shared/pathfinding";
-import { CHOP_SUCCESS_CHANCE, TREE_FALL_CHANCE, TREE_RESPAWN_TICKS, treeKey } from "../../shared/foraging";
+import { CHOP_SUCCESS_CHANCE, TREE_FALL_CHANCE, TREE_RESPAWN_TICKS, XP_PER_LOG, treeKey } from "../../shared/foraging";
+import { SKILLS, SKILL_IDS, SkillId, SkillXp, emptySkills, levelForXp } from "../../shared/skills";
 import { INVENTORY_SIZE, ITEMS, ItemId } from "../../shared/items";
 import { Account, SaveData, checkPassword, hashPassword, store, usernameKey } from "./storage";
 
+const STEP_LOOP_MS = 50; // how often the server checks whether someone should take a step
 const AUTOSAVE_TICKS = 100; // 100 x 0.6s = once a minute
 const MIN_SAVE_GAP_MS = 10_000; // "important" saves happen right away, but at most every 10s per player
 const USERNAME_RE = /^[A-Za-z0-9][A-Za-z0-9 _-]{0,11}$/;
@@ -29,6 +31,8 @@ export class Player extends Schema {
   path: Point[] = [];
   target: Point | null = null; // tree the player is heading to / chopping
   inventory: (ItemId | null)[] = new Array(INVENTORY_SIZE).fill(null);
+  skills: SkillXp = emptySkills();
+  nextStepAt = 0; // time (ms) this player may take their next step
   dirty = false; // something changed since the last save
   lastSavedAt = 0;
 }
@@ -51,9 +55,20 @@ export class WorldRoom extends Room<WorldState> {
   state = new WorldState();
 
   onCreate() {
-    // Don't stream state on every change; only once per game tick.
-    this.setPatchRate(TICK_MS);
-    this.setSimulationInterval(() => this.gameTick(), TICK_MS);
+    // Walking runs on each player's own 600ms step timer, so a click starts you
+    // moving right away instead of waiting for the next world tick. Everything
+    // else (chopping, trees growing back, saving) runs on the 600ms world tick.
+    // State is sent out every 50ms so clients see changes as soon as they happen.
+    this.setPatchRate(STEP_LOOP_MS);
+    let sinceTick = 0;
+    this.setSimulationInterval((dt) => {
+      this.stepPlayers();
+      sinceTick += dt;
+      if (sinceTick >= TICK_MS) {
+        sinceTick -= TICK_MS;
+        this.gameTick();
+      }
+    }, STEP_LOOP_MS);
 
     // Clients only send intent; the server decides what actually happens.
     this.onMessage("move", (client, msg: { x: number; y: number }) => {
@@ -83,6 +98,7 @@ export class WorldRoom extends Room<WorldState> {
       const p = this.state.players.get(client.sessionId);
       if (!p) return;
       this.sendInventory(client, p);
+      this.sendSkills(client, p);
       this.say(client, "Welcome! Click a tree to chop it for logs.");
     });
 
@@ -105,10 +121,21 @@ export class WorldRoom extends Room<WorldState> {
     });
 
     this.state.players.forEach((p, sessionId) => {
-      // Walking speed: one tile per tick.
-      const next = p.path.shift();
-      if (next) { p.x = next.x; p.y = next.y; p.dirty = true; return; }
-      if (p.target) this.chopTick(p, sessionId);
+      if (!p.path.length && p.target) this.chopTick(p, sessionId);
+    });
+  }
+
+  /** Walking speed: one tile per 600ms, timed per player. */
+  private stepPlayers() {
+    const now = Date.now();
+    this.state.players.forEach((p) => {
+      if (!p.path.length || now < p.nextStepAt) return;
+      const next = p.path.shift()!;
+      p.x = next.x;
+      p.y = next.y;
+      p.dirty = true;
+      // Keep a steady pace; if they'd been standing still, start the clock from now.
+      p.nextStepAt = Math.max(p.nextStepAt + TICK_MS, now + TICK_MS - STEP_LOOP_MS);
     });
   }
 
@@ -135,11 +162,12 @@ export class WorldRoom extends Room<WorldState> {
     if (Math.random() >= CHOP_SUCCESS_CHANCE) return;
 
     p.inventory[free] = "logs";
-    this.saveSoon(p);
     if (client) {
       this.sendInventory(client, p);
       this.say(client, `You get some ${ITEMS.logs.name.toLowerCase()}.`);
     }
+    this.addXp(p, client, "foraging", XP_PER_LOG);
+    this.saveSoon(p);
     if (Math.random() < TREE_FALL_CHANCE) {
       this.state.stumps.set(treeKey(t.x, t.y), this.state.tick + TREE_RESPAWN_TICKS);
       if (client) this.say(client, "The tree falls down.");
@@ -170,6 +198,22 @@ export class WorldRoom extends Room<WorldState> {
       if (path.length && (!best.length || path.length < best.length)) best = path;
     }
     return best;
+  }
+
+  private addXp(p: Player, client: Client | undefined, skill: SkillId, xp: number) {
+    const before = levelForXp(p.skills[skill]);
+    p.skills[skill] += xp;
+    const after = levelForXp(p.skills[skill]);
+    if (!client) return;
+    this.sendSkills(client, p);
+    if (after > before) {
+      this.say(client, `Congratulations, you just advanced a ${SKILLS[skill].name} level! You are now level ${after}.`);
+      client.send("levelup", { skill, level: after });
+    }
+  }
+
+  private sendSkills(client: Client, p: Player) {
+    client.send("skills", p.skills);
   }
 
   private say(client: Client, text: string) {
@@ -268,12 +312,16 @@ export class WorldRoom extends Room<WorldState> {
         p.inventory[i] = typeof item === "string" && item in ITEMS ? (item as ItemId) : null;
       }
     }
+    for (const id of SKILL_IDS) {
+      const xp = save.skills?.[id];
+      if (typeof xp === "number" && Number.isFinite(xp) && xp >= 0) p.skills[id] = Math.floor(xp);
+    }
   }
 
   private snapshot(p: Player): SaveData {
     // Save where the player is heading, so walking off mid-path doesn't lose the move.
     const dest = p.path.length ? p.path[p.path.length - 1] : p;
-    return { x: dest.x, y: dest.y, inventory: [...p.inventory] };
+    return { x: dest.x, y: dest.y, inventory: [...p.inventory], skills: { ...p.skills } };
   }
 
   private async save(p: Player) {
