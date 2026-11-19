@@ -3,11 +3,15 @@ export type ItemId = "logs";
 
 export interface ItemDef {
   name: string;
+  /** Name for just one, e.g. "log". */
+  single: string;
   icon: string; // emoji for now, swapped for pixel art later
+  /** What the Merchant pays for one, in bronze coins. */
+  sellPrice: number;
 }
 
 export const ITEMS: Record<ItemId, ItemDef> = {
-  logs: { name: "Logs", icon: "🪵" },
+  logs: { name: "Logs", single: "log", icon: "🪵", sellPrice: 1 },
 };
 
 export const INVENTORY_SIZE = 28;

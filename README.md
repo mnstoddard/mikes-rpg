@@ -45,6 +45,14 @@ Where saves go:
 - **On Render:** set the `DATABASE_URL` environment variable to your Neon Postgres
   connection string. The `accounts` table is created automatically on first start.
 
+## Merchant and money
+
+The Merchant (purple, on the road near the middle of the map) buys logs for
+1 bronze coin each: click him to open his shop, then Sell 1 or Sell all.
+100 bronze = 1 silver, 100 silver = 1 gold. Money shows at the bottom of the
+inventory and doesn't use a slot. It's stored as one number (total bronze) and
+saved with your character. Prices live in `shared/items.ts`, people in `shared/npcs.ts`.
+
 ## How it's laid out
 
 | Folder | What it is |

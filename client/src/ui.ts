@@ -1,4 +1,5 @@
 import { INVENTORY_SIZE, ITEMS, ItemId } from "../../shared/items";
+import { formatMoney, toPurse } from "../../shared/money";
 import { MAX_LEVEL, SKILLS, SKILL_IDS, SkillId, SkillXp, emptySkills, levelForXp, xpForLevel } from "../../shared/skills";
 
 const MAX_MESSAGES = 6;
@@ -97,6 +98,71 @@ export function renderInventory(items: (ItemId | null)[], onDrop: (slot: number)
     slotsEl.appendChild(slot);
   }
 }
+
+// ---- Money: shown under the inventory, doesn't use a slot ----
+
+const moneyEl = document.getElementById("money")!;
+
+export function renderCoins(totalBronze: number) {
+  const purse = toPurse(totalBronze);
+  moneyEl.replaceChildren();
+  moneyEl.title = formatMoney(totalBronze);
+  for (const kind of ["gold", "silver", "bronze"] as const) {
+    const span = document.createElement("span");
+    const coin = document.createElement("i");
+    coin.className = `coin ${kind}`;
+    span.append(coin, String(purse[kind]));
+    span.title = `${purse[kind]} ${kind}`;
+    moneyEl.appendChild(span);
+  }
+}
+renderCoins(0);
+
+// ---- Shop window (the Merchant) ----
+
+const shopBody = document.getElementById("shop-body")!;
+const sellOneBtn = document.getElementById("shop-sell-1") as HTMLButtonElement;
+const sellAllBtn = document.getElementById("shop-sell-all") as HTMLButtonElement;
+let shopItems: (ItemId | null)[] = [];
+let onSell: (amount: number | "all") => void = () => {};
+
+export function openShop(sell: (amount: number | "all") => void) {
+  onSell = sell;
+  document.body.classList.add("shop-open");
+  renderShop();
+}
+
+export function closeShop() {
+  document.body.classList.remove("shop-open");
+}
+
+/** Called whenever the inventory changes, so the log count stays right. */
+export function setShopInventory(items: (ItemId | null)[]) {
+  shopItems = items;
+  renderShop();
+}
+
+function renderShop() {
+  const logs = shopItems.filter((i) => i === "logs").length;
+  const price = ITEMS.logs.sellPrice;
+  shopBody.replaceChildren();
+  const line1 = document.createElement("div");
+  line1.append("Logs sell for ");
+  const b = document.createElement("span");
+  b.className = "price";
+  b.textContent = `${formatMoney(price)} each`;
+  line1.append(b, ".");
+  const line2 = document.createElement("div");
+  line2.textContent = logs
+    ? `You have ${logs} ${logs === 1 ? "log" : "logs"} (worth ${formatMoney(logs * price)}).`
+    : "You don't have any logs. Go chop some trees!";
+  shopBody.append(line1, line2);
+  sellOneBtn.disabled = sellAllBtn.disabled = logs === 0;
+}
+
+sellOneBtn.onclick = () => onSell(1);
+sellAllBtn.onclick = () => onSell("all");
+document.getElementById("shop-close")!.onclick = closeShop;
 
 /** RuneScape-style "Action Target" text next to the cursor. */
 export function setHoverText(action: string | null, target = "", x = 0, y = 0) {

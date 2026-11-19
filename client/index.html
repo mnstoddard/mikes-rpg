@@ -41,6 +41,21 @@
     #login button:disabled { opacity: .6; cursor: default; }
     #zoom { position: fixed; top: calc(8px + env(safe-area-inset-top)); right: calc(8px + env(safe-area-inset-right)); display: flex; flex-direction: column; gap: 4px; }
     .btn { width: 40px; height: 40px; padding: 0; font-size: 22px; line-height: 1; color: #f2e6c9; cursor: pointer; position: static; touch-action: manipulation; }
+    #money { display: flex; justify-content: space-around; margin-top: 6px; padding: 5px 4px; background: rgba(0,0,0,.25); border-radius: 3px; font-size: 13px; color: #fff; }
+    #money span { display: inline-flex; align-items: center; gap: 4px; }
+    .coin { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(0,0,0,.6); box-shadow: inset -2px -2px 0 rgba(0,0,0,.25); }
+    .coin.gold { background: #f5c542; }
+    .coin.silver { background: #c9d1d9; }
+    .coin.bronze { background: #c07a3c; }
+    #shop { display: none; left: 50%; top: 22%; transform: translateX(-50%); /* above your character, so you can still see the Merchant */ width: min(300px, calc(100vw - 32px)); padding: 12px 14px; z-index: 5; text-align: center; }
+    body.shop-open #shop { display: block; }
+    #shop h3 { margin: 0 0 8px; font-size: 16px; color: #ffd84a; font-weight: normal; }
+    #shop-body { font-size: 14px; line-height: 1.5; color: #f2e6c9; margin-bottom: 10px; }
+    #shop-body .price { color: #fff; }
+    #shop .buttons { display: flex; gap: 6px; }
+    .shop-btn { flex: 1; font: inherit; font-size: 14px; padding: 9px 0; border: 1px solid #6b5a3e; border-radius: 3px; background: #5a4a2f; color: #fff; cursor: pointer; touch-action: manipulation; }
+    .shop-btn:hover:not(:disabled) { background: #6e5b3a; }
+    .shop-btn:disabled { opacity: .5; cursor: default; }
     #skills { width: 184px; }
     .skill { display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 2px 6px; padding: 6px; background: rgba(0,0,0,.25); border-radius: 3px; }
     .skill-icon { font-size: 24px; grid-row: span 2; text-align: center; }
@@ -80,7 +95,16 @@
   </div>
   <div id="hover"></div>
   <div id="messages" class="panel"></div>
-  <div id="inventory" class="panel sidepanel"><h3>Inventory</h3><div id="slots"></div></div>
+  <div id="inventory" class="panel sidepanel"><h3>Inventory</h3><div id="slots"></div><div id="money"></div></div>
+  <div id="shop" class="panel">
+    <h3 id="shop-title">Merchant</h3>
+    <div id="shop-body"></div>
+    <div class="buttons">
+      <button id="shop-sell-1" class="shop-btn">Sell 1</button>
+      <button id="shop-sell-all" class="shop-btn">Sell all</button>
+      <button id="shop-close" class="shop-btn">Close</button>
+    </div>
+  </div>
   <div id="skills" class="panel sidepanel"><h3>Skills</h3><div id="skill-list"></div></div>
   <div id="login">
     <form class="panel" autocomplete="on">

@@ -4,7 +4,8 @@ import { MAP, MAP_HEIGHT, MAP_WIDTH, TICK_MS, TILE_SIZE, Tile, isWalkable } from
 import { treeKey } from "../../shared/foraging";
 import { ItemId } from "../../shared/items";
 import { joinWorld } from "./network";
-import { flashSkill, renderInventory, renderSkills, setHoverText, showMessage } from "./ui";
+import { closeShop, flashSkill, openShop, renderCoins, renderInventory, renderSkills, setHoverText, setShopInventory, showMessage } from "./ui";
+import { NPCS, npcAt } from "../../shared/npcs";
 import { SKILLS, SkillId, SkillXp } from "../../shared/skills";
 import { showLogin } from "./login";
 
@@ -42,6 +43,7 @@ export class WorldScene extends Phaser.Scene {
 
   async create() {
     this.drawMap();
+    this.drawNpcs();
     this.marker = this.add.text(0, 0, "✕", { fontSize: "20px", color: "#ffeb3b" })
       .setOrigin(0.5).setDepth(500).setVisible(false);
     // No camera bounds: the camera stays centred on you, and past the map edge
@@ -67,8 +69,15 @@ export class WorldScene extends Phaser.Scene {
       renderSkills(skills);
     });
     room.onMessage("levelup", (msg: { skill: SkillId; level: number }) => this.celebrateLevelUp(msg.skill));
-    room.onMessage("inventory", (items: (ItemId | null)[]) =>
-      renderInventory(items, (slot) => room.send("drop", { slot })));
+    room.onMessage("inventory", (items: (ItemId | null)[]) => {
+      renderInventory(items, (slot) => room.send("drop", { slot }));
+      setShopInventory(items);
+    });
+    room.onMessage("coins", (coins: number) => renderCoins(coins));
+    room.onMessage("shop", () => {
+      this.marker.setVisible(false);
+      openShop((amount) => room.send("sell", { item: "logs", amount }));
+    });
     this.listenToState(room);
     room.send("ready");
 
@@ -101,6 +110,24 @@ export class WorldScene extends Phaser.Scene {
             .lineBetween(px, py + 22, px + TILE_SIZE, py + 22);
         }
       }
+    }
+  }
+
+  private drawNpcs() {
+    for (const npc of NPCS) {
+      const [cx, cy] = this.tileCenter(npc.x, npc.y);
+      const c = this.add.container(cx, cy).setDepth(10 + npc.y + 0.5);
+      const shadow = this.add.ellipse(0, 10, 20, 8, 0x000000, 0.3);
+      const body = this.add.circle(0, 0, 10, npc.color).setStrokeStyle(2, 0x000000);
+      const hat = this.add.graphics();
+      hat.fillStyle(0x3b2410).fillRect(-9, -12, 18, 3).fillRect(-6, -18, 12, 7);
+      const bag = this.add.text(11, 2, "💰", { fontSize: "13px" }).setOrigin(0.5);
+      const label = this.add.text(0, -28, npc.name, {
+        fontSize: "12px", color: "#7fe0ff", stroke: "#000", strokeThickness: 3,
+      }).setOrigin(0.5);
+      c.add([shadow, body, hat, bag, label]);
+      // A little idle bob so he looks alive.
+      this.tweens.add({ targets: [body, hat], y: "-=2", duration: 900, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
     }
   }
 
@@ -265,7 +292,11 @@ export class WorldScene extends Phaser.Scene {
 
   private onClick(pointer: Phaser.Input.Pointer) {
     const { x, y } = this.tileAt(pointer);
-    if (this.isStandingTree(x, y)) {
+    closeShop(); // clicking the map walks away from the shop
+    const npc = npcAt(x, y);
+    if (npc) {
+      this.room?.send("talk", { id: npc.id });
+    } else if (this.isStandingTree(x, y)) {
       this.room?.send("chop", { x, y });
     } else if (isWalkable(x, y)) {
       this.room?.send("move", { x, y });
@@ -278,7 +309,10 @@ export class WorldScene extends Phaser.Scene {
   private onHover(pointer: Phaser.Input.Pointer) {
     const { x, y } = this.tileAt(pointer);
     const key = treeKey(x, y);
-    if (this.isStandingTree(x, y)) {
+    const npc = npcAt(x, y);
+    if (npc) {
+      setHoverText("Talk-to", npc.name, pointer.x, pointer.y);
+    } else if (this.isStandingTree(x, y)) {
       setHoverText("Chop down", "Tree", pointer.x, pointer.y);
     } else if (this.trees.has(key)) {
       setHoverText("Examine", "Tree stump", pointer.x, pointer.y);
@@ -287,7 +321,7 @@ export class WorldScene extends Phaser.Scene {
     } else {
       setHoverText(null);
     }
-    this.input.setDefaultCursor(this.isStandingTree(x, y) ? "pointer" : "default");
+    this.input.setDefaultCursor(npc || this.isStandingTree(x, y) ? "pointer" : "default");
   }
 
   private tileCenter(x: number, y: number): [number, number] {
