@@ -2,8 +2,13 @@ import { Room, Client, ServerError } from "colyseus";
 import { MapSchema, Schema, type } from "@colyseus/schema";
 import { MAP, MAP_HEIGHT, MAP_WIDTH, TICK_MS, isWalkable, randomSpawn } from "../../shared/map";
 import { findPath, Point } from "../../shared/pathfinding";
-import { CHOP_SUCCESS_CHANCE, TREE_FALL_CHANCE, TREE_RESPAWN_TICKS, XP_PER_LOG, treeKey } from "../../shared/foraging";
-import { SKILLS, SKILL_IDS, SkillId, SkillXp, emptySkills, levelForXp } from "../../shared/skills";
+import {
+  CHOP_SUCCESS_CHANCE, FISH_SUCCESS_CHANCE, TREE_FALL_CHANCE, TREE_RESPAWN_TICKS, XP_PER_FISH, XP_PER_LOG,
+  isFishingSpot, treeKey,
+} from "../../shared/foraging";
+import {
+  DISCIPLINES, DISCIPLINE_IDS, DisciplineId, DisciplineXp, SkillId, emptyDisciplines, findSkill, levelForXp,
+} from "../../shared/disciplines";
 import { INVENTORY_SIZE, ITEMS, ItemId } from "../../shared/items";
 import { NPCS, NpcDef, npcById } from "../../shared/npcs";
 import { formatMoney } from "../../shared/money";
@@ -25,15 +30,16 @@ export class Player extends Schema {
   @type("number") x = 0; // tile coordinates
   @type("number") y = 0;
   @type("number") color = 0xffffff;
-  @type("string") action = "idle"; // "idle" | "chopping" (so others see the animation)
+  @type("string") action = "idle"; // "idle" | "chopping" | "fishing" (so others see the animation)
   @type("number") faceX = 0; // tile the player is working on, for the animation
   @type("number") faceY = 0;
 
   // Server-only (not synced to everyone):
   path: Point[] = [];
-  target: Point | null = null; // tree the player is heading to / chopping
+  target: Point | null = null; // tree or water the player is heading to / working on
+  activity: SkillId | null = null; // what they'll do when they get there
   inventory: (ItemId | null)[] = new Array(INVENTORY_SIZE).fill(null);
-  skills: SkillXp = emptySkills();
+  disciplines: DisciplineXp = emptyDisciplines(); // XP per Discipline
   coins = 0; // total money, in bronze coins
   talkTo: NpcDef | null = null; // person the player is walking over to talk to
   nextStepAt = 0; // time (ms) this player may take their next step
@@ -88,13 +94,14 @@ export class WorldRoom extends Room<WorldState> {
       if (!p || !Number.isInteger(msg?.x) || !Number.isInteger(msg?.y)) return;
       if (!isTree(msg.x, msg.y)) return;
       if (this.state.stumps.has(treeKey(msg.x, msg.y))) return this.say(client, "That tree has been cut down.");
-      this.stopActions(p);
-      p.target = { x: msg.x, y: msg.y };
-      p.path = this.pathNextTo(p, p.target);
-      if (!p.path.length && !this.isNextTo(p, p.target)) {
-        p.target = null;
-        this.say(client, "You can't reach that.");
-      }
+      this.startGathering(client, p, "woodcutting", { x: msg.x, y: msg.y });
+    });
+
+    this.onMessage("fish", (client, msg: { x: number; y: number }) => {
+      const p = this.state.players.get(client.sessionId);
+      if (!p || !Number.isInteger(msg?.x) || !Number.isInteger(msg?.y)) return;
+      if (!isFishingSpot(msg.x, msg.y)) return;
+      this.startGathering(client, p, "fishing", { x: msg.x, y: msg.y });
     });
 
     this.onMessage("talk", (client, msg: { id: string }) => {
@@ -111,26 +118,21 @@ export class WorldRoom extends Room<WorldState> {
       }
     });
 
-    this.onMessage("sell", (client, msg: { item: string; amount: number | "all" }) => {
+    // While the Merchant's shop is open, clicking an inventory item sells it.
+    this.onMessage("sell", (client, msg: { slot: number }) => {
       const p = this.state.players.get(client.sessionId);
-      if (!p || !(msg?.item in ITEMS)) return;
-      const item = msg.item as ItemId;
+      if (!p || !Number.isInteger(msg?.slot)) return;
+      const item = p.inventory[msg.slot];
+      if (!item) return;
       const merchant = NPCS.find((n) => n.id === "merchant")!;
       if (Math.max(Math.abs(p.x - merchant.x), Math.abs(p.y - merchant.y)) > 1) {
         return this.say(client, "You need to be next to the Merchant to sell.");
       }
-      const want = msg.amount === "all" ? INVENTORY_SIZE : Math.floor(Number(msg.amount));
-      if (!(want > 0)) return;
-      let sold = 0;
-      for (let i = 0; i < INVENTORY_SIZE && sold < want; i++) {
-        if (p.inventory[i] === item) { p.inventory[i] = null; sold++; }
-      }
-      if (!sold) return this.say(client, `You don't have any ${ITEMS[item].name.toLowerCase()} to sell.`);
-      const earned = sold * ITEMS[item].sellPrice;
-      p.coins += earned;
+      p.inventory[msg.slot] = null;
+      const price = ITEMS[item].sellPrice;
+      p.coins += price;
       this.sendInventory(client, p);
-      const what = sold === 1 ? ITEMS[item].single : ITEMS[item].name.toLowerCase();
-      this.say(client, `You sell ${sold} ${what} for ${formatMoney(earned)}.`);
+      this.say(client, `You sell 1 ${ITEMS[item].single} for ${formatMoney(price)}.`);
       this.saveSoon(p);
     });
 
@@ -139,8 +141,8 @@ export class WorldRoom extends Room<WorldState> {
       const p = this.state.players.get(client.sessionId);
       if (!p) return;
       this.sendInventory(client, p);
-      this.sendSkills(client, p);
-      this.say(client, "Welcome! Chop trees for logs, then sell them to the Merchant on the road.");
+      this.sendDisciplines(client, p);
+      this.say(client, "Welcome! Chop trees for logs (and fish, from Foraging level 3), then sell them to the Merchant.");
     });
 
     this.onMessage("drop", (client, msg: { slot: number }) => {
@@ -162,7 +164,7 @@ export class WorldRoom extends Room<WorldState> {
     });
 
     this.state.players.forEach((p, sessionId) => {
-      if (!p.path.length && p.target) this.chopTick(p, sessionId);
+      if (!p.path.length && p.target) this.gatherTick(p, sessionId);
     });
   }
 
@@ -186,32 +188,62 @@ export class WorldRoom extends Room<WorldState> {
     });
   }
 
-  private chopTick(p: Player, sessionId: string) {
+  /** Walk next to a tree or the water, then start working it on the next tick. */
+  private startGathering(client: Client, p: Player, skill: SkillId, target: Point) {
+    const { discipline, def } = findSkill(skill);
+    const level = levelForXp(p.disciplines[discipline]);
+    if (level < def.unlockLevel) {
+      return this.say(client, `You need ${DISCIPLINES[discipline].name} level ${def.unlockLevel} to use ${def.name}.`);
+    }
+    this.stopActions(p);
+    p.target = target;
+    p.activity = skill;
+    p.path = this.pathNextTo(p, target);
+    if (!p.path.length && !this.isNextTo(p, target)) {
+      this.stopActions(p);
+      this.say(client, "You can't reach that.");
+    }
+  }
+
+  private gatherTick(p: Player, sessionId: string) {
     const client = this.clients.getById(sessionId);
     const t = p.target!;
-    if (!this.isNextTo(p, t)) return this.stopActions(p);
-    if (this.state.stumps.has(treeKey(t.x, t.y))) return this.stopActions(p); // someone else felled it
+    const skill = p.activity;
+    if (!skill || !this.isNextTo(p, t)) return this.stopActions(p);
+    if (skill === "woodcutting" && this.state.stumps.has(treeKey(t.x, t.y))) return this.stopActions(p); // someone else felled it
 
     const free = p.inventory.indexOf(null);
     if (free === -1) {
-      if (client) this.say(client, "Your inventory is too full to hold any more logs.");
+      if (client) this.say(client, "Your inventory is full. Sell or drop something first.");
       return this.stopActions(p);
     }
 
-    if (p.action !== "chopping") {
-      p.action = "chopping";
+    const action = skill === "woodcutting" ? "chopping" : "fishing";
+    if (p.action !== action) {
+      p.action = action;
       p.faceX = t.x;
       p.faceY = t.y;
-      if (client) this.say(client, "You swing at the tree.");
+      if (client) this.say(client, skill === "woodcutting" ? "You swing at the tree." : "You cast out your line...");
+      return;
+    }
+
+    if (skill === "fishing") {
+      if (Math.random() >= FISH_SUCCESS_CHANCE) return;
+      p.inventory[free] = "fish";
+      if (client) {
+        this.sendInventory(client, p);
+        this.say(client, "You catch a fish!");
+      }
+      this.addXp(p, client, "foraging", XP_PER_FISH);
+      this.saveSoon(p);
       return;
     }
 
     if (Math.random() >= CHOP_SUCCESS_CHANCE) return;
-
     p.inventory[free] = "logs";
     if (client) {
       this.sendInventory(client, p);
-      this.say(client, `You get some ${ITEMS.logs.name.toLowerCase()}.`);
+      this.say(client, "You get some logs.");
     }
     this.addXp(p, client, "foraging", XP_PER_LOG);
     this.saveSoon(p);
@@ -220,7 +252,7 @@ export class WorldRoom extends Room<WorldState> {
       if (client) this.say(client, "The tree falls down.");
       // Everyone chopping this tree stops.
       this.state.players.forEach((other) => {
-        if (other.target && other.target.x === t.x && other.target.y === t.y) this.stopActions(other);
+        if (other.activity === "woodcutting" && other.target?.x === t.x && other.target?.y === t.y) this.stopActions(other);
       });
     }
   }
@@ -234,6 +266,7 @@ export class WorldRoom extends Room<WorldState> {
 
   private stopActions(p: Player) {
     p.target = null;
+    p.activity = null;
     p.talkTo = null;
     p.action = "idle";
   }
@@ -255,20 +288,26 @@ export class WorldRoom extends Room<WorldState> {
     return best;
   }
 
-  private addXp(p: Player, client: Client | undefined, skill: SkillId, xp: number) {
-    const before = levelForXp(p.skills[skill]);
-    p.skills[skill] += xp;
-    const after = levelForXp(p.skills[skill]);
+  private addXp(p: Player, client: Client | undefined, discipline: DisciplineId, xp: number) {
+    const before = levelForXp(p.disciplines[discipline]);
+    p.disciplines[discipline] += xp;
+    const after = levelForXp(p.disciplines[discipline]);
     if (!client) return;
-    this.sendSkills(client, p);
+    this.sendDisciplines(client, p);
     if (after > before) {
-      this.say(client, `Congratulations, you just advanced a ${SKILLS[skill].name} level! You are now level ${after}.`);
-      client.send("levelup", { skill, level: after });
+      const d = DISCIPLINES[discipline];
+      this.say(client, `Congratulations, you just advanced a ${d.name} level! You are now level ${after}.`);
+      for (const skill of d.skills) {
+        if (skill.unlockLevel > before && skill.unlockLevel <= after) {
+          this.say(client, `You've unlocked ${skill.name}! ${skill.description}`);
+        }
+      }
+      client.send("levelup", { discipline, level: after });
     }
   }
 
-  private sendSkills(client: Client, p: Player) {
-    client.send("skills", p.skills);
+  private sendDisciplines(client: Client, p: Player) {
+    client.send("disciplines", p.disciplines);
   }
 
   private say(client: Client, text: string) {
@@ -369,16 +408,17 @@ export class WorldRoom extends Room<WorldState> {
       }
     }
     if (typeof save.coins === "number" && Number.isFinite(save.coins) && save.coins >= 0) p.coins = Math.floor(save.coins);
-    for (const id of SKILL_IDS) {
+    // Saved under "skills" (its name before Disciplines existed), so old saves keep working.
+    for (const id of DISCIPLINE_IDS) {
       const xp = save.skills?.[id];
-      if (typeof xp === "number" && Number.isFinite(xp) && xp >= 0) p.skills[id] = Math.floor(xp);
+      if (typeof xp === "number" && Number.isFinite(xp) && xp >= 0) p.disciplines[id] = Math.floor(xp);
     }
   }
 
   private snapshot(p: Player): SaveData {
     // Save where the player is heading, so walking off mid-path doesn't lose the move.
     const dest = p.path.length ? p.path[p.path.length - 1] : p;
-    return { x: dest.x, y: dest.y, inventory: [...p.inventory], coins: p.coins, skills: { ...p.skills } };
+    return { x: dest.x, y: dest.y, inventory: [...p.inventory], coins: p.coins, skills: { ...p.disciplines } };
   }
 
   private async save(p: Player) {

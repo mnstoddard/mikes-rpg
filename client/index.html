@@ -56,7 +56,19 @@
     .shop-btn { flex: 1; font: inherit; font-size: 14px; padding: 9px 0; border: 1px solid #6b5a3e; border-radius: 3px; background: #5a4a2f; color: #fff; cursor: pointer; touch-action: manipulation; }
     .shop-btn:hover:not(:disabled) { background: #6e5b3a; }
     .shop-btn:disabled { opacity: .5; cursor: default; }
-    #skills { width: 184px; }
+    #skills { width: 200px; }
+    .subskills { margin-top: 6px; display: flex; flex-direction: column; gap: 3px; }
+    .subskill { display: flex; align-items: center; gap: 6px; font-size: 13px; padding: 4px 6px; background: rgba(0,0,0,.18); border-radius: 3px; color: #fff; }
+    .subskill .ss-icon { font-size: 17px; width: 22px; text-align: center; }
+    .subskill .ss-state { margin-left: auto; font-size: 12px; color: #9be28a; }
+    .subskill.locked { color: #8a8070; }
+    .subskill.locked .ss-icon { filter: grayscale(1); opacity: .6; }
+    .subskill.locked .ss-state { color: #c9a26b; }
+    #shop-prices { display: flex; justify-content: center; gap: 14px; margin: 6px 0; font-size: 14px; color: #fff; }
+    body.shop-open .slot.filled { outline: 1px solid #ffd84a; }
+    .slot { position: relative; }
+    .slot .price-tag { position: absolute; right: 2px; bottom: 0; font-size: 10px; color: #ffd84a; text-shadow: 1px 1px 0 #000; display: none; }
+    body.shop-open .slot .price-tag { display: block; }
     .skill { display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 2px 6px; padding: 6px; background: rgba(0,0,0,.25); border-radius: 3px; }
     .skill-icon { font-size: 24px; grid-row: span 2; text-align: center; }
     .skill-name { font-size: 14px; color: #fff; }
@@ -90,7 +102,7 @@
   <div id="hud" class="panel">Connecting…</div>
   <div id="zoom"><button id="zoom-in" class="panel btn" aria-label="Zoom in">+</button><button id="zoom-out" class="panel btn" aria-label="Zoom out">−</button></div>
   <div id="tabs">
-    <button class="panel btn tab" data-tab="skills" aria-label="Skills" title="Skills">📊</button>
+    <button class="panel btn tab" data-tab="skills" aria-label="Disciplines" title="Disciplines">📊</button>
     <button class="panel btn tab" data-tab="inventory" aria-label="Inventory" title="Inventory">🎒<span id="bag-count" class="tab-count"></span></button>
   </div>
   <div id="hover"></div>
@@ -100,12 +112,10 @@
     <h3 id="shop-title">Merchant</h3>
     <div id="shop-body"></div>
     <div class="buttons">
-      <button id="shop-sell-1" class="shop-btn">Sell 1</button>
-      <button id="shop-sell-all" class="shop-btn">Sell all</button>
       <button id="shop-close" class="shop-btn">Close</button>
     </div>
   </div>
-  <div id="skills" class="panel sidepanel"><h3>Skills</h3><div id="skill-list"></div></div>
+  <div id="skills" class="panel sidepanel"><h3>Disciplines</h3><div id="skill-list"></div></div>
   <div id="login">
     <form class="panel" autocomplete="on">
       <h2>Welcome</h2>
