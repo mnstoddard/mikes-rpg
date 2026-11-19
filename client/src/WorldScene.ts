@@ -32,6 +32,7 @@ export class WorldScene extends Phaser.Scene {
   private room?: Room;
   private players = new Map<string, PlayerView>();
   private trees = new Map<string, TreeView>();
+  private rocks = new Map<string, TreeView>(); // same idea: full rock, or emptied
   private marker!: Phaser.GameObjects.Text;
   private hud = document.getElementById("hud")!;
   // Touch gesture state
@@ -106,7 +107,7 @@ export class WorldScene extends Phaser.Scene {
         if (t === "tree") {
           this.trees.set(treeKey(x, y), this.makeTree(px, py, y));
         } else if (t === "rock") {
-          g.fillStyle(TILE_COLORS.rock).fillEllipse(px + 16, py + 18, 26, 20);
+          this.rocks.set(treeKey(x, y), this.makeRock(px, py, y));
         } else if (t === "bridge") {
           g.lineStyle(2, 0x5c3a1a).lineBetween(px, py + 10, px + TILE_SIZE, py + 10)
             .lineBetween(px, py + 22, px + TILE_SIZE, py + 22);
@@ -133,6 +134,18 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
+  /** A rock with orange ore flecks, and its emptied look (plain and smaller). */
+  private makeRock(px: number, py: number, row: number): TreeView {
+    const full = this.add.graphics({ x: px, y: py }).setDepth(10 + row);
+    full.fillStyle(TILE_COLORS.rock).fillEllipse(16, 18, 26, 20);
+    full.fillStyle(0x9a9a9a).fillEllipse(12, 14, 10, 6);
+    full.fillStyle(0xd9822b).fillCircle(10, 19, 2.5).fillCircle(19, 15, 2).fillCircle(21, 22, 2.5);
+    const empty = this.add.graphics({ x: px, y: py }).setDepth(10 + row).setVisible(false);
+    empty.fillStyle(0x6a6a6a).fillEllipse(16, 21, 22, 14);
+    empty.fillStyle(0x5a5a5a).fillEllipse(16, 22, 12, 6);
+    return { tree: full, stump: empty };
+  }
+
   private makeTree(px: number, py: number, row: number): TreeView {
     const tree = this.add.graphics({ x: px, y: py }).setDepth(10 + row);
     tree.fillStyle(0x5b3a1e).fillRect(13, 18, 6, 12);
@@ -145,7 +158,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private setStump(key: string, isStump: boolean) {
-    const t = this.trees.get(key);
+    const t = this.trees.get(key) ?? this.rocks.get(key);
     if (!t) return;
     t.tree.setVisible(!isStump);
     t.stump.setVisible(isStump);
@@ -154,8 +167,8 @@ export class WorldScene extends Phaser.Scene {
   private listenToState(room: Room) {
     const $ = getStateCallbacks(room);
 
-    $(room.state).stumps.onAdd((_respawnAt: number, key: string) => this.setStump(key, true));
-    $(room.state).stumps.onRemove((_respawnAt: number, key: string) => this.setStump(key, false));
+    $(room.state).depleted.onAdd((_respawnAt: number, key: string) => this.setStump(key, true));
+    $(room.state).depleted.onRemove((_respawnAt: number, key: string) => this.setStump(key, false));
 
     $(room.state).players.onAdd((player: any, sessionId: string) => {
       const isMe = sessionId === room.sessionId;
@@ -205,7 +218,7 @@ export class WorldScene extends Phaser.Scene {
     if (view === this.players.get(this.room?.sessionId ?? "")) this.marker.setVisible(false);
     const dx = Math.sign(player.faceX - player.x), dy = Math.sign(player.faceY - player.y);
 
-    if (action === "chopping") {
+    if (action === "chopping" || action === "mining") {
       view.chopTween = this.tweens.add({
         targets: view.body, x: dx * 6, y: dy * 6,
         duration: TICK_MS / 4, yoyo: true, hold: 30, repeatDelay: TICK_MS / 2 - 30, repeat: -1,
@@ -303,7 +316,11 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private isStandingTree(x: number, y: number) {
-    return this.trees.has(treeKey(x, y)) && !this.room?.state.stumps.has(treeKey(x, y));
+    return this.trees.has(treeKey(x, y)) && !this.room?.state.depleted.has(treeKey(x, y));
+  }
+
+  private isFullRock(x: number, y: number) {
+    return this.rocks.has(treeKey(x, y)) && !this.room?.state.depleted.has(treeKey(x, y));
   }
 
   private onClick(pointer: Phaser.Input.Pointer) {
@@ -314,6 +331,8 @@ export class WorldScene extends Phaser.Scene {
       this.room?.send("talk", { id: npc.id });
     } else if (this.isStandingTree(x, y)) {
       this.room?.send("chop", { x, y });
+    } else if (this.isFullRock(x, y)) {
+      this.room?.send("mine", { x, y });
     } else if (isFishingSpot(x, y)) {
       this.room?.send("fish", { x, y });
     } else if (isWalkable(x, y)) {
@@ -334,6 +353,10 @@ export class WorldScene extends Phaser.Scene {
       setHoverText("Chop down", "Tree", pointer.x, pointer.y);
     } else if (this.trees.has(key)) {
       setHoverText("Examine", "Tree stump", pointer.x, pointer.y);
+    } else if (this.isFullRock(x, y)) {
+      setHoverText("Mine", "Rock", pointer.x, pointer.y);
+    } else if (this.rocks.has(key)) {
+      setHoverText("Examine", "Empty rock", pointer.x, pointer.y);
     } else if (isFishingSpot(x, y)) {
       setHoverText("Fish", "Fishing spot", pointer.x, pointer.y);
     } else if (isWalkable(x, y)) {
@@ -341,7 +364,7 @@ export class WorldScene extends Phaser.Scene {
     } else {
       setHoverText(null);
     }
-    this.input.setDefaultCursor(npc || this.isStandingTree(x, y) || isFishingSpot(x, y) ? "pointer" : "default");
+    this.input.setDefaultCursor(npc || this.isStandingTree(x, y) || this.isFullRock(x, y) || isFishingSpot(x, y) ? "pointer" : "default");
   }
 
   private tileCenter(x: number, y: number): [number, number] {
