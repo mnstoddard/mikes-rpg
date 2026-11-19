@@ -5,6 +5,8 @@ import { findPath, Point } from "../../shared/pathfinding";
 import { CHOP_SUCCESS_CHANCE, TREE_FALL_CHANCE, TREE_RESPAWN_TICKS, XP_PER_LOG, treeKey } from "../../shared/foraging";
 import { SKILLS, SKILL_IDS, SkillId, SkillXp, emptySkills, levelForXp } from "../../shared/skills";
 import { INVENTORY_SIZE, ITEMS, ItemId } from "../../shared/items";
+import { NPCS, NpcDef, npcById } from "../../shared/npcs";
+import { formatMoney } from "../../shared/money";
 import { Account, SaveData, checkPassword, hashPassword, store, usernameKey } from "./storage";
 
 const STEP_LOOP_MS = 50; // how often the server checks whether someone should take a step
@@ -32,6 +34,8 @@ export class Player extends Schema {
   target: Point | null = null; // tree the player is heading to / chopping
   inventory: (ItemId | null)[] = new Array(INVENTORY_SIZE).fill(null);
   skills: SkillXp = emptySkills();
+  coins = 0; // total money, in bronze coins
+  talkTo: NpcDef | null = null; // person the player is walking over to talk to
   nextStepAt = 0; // time (ms) this player may take their next step
   dirty = false; // something changed since the last save
   lastSavedAt = 0;
@@ -93,13 +97,50 @@ export class WorldRoom extends Room<WorldState> {
       }
     });
 
+    this.onMessage("talk", (client, msg: { id: string }) => {
+      const p = this.state.players.get(client.sessionId);
+      const npc = npcById(String(msg?.id));
+      if (!p || !npc) return;
+      this.stopActions(p);
+      if (this.isNextTo(p, npc)) return this.openShop(client, p, npc);
+      p.talkTo = npc;
+      p.path = this.pathNextTo(p, npc);
+      if (!p.path.length) {
+        p.talkTo = null;
+        this.say(client, "You can't reach them.");
+      }
+    });
+
+    this.onMessage("sell", (client, msg: { item: string; amount: number | "all" }) => {
+      const p = this.state.players.get(client.sessionId);
+      if (!p || !(msg?.item in ITEMS)) return;
+      const item = msg.item as ItemId;
+      const merchant = NPCS.find((n) => n.id === "merchant")!;
+      if (Math.max(Math.abs(p.x - merchant.x), Math.abs(p.y - merchant.y)) > 1) {
+        return this.say(client, "You need to be next to the Merchant to sell.");
+      }
+      const want = msg.amount === "all" ? INVENTORY_SIZE : Math.floor(Number(msg.amount));
+      if (!(want > 0)) return;
+      let sold = 0;
+      for (let i = 0; i < INVENTORY_SIZE && sold < want; i++) {
+        if (p.inventory[i] === item) { p.inventory[i] = null; sold++; }
+      }
+      if (!sold) return this.say(client, `You don't have any ${ITEMS[item].name.toLowerCase()} to sell.`);
+      const earned = sold * ITEMS[item].sellPrice;
+      p.coins += earned;
+      this.sendInventory(client, p);
+      const what = sold === 1 ? ITEMS[item].single : ITEMS[item].name.toLowerCase();
+      this.say(client, `You sell ${sold} ${what} for ${formatMoney(earned)}.`);
+      this.saveSoon(p);
+    });
+
     // The client says it's ready once its message handlers are set up.
     this.onMessage("ready", (client) => {
       const p = this.state.players.get(client.sessionId);
       if (!p) return;
       this.sendInventory(client, p);
       this.sendSkills(client, p);
-      this.say(client, "Welcome! Click a tree to chop it for logs.");
+      this.say(client, "Welcome! Chop trees for logs, then sell them to the Merchant on the road.");
     });
 
     this.onMessage("drop", (client, msg: { slot: number }) => {
@@ -134,6 +175,12 @@ export class WorldRoom extends Room<WorldState> {
       p.x = next.x;
       p.y = next.y;
       p.dirty = true;
+      if (!p.path.length && p.talkTo) {
+        const npc = p.talkTo;
+        p.talkTo = null;
+        const client = this.clients.find((c) => this.state.players.get(c.sessionId) === p);
+        if (client && this.isNextTo(p, npc)) this.openShop(client, p, npc);
+      }
       // Keep a steady pace; if they'd been standing still, start the clock from now.
       p.nextStepAt = Math.max(p.nextStepAt + TICK_MS, now + TICK_MS - STEP_LOOP_MS);
     });
@@ -178,8 +225,16 @@ export class WorldRoom extends Room<WorldState> {
     }
   }
 
+  private openShop(client: Client, p: Player, npc: NpcDef) {
+    p.faceX = npc.x;
+    p.faceY = npc.y;
+    this.say(client, `${npc.name}: ${npc.greeting}`);
+    client.send("shop", { npc: npc.id });
+  }
+
   private stopActions(p: Player) {
     p.target = null;
+    p.talkTo = null;
     p.action = "idle";
   }
 
@@ -223,6 +278,7 @@ export class WorldRoom extends Room<WorldState> {
   // The inventory goes only to its owner, not to every player.
   private sendInventory(client: Client, p: Player) {
     client.send("inventory", p.inventory);
+    client.send("coins", p.coins);
   }
 
   // ---- Accounts ----
@@ -312,6 +368,7 @@ export class WorldRoom extends Room<WorldState> {
         p.inventory[i] = typeof item === "string" && item in ITEMS ? (item as ItemId) : null;
       }
     }
+    if (typeof save.coins === "number" && Number.isFinite(save.coins) && save.coins >= 0) p.coins = Math.floor(save.coins);
     for (const id of SKILL_IDS) {
       const xp = save.skills?.[id];
       if (typeof xp === "number" && Number.isFinite(xp) && xp >= 0) p.skills[id] = Math.floor(xp);
@@ -321,7 +378,7 @@ export class WorldRoom extends Room<WorldState> {
   private snapshot(p: Player): SaveData {
     // Save where the player is heading, so walking off mid-path doesn't lose the move.
     const dest = p.path.length ? p.path[p.path.length - 1] : p;
-    return { x: dest.x, y: dest.y, inventory: [...p.inventory], skills: { ...p.skills } };
+    return { x: dest.x, y: dest.y, inventory: [...p.inventory], coins: p.coins, skills: { ...p.skills } };
   }
 
   private async save(p: Player) {

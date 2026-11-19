@@ -1,3 +1,4 @@
+import { npcAt } from "./npcs";
 // The world map, shared by server (walkability, pathfinding) and client (drawing).
 // Legend:  . grass   , path   ~ water   T tree   # rock   = bridge
 // Later this gets replaced by maps drawn in the Tiled editor.
@@ -44,7 +45,7 @@ const BLOCKED: ReadonlySet<Tile> = new Set<Tile>(["water", "tree", "rock"]);
 
 export function isWalkable(x: number, y: number): boolean {
   if (y < 0 || y >= MAP_HEIGHT || x < 0 || x >= MAP_WIDTH) return false;
-  return !BLOCKED.has(MAP[y][x]);
+  return !BLOCKED.has(MAP[y][x]) && !npcAt(x, y);
 }
 
 export function randomSpawn(): { x: number; y: number } {
