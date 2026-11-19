@@ -1,12 +1,12 @@
 import Phaser from "phaser";
 import { getStateCallbacks, Room } from "colyseus.js";
 import { MAP, MAP_HEIGHT, MAP_WIDTH, TICK_MS, TILE_SIZE, Tile, isWalkable } from "../../shared/map";
-import { treeKey } from "../../shared/foraging";
+import { isFishingSpot, treeKey } from "../../shared/foraging";
 import { ItemId } from "../../shared/items";
 import { joinWorld } from "./network";
-import { closeShop, flashSkill, openShop, renderCoins, renderInventory, renderSkills, setHoverText, setShopInventory, showMessage } from "./ui";
+import { closeShop, flashDiscipline, openShop, renderCoins, renderDisciplines, renderInventory, setHoverText, setInventoryActions, showMessage } from "./ui";
 import { NPCS, npcAt } from "../../shared/npcs";
-import { SKILLS, SkillId, SkillXp } from "../../shared/skills";
+import { DISCIPLINES, DisciplineId, DisciplineXp } from "../../shared/disciplines";
 import { showLogin } from "./login";
 
 const TILE_COLORS: Record<Tile, number> = {
@@ -18,6 +18,7 @@ interface PlayerView {
   body: Phaser.GameObjects.Arc;
   tween?: Phaser.Tweens.Tween;
   chopTween?: Phaser.Tweens.Tween;
+  line?: Phaser.GameObjects.Container; // fishing line, while fishing
 }
 
 const MIN_ZOOM = 0.5;
@@ -37,7 +38,7 @@ export class WorldScene extends Phaser.Scene {
   private pinchStartDist = 0;
   private pinchStartZoom = 1;
   private gestureWasPinch = false;
-  private lastSkills?: SkillXp;
+  private lastDisciplines?: DisciplineXp;
 
   constructor() { super("world"); }
 
@@ -50,33 +51,34 @@ export class WorldScene extends Phaser.Scene {
     // the background is the same colour as the sea, so the island just floats.
     this.cameras.main.centerOn(MAP_WIDTH * TILE_SIZE / 2, MAP_HEIGHT * TILE_SIZE / 2);
     this.setupZoom();
-    renderInventory([], () => {});
+    renderInventory([]);
 
     this.hud.textContent = "Log in to play";
     this.room = await showLogin(joinWorld);
 
     const room = this.room;
     room.onMessage("message", (text: string) => showMessage(text));
-    room.onMessage("skills", (skills: SkillXp) => {
-      // Floating "+1 XP" over your head whenever you earn XP.
-      if (this.lastSkills) {
-        for (const id of Object.keys(skills) as SkillId[]) {
-          const gained = skills[id] - (this.lastSkills[id] ?? 0);
-          if (gained > 0) this.floatText(`+${gained} ${SKILLS[id].name} XP`, "#9be28a");
+    room.onMessage("disciplines", (disciplines: DisciplineXp) => {
+      // Floating "+1 Foraging XP" over your head whenever you earn XP.
+      if (this.lastDisciplines) {
+        for (const id of Object.keys(disciplines) as DisciplineId[]) {
+          const gained = disciplines[id] - (this.lastDisciplines[id] ?? 0);
+          if (gained > 0) this.floatText(`+${gained} ${DISCIPLINES[id].name} XP`, "#9be28a");
         }
       }
-      this.lastSkills = skills;
-      renderSkills(skills);
+      this.lastDisciplines = disciplines;
+      renderDisciplines(disciplines);
     });
-    room.onMessage("levelup", (msg: { skill: SkillId; level: number }) => this.celebrateLevelUp(msg.skill));
-    room.onMessage("inventory", (items: (ItemId | null)[]) => {
-      renderInventory(items, (slot) => room.send("drop", { slot }));
-      setShopInventory(items);
+    room.onMessage("levelup", (msg: { discipline: DisciplineId; level: number }) => this.celebrateLevelUp(msg.discipline));
+    setInventoryActions({
+      drop: (slot) => room.send("drop", { slot }),
+      sell: (slot) => room.send("sell", { slot }),
     });
+    room.onMessage("inventory", (items: (ItemId | null)[]) => renderInventory(items));
     room.onMessage("coins", (coins: number) => renderCoins(coins));
     room.onMessage("shop", () => {
       this.marker.setVisible(false);
-      openShop((amount) => room.send("sell", { item: "logs", amount }));
+      openShop();
     });
     this.listenToState(room);
     room.send("ready");
@@ -172,7 +174,7 @@ export class WorldScene extends Phaser.Scene {
       // Positions update once per server tick; glide to the new tile over one tick.
       $(player).listen("x", () => this.moveTo(view, player, isMe));
       $(player).listen("y", () => this.moveTo(view, player, isMe));
-      $(player).listen("action", (action: string) => this.setChopping(view, player, action === "chopping"));
+      $(player).listen("action", (action: string) => this.setAction(view, player, action));
       this.updateHud();
     });
 
@@ -192,20 +194,34 @@ export class WorldScene extends Phaser.Scene {
     if (isMe && this.marker.visible && this.marker.x === tx && this.marker.y === ty) this.marker.setVisible(false);
   }
 
-  /** Chopping animation: the player lunges toward the tree once per tick. */
-  private setChopping(view: PlayerView, player: any, chopping: boolean) {
+  /** Animations for what a player is doing: chopping (lunge at the tree) or fishing (line and bobber). */
+  private setAction(view: PlayerView, player: any, action: string) {
     view.chopTween?.stop();
     view.chopTween = undefined;
+    view.line?.destroy();
+    view.line = undefined;
     view.body.setPosition(0, 0);
-    if (!chopping) return;
-    this.marker.setVisible(false);
-    view.chopTween = this.tweens.add({
-      targets: view.body,
-      x: Math.sign(player.faceX - player.x) * 6,
-      y: Math.sign(player.faceY - player.y) * 6,
-      duration: TICK_MS / 4, yoyo: true, hold: 30, repeatDelay: TICK_MS / 2 - 30, repeat: -1,
-      ease: "Quad.easeOut",
-    });
+    if (action === "idle") return;
+    if (view === this.players.get(this.room?.sessionId ?? "")) this.marker.setVisible(false);
+    const dx = Math.sign(player.faceX - player.x), dy = Math.sign(player.faceY - player.y);
+
+    if (action === "chopping") {
+      view.chopTween = this.tweens.add({
+        targets: view.body, x: dx * 6, y: dy * 6,
+        duration: TICK_MS / 4, yoyo: true, hold: 30, repeatDelay: TICK_MS / 2 - 30, repeat: -1,
+        ease: "Quad.easeOut",
+      });
+    } else if (action === "fishing") {
+      // A line from the player out to a bobber on the water, bobbing gently.
+      const bx = dx * TILE_SIZE * 0.9, by = dy * TILE_SIZE * 0.9;
+      const line = this.add.container(0, 0);
+      const g = this.add.graphics().lineStyle(1, 0xffffff, 0.8).lineBetween(dx * 8, dy * 8 - 6, bx, by);
+      const bobber = this.add.circle(bx, by, 3, 0xff3b3b).setStrokeStyle(1, 0xffffff);
+      line.add([g, bobber]);
+      view.container.add(line);
+      view.line = line;
+      view.chopTween = this.tweens.add({ targets: bobber, y: by + 2, duration: 700, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+    }
   }
 
   private tileAt(pointer: Phaser.Input.Pointer) {
@@ -275,9 +291,9 @@ export class WorldScene extends Phaser.Scene {
     });
   }
 
-  private celebrateLevelUp(skill: SkillId) {
-    this.time.delayedCall(350, () => this.floatText(`${SKILLS[skill].name} level up!`, "#ffd84a", true));
-    flashSkill(skill);
+  private celebrateLevelUp(discipline: DisciplineId) {
+    this.time.delayedCall(350, () => this.floatText(`${DISCIPLINES[discipline].name} level up!`, "#ffd84a", true));
+    flashDiscipline(discipline);
     const me = this.room && this.players.get(this.room.sessionId);
     if (me) {
       // A ring of light around you.
@@ -298,6 +314,8 @@ export class WorldScene extends Phaser.Scene {
       this.room?.send("talk", { id: npc.id });
     } else if (this.isStandingTree(x, y)) {
       this.room?.send("chop", { x, y });
+    } else if (isFishingSpot(x, y)) {
+      this.room?.send("fish", { x, y });
     } else if (isWalkable(x, y)) {
       this.room?.send("move", { x, y });
     } else {
@@ -316,12 +334,14 @@ export class WorldScene extends Phaser.Scene {
       setHoverText("Chop down", "Tree", pointer.x, pointer.y);
     } else if (this.trees.has(key)) {
       setHoverText("Examine", "Tree stump", pointer.x, pointer.y);
+    } else if (isFishingSpot(x, y)) {
+      setHoverText("Fish", "Fishing spot", pointer.x, pointer.y);
     } else if (isWalkable(x, y)) {
       setHoverText("Walk here", "", pointer.x, pointer.y);
     } else {
       setHoverText(null);
     }
-    this.input.setDefaultCursor(npc || this.isStandingTree(x, y) ? "pointer" : "default");
+    this.input.setDefaultCursor(npc || this.isStandingTree(x, y) || isFishingSpot(x, y) ? "pointer" : "default");
   }
 
   private tileCenter(x: number, y: number): [number, number] {

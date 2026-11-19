@@ -13,7 +13,7 @@ export interface NpcDef {
 export const NPCS: NpcDef[] = [
   {
     id: "merchant", name: "Merchant", x: 16, y: 10, color: 0x8e44ad,
-    greeting: "Logs! I'll buy all the logs you've got, 1 bronze coin apiece.",
+    greeting: "I'll buy your logs and fish! Click anything in your bag to sell it.",
   },
 ];
 

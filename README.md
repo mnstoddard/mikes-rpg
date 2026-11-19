@@ -22,33 +22,27 @@ like `http://192.168.1.20:5173`; open that on their device.
 - **Zoom:** pinch with two fingers, scroll the mouse wheel, or use the + / − buttons (top right). Your zoom is remembered.
 - **Skills / Inventory:** the 📊 and 🎒 buttons (bottom right) open each panel; tap again to close. On phones both start closed so they don't cover the map.
 
-## Foraging (gathering skill)
+## Disciplines and skills
 
-Click a tree to walk next to it and start chopping. Every tick (0.6s) you have
-a chance to get logs, which go into your 28-slot inventory (bottom right).
-After each log there's a chance the tree falls and becomes a stump, which grows
-back after 30 seconds. Each log gives 1 Foraging XP; the level curve is in
-`shared/skills.ts` (level 2 at 10 XP, level 10 at 521, level 99 at 38,389).
-XP is saved with your character. Click a log in your inventory to drop it. Moving stops
-chopping. The numbers live in `shared/foraging.ts` so they're easy to tune.
+A **Discipline** is a broad area you level up; the **skills** inside it unlock
+as its level rises, and all their XP goes into the Discipline. Open the 📊 panel
+to see them. Defined in `shared/disciplines.ts` (level curve: level 2 at 10 XP,
+3 at 34, 10 at 521, 99 at 38,389). XP is saved with your character.
 
-## Accounts and saving
+**Foraging**
+- 🪓 **Woodcutting** (level 1): click a tree to walk next to it and chop. Each tick
+  (0.6s) has a 25% chance of logs (1 XP). After each log the tree may fall and
+  becomes a stump for 30 seconds.
+- 🎣 **Fishing** (level 3): click water next to the shore. Each tick has a 10%
+  chance of a fish (about 6s per catch, 2 XP).
 
-Players log in with a username and password. Passwords are never stored, only a
-salted scrypt hash. Your position and inventory are saved when you log out, about
-once a minute while you play, and within 10 seconds of gaining or losing an item.
-They come back when you log in again. One login per account at a time.
-
-Where saves go:
-- **On your computer:** if `DATABASE_URL` isn't set, accounts are kept in
-  `server/data/accounts.json` (not committed to git). Delete that file to start fresh.
-- **On Render:** set the `DATABASE_URL` environment variable to your Neon Postgres
-  connection string. The `accounts` table is created automatically on first start.
+Tuning numbers live in `shared/foraging.ts`. Click an item to drop it. Moving stops what you're doing.
 
 ## Merchant and money
 
-The Merchant (purple, on the road near the middle of the map) buys logs for
-1 bronze coin each: click him to open his shop, then Sell 1 or Sell all.
+The Merchant (purple, on the road near the middle of the map) buys
+logs (1 bronze) and fish (3 bronze): click him to open his shop, then click
+items in your inventory to sell them one at a time.
 100 bronze = 1 silver, 100 silver = 1 gold. Money shows at the bottom of the
 inventory and doesn't use a slot. It's stored as one number (total bronze) and
 saved with your character. Prices live in `shared/items.ts`, people in `shared/npcs.ts`.

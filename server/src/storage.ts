@@ -19,7 +19,7 @@ export interface SaveData {
   y?: number;
   inventory?: (string | null)[];
   coins?: number; // total money, in bronze coins
-  skills?: Record<string, number>; // XP per skill, e.g. { foraging: 42 }
+  skills?: Record<string, number>; // XP per Discipline, e.g. { foraging: 42 } (key kept from before Disciplines)
   // Add more here later (skills, bank, quests...). Stored as JSON, so no
   // database migration is needed for new fields.
 }
