@@ -1,6 +1,6 @@
 import { Room, Client, ServerError } from "colyseus";
 import { MapSchema, Schema, type } from "@colyseus/schema";
-import { MAP, MAP_HEIGHT, MAP_WIDTH, TICK_MS, isWalkable, randomSpawn } from "../../shared/map";
+import { MAP, MAP_HEIGHT, MAP_WIDTH, TICK_MS, isDanger, isWalkable, randomSpawn } from "../../shared/map";
 import { findPath, Point } from "../../shared/pathfinding";
 import {
   RESOURCES, RESOURCE_FOR_ITEM, ROCK_EMPTY_CHANCE, ResourceId, TREE_FALL_CHANCE,
@@ -15,19 +15,30 @@ import {
   emptySkills, findSkill, isCraftSkill, levelForXp, xpForLevel,
 } from "../../shared/disciplines";
 import {
-  ALL_MASTERY_IDS, Recipe, SHOP_STOCK, buyPriceFor, failXp, masteryName, recipeFor, recipeWear, sellPriceFor,
+  ALL_MASTERY_IDS, Recipe, SHOP_STOCK, buyPriceFor, failXp, gearDurability, masteryName, recipeFor, recipeWear, sellPriceFor,
   successFor,
 } from "../../shared/crafting";
+import {
+  AGGRO_RADIUS, ALL_COMBAT_MASTERY_IDS, ATTACK_STAMINA, Attack, CombatMasteryId, CombatMasteryXp, HEALTH_REGEN_MS, HEALTH_REGEN_TICKS,
+  LEASH_RADIUS, MANA_REGEN_TICKS, MONSTERS, MONSTER_SPAWNS, MonsterId, POTION_HEAL, POTION_ID, SPELLS, SPELL_IDS, SpellId, WANDER_RADIUS,
+  armorPoints, attackFor, gearEffect, combatMasteryIn, combatMasteryName, defenseXp, hitChance, masteryDrops, maxHealth, maxHitWith, maxMana,
+  monsterHitChance, tileDistance,
+} from "../../shared/combat";
+import {
+  ARMOR, CombatStyle, GEAR_SLOTS, Gear, GearSlot, SLOT_NAMES, WEAPONS, emptyGear, gearSlot, isArmor, isGear, isWeapon, parseArmor,
+  parseWeapon,
+} from "../../shared/gear";
 import {
   Belt, METALS, TOOL_TYPES, TOOL_TYPE_IDS, TOOL_WARN_AT, ToolType, emptyBelt, isTool, maxDurability, parseTool,
   toolBonus, toolForSkill, wearFor,
 } from "../../shared/tools";
 import { INVENTORY_SIZE, ITEMS, ItemId, LEGACY_ITEMS } from "../../shared/items";
 import { NPCS, NpcDef, npcById } from "../../shared/npcs";
+import { findSkill as skillInfo } from "../../shared/disciplines";
 import { formatMoney } from "../../shared/money";
 import { MAX_STAMINA, STAMINA_COST, STAMINA_REGEN_MS, FISH_IDS, foodStamina, isFood, isStew } from "../../shared/cooking";
 import {
-  BURN_UNTIL, GUIDE_NAME, Gift, QUESTS, isProtected, QuestProgress, QuestStep, QuestView, STEPS, giftItems, newQuestProgress, tutorialDone,
+  BURN_UNTIL, GUIDE_NAME, Gift, QUESTS, isProtected, QuestProgress, QuestStep, QuestView, STEPS, gateOpen, giftItems, newQuestProgress, tutorialDone,
 } from "../../shared/quests";
 import { Account, SAVE_VERSION, SaveData, checkPassword, hashPassword, store, usernameKey } from "./storage";
 
@@ -58,6 +69,8 @@ export class Player extends Schema {
   @type("string") action = "idle"; // "idle" | "chopping" | "fishing" | "mining" | "smelting" | "smithing" | "cooking" (so others see the animation)
   @type("number") faceX = 0; // tile the player is working on, for the animation
   @type("number") faceY = 0;
+  @type("number") hp = 50; // health (others see your health bar)
+  @type("number") maxHp = 50;
 
   // Server-only (not synced to everyone):
   path: Point[] = [];
@@ -79,12 +92,41 @@ export class Player extends Schema {
   talkTo: NpcDef | null = null; // person the player is walking over to talk to
   quest: QuestProgress = newQuestProgress(); // where they are in Old Maren's tutorial
   nextStepAt = 0; // time (ms) this player may take their next step
+  gear: Gear = emptyGear(); // weapon and armor being worn (don't use bag space)
+  mana = 50;
+  spell: SpellId = "fire_blast"; // the spell cast when holding a staff
+  combatMastery: CombatMasteryXp = {}; // Mastery XP per weapon type, spell and monster
+  fighting: string | null = null; // id of the monster being attacked
+  attackTimer = 0; // ticks since the last attack
+  healthTicks = 0; // ticks since health last came back on its own
+  manaTicks = 0;
   dirty = false; // something changed since the last save
   lastSavedAt = 0;
 }
 
+/** A monster in the world. Everyone sees where it is and its health. */
+export class Monster extends Schema {
+  @type("string") kind: MonsterId = "chicken";
+  @type("number") x = 0;
+  @type("number") y = 0;
+  @type("number") hp = 1;
+  @type("number") maxHp = 1;
+  @type("boolean") alive = true;
+  @type("string") status = ""; // "" | "asleep" | "frozen" | "fighting"
+
+  // Server-only:
+  homeX = 0;
+  homeY = 0;
+  target: string | null = null; // session id of the player it's after
+  attackTimer = 0;
+  respawnAt = 0; // tick it comes back, while defeated
+  sleepUntil = 0;
+  frozenUntil = 0;
+}
+
 export class WorldState extends Schema {
   @type({ map: Player }) players = new MapSchema<Player>();
+  @type({ map: Monster }) monsters = new MapSchema<Monster>();
   /** Chopped-down trees and emptied rocks: key "x,y" -> tick when it comes back. */
   @type({ map: "number" }) depleted = new MapSchema<number>();
   @type("number") tick = 0;
@@ -99,7 +141,9 @@ type QuestEvent =
   | { kind: "toolBreak"; tool: ToolType }
   | { kind: "craft"; item: ItemId; worked: boolean }
   | { kind: "eat"; item: ItemId }
-  | { kind: "sell"; item: ItemId };
+  | { kind: "sell"; item: ItemId }
+  | { kind: "kill"; monster: MonsterId; style: CombatStyle }
+  | { kind: "drink" };
 
 /** Where each crafting skill is done. */
 const STATION_FOR = { smelting: "furnace", smithing: "anvil", cooking: "stove" } as const;
@@ -110,7 +154,9 @@ const isTree = (x: number, y: number) =>
   y >= 0 && y < MAP_HEIGHT && x >= 0 && x < MAP_WIDTH && MAP[y][x] === "tree";
 
 /** "a bronze bar" / "an iron bar". */
-const aOr = (word: string) => `${/^[aeiou]/i.test(word) ? "an" : "a"} ${word}`;
+const aOr = (word: string) => /(tongs|platelegs|boots)\b/.test(word) ? `a pair of ${word}` : `${/^[aeiou]/i.test(word) ? "an" : "a"} ${word}`;
+/** "2 bronze bars", "3 health potions" (names already plural, like "Pine logs", stay as they are). */
+const plural = (name: string) => /[a-rt-z]$/i.test(name) ? `${name.toLowerCase()}s` : name.toLowerCase();
 
 /** "chop Oak trees", "mine Copper rocks", "fish at Trout spots": for messages. */
 function verbFor(id: ResourceId) {
@@ -139,6 +185,15 @@ export class WorldRoom extends Room<WorldState> {
         this.gameTick();
       }
     }, STEP_LOOP_MS);
+
+    MONSTER_SPAWNS.forEach(([kind, x, y], i) => {
+      const m = new Monster();
+      m.kind = kind;
+      m.x = m.homeX = x;
+      m.y = m.homeY = y;
+      m.hp = m.maxHp = MONSTERS[kind].hp;
+      this.state.monsters.set(`m${i}`, m);
+    });
 
     // Clients only send intent; the server decides what actually happens.
     this.onMessage("move", (client, msg: { x: number; y: number }) => {
@@ -366,6 +421,8 @@ export class WorldRoom extends Room<WorldState> {
       this.sendDisciplines(client, p);
       this.sendMastery(client, p);
       this.sendStamina(client, p);
+      this.sendVitals(client, p);
+      client.send("combatmastery", p.combatMastery);
       if (msg?.reconnected) return;
       const step = this.step(p);
       if (!step) this.say(client, "Welcome back!");
@@ -381,6 +438,99 @@ export class WorldRoom extends Room<WorldState> {
       if (isProtected(p.quest, item)) return this.say(client, this.keepIt(item, "drop"));
       p.inventory[msg.slot] = null;
       this.sendInventory(client, p);
+      this.saveSoon(p);
+    });
+
+    // Click a monster to attack it.
+    this.onMessage("attack", (client, msg: { id: string }) => {
+      const p = this.state.players.get(client.sessionId);
+      const m = this.state.monsters.get(String(msg?.id));
+      if (!p || !m || !m.alive) return;
+      if (isDanger(m.x, m.y) && !isDanger(p.x, p.y) && !gateOpen(p.quest)) return this.say(client, this.notReady());
+      const blocked = this.fightBlock(p);
+      if (blocked) return this.say(client, blocked);
+      this.stopActions(p);
+      p.fighting = String(msg.id);
+      p.attackTimer = 99; // the first swing comes as soon as you're in range
+      const a = attackFor(p.gear, p.spell);
+      p.path = this.inRange(p, m, a) ? [] : findPath({ x: p.x, y: p.y }, { x: m.x, y: m.y });
+    });
+
+    // Click a weapon or armor in your bag to hold or wear it (swapping out what was there).
+    this.onMessage("wear", (client, msg: { slot: number }) => {
+      const p = this.state.players.get(client.sessionId);
+      if (!p || !Number.isInteger(msg?.slot)) return;
+      const item = p.inventory[msg.slot];
+      if (!isGear(item)) return;
+      const why = this.cantWear(p, item);
+      if (why) return this.say(client, why);
+      const slot = gearSlot(item);
+      // Two-handed weapons and shields don't go together: the other one goes in your bag.
+      const clash: GearSlot | null = slot === "weapon" && this.twoHanded(item) && p.gear.offhand ? "offhand"
+        : slot === "offhand" && this.twoHanded(p.gear.weapon?.item) ? "weapon" : null;
+      const old = p.gear[slot];
+      if (clash && old && !p.inventory.some((it, i) => !it && i !== msg.slot)) return this.say(client, "Your bag is too full to swap those. Make room for one more item.");
+      p.gear[slot] = { item, durability: p.durability[msg.slot] ?? gearDurability(item) };
+      p.inventory[msg.slot] = null;
+      p.durability[msg.slot] = null;
+      if (old) this.place(p, msg.slot, old.item, old.durability);
+      let moved = "";
+      if (clash) {
+        const c = p.gear[clash]!;
+        p.gear[clash] = null;
+        this.place(p, p.inventory.indexOf(null), c.item, c.durability);
+        moved = ` Your ${ITEMS[c.item].single} goes in your bag (${slot === "weapon" ? "that weapon takes both hands" : "you need a free hand for a shield"}).`;
+      }
+      const verb = slot === "weapon" ? "hold" : "put on";
+      this.say(client, `You ${verb} the ${ITEMS[item].single}. ${gearEffect(item)}.` + (old ? ` Your ${ITEMS[old.item].single} goes in your bag.` : "") + moved);
+      this.sendInventory(client, p);
+      this.saveSoon(p);
+    });
+
+    // Click a piece in your gear strip to take it off.
+    this.onMessage("remove", (client, msg: { slot: string }) => {
+      const p = this.state.players.get(client.sessionId);
+      const slot = msg?.slot as GearSlot;
+      if (!p || !GEAR_SLOTS.includes(slot) || !p.gear[slot]) return;
+      const free = p.inventory.indexOf(null);
+      if (free === -1) return this.say(client, "Your inventory is full.");
+      const g = p.gear[slot]!;
+      p.gear[slot] = null;
+      this.place(p, free, g.item, g.durability);
+      this.say(client, `You take off the ${ITEMS[g.item].single}.`);
+      const blocked = this.fightBlock(p);
+      if (blocked && slot === "weapon") this.say(client, blocked);
+      this.sendInventory(client, p);
+      this.saveSoon(p);
+    });
+
+    // Pick which spell to cast with a staff.
+    this.onMessage("spell", (client, msg: { id: string }) => {
+      const p = this.state.players.get(client.sessionId);
+      const id = msg?.id as SpellId;
+      if (!p || !SPELL_IDS.includes(id)) return;
+      const level = levelForXp(p.skillXp.magic);
+      if (level < SPELLS[id].level) return this.say(client, `You need Magic level ${SPELLS[id].level} to cast ${SPELLS[id].name}. (You're level ${level}.)`);
+      p.spell = id;
+      this.say(client, `Your staff will cast ${SPELLS[id].icon} ${SPELLS[id].name} (${SPELLS[id].mana} mana).`);
+      this.sendGear(client, p);
+      p.dirty = true;
+    });
+
+    // Drink a health potion.
+    this.onMessage("drink", (client, msg: { slot: number }) => {
+      const p = this.state.players.get(client.sessionId);
+      if (!p || !Number.isInteger(msg?.slot) || p.inventory[msg.slot] !== POTION_ID) return;
+      const questDrink = this.step(p)?.goal.kind === "drink"; // Maren asked you to, so you can even at full health
+      if (p.hp >= p.maxHp && !questDrink) return this.say(client, `You're already at full health (${p.maxHp}).`);
+      p.inventory[msg.slot] = null;
+      p.locked[msg.slot] = false;
+      const before = p.hp;
+      p.hp = Math.min(p.maxHp, p.hp + POTION_HEAL);
+      this.say(client, `You drink the health potion. +${p.hp - before} health (${p.hp}/${p.maxHp}).`);
+      this.sendInventory(client, p);
+      this.sendVitals(client, p);
+      this.questEvent(p, client, { kind: "drink" });
       this.saveSoon(p);
     });
   }
@@ -403,9 +553,18 @@ export class WorldRoom extends Room<WorldState> {
         const client = this.clients.getById(sessionId);
         if (client) this.sendStamina(client, p);
       }
+      // Health comes back very slowly (1 a minute), mana faster (1 every 6 seconds).
+      const client = this.clients.getById(sessionId);
+      let vitals = false;
+      if (p.hp < p.maxHp && ++p.healthTicks >= HEALTH_REGEN_TICKS) { p.healthTicks = 0; p.hp++; vitals = true; }
+      const mMax = maxMana(levelForXp(p.skillXp.magic));
+      if (p.mana < mMax && ++p.manaTicks >= MANA_REGEN_TICKS) { p.manaTicks = 0; p.mana++; vitals = true; }
+      if (vitals && client) this.sendVitals(client, p);
+      if (p.fighting) return this.combatTick(p, sessionId);
       if (p.path.length || !p.target) return;
       if (p.crafting) this.craftTick(p, sessionId); else this.gatherTick(p, sessionId);
     });
+    this.monsterTick(tick);
   }
 
   /** Walking speed: one tile per 600ms, timed per player. */
@@ -413,6 +572,14 @@ export class WorldRoom extends Room<WorldState> {
     const now = Date.now();
     this.state.players.forEach((p) => {
       if (!p.path.length || now < p.nextStepAt) return;
+      // The Dark Forest's gate stays shut until Old Maren says you're ready.
+      if (isDanger(p.path[0].x, p.path[0].y) && !isDanger(p.x, p.y) && !gateOpen(p.quest)) {
+        p.path = [];
+        this.stopActions(p);
+        const client = this.clients.find((c) => this.state.players.get(c.sessionId) === p);
+        if (client) this.say(client, this.notReady());
+        return;
+      }
       const next = p.path.shift()!;
       p.x = next.x;
       p.y = next.y;
@@ -638,7 +805,7 @@ export class WorldRoom extends Room<WorldState> {
   private place(p: Player, slot: number, item: ItemId, durability?: number) {
     p.inventory[slot] = item;
     p.locked[slot] = false; // new items start unlocked
-    p.durability[slot] = isTool(item) ? durability ?? maxDurability(item) : null;
+    p.durability[slot] = isTool(item) ? durability ?? maxDurability(item) : isGear(item) ? durability ?? gearDurability(item) : null;
   }
 
   /** Each use wears the belt tool down. Warn at 10%; at 0 it breaks and is gone. */
@@ -677,6 +844,322 @@ export class WorldRoom extends Room<WorldState> {
     client.send(npc.kind === "station" ? "station" : "shop", { npc: npc.id });
   }
 
+
+  // ---- Combat (numbers in shared/combat.ts) ----
+
+  private notReady() {
+    return `⚠ You're not ready to go in there yet. ${GUIDE_NAME} will tell you when you are.`;
+  }
+
+  private twoHanded(item: string | undefined) {
+    return isWeapon(item) && !!WEAPONS[parseWeapon(item).type].twoHanded;
+  }
+
+  /** Can you attack the monster from where you stand? */
+  private inRange(p: Player, m: Monster, a: Attack) {
+    return tileDistance(p, m) <= a.range;
+  }
+
+  /** Is fighting refused right now? (Maren's step wants a weapon, or a staff.) Returns what to say. */
+  private fightBlock(p: Player): string | null {
+    const want = this.step(p)?.fightWith;
+    if (!want) return null;
+    const w = p.gear.weapon?.item;
+    if (want === "weapon" && !w) return `${GUIDE_NAME} wants you to fight with a weapon. Click one in your bag and press "Hold" first.`;
+    if (want !== "weapon" && (!isWeapon(w) || WEAPONS[parseWeapon(w).type].style !== want)) {
+      return want === "magic" ? `${GUIDE_NAME} wants you to use Magic for this. Hold your staff first.` : `${GUIDE_NAME} wants you to use ${want} for this.`;
+    }
+    return null;
+  }
+
+  /** Why you can't wear or hold this yet (too low a level), or null. */
+  private cantWear(p: Player, item: ItemId): string | null {
+    if (isWeapon(item)) {
+      const def = WEAPONS[parseWeapon(item).type];
+      const { def: skill } = skillInfo(def.style);
+      const combat = levelForXp(p.disciplines.combat);
+      if (combat < skill.unlockLevel) return `You need Combat level ${skill.unlockLevel} to use ${skill.name}. (You're level ${combat}.)`;
+      const level = levelForXp(p.skillXp[def.style]);
+      if (level < def.level) return `You need ${skill.name} level ${def.level} to hold ${aOr(def.name.toLowerCase())}. (You're level ${level}.)`;
+    } else if (isArmor(item)) {
+      const metal = METALS[parseArmor(item).metal];
+      const level = levelForXp(p.skillXp.defense);
+      if (level < metal.level) return `You need Defense level ${metal.level} to wear ${metal.name.toLowerCase()} armor. (You're level ${level}.)`;
+    }
+    return null;
+  }
+
+  /** Each game tick while you're fighting: walk into range, then attack whenever your weapon is ready. */
+  private combatTick(p: Player, sessionId: string) {
+    const client = this.clients.getById(sessionId);
+    const m = this.state.monsters.get(p.fighting!);
+    if (!m || !m.alive) return this.stopActions(p);
+    const a = attackFor(p.gear, p.spell);
+    p.attackTimer++;
+    if (!this.inRange(p, m, a)) {
+      // Chase it: head for its tile (it may have moved).
+      const end = p.path[p.path.length - 1];
+      if (!end || tileDistance(end, m) > a.range) p.path = findPath({ x: p.x, y: p.y }, { x: m.x, y: m.y });
+      if (!p.path.length) {
+        if (client) this.say(client, "You can't reach it.");
+        this.stopActions(p);
+      }
+      return;
+    }
+    p.path = [];
+    p.action = "fighting";
+    p.faceX = m.x;
+    p.faceY = m.y;
+    if (p.attackTimer < a.speed) return;
+    const blocked = this.fightBlock(p);
+    if (blocked) {
+      if (client) this.say(client, blocked);
+      return this.stopActions(p);
+    }
+    const def = MONSTERS[m.kind];
+    // Pay for the attack: mana for spells, stamina for weapons.
+    if (a.spell) {
+      const spell = SPELLS[a.spell];
+      if (levelForXp(p.skillXp.magic) < spell.level) p.spell = "fire_blast";
+      if (p.mana < spell.mana) {
+        if (client) this.say(client, `You're out of mana: ${spell.name} needs ${spell.mana} and you have ${p.mana}. It comes back 1 every 6 seconds.`);
+        return this.stopActions(p);
+      }
+      p.mana -= spell.mana;
+    } else {
+      if (p.stamina < ATTACK_STAMINA) {
+        if (client) this.say(client, "You're too tired to fight. Eat something, or rest (1 stamina every 30 seconds).");
+        return this.stopActions(p);
+      }
+      p.stamina -= ATTACK_STAMINA;
+    }
+    p.attackTimer = 0;
+    const style = a.style;
+    const weaponM = combatMasteryIn(p.combatMastery, a.mastery);
+    const monsterM = combatMasteryIn(p.combatMastery, m.kind);
+    const chance = hitChance(levelForXp(p.skillXp[style]), m.kind, a, weaponM, monsterM);
+    const hit = Math.random() < chance;
+    const max = maxHitWith(a, weaponM);
+    const damage = hit && max ? 1 + Math.floor(Math.random() * max) : 0;
+    const spell = a.spell ? SPELLS[a.spell] : null;
+    if (damage) m.hp = Math.max(0, m.hp - damage);
+    if (hit && spell?.freeze) m.frozenUntil = this.state.tick + spell.freeze;
+    if (hit && spell?.sleep) { m.sleepUntil = this.state.tick + spell.sleep; m.attackTimer = 0; }
+    this.broadcast("hit", { on: "monster", id: p.fighting, damage, miss: !hit, spell: a.spell ?? null, from: sessionId });
+    // It fights back now (if it ever does).
+    if (def.maxHit > 0 && !m.target) m.target = sessionId;
+    if (a.mastery !== "fists") this.wearGear(p, client, "weapon", wearFor(def.level));
+    const killed = m.hp <= 0;
+    // XP: 1 per damage (a landed sleep counts as a few), plus a bonus for the kill.
+    const xp = (damage || (hit && spell?.sleep ? Math.ceil(spell.mana / 2) : 0)) + (killed ? def.xp : 0);
+    if (client) {
+      this.sendVitals(client, p);
+      this.sendStamina(client, p);
+      if (!hit) this.say(client, spell ? `Your ${spell.name.toLowerCase()} misses the ${def.name.toLowerCase()}.` : `You miss the ${def.name.toLowerCase()}.`);
+      else if (spell?.sleep) this.say(client, `The ${def.name.toLowerCase()} falls asleep! 💤`);
+      else if (spell?.freeze && !killed) this.say(client, `You hit the ${def.name.toLowerCase()} for ${damage}. It's frozen in place! ❄️`);
+    }
+    if (xp) {
+      this.addXp(p, client, "combat", xp);
+      this.addSkillXp(p, client, style, xp);
+      this.addCombatMastery(p, client, a.mastery, xp);
+      this.addCombatMastery(p, client, m.kind, xp);
+    }
+    if (killed) this.killMonster(m, p, client, style);
+    this.saveSoon(p);
+  }
+
+  /** You defeated it: drops go straight in your bag, and it comes back after a while. */
+  private killMonster(m: Monster, p: Player, client: Client | undefined, style: CombatStyle) {
+    const def = MONSTERS[m.kind];
+    m.alive = false;
+    m.target = null;
+    m.status = "";
+    m.respawnAt = this.state.tick + def.respawnTicks;
+    const dropBoost = masteryDrops(combatMasteryIn(p.combatMastery, m.kind));
+    const got: string[] = [];
+    let lost = 0;
+    for (const d of def.drops) {
+      if (Math.random() >= Math.min(1, d.chance * dropBoost)) continue;
+      const free = p.inventory.indexOf(null);
+      if (free === -1) { lost++; continue; }
+      this.place(p, free, d.item);
+      got.push(aOr(ITEMS[d.item].single));
+    }
+    const [lo, hi] = def.coins;
+    const coins = hi ? lo + Math.floor(Math.random() * (hi - lo + 1)) : 0;
+    if (coins) { p.coins += coins; got.push(formatMoney(coins)); }
+    this.state.players.forEach((other) => { if (other.fighting && this.state.monsters.get(other.fighting) === m) this.stopActions(other); });
+    if (client) {
+      this.say(client, `You defeat the ${def.name.toLowerCase()}!` + (got.length ? ` It drops ${got.join(" and ")}.` : "") +
+        (lost ? " Your bag is full, so you leave something behind." : ""));
+      this.sendInventory(client, p);
+    }
+    this.questEvent(p, client, { kind: "kill", monster: m.kind, style });
+  }
+
+  /** Monsters: come back after being defeated, wander near home, chase and attack. */
+  private monsterTick(tick: number) {
+    this.state.monsters.forEach((m, id) => {
+      const def = MONSTERS[m.kind];
+      if (!m.alive) {
+        if (tick < m.respawnAt) return;
+        m.alive = true;
+        m.hp = m.maxHp;
+        m.x = m.homeX;
+        m.y = m.homeY;
+        m.sleepUntil = m.frozenUntil = 0;
+        m.attackTimer = 0;
+        return;
+      }
+      if (m.sleepUntil > tick) { m.status = "asleep"; return; }
+      const frozen = m.frozenUntil > tick;
+      const home = { x: m.homeX, y: m.homeY };
+      const danger = isDanger(home.x, home.y);
+      // Give up on someone who left, ran out of its patch, or is lying on the ground.
+      let target = m.target ? this.state.players.get(m.target) : undefined;
+      if (m.target && (!target || isDanger(target.x, target.y) !== danger || tileDistance(target, home) > LEASH_RADIUS + 1)) {
+        m.target = null;
+        target = undefined;
+      }
+      // Danger zone monsters attack anyone who comes close.
+      if (!target && def.aggressive) {
+        let best = AGGRO_RADIUS + 1;
+        this.state.players.forEach((pl, sid) => {
+          const d = tileDistance(pl, m);
+          if (d < best && isDanger(pl.x, pl.y) && tileDistance(pl, home) <= LEASH_RADIUS) { best = d; m.target = sid; target = pl; }
+        });
+      }
+      m.status = frozen ? "frozen" : target ? "fighting" : "";
+      if (target) {
+        if (tileDistance(target, m) <= 1 && def.maxHit > 0) {
+          if (++m.attackTimer >= def.speed) {
+            m.attackTimer = 0;
+            this.monsterAttack(m, id, target, m.target!);
+          }
+        } else if (!frozen) {
+          m.attackTimer = Math.min(m.attackTimer, def.speed - 1); // ready to bite as soon as it catches you
+          this.monsterStep(m, target);
+        }
+        return;
+      }
+      if (frozen) return;
+      // Wander: now and then take a step somewhere near home (or head home if it chased too far).
+      if (tileDistance(m, home) > WANDER_RADIUS) return this.monsterStep(m, home);
+      if (Math.random() < 0.15) {
+        const goal = { x: m.x + Math.floor(Math.random() * 3) - 1, y: m.y + Math.floor(Math.random() * 3) - 1 };
+        if (tileDistance(goal, home) <= WANDER_RADIUS) this.monsterStep(m, goal);
+      }
+    });
+  }
+
+  /** One step toward a goal, staying in its own patch (never out of the Dark Forest, or into it). */
+  private monsterStep(m: Monster, goal: Point) {
+    const danger = isDanger(m.homeX, m.homeY);
+    const home = { x: m.homeX, y: m.homeY };
+    let best: Point | null = null;
+    let bestD = tileDistance(m, goal);
+    for (const d of [...CARDINAL, { x: 1, y: 1 }, { x: 1, y: -1 }, { x: -1, y: 1 }, { x: -1, y: -1 }]) {
+      const n = { x: m.x + d.x, y: m.y + d.y };
+      if (!isWalkable(n.x, n.y) || isDanger(n.x, n.y) !== danger || tileDistance(n, home) > LEASH_RADIUS) continue;
+      if (d.x && d.y && (!isWalkable(m.x + d.x, m.y) || !isWalkable(m.x, m.y + d.y))) continue;
+      let taken = false;
+      this.state.monsters.forEach((o) => { if (o !== m && o.alive && o.x === n.x && o.y === n.y) taken = true; });
+      this.state.players.forEach((o) => { if (o.x === n.x && o.y === n.y) taken = true; });
+      if (taken) continue;
+      const dist = tileDistance(n, goal) + (d.x && d.y ? 0.1 : 0); // prefer straight steps on a tie
+      if (dist < bestD) { bestD = dist; best = n; }
+    }
+    if (best) { m.x = best.x; m.y = best.y; }
+  }
+
+  /** A monster swings at you. Armor and Defense make it miss more; every attack trains Defense. */
+  private monsterAttack(m: Monster, monsterId: string, p: Player, sessionId: string) {
+    const def = MONSTERS[m.kind];
+    const client = this.clients.getById(sessionId);
+    const chance = monsterHitChance(m.kind, levelForXp(p.skillXp.defense), armorPoints(p.gear));
+    const hit = Math.random() < chance;
+    const damage = hit ? 1 + Math.floor(Math.random() * def.maxHit) : 0;
+    p.hp = Math.max(0, p.hp - damage);
+    p.dirty = true;
+    this.broadcast("hit", { on: "player", id: sessionId, damage, miss: !hit, from: monsterId });
+    // Armor wears down: one piece you're wearing takes the blow.
+    const worn = GEAR_SLOTS.filter((s) => s !== "weapon" && p.gear[s]);
+    if (worn.length) this.wearGear(p, client, worn[Math.floor(Math.random() * worn.length)], wearFor(def.level));
+    const xp = defenseXp(m.kind);
+    this.addXp(p, client, "combat", xp);
+    this.addSkillXp(p, client, "defense", xp);
+    if (p.hp <= 0) return this.die(p, sessionId, def.name);
+    // Fight back automatically if you were just standing there.
+    if (!p.fighting && !p.path.length && !p.target && !p.crafting && !this.fightBlock(p)) {
+      p.fighting = monsterId;
+      p.attackTimer = 99;
+    }
+    if (client) {
+      this.sendVitals(client, p);
+      if (p.hp <= p.maxHp / 4 && p.hp + damage > p.maxHp / 4) {
+        this.say(client, `⚠ Your health is low (${p.hp}/${p.maxHp})! ${p.inventory.includes(POTION_ID) ? "Drink a health potion" : "Run away"}!`);
+      }
+    }
+  }
+
+  /** Out of health: you wake up next to Old Maren with half your health, and keep everything. */
+  private die(p: Player, sessionId: string, killer: string) {
+    const client = this.clients.getById(sessionId);
+    this.stopActions(p);
+    p.path = [];
+    p.hp = Math.ceil(p.maxHp / 2);
+    this.state.monsters.forEach((m) => { if (m.target === sessionId) m.target = null; });
+    const maren = npcById("maren")!;
+    const spot = [...CARDINAL, { x: 1, y: 1 }, { x: -1, y: 1 }].map((d) => ({ x: maren.x + d.x, y: maren.y + d.y })).find((t) => isWalkable(t.x, t.y)) ?? randomSpawn();
+    p.x = spot.x;
+    p.y = spot.y;
+    p.dirty = true;
+    if (client) {
+      this.say(client, `☠ The ${killer.toLowerCase()} knocked you out! You wake up next to ${GUIDE_NAME} with half your health. You kept all your things.`);
+      client.send("died", {});
+      this.sendVitals(client, p);
+    }
+    this.saveSoon(p);
+  }
+
+  /** Weapons wear with each attack, armor with each attack on you. At 0 they break. */
+  private wearGear(p: Player, client: Client | undefined, slot: GearSlot, amount: number) {
+    const g = p.gear[slot];
+    if (!g) return;
+    const max = gearDurability(g.item);
+    const before = g.durability;
+    g.durability = Math.max(0, g.durability - amount);
+    if (g.durability <= 0) {
+      p.gear[slot] = null;
+      if (client) this.say(client, `Your ${ITEMS[g.item].single} breaks!`);
+    } else if (before > max * TOOL_WARN_AT && g.durability <= max * TOOL_WARN_AT) {
+      if (client) this.say(client, `Your ${ITEMS[g.item].single} is about to break (${g.durability} uses left).`);
+    }
+    if (client) this.sendGear(client, p);
+  }
+
+  /** Mastery of a weapon type, spell or monster (no cap). */
+  private addCombatMastery(p: Player, client: Client | undefined, id: CombatMasteryId, xp: number) {
+    const before = combatMasteryIn(p.combatMastery, id);
+    p.combatMastery[id] = (p.combatMastery[id] ?? 0) + xp;
+    const after = combatMasteryIn(p.combatMastery, id);
+    if (!client) return;
+    client.send("combatmastery", p.combatMastery);
+    if (after <= before) return;
+    this.say(client, `${combatMasteryName(id)} Mastery ${after}! ` + (id in MONSTERS ? "You hit it more often, and it drops things more often." : "You hit more often, and a little harder."));
+    client.send("combatmasteryup", { id, level: after });
+  }
+
+  /** Health, mana and their maximums (only you see your mana). */
+  private sendVitals(client: Client, p: Player) {
+    client.send("vitals", { hp: p.hp, maxHp: p.maxHp, mana: p.mana, maxMana: maxMana(levelForXp(p.skillXp.magic)) });
+  }
+
+  private sendGear(client: Client, p: Player) {
+    client.send("gear", { gear: p.gear, spell: p.spell });
+  }
+
   // ---- Old Maren's tutorial (steps in shared/quests.ts) ----
 
   /** The tutorial step this player is on, or null once it's finished. */
@@ -701,6 +1184,10 @@ export class WorldRoom extends Room<WorldState> {
     } else if (g.kind === "sell" && ev.kind === "sell") {
       const r = RESOURCE_FOR_ITEM[ev.item];
       if (r && RESOURCES[r].skill === g.what) counts = 1;
+    } else if (g.kind === "kill" && ev.kind === "kill") {
+      if ((!g.monster || ev.monster === g.monster) && (!g.style || ev.style === g.style)) counts = 1;
+    } else if (g.kind === "drink" && ev.kind === "drink") {
+      counts = 1;
     }
     if (!counts) return;
     p.quest.count += counts;
@@ -721,6 +1208,7 @@ export class WorldRoom extends Room<WorldState> {
     if (g.kind === "level") return levelForXp(p.disciplines[g.discipline]) >= g.level;
     if (g.kind === "equip") return g.tools.every((prefix) => TOOL_TYPE_IDS.some((t) => p.belt[t]?.item.startsWith(prefix)));
     if (g.kind === "have") return Object.entries(g.items).every(([item, n]) => this.countOf(p, item as ItemId) >= n!);
+    if (g.kind === "gear") return g.items.every((prefix) => GEAR_SLOTS.some((slot) => p.gear[slot]?.item.startsWith(prefix)));
     return false;
   }
 
@@ -791,10 +1279,17 @@ export class WorldRoom extends Room<WorldState> {
       this.say(client, `${GUIDE_NAME}: You look worn out! Here, eat this stew. Next time, cook some of your own.`);
       this.sendInventory(client, p);
     }
+    // Badly hurt during the combat lesson with no potion? She hands you one.
+    if (step.quest === 3 && p.hp < p.maxHp / 3 && !p.inventory.includes(POTION_ID) && p.inventory.includes(null)) {
+      this.place(p, p.inventory.indexOf(null), POTION_ID);
+      this.say(client, `${GUIDE_NAME}: You're hurt! Here, drink this health potion.`);
+      this.sendInventory(client, p);
+    }
     if (step.goal.kind !== "talk") {
       const given = this.giveMissing(p, step.ensure);
       if (given) this.sendInventory(client, p);
-      const t = step.needsTool && !p.belt[step.needsTool] ? ` And put your ${TOOL_TYPES[step.needsTool].name.toLowerCase()} back on your belt!` : "";
+      const t = step.needsTool && !p.belt[step.needsTool] ? ` And put your ${TOOL_TYPES[step.needsTool].name.toLowerCase()} back on your belt!`
+        : this.fightBlock(p) ? ` And ${step.fightWith === "magic" ? "hold your staff" : "hold a weapon"}!` : "";
       return this.dialog(client, [`${step.hint ?? step.task}` + (given ? ` Here, take ${given}.` : "") + t]);
     }
     if (step.need && !p.inventory.some((it) => it?.startsWith(step.need!.prefix))) return this.dialog(client, [step.need.line]);
@@ -810,12 +1305,13 @@ export class WorldRoom extends Room<WorldState> {
     if (gifts.length || step.coins) {
       const names = [...new Set(gifts.map((g) => g.item))].map((item) => {
         const n = gifts.filter((g) => g.item === item).length;
-        if (n === 1) return item.startsWith("tongs_") ? `a pair of ${ITEMS[item].single}` : aOr(ITEMS[item].single);
-        return `${n} ${ITEMS[item].name.toLowerCase()}`;
+        if (n === 1) return aOr(ITEMS[item].single);
+        return `${n} ${plural(ITEMS[item].name)}`;
       });
       if (step.coins) names.push(formatMoney(step.coins));
       this.say(client, `${GUIDE_NAME} gives you ${names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0]}.`);
     }
+    if (step.opensGate) this.say(client, "🚪 The gate to the Dark Forest is open to you now. It's south of the meadow, past the ⚠ sign.");
     if (finished) {
       this.say(client, `🎉 Quest complete: ${QUESTS[step.quest]}!`);
       client.send("questDone", { quest: QUESTS[step.quest] });
@@ -837,6 +1333,9 @@ export class WorldRoom extends Room<WorldState> {
       if (isTool(g.item)) {
         const type = parseTool(g.item).type;
         have = (p.belt[type] ? 1 : 0) + p.inventory.filter((it) => isTool(it) && parseTool(it).type === type).length;
+      } else if (isGear(g.item)) {
+        const kind = g.item.split("_")[0];
+        have = (GEAR_SLOTS.some((s) => p.gear[s]?.item.startsWith(`${kind}_`)) ? 1 : 0) + p.inventory.filter((it) => it?.startsWith(`${kind}_`)).length;
       } else if (isStew(g.item)) {
         have = p.inventory.filter((it) => isStew(it)).length;
       } else {
@@ -880,7 +1379,8 @@ export class WorldRoom extends Room<WorldState> {
       progress = `${p.quest.count} / ${g.count}`;
       fraction = p.quest.count / g.count;
     }
-    const warning = step.needsTool && !p.belt[step.needsTool] ? `Put your ${TOOL_TYPES[step.needsTool].name.toLowerCase()} back on your belt first!` : undefined;
+    const warning = step.needsTool && !p.belt[step.needsTool] ? `Put your ${TOOL_TYPES[step.needsTool].name.toLowerCase()} back on your belt first!`
+      : this.fightBlock(p) ? (step.fightWith === "magic" ? "Hold your staff first!" : "Hold a weapon first!") : undefined;
     return { done: false, quest: QUESTS[step.quest], number: step.quest + 1, of: QUESTS.length, task: step.task, progress, fraction, talk: g.kind === "talk", warning };
   }
 
@@ -895,6 +1395,7 @@ export class WorldRoom extends Room<WorldState> {
   }
 
   private stopActions(p: Player) {
+    p.fighting = null;
     p.target = null;
     p.activity = null;
     p.resource = null;
@@ -954,6 +1455,18 @@ export class WorldRoom extends Room<WorldState> {
           const lv = RESOURCES[fish].level;
           if (lv > before && lv <= after) this.say(client, `You can now cook ${ITEMS[fish].name.toLowerCase()} stew!`);
         }
+      } else if (skill === "defense") {
+        p.maxHp = maxHealth(after);
+        p.hp = Math.min(p.maxHp, p.hp + 2 * (after - before)); // the new health comes filled
+        this.say(client, `Your health goes up to ${p.maxHp}.`);
+        for (const m of Object.values(METALS)) if (m.level > before && m.level <= after) this.say(client, `You can now wear ${m.name.toLowerCase()} armor!`);
+        this.sendVitals(client, p);
+      } else if (skill === "melee" || skill === "ranged" || skill === "magic") {
+        for (const w of Object.values(WEAPONS)) if (w.style === skill && w.level > before && w.level <= after) this.say(client, `You can now use ${aOr(w.name.toLowerCase())}!`);
+        if (skill === "magic") {
+          for (const sp of Object.values(SPELLS)) if (sp.level > before && sp.level <= after) this.say(client, `You can now cast ${sp.icon} ${sp.name}! Pick it under your gear.`);
+          this.sendVitals(client, p);
+        }
       } else if (isCraftSkill(skill)) {
         for (const m of Object.values(METALS)) {
           if (m.level > before && m.level <= after) {
@@ -1002,6 +1515,7 @@ export class WorldRoom extends Room<WorldState> {
     client.send("locks", p.locked);
     client.send("durability", p.durability);
     client.send("belt", p.belt);
+    this.sendGear(client, p);
     client.send("inventory", p.inventory);
     client.send("coins", p.coins);
     this.checkQuest(p, client); // "Have 2 copper ore" steps
@@ -1128,9 +1642,10 @@ export class WorldRoom extends Room<WorldState> {
         if (typeof item === "string" && item in LEGACY_ITEMS) item = LEGACY_ITEMS[item]; // logs -> pine logs, etc.
         p.inventory[i] = typeof item === "string" && item in ITEMS ? (item as ItemId) : null;
         const it = p.inventory[i];
-        if (isTool(it)) {
+        if (isTool(it) || isGear(it)) {
+          const max = isTool(it) ? maxDurability(it) : gearDurability(it);
           const d = save.durability?.[i];
-          p.durability[i] = typeof d === "number" && d > 0 ? Math.min(Math.floor(d), maxDurability(it)) : maxDurability(it);
+          p.durability[i] = typeof d === "number" && d > 0 ? Math.min(Math.floor(d), max) : max;
         }
       }
     }
@@ -1169,12 +1684,28 @@ export class WorldRoom extends Room<WorldState> {
     if (save.skillXp) {
       for (const id of ALL_MASTERY_IDS) if (ok(save.mastery?.[id])) p.mastery[id] = Math.floor(save.mastery![id]);
     }
+    // Combat: gear, Mastery, health (it came back 1 a minute while you were away) and mana (full).
+    for (const slot of GEAR_SLOTS) {
+      const g = save.gear?.[slot];
+      if (g && isGear(g.item) && gearSlot(g.item) === slot && typeof g.durability === "number" && g.durability > 0) {
+        p.gear[slot] = { item: g.item, durability: Math.min(Math.floor(g.durability), gearDurability(g.item)) };
+      }
+    }
+    for (const id of ALL_COMBAT_MASTERY_IDS) if (ok(save.combatMastery?.[id])) p.combatMastery[id] = Math.floor(save.combatMastery![id]);
+    if (SPELL_IDS.includes(save.spell as SpellId) && levelForXp(p.skillXp.magic) >= SPELLS[save.spell as SpellId].level) p.spell = save.spell as SpellId;
+    p.maxHp = maxHealth(levelForXp(p.skillXp.defense));
+    p.hp = p.maxHp;
+    if (typeof save.hp === "number" && Number.isFinite(save.hp)) {
+      const away = typeof save.hpAt === "number" ? Math.max(0, Date.now() - save.hpAt) : 0;
+      p.hp = Math.max(1, Math.min(p.maxHp, Math.floor(save.hp) + Math.floor(away / HEALTH_REGEN_MS)));
+    }
+    p.mana = maxMana(levelForXp(p.skillXp.magic));
   }
 
   private snapshot(p: Player): SaveData {
     // Save where the player is heading, so walking off mid-path doesn't lose the move.
     const dest = p.path.length ? p.path[p.path.length - 1] : p;
-    return { saveVersion: SAVE_VERSION, quest: { ...p.quest }, x: dest.x, y: dest.y, inventory: [...p.inventory], coins: p.coins, skills: { ...p.disciplines }, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: [...p.durability], belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), lockedSlots: p.locked.flatMap((on, i) => (on && p.inventory[i] ? [i] : [])) };
+    return { saveVersion: SAVE_VERSION, quest: { ...p.quest }, x: dest.x, y: dest.y, inventory: [...p.inventory], coins: p.coins, skills: { ...p.disciplines }, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: [...p.durability], belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), hp: p.hp, hpAt: Date.now(), gear: { ...p.gear }, spell: p.spell, combatMastery: { ...p.combatMastery }, lockedSlots: p.locked.flatMap((on, i) => (on && p.inventory[i] ? [i] : [])) };
   }
 
   private async save(p: Player) {

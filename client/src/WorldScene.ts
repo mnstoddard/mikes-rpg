@@ -1,11 +1,13 @@
 import Phaser from "phaser";
 import { getStateCallbacks, Room } from "colyseus.js";
-import { MAP, MAP_HEIGHT, MAP_WIDTH, TICK_MS, TILE_SIZE, Tile, isWalkable } from "../../shared/map";
+import { MAP, MAP_HEIGHT, MAP_WIDTH, TICK_MS, TILE_SIZE, Tile, isDanger, isWalkable } from "../../shared/map";
+import { CombatMasteryId, CombatMasteryXp, MONSTERS, MonsterId, SpellId, combatMasteryName } from "../../shared/combat";
+import type { Gear } from "../../shared/gear";
 import { RESOURCES, ResourceId, fishAt, isFishingSpot, nodeAt, treeKey } from "../../shared/foraging";
 
 import { ITEMS, ItemId } from "../../shared/items";
 import { joinWorld, rejoinWorld } from "./network";
-import { closeDialog, openDialog, renderQuest, renderStamina, closeCraft, closeInfo, closeShop, flashDiscipline, flashMastery, flashSkillRow, openCraft, renderBelt, renderDurability, renderMastery, renderSkillXp, openShop, renderCoins, renderDisciplines, renderInventory, renderLocks, setHoverText, setInventoryActions, showMessage } from "./ui";
+import { closeDialog, openDialog, renderQuest, renderStamina, renderVitals, renderGear, renderCombatMastery, flashCombatMastery, closeCraft, closeInfo, closeShop, flashDiscipline, flashMastery, flashSkillRow, openCraft, renderBelt, renderDurability, renderMastery, renderSkillXp, openShop, renderCoins, renderDisciplines, renderInventory, renderLocks, setHoverText, setInventoryActions, showMessage } from "./ui";
 import { masteryName } from "../../shared/crafting";
 import type { Belt, ToolType } from "../../shared/tools";
 import { NPCS, npcAt } from "../../shared/npcs";
@@ -16,7 +18,18 @@ import type { QuestView } from "../../shared/quests";
 
 const TILE_COLORS: Record<Tile, number> = {
   grass: 0x4a8f3c, path: 0xb89b6a, water: 0x2d6fa3, tree: 0x2e5e22, rock: 0x7d7d7d, bridge: 0x8b5a2b,
+  fence: 0x4a8f3c, gate: 0x9a8058, sign: 0x4a8f3c,
 };
+/** The Dark Forest's ground is darker and bluer, so you can see where danger starts. */
+const DARK_COLORS: Partial<Record<Tile, number>> = { grass: 0x23432a, path: 0x6b5a42, fence: 0x23432a, gate: 0x6b5a42 };
+
+interface MonsterView {
+  container: Phaser.GameObjects.Container;
+  body: Phaser.GameObjects.Text;
+  bar: Phaser.GameObjects.Graphics;
+  status: Phaser.GameObjects.Text;
+  tween?: Phaser.Tweens.Tween;
+}
 
 interface PlayerView {
   container: Phaser.GameObjects.Container;
@@ -24,6 +37,7 @@ interface PlayerView {
   tween?: Phaser.Tweens.Tween;
   chopTween?: Phaser.Tweens.Tween;
   line?: Phaser.GameObjects.Container; // fishing line, while fishing
+  bar: Phaser.GameObjects.Graphics; // health bar (shown once hurt)
 }
 
 const MIN_ZOOM = 0.5;
@@ -36,6 +50,7 @@ interface TreeView { tree: Phaser.GameObjects.Graphics; stump: Phaser.GameObject
 export class WorldScene extends Phaser.Scene {
   private room?: Room;
   private players = new Map<string, PlayerView>();
+  private monsters = new Map<string, MonsterView>();
   private trees = new Map<string, TreeView>();
   private rocks = new Map<string, TreeView>(); // same idea: full rock, or emptied
   private marker!: Phaser.GameObjects.Text;
@@ -108,12 +123,25 @@ export class WorldScene extends Phaser.Scene {
       buy: (item, count) => room.send("buy", { item, count }),
       craft: (item, all) => room.send("craft", { item, all }),
       eat: (slot) => room.send("eat", { slot }),
+      wear: (slot) => room.send("wear", { slot }),
+      remove: (slot) => room.send("remove", { slot }),
+      drink: (slot) => room.send("drink", { slot }),
+      spell: (id) => room.send("spell", { id }),
     });
     room.onMessage("quest", (q: QuestView) => {
       this.guideAlert?.setVisible(q.talk);
       renderQuest(q);
     });
     room.onMessage("questDone", () => this.floatText("Quest complete!", "#ffd84a", true));
+    room.onMessage("vitals", (v: { hp: number; maxHp: number; mana: number; maxMana: number }) => renderVitals(v.hp, v.maxHp, v.mana, v.maxMana));
+    room.onMessage("gear", (msg: { gear: Gear; spell: SpellId }) => renderGear(msg.gear, msg.spell));
+    room.onMessage("combatmastery", (m: CombatMasteryXp) => renderCombatMastery(m));
+    room.onMessage("combatmasteryup", (msg: { id: CombatMasteryId; level: number }) => {
+      this.time.delayedCall(700, () => this.floatText(`${combatMasteryName(msg.id)} Mastery ${msg.level}!`, "#7fd0ff"));
+      flashCombatMastery(msg.id);
+    });
+    room.onMessage("hit", (h: { on: "monster" | "player"; id: string; damage: number; miss: boolean; spell: SpellId | null; from: string }) => this.showHit(h));
+    room.onMessage("died", () => this.showDeath());
     room.onMessage("dialog", (msg: { name: string; lines: string[] }) => {
       this.marker.setVisible(false);
       openDialog(msg.name, msg.lines);
@@ -174,6 +202,8 @@ export class WorldScene extends Phaser.Scene {
     this.cameras.main.stopFollow();
     this.players.forEach((v) => v.container.destroy());
     this.players.clear();
+    this.monsters.forEach((v) => v.container.destroy());
+    this.monsters.clear();
     for (const key of [...this.trees.keys(), ...this.rocks.keys()]) this.setStump(key, false);
     this.marker.setVisible(false);
     this.lastDisciplines = undefined;
@@ -205,8 +235,9 @@ export class WorldScene extends Phaser.Scene {
       for (let x = 0; x < MAP_WIDTH; x++) {
         const t = MAP[y][x];
         const px = x * TILE_SIZE, py = y * TILE_SIZE;
-        // Grass underneath trees and rocks.
-        const base = t === "tree" || t === "rock" ? TILE_COLORS.grass : TILE_COLORS[t];
+        // Grass underneath trees and rocks (dark forest floor in the danger zone).
+        const ground = t === "tree" || t === "rock" ? "grass" : t;
+        const base = (isDanger(x, y) ? DARK_COLORS[ground] : undefined) ?? TILE_COLORS[ground];
         // Slight checkerboard shading so you can see the tile grid.
         g.fillStyle(base, (x + y) % 2 ? 1 : 0.92);
         g.fillRect(px, py, TILE_SIZE, TILE_SIZE);
@@ -216,6 +247,16 @@ export class WorldScene extends Phaser.Scene {
           this.rocks.set(treeKey(x, y), this.makeRock(px, py, y, nodeAt(x, y)!));
         } else if (t === "water" && fishAt(x, y) && fishAt(x, y) !== "minnow") {
           this.makeFishingSpot(px, py, fishAt(x, y)!);
+        } else if (t === "fence") {
+          // Wooden posts and two rails.
+          g.fillStyle(0x5c3a1a).fillRect(px + 3, py + 6, 5, 24).fillRect(px + 24, py + 6, 5, 24);
+          g.fillStyle(0x7a5230).fillRect(px, py + 11, TILE_SIZE, 4).fillRect(px, py + 21, TILE_SIZE, 4);
+        } else if (t === "gate") {
+          g.fillStyle(0x5c3a1a).fillRect(px, py + 4, 4, 26).fillRect(px + 28, py + 4, 4, 26);
+          g.lineStyle(2, 0x7a5230, 0.9).lineBetween(px + 4, py + 12, px + 10, py + 12).lineBetween(px + 22, py + 12, px + 28, py + 12);
+        } else if (t === "sign") {
+          this.add.text(px + 16, py + 14, "⚠️", { fontSize: "20px" }).setOrigin(0.5).setDepth(10 + y);
+          g.fillStyle(0x5c3a1a).fillRect(px + 14, py + 22, 4, 9);
         } else if (t === "bridge") {
           g.lineStyle(2, 0x5c3a1a).lineBetween(px, py + 10, px + TILE_SIZE, py + 10)
             .lineBetween(px, py + 22, px + TILE_SIZE, py + 22);
@@ -369,8 +410,9 @@ export class WorldScene extends Phaser.Scene {
       const label = this.add.text(0, -24, player.name, {
         fontSize: "12px", color: isMe ? "#ffeb3b" : "#ffffff", stroke: "#000", strokeThickness: 3,
       }).setOrigin(0.5);
-      container.add([shadow, body, label]);
-      const view: PlayerView = { container, body };
+      const bar = this.add.graphics();
+      container.add([shadow, body, label, bar]);
+      const view: PlayerView = { container, body, bar };
       this.players.set(sessionId, view);
 
       if (isMe) this.cameras.main.startFollow(container, true, 0.15, 0.15);
@@ -379,8 +421,12 @@ export class WorldScene extends Phaser.Scene {
       $(player).listen("x", () => this.moveTo(view, player, isMe));
       $(player).listen("y", () => this.moveTo(view, player, isMe));
       $(player).listen("action", (action: string) => this.setAction(view, player, action));
+      $(player).listen("hp", () => this.drawHealth(view.bar, player.hp, player.maxHp, -16));
+      $(player).listen("maxHp", () => this.drawHealth(view.bar, player.hp, player.maxHp, -16));
       this.updateHud();
     });
+
+    $(room.state).monsters.onAdd((m: any, id: string) => this.addMonster(m, id, $));
 
     $(room.state).players.onRemove((_player: any, sessionId: string) => {
       this.players.get(sessionId)?.container.destroy();
@@ -393,7 +439,9 @@ export class WorldScene extends Phaser.Scene {
     const [tx, ty] = this.tileCenter(player.x, player.y);
     if (view.container.x === tx && view.container.y === ty) return;
     view.tween?.stop();
-    view.tween = this.tweens.add({ targets: view.container, x: tx, y: ty, duration: TICK_MS, ease: "Linear" });
+    // A long jump (waking up at Maren's) snaps straight there instead of sliding across the map.
+    if (Math.abs(view.container.x - tx) > TILE_SIZE * 2 || Math.abs(view.container.y - ty) > TILE_SIZE * 2) view.container.setPosition(tx, ty);
+    else view.tween = this.tweens.add({ targets: view.container, x: tx, y: ty, duration: TICK_MS, ease: "Linear" });
     view.container.setDepth(10 + player.y + 0.5);
     if (isMe && this.marker.visible && this.marker.x === tx && this.marker.y === ty) this.marker.setVisible(false);
   }
@@ -409,7 +457,7 @@ export class WorldScene extends Phaser.Scene {
     if (view === this.players.get(this.room?.sessionId ?? "")) this.marker.setVisible(false);
     const dx = Math.sign(player.faceX - player.x), dy = Math.sign(player.faceY - player.y);
 
-    if (action === "chopping" || action === "mining" || action === "smelting" || action === "smithing" || action === "cooking") {
+    if (action === "chopping" || action === "mining" || action === "smelting" || action === "smithing" || action === "cooking" || action === "fighting") {
       view.chopTween = this.tweens.add({
         targets: view.body, x: dx * 6, y: dy * 6,
         duration: TICK_MS / 4, yoyo: true, hold: 30, repeatDelay: TICK_MS / 2 - 30, repeat: -1,
@@ -541,7 +589,11 @@ export class WorldScene extends Phaser.Scene {
     closeInfo();
     closeDialog();
     const npc = npcAt(x, y);
-    if (npc) {
+    const monster = this.monsterAt(x, y);
+    if (monster) {
+      this.room?.send("attack", { id: monster });
+      return;
+    } else if (npc) {
       this.room?.send("talk", { id: npc.id });
     } else if (this.isStandingTree(x, y)) {
       this.room?.send("chop", { x, y });
@@ -561,7 +613,12 @@ export class WorldScene extends Phaser.Scene {
     const { x, y } = this.tileAt(pointer);
     const key = treeKey(x, y);
     const npc = npcAt(x, y);
-    if (npc) {
+    const monster = this.monsterAt(x, y);
+    if (monster) {
+      const m = this.room!.state.monsters.get(monster);
+      const def = MONSTERS[m.kind as MonsterId];
+      setHoverText("Attack", `${def.name} (level ${def.level})${def.aggressive ? " ⚠" : ""}`, pointer.x, pointer.y);
+    } else if (npc) {
       setHoverText(npc.kind === "station" ? "Use" : "Talk-to", npc.name, pointer.x, pointer.y);
     } else if (this.isStandingTree(x, y)) {
       const type = nodeAt(x, y)!;
@@ -576,12 +633,105 @@ export class WorldScene extends Phaser.Scene {
     } else if (isFishingSpot(x, y)) {
       const type = fishAt(x, y)!;
       setHoverText("Fish", RESOURCES[type].node + this.lockNote(type), pointer.x, pointer.y);
+    } else if (MAP[y]?.[x] === "sign") {
+      setHoverText("⚠ Danger:", "the Dark Forest. Monsters attack on sight!", pointer.x, pointer.y);
+    } else if (MAP[y]?.[x] === "gate") {
+      setHoverText("Walk into", "the Dark Forest ⚠", pointer.x, pointer.y);
     } else if (isWalkable(x, y)) {
       setHoverText("Walk here", "", pointer.x, pointer.y);
     } else {
       setHoverText(null);
     }
-    this.input.setDefaultCursor(npc || this.isStandingTree(x, y) || this.isFullRock(x, y) || isFishingSpot(x, y) ? "pointer" : "default");
+    this.input.setDefaultCursor(npc || monster || this.isStandingTree(x, y) || this.isFullRock(x, y) || isFishingSpot(x, y) ? "pointer" : "default");
+  }
+
+  // ---- Monsters and fighting ----
+
+  /** The live monster standing on a tile, if any (its id). */
+  private monsterAt(x: number, y: number): string | null {
+    let found: string | null = null;
+    this.room?.state.monsters?.forEach((m: any, id: string) => { if (m.alive && m.x === x && m.y === y) found = id; });
+    return found;
+  }
+
+  private addMonster(m: any, id: string, $: ReturnType<typeof getStateCallbacks>) {
+    const def = MONSTERS[m.kind as MonsterId];
+    const container = this.add.container(...this.tileCenter(m.x, m.y)).setDepth(10 + m.y);
+    const shadow = this.add.ellipse(0, 11, 20, 7, 0x000000, 0.3);
+    const big = m.kind === "cow" || m.kind === "bandit" || m.kind === "spider";
+    const body = this.add.text(0, 0, def.icon, { fontSize: big ? "24px" : "20px" }).setOrigin(0.5);
+    const bar = this.add.graphics();
+    const status = this.add.text(12, -14, "", { fontSize: "12px" }).setOrigin(0.5);
+    container.add([shadow, body, bar, status]);
+    const view: MonsterView = { container, body, bar, status };
+    this.monsters.set(id, view);
+    // Danger zone monsters get a red name tag, so you know they'll come for you.
+    if (def.aggressive) {
+      container.add(this.add.text(0, -24, def.name, { fontSize: "10px", color: "#ff8a7a", stroke: "#000", strokeThickness: 3 }).setOrigin(0.5));
+    }
+    const move = () => {
+      const [tx, ty] = this.tileCenter(m.x, m.y);
+      view.tween?.stop();
+      if (!container.visible) container.setPosition(tx, ty);
+      else view.tween = this.tweens.add({ targets: container, x: tx, y: ty, duration: TICK_MS, ease: "Linear" });
+      container.setDepth(10 + m.y + 0.4);
+      // Face the way it's walking.
+      if (tx !== container.x) body.setScale(tx > container.x ? -1 : 1, 1);
+    };
+    $(m).listen("x", move);
+    $(m).listen("y", move);
+    $(m).listen("hp", () => this.drawHealth(bar, m.hp, m.maxHp, -16));
+    $(m).listen("alive", (alive: boolean) => {
+      if (alive) {
+        container.setPosition(...this.tileCenter(m.x, m.y)).setVisible(true).setAlpha(0);
+        this.tweens.add({ targets: container, alpha: 1, duration: 600 });
+      } else {
+        // Topple over and fade.
+        this.tweens.add({ targets: body, angle: 90, duration: 300 });
+        this.tweens.add({ targets: container, alpha: 0, delay: 300, duration: 500, onComplete: () => { container.setVisible(false); body.setAngle(0); } });
+      }
+    });
+    $(m).listen("status", (st: string) => {
+      status.setText(st === "asleep" ? "💤" : st === "frozen" ? "❄️" : "");
+      body.setTint(st === "frozen" ? 0x9ad8ff : 0xffffff);
+    });
+    container.setVisible(m.alive);
+  }
+
+  /** A small health bar over someone's head once they're hurt (hidden at full health). */
+  private drawHealth(bar: Phaser.GameObjects.Graphics, hp: number, max: number, y: number) {
+    bar.clear();
+    if (!max || hp >= max) return;
+    const w = 24;
+    bar.fillStyle(0x000000, 0.7).fillRect(-w / 2 - 1, y - 1, w + 2, 5);
+    bar.fillStyle(0xc0392b).fillRect(-w / 2, y, w, 3);
+    bar.fillStyle(0x5fd35f).fillRect(-w / 2, y, Math.max(0, Math.round(w * hp / max)), 3);
+  }
+
+  /** A hit splat: red with the damage, or a blue 0 for a miss. Spells show their icon. */
+  private showHit(h: { on: "monster" | "player"; id: string; damage: number; miss: boolean; spell: SpellId | null }) {
+    const target = h.on === "monster" ? this.monsters.get(h.id)?.container : this.players.get(h.id)?.container;
+    if (!target) return;
+    const icon = h.spell === "fire_blast" ? "🔥" : h.spell === "frost_bolt" ? "❄️" : h.spell === "sleep" ? "💤" : "";
+    if (icon && !h.miss) {
+      const fx = this.add.text(target.x, target.y, icon, { fontSize: "22px" }).setOrigin(0.5).setDepth(998);
+      this.tweens.add({ targets: fx, scale: 1.8, alpha: 0, duration: 500, onComplete: () => fx.destroy() });
+    }
+    if (h.spell === "sleep" && !h.miss) return;
+    const text = h.miss ? "0" : String(h.damage);
+    const color = h.miss ? "#7fb2ff" : h.on === "player" ? "#ff5a4a" : "#ffdd55";
+    const t = this.add.text(target.x + Phaser.Math.Between(-6, 6), target.y - 6, text, {
+      fontSize: "15px", color, stroke: "#000", strokeThickness: 4, fontStyle: "bold",
+    }).setOrigin(0.5).setDepth(999);
+    this.tweens.add({ targets: t, y: t.y - 22, alpha: 0, duration: 900, ease: "Cubic.easeOut", onComplete: () => t.destroy() });
+    // A little shake on whoever got hit.
+    if (!h.miss) this.tweens.add({ targets: target, x: target.x + 2, duration: 50, yoyo: true, repeat: 1 });
+  }
+
+  /** Knocked out: the screen flashes red, then you're at Maren's. */
+  private showDeath() {
+    this.cameras.main.flash(700, 160, 20, 20);
+    this.time.delayedCall(300, () => this.floatText("You were knocked out!", "#ff7a6a", true));
   }
 
   private tileCenter(x: number, y: number): [number, number] {

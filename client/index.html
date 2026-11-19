@@ -135,7 +135,7 @@
     #shop-prices .price { font-size: 13px; color: #fff; background: rgba(0,0,0,.25); border-radius: 3px; padding: 3px 6px; }
     #shop-sell-all.armed { background: #8a5a1f; border-color: #ffd84a; }
     /* Tool belt: one slot per kind of tool, above the bag */
-    #belt-label { font-size: 11px; color: #c9bc9c; margin-bottom: 2px; }
+    .strip-label { font-size: 11px; color: #c9bc9c; margin-bottom: 2px; }
     #belt { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid #6b5a3e; }
     .belt-slot { height: 32px; font-size: 20px; background: rgba(0,0,0,.35); }
     .belt-slot .empty-tool { filter: grayscale(1); opacity: .3; }
@@ -202,9 +202,17 @@
     @media (max-width: 640px), (max-height: 500px) {
       #stamina { top: calc(36px + env(safe-area-inset-top)); width: 110px; padding: 3px 6px; font-size: 11px; }
     }
+    /* Health, stamina and mana */
+    .vital + .vital { margin-top: 3px; }
+    #stamina.hurt { border-color: #ff3b30; animation: hurt 1s ease-in-out infinite alternate; }
+    @keyframes hurt { from { box-shadow: 0 0 0 rgba(255, 59, 48, 0); } to { box-shadow: 0 0 10px rgba(255, 59, 48, .8); } }
+    /* Gear strip (weapon and armor) under the tool belt, and spells when holding a staff */
+    #gear { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid #6b5a3e; }
+    #spells { display: flex; gap: 3px; margin: -2px 0 6px; padding-bottom: 6px; border-bottom: 1px solid #6b5a3e; }
+    #spells .pick { flex: 1; }
     #login-error { min-height: 1.3em; font-size: 13px; color: #ff9a8a; text-align: center; }
     /* Quest tracker: under the stamina bar, shows the tutorial step you're on */
-    #quest { display: none; top: calc(84px + env(safe-area-inset-top)); left: calc(8px + env(safe-area-inset-left)); width: 230px; padding: 6px 9px; font-size: 12px; color: #f2e6c9; cursor: pointer; }
+    #quest { display: none; top: calc(150px + env(safe-area-inset-top)); left: calc(8px + env(safe-area-inset-left)); width: 230px; padding: 6px 9px; font-size: 12px; color: #f2e6c9; cursor: pointer; }
     body.has-quest #quest { display: block; }
     #quest .q-title { color: #ffd84a; font-size: 12px; margin-bottom: 2px; }
     #quest .q-task { color: #fff; font-size: 13px; line-height: 1.35; }
@@ -223,7 +231,7 @@
     #dialog-page { font-size: 11px; color: #c9bc9c; margin-right: auto; }
     #dialog .shop-btn { flex: 0 0 110px; }
     @media (max-width: 640px), (max-height: 500px) {
-      #quest { top: calc(70px + env(safe-area-inset-top)); width: min(200px, calc(100vw - 80px)); padding: 4px 7px; }
+      #quest { top: calc(137px + env(safe-area-inset-top)); width: min(200px, calc(100vw - 80px)); padding: 4px 7px; }
       #quest .q-task { font-size: 12px; }
       #dialog { bottom: auto; top: calc(56px + env(safe-area-inset-top)); }
       #dialog-text { font-size: 14px; }
@@ -247,7 +255,7 @@
   </div>
   <div id="hover"></div>
   <div id="messages" class="panel"></div>
-  <div id="inventory" class="panel sidepanel"><h3><span id="inv-title">Inventory</span><button id="lock-mode" aria-label="Lock items" title="Lock items so they can't be sold or dropped">🔒</button></h3><div id="belt-label">Tool belt</div><div id="belt"></div><div id="slots"></div><div id="money"></div></div>
+  <div id="inventory" class="panel sidepanel"><h3><span id="inv-title">Inventory</span><button id="lock-mode" aria-label="Lock items" title="Lock items so they can't be sold or dropped">🔒</button></h3><div class="strip-label">Tool belt</div><div id="belt"></div><div class="strip-label">Gear</div><div id="gear"></div><div id="spells"></div><div id="slots"></div><div id="money"></div></div>
   <div id="shop" class="panel">
     <h3 id="shop-title">Merchant</h3>
     <div id="shop-tabs"><button class="shop-tab active" data-mode="sell">Sell</button><button class="shop-tab" data-mode="buy">Buy</button></div>

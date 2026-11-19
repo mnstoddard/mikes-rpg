@@ -6,6 +6,7 @@
 // (Unlocking new types is done by the skill level, e.g. Woodcutting level.)
 import type { ResourceId } from "./foraging";
 import type { BarId, ToolType } from "./tools";
+import type { GearType } from "./gear";
 
 /** XP to go from Mastery 1 to 2. Each level after needs 10% more than the one before. */
 export const MASTERY_FIRST_LEVEL_XP = 10;
@@ -45,8 +46,8 @@ export const MASTERY_VALUE_PER_LEVEL = 0.02;
 export const masteryValue = (level: number) => 1 + (level - 1) * MASTERY_VALUE_PER_LEVEL;
 export const valueBonusPercent = (level: number) => Math.round((masteryValue(level) - 1) * 100);
 
-/** What can have Mastery: a gathered type (oak), a bar (bronze_bar), a kind of tool (axe) or fish stew. */
-export type MasteryId = ResourceId | BarId | ToolType | "fish_stew";
+/** What can have Mastery: a gathered type (oak), a bar (bronze_bar), a kind of tool (axe), fish stew, or a kind of weapon or armor you smith (sword). */
+export type MasteryId = ResourceId | BarId | ToolType | "fish_stew" | GearType;
 
 /** Mastery XP per type. Types you've never gathered or made aren't listed. */
 export type ItemMasteryXp = Partial<Record<MasteryId, number>>;

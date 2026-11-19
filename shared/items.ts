@@ -3,6 +3,9 @@ import {
   ALL_TOOL_IDS, BAR_IDS, BarId, MATERIALS, METALS, TOOL_TYPES, ToolItemId, WOODS, barId, headCount, metalOfBar, parseTool,
 } from "./tools";
 import { ALL_STEW_IDS, StewId, parseStew } from "./cooking";
+import {
+  ARMOR, ARMOR_TYPES, GearItemId, METAL_DAMAGE, WEAPONS, WEAPON_TYPES, armorId, parseArmor, parseWeapon, weaponId,
+} from "./gear";
 
 /** Things you gather. */
 export type BaseItemId =
@@ -26,8 +29,11 @@ export interface ItemDef {
   inputs?: ItemId[];
 }
 
-/** Bars (smelted from ore), tools (smithed from a bar and a log) and stews (cooked from fish and a log). */
-export type ItemId = BaseItemId | BarId | ToolItemId | StewId;
+/** Things monsters drop (the Merchant buys them), and the health potion. */
+export type LootId = "feather" | "rat_tail" | "cowhide" | "wolf_pelt" | "goblin_charm" | "spider_silk" | "stolen_ring" | "health_potion";
+
+/** Bars (smelted from ore), tools (smithed from a bar and a log), stews (cooked from fish and a log), weapons and armor, and loot. */
+export type ItemId = BaseItemId | BarId | ToolItemId | StewId | GearItemId | LootId;
 
 /** A crafted item is worth what goes into it, plus 25%. */
 export const CRAFT_MARKUP = 1.25;
@@ -60,7 +66,19 @@ const BASE_ITEMS: Record<BaseItemId, ItemDef> = {
   eel: { name: "Eel", single: "eel", icon: "🐍", tint: "hue-rotate(100deg) brightness(.75)", sellPrice: 120 },
 };
 
-export const ITEMS = { ...BASE_ITEMS } as Record<ItemId, ItemDef>;
+const LOOT: Record<LootId, ItemDef> = {
+  feather: { name: "Feathers", single: "feather", icon: "🪶", sellPrice: 1 },
+  rat_tail: { name: "Rat tails", single: "rat tail", icon: "🐁", tint: "grayscale(.7)", sellPrice: 2 },
+  cowhide: { name: "Cowhides", single: "cowhide", icon: "🐮", sellPrice: 4 },
+  wolf_pelt: { name: "Wolf pelts", single: "wolf pelt", icon: "🐺", tint: "grayscale(.5) brightness(.9)", sellPrice: 12 },
+  goblin_charm: { name: "Goblin charms", single: "goblin charm", icon: "🧿", sellPrice: 20 },
+  spider_silk: { name: "Spider silk", single: "spider silk", icon: "🕸️", sellPrice: 30 },
+  stolen_ring: { name: "Stolen rings", single: "stolen ring", icon: "💍", sellPrice: 60 },
+  // Drink it for health (shared/combat.ts). The Merchant sells them.
+  health_potion: { name: "Health potion", single: "health potion", icon: "🧪", tint: "hue-rotate(230deg) saturate(2.5)", sellPrice: 10 },
+};
+
+export const ITEMS = { ...BASE_ITEMS, ...LOOT } as Record<ItemId, ItemDef>;
 
 /** Value before rounding, so a tool's price isn't rounded twice. */
 function exactBase(item: ItemId): number {
@@ -83,6 +101,35 @@ for (const tool of ALL_TOOL_IDS) {
     inputs: [...Array<ItemId>(headCount(type)).fill(metal === "stone" ? "stone" : barId(metal)), ...(wood ? [`${wood}_logs` as BaseItemId] : [])],
   };
   ITEMS[tool].sellPrice = Math.floor(exactBase(tool));
+}
+// Weapons: a head of stone or a metal bar, plus a wooden handle (like tools).
+for (const type of WEAPON_TYPES) {
+  for (const metal of ["stone", ...Object.keys(METALS)] as (keyof typeof METAL_DAMAGE)[]) {
+    for (const wood of Object.keys(WOODS) as (keyof typeof WOODS)[]) {
+      const id = weaponId(type, metal, wood);
+      const { metal: m } = parseWeapon(id);
+      const name = `${MATERIALS[m].name} ${WEAPONS[type].name.toLowerCase()}`;
+      ITEMS[id] = {
+        name: `${name} (${WOODS[wood].name})`, single: `${name.toLowerCase()} (${WOODS[wood].name.toLowerCase()})`,
+        icon: WEAPONS[type].icon, tint: MATERIALS[m].tint, sellPrice: 0,
+        inputs: [m === "stone" ? "stone" : barId(m), `${wood}_logs` as BaseItemId],
+      };
+      ITEMS[id].sellPrice = Math.floor(exactBase(id));
+    }
+  }
+}
+// Armor: all metal, 1 to 3 bars.
+for (const type of ARMOR_TYPES) {
+  for (const metal of Object.keys(METALS) as (keyof typeof METALS)[]) {
+    const id = armorId(type, metal);
+    const { metal: m } = parseArmor(id);
+    const name = `${METALS[m].name} ${ARMOR[type].name.toLowerCase()}`;
+    ITEMS[id] = {
+      name, single: name.toLowerCase(), icon: ARMOR[type].icon, tint: METALS[m].tint, sellPrice: 0,
+      inputs: Array<ItemId>(ARMOR[type].bars).fill(barId(m)),
+    };
+    ITEMS[id].sellPrice = Math.floor(exactBase(id));
+  }
 }
 for (const stew of ALL_STEW_IDS) {
   const { fish, count, wood } = parseStew(stew);

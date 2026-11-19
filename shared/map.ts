@@ -9,6 +9,9 @@ import type { ResourceId } from "./foraging";
 // Fishing: any water next to land gives Minnows. Numbered water tiles are
 //          special spots: 2 trout  3 perch  4 salmon  5 pike  6 tuna  7 swordfish  8 eel
 // Easy types are near the middle; the best ones are on the east island, over the bridge.
+// Danger:  : dark forest floor   | fence   + gate   ! warning sign
+//          Everything from the fence row down is the Dark Forest (the danger zone),
+//          where monsters attack on sight. The gate stays shut until Old Maren's combat lesson.
 const RAW = `
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ~~~~~~~...........TT.......~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -30,16 +33,30 @@ const RAW = `
 ~~.....................T.............~~~~~~~~~~~......~~~~~~
 ~~~......T.........TT.........T....~~~~~~~~~~~~~~~~~~~~~~~~~
 ~~~~~.............................~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~~~~~~~~~~~~~~~~~~~66~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~66~~..!,...~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~||||+||||~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~::::T:::,::::T::::~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~::::T::::::T:::,::::::::::T::~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~::::::::::O:::::::,,,,,,::::::::::::~~~~~~~~~~~~~~~
+~~~~~~::::T:::::::::::::::::::::,::::T::::Y::::~~~~~~~~~~~~~
+~~~~~::::::::O::::T::::,,,,,,,,,,,,,,,,::::::::::~~~~~~~~~~~
+~~~~:::T:::::::::::::::,:::::::T:::::::,:::ii:::::::~~~~~~~~
+~~~~:::::::::::Y:::::::,:::::::::::::::,:::ik::::::::~~~~~~~
+~~~~~::::T:::::::::::::,::::T::::::::::,:::::::M::::~~~~~~~~
+~~~~~~:::::::::::::::::,,,,,,,,,,,,,,,,,:::::::::::~~~~~~~~~
+~~~~~~~:::::T:::::::Y:::::::::::::::::::::::T::::~~~~~~~~~~~
+~~~~~~~~~::::::::::::::::::::::T:::::::::::::::~~~~~~~~~~~~~
+~~~~~~~~~~~~~:::::::::::~~~~~~::::::::::~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 `.trim();
 
 export const TILE_SIZE = 32;
 export const TICK_MS = 600; // one game tick, like old-school RuneScape
 
-export type Tile = "grass" | "path" | "water" | "tree" | "rock" | "bridge";
+export type Tile = "grass" | "path" | "water" | "tree" | "rock" | "bridge" | "fence" | "gate" | "sign";
 
 const LEGEND: Record<string, Tile> = {
-  ".": "grass", ",": "path", "~": "water", "=": "bridge",
+  ".": "grass", ",": "path", "~": "water", "=": "bridge", ":": "grass", "|": "fence", "+": "gate", "!": "sign",
 };
 
 /** Map letters for each type of tree, rock and fishing spot. */
@@ -59,7 +76,16 @@ export const MAP_NODES: (ResourceId | null)[][] = ROWS.map((row) => row.map((ch)
 export const MAP_HEIGHT = MAP.length;
 export const MAP_WIDTH = MAP[0].length;
 
-const BLOCKED: ReadonlySet<Tile> = new Set<Tile>(["water", "tree", "rock"]);
+const BLOCKED: ReadonlySet<Tile> = new Set<Tile>(["water", "tree", "rock", "fence", "sign"]);
+
+/** The gate into the Dark Forest, and the first row of the danger zone (the fence row). */
+export const GATE = (() => {
+  const y = ROWS.findIndex((r) => r.includes("+"));
+  return { x: ROWS[y].indexOf("+"), y };
+})();
+export const DANGER_TOP = GATE.y;
+/** The Dark Forest: monsters there attack on sight. */
+export const isDanger = (x: number, y: number) => y >= DANGER_TOP;
 
 export function isWalkable(x: number, y: number): boolean {
   if (y < 0 || y >= MAP_HEIGHT || x < 0 || x >= MAP_WIDTH) return false;

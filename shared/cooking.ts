@@ -26,6 +26,11 @@ export const STAMINA_COST: Record<SkillId, number> = {
   smelting: 5,
   smithing: 5,
   cooking: 2,
+  // Combat: each weapon attack costs 1 (spells cost mana instead; Defense costs nothing).
+  melee: 1,
+  ranged: 1,
+  magic: 0,
+  defense: 0,
 };
 
 // ---- Fish ----

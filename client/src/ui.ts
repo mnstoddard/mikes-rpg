@@ -12,6 +12,15 @@ import {
 } from "../../shared/tools";
 import type { QuestView } from "../../shared/quests";
 import {
+  ARMOR, ARMOR_TYPES, ArmorType, GEAR_SLOTS, Gear, GearSlot, SLOT_ICONS, SLOT_NAMES, WEAPONS, WEAPON_TYPES, WeaponType,
+  armorId, emptyGear, isArmor, isGear, isWeapon, parseWeapon, weaponId,
+} from "../../shared/gear";
+import {
+  ARMOR_LEVEL, CombatMasteryId, CombatMasteryXp, MONSTERS, MONSTER_IDS, POTION_HEAL, POTION_ID, SPELLS, SPELL_IDS, SpellId, armorPoints, attackFor,
+  combatMasteryIn, gearEffect, gearNeeds, masteryAccuracy, masteryDamage, masteryDrops, maxHitWith,
+} from "../../shared/combat";
+import { gearDurability } from "../../shared/crafting";
+import {
   FISH_IDS, FUEL_STAMINA, FishId, MAX_STAMINA, RAW_FISH_STAMINA, STAMINA_COST, STEW_COUNTS, STEW_MASTERY, STEW_MULTIPLIER, StewCount,
   foodStamina, isFood, isStew, parseStew, stewBaseStamina, stewId,
 } from "../../shared/cooking";
@@ -51,12 +60,22 @@ let lastMastery: ItemMasteryXp = {};
 let flashSkill: SkillId | undefined;
 let flashType: MasteryId | undefined;
 let lastBelt: Belt = emptyBelt();
+let lastGear: Gear = emptyGear();
+let lastSpell: SpellId = "fire_blast";
+let lastCombatMastery: CombatMasteryXp = {};
+let flashCombat: CombatMasteryId | undefined;
+/** The Monsters list in the Combat discipline is open. */
+let monstersOpen = false;
 /** Which crafting window is open, and what's picked in it. */
 let station: "furnace" | "anvil" | "stove" | null = null;
-const pick = { bar: "bronze" as Metal, type: "axe" as ToolType, metal: "stone" as Material, wood: "pine" as Wood, fish: "minnow" as FishId, count: 1 as StewCount, fuel: "pine" as Wood };
+const pick = {
+  bar: "bronze" as Metal, type: "axe" as ToolType, metal: "stone" as Material, wood: "pine" as Wood, fish: "minnow" as FishId, count: 1 as StewCount, fuel: "pine" as Wood,
+  /** Anvil: what kind of thing to make. */
+  category: "tools" as "tools" | "weapons" | "armor", weapon: "dagger" as WeaponType, armor: "helmet" as ArmorType, armorMetal: "bronze" as Metal,
+};
 const STATION_SKILL = { furnace: "smelting", anvil: "smithing", stove: "cooking" } as const;
 /** The item whose info card is showing. */
-type InfoTarget = { kind: "slot"; slot: number } | { kind: "belt"; type: ToolType };
+type InfoTarget = { kind: "slot"; slot: number } | { kind: "belt"; type: ToolType } | { kind: "gear"; slot: GearSlot };
 let info: InfoTarget | null = null;
 /** The Merchant's window is on its Buy tab (otherwise Sell). */
 let shopBuying = false;
@@ -155,6 +174,7 @@ export function renderDisciplines(disciplines: DisciplineXp, flash?: DisciplineI
       };
       subs.appendChild(sub);
     }
+    if (id === "combat") subs.appendChild(monsterRow());
     row.appendChild(subs);
     skillListEl.appendChild(row);
   }
@@ -176,6 +196,9 @@ function skillDetails(skill: SkillId): HTMLElement {
   bar.appendChild(fill);
   box.append(top, bar);
   if (skill === "cooking") return cookingDetails(level, box);
+  if (skill === "melee" || skill === "ranged") return weaponDetails(skill, level, box);
+  if (skill === "magic") return magicDetails(level, box);
+  if (skill === "defense") return defenseDetails(level, box);
   if (isCraftSkill(skill)) return craftDetails(skill, level, box);
   const types = resourcesFor(skill);
   const upcoming = types.find((id) => RESOURCES[id].level > level);
@@ -297,6 +320,114 @@ function craftDetails(skill: CraftSkill, level: number, box: HTMLElement) {
   return box;
 }
 
+
+// ---- Combat in the Skills panel ----
+
+/** A combat Mastery bar (weapon type, spell or monster). */
+function combatRow(id: CombatMasteryId, name: string, glyph: string, info: (m: number) => string, title: (m: number) => string) {
+  const mXp = lastCombatMastery[id] ?? 0;
+  const m = masteryLevelForXp(mXp);
+  const mStart = masteryXpForLevel(m), mNext = masteryXpForLevel(m + 1);
+  const row = el("m-type" + (flashCombat === id ? " flash" : ""));
+  const mBar = el("skill-bar t-bar");
+  const mFill = document.createElement("div");
+  mFill.style.width = `${Math.floor(((mXp - mStart) / (mNext - mStart)) * 100)}%`;
+  mBar.appendChild(mFill);
+  row.append(icon("m-type-icon", glyph), el("m-type-name", name), el("m-type-state", `Mastery ${m}`), mBar, el("t-info", info(m)));
+  row.title = `${name} Mastery ${m}: ${(mNext - mXp).toLocaleString()} XP to ${m + 1}. ${title(m)}`;
+  return row;
+}
+
+const lockedRow = (glyph: string, name: string, state: string) => {
+  const row = el("m-type locked");
+  row.append(icon("m-type-icon", glyph), el("m-type-name", name), el("m-type-state", state));
+  return row;
+};
+
+/** Melee and Ranged: each weapon type, when it unlocks, and its Mastery. */
+function weaponDetails(skill: "melee" | "ranged", level: number, box: HTMLElement) {
+  const types = WEAPON_TYPES.filter((t) => WEAPONS[t].style === skill);
+  const upcoming = types.find((t) => WEAPONS[t].level > level);
+  if (upcoming) box.append(el("m-info", `Next unlock: ${WEAPONS[upcoming].name} at level ${WEAPONS[upcoming].level}`));
+  if (!expanded.has(skill)) return box;
+  const list = el("m-types");
+  if (skill === "melee") {
+    list.appendChild(combatRow("fists", "Fists", "👊", (m) => `+${Math.round(masteryAccuracy(m) * 100)}% to hit`, () => "Fighting with nothing in your hand: hits up to 1."));
+  }
+  for (const t of types) {
+    const w = WEAPONS[t];
+    if (level < w.level) { list.appendChild(lockedRow(w.icon, w.name, `🔒 Lv ${w.level}`)); continue; }
+    list.appendChild(combatRow(t, w.name, w.icon,
+      (m) => `+${Math.round(masteryAccuracy(m) * 100)}% to hit · +${Math.round((masteryDamage(m) - 1) * 100)}% damage`,
+      () => `Hits up to ${w.maxHit} (stone; better metal adds more), every ${(w.speed * 0.6).toFixed(1)}s${w.range > 1 ? `, from ${w.range} tiles` : ""}.`));
+  }
+  box.appendChild(list);
+  return box;
+}
+
+/** Magic: your mana, and each spell with its Mastery. */
+function magicDetails(level: number, box: HTMLElement) {
+  const upcoming = SPELL_IDS.find((id) => SPELLS[id].level > level);
+  box.append(el("m-info", `Mana ${vitals.mana}/${vitals.maxMana} · needs a staff in your hand`));
+  if (upcoming) box.append(el("m-info", `Next spell: ${SPELLS[upcoming].name} at level ${SPELLS[upcoming].level}`));
+  if (!expanded.has("magic")) return box;
+  const list = el("m-types");
+  for (const id of SPELL_IDS) {
+    const sp = SPELLS[id];
+    if (level < sp.level) { list.appendChild(lockedRow(sp.icon, sp.name, `🔒 Lv ${sp.level}`)); continue; }
+    list.appendChild(combatRow(id, sp.name, sp.icon, (m) => `${sp.mana} mana · +${Math.round(masteryAccuracy(m) * 100)}% to hit`, () => sp.description));
+  }
+  box.appendChild(list);
+  return box;
+}
+
+/** Defense: health, armor, and which metals you can wear. */
+function defenseDetails(level: number, box: HTMLElement) {
+  box.append(el("m-info", `Health ${vitals.maxHp} · armor ${armorPoints(lastGear)} (monsters hit you ${armorPoints(lastGear)}% less)`));
+  if (!expanded.has("defense")) return box;
+  const list = el("m-types");
+  for (const metal of METAL_IDS) {
+    const lv = ARMOR_LEVEL[metal];
+    const row = el("m-type" + (level < lv ? " locked" : ""));
+    row.append(icon("m-type-icon", "🦺", METALS[metal].tint), el("m-type-name", `${METALS[metal].name} armor`), el("m-type-state", level < lv ? `🔒 Lv ${lv}` : "✓ can wear"));
+    list.appendChild(row);
+  }
+  box.appendChild(list);
+  return box;
+}
+
+/** Every monster's Mastery: helps you hit it, and makes it drop things more often. */
+function monsterRow() {
+  const sub = el("subskill");
+  const head = el("ss-head");
+  head.append(el("ss-icon", "🐾"), el("ss-name", `${monstersOpen ? "▾" : "▸"} Monsters`), el("ss-state", "Mastery"));
+  sub.appendChild(head);
+  sub.title = "Each monster has its own Mastery: you hit it more often, and it drops things more often.";
+  sub.onclick = (e) => { e.stopPropagation(); monstersOpen = !monstersOpen; renderDisciplines(lastDisciplines); };
+  if (monstersOpen) {
+    const list = el("m-types mastery");
+    for (const id of MONSTER_IDS) {
+      const d = MONSTERS[id];
+      list.appendChild(combatRow(id, `${d.name} (Lv ${d.level})`, d.icon,
+        (m) => `+${Math.round(masteryAccuracy(m) * 100)}% to hit · drops ×${masteryDrops(m).toFixed(2)}`,
+        () => `${d.hp} health, ${d.maxHit ? `hits up to ${d.maxHit}` : "never fights back"}${d.aggressive ? ", attacks on sight" : ""}.`));
+    }
+    sub.appendChild(list);
+  }
+  return sub;
+}
+
+export function renderCombatMastery(m: CombatMasteryXp) {
+  lastCombatMastery = m;
+  renderDisciplines(lastDisciplines);
+}
+
+export function flashCombatMastery(id: CombatMasteryId) {
+  flashCombat = id;
+  renderDisciplines(lastDisciplines);
+  flashCombat = undefined;
+}
+
 export function renderSkillXp(skillXp: SkillXp) {
   lastSkillXp = skillXp;
   renderDisciplines(lastDisciplines);
@@ -350,6 +481,10 @@ let onUnequip: (type: ToolType) => void = () => {};
 let onBuy: (item: ItemId, count: number) => void = () => {};
 let onCraft: (item: ItemId, all: boolean) => void = () => {};
 let onEat: (slot: number) => void = () => {};
+let onWear: (slot: number) => void = () => {};
+let onRemove: (slot: GearSlot) => void = () => {};
+let onDrink: (slot: number) => void = () => {};
+let onSpell: (id: SpellId) => void = () => {};
 
 export function setInventoryActions(actions: {
   drop: (slot: number) => void;
@@ -361,8 +496,16 @@ export function setInventoryActions(actions: {
   buy: (item: ItemId, count: number) => void;
   craft: (item: ItemId, all: boolean) => void;
   eat: (slot: number) => void;
+  wear: (slot: number) => void;
+  remove: (slot: GearSlot) => void;
+  drink: (slot: number) => void;
+  spell: (id: SpellId) => void;
 }) {
   onEat = actions.eat;
+  onWear = actions.wear;
+  onRemove = actions.remove;
+  onDrink = actions.drink;
+  onSpell = actions.spell;
   onDrop = actions.drop;
   onSell = actions.sell;
   onSellAll = actions.sellAll;
@@ -428,6 +571,52 @@ export function renderBelt(belt: Belt) {
 }
 renderBelt(lastBelt);
 
+// ---- Gear strip: weapon and armor, under the tool belt. With a staff, your spells show under it. ----
+
+const gearEl = document.getElementById("gear")!;
+const spellsEl = document.getElementById("spells")!;
+
+export function renderGear(gear: Gear, spell: SpellId) {
+  lastGear = gear;
+  lastSpell = spell;
+  renderInfo();
+  gearEl.replaceChildren();
+  for (const slot of GEAR_SLOTS) {
+    const on = gear[slot];
+    const box = el("slot belt-slot" + (on ? " filled" : ""));
+    if (on) {
+      const item = ITEMS[on.item];
+      box.append(icon("", item.icon, item.tint), durabilityBar(on.durability, gearDurability(on.item)));
+      box.title = `${item.name}: ${gearEffect(on.item)}. ${on.durability} uses left. Click for details.`;
+      box.onclick = () => showInfo({ kind: "gear", slot });
+    } else {
+      box.appendChild(icon("empty-tool", SLOT_ICONS[slot]));
+      box.title = slot === "weapon" ? "Weapon: nothing in your hand, so you punch (hits up to 1). Click a weapon in your bag to hold it."
+        : `${SLOT_NAMES[slot]}: empty. Click armor in your bag to wear it.`;
+    }
+    gearEl.appendChild(box);
+  }
+  // Spells: only when holding a staff.
+  spellsEl.replaceChildren();
+  const holdingStaff = isWeapon(gear.weapon?.item) && WEAPONS[parseWeapon(gear.weapon!.item as `${WeaponType}_stone_pine`).type].style === "magic";
+  spellsEl.style.display = holdingStaff ? "" : "none";
+  if (holdingStaff) {
+    const magic = levelForXp(lastSkillXp.magic ?? 0);
+    for (const id of SPELL_IDS) {
+      const sp = SPELLS[id];
+      const b = document.createElement("button");
+      const locked = magic < sp.level;
+      b.className = "pick spell" + (id === spell ? " active" : "") + (locked ? " locked" : "");
+      b.append(icon("pick-icon", sp.icon), el("pick-name", locked ? `🔒${sp.level}` : `${sp.mana} mana`));
+      b.title = locked ? `${sp.name}: needs Magic level ${sp.level}` : `${sp.name} (${sp.mana} mana): ${sp.description}`;
+      b.onclick = () => onSpell(id);
+      spellsEl.appendChild(b);
+    }
+  }
+  renderDisciplines(lastDisciplines);
+}
+renderGear(lastGear, lastSpell);
+
 /** The server tells us which inventory slots are locked. */
 export function renderLocks(slots: boolean[]) {
   locked = slots;
@@ -464,6 +653,7 @@ export function renderInventory(items: (ItemId | null)[]) {
       slot.classList.add("filled");
       slot.appendChild(icon("item-icon", item.icon, item.tint));
       if (isTool(id)) slot.appendChild(durabilityBar(durability[i] ?? maxDurability(id), maxDurability(id)));
+      if (isGear(id)) slot.appendChild(durabilityBar(durability[i] ?? gearDurability(id), gearDurability(id)));
       const tag = document.createElement("span");
       tag.className = "price-tag";
       const price = sellPriceFor(id, lastMastery, durability[i]);
@@ -695,14 +885,24 @@ function renderCraft() {
     );
     output = stewId(pick.fish, pick.count, pick.fuel);
   } else {
-    craftBody.append(
-      choices("Tool", TOOL_TYPE_IDS, pick.type, (t) => ({ icon: TOOL_TYPES[t].icon, name: TOOL_TYPES[t].name }), (t) => { pick.type = t; }),
-      choices("Head", MATERIAL_IDS, pick.metal, (m) => ({ icon: m === "stone" ? "🪨" : "🧈", tint: MATERIALS[m].tint, name: MATERIALS[m].name, lockedAt: lockedAt(m) }), (m) => { pick.metal = m; }),
-    );
-    if (hasHandle(pick.type)) {
-      craftBody.append(choices("Handle", WOOD_IDS, pick.wood, (w) => ({ icon: "🪵", tint: ITEMS[`${w}_logs`].tint, name: WOODS[w].name }), (w) => { pick.wood = w; }));
+    const CATS = { tools: { icon: "🪓", name: "Tools" }, weapons: { icon: "🗡️", name: "Weapons" }, armor: { icon: "🛡️", name: "Armor" } };
+    craftBody.append(choices("Make", ["tools", "weapons", "armor"] as const as unknown as ("tools" | "weapons" | "armor")[], pick.category, (c) => CATS[c], (c) => { pick.category = c; }));
+    const head = () => choices("Head", MATERIAL_IDS, pick.metal, (m) => ({ icon: m === "stone" ? "🪨" : "🧈", tint: MATERIALS[m].tint, name: MATERIALS[m].name, lockedAt: lockedAt(m) }), (m) => { pick.metal = m; });
+    const handle = () => choices("Handle", WOOD_IDS, pick.wood, (w) => ({ icon: "🪵", tint: ITEMS[`${w}_logs`].tint, name: WOODS[w].name }), (w) => { pick.wood = w; });
+    if (pick.category === "weapons") {
+      craftBody.append(choices("Weapon", WEAPON_TYPES, pick.weapon, (t) => ({ icon: WEAPONS[t].icon, name: WEAPONS[t].name }), (t) => { pick.weapon = t; }), head(), handle());
+      output = weaponId(pick.weapon, pick.metal, pick.wood);
+    } else if (pick.category === "armor") {
+      craftBody.append(
+        choices("Armor", ARMOR_TYPES, pick.armor, (t) => ({ icon: ARMOR[t].icon, name: `${ARMOR[t].name} (${ARMOR[t].bars})` }), (t) => { pick.armor = t; }),
+        choices("Metal", METAL_IDS, pick.armorMetal, (m) => ({ icon: "🧈", tint: METALS[m].tint, name: METALS[m].name, lockedAt: lockedAt(m) }), (m) => { pick.armorMetal = m; }),
+      );
+      output = armorId(pick.armor, pick.armorMetal);
+    } else {
+      craftBody.append(choices("Tool", TOOL_TYPE_IDS, pick.type, (t) => ({ icon: TOOL_TYPES[t].icon, name: TOOL_TYPES[t].name }), (t) => { pick.type = t; }), head());
+      if (hasHandle(pick.type)) craftBody.append(handle());
+      output = toolId(pick.type, pick.metal, pick.wood);
     }
-    output = toolId(pick.type, pick.metal, pick.wood);
   }
 
   const recipe = recipeFor(output)!;
@@ -737,6 +937,10 @@ function renderCraft() {
       : recipe.needsTool ? ` · no ${TOOL_TYPES[tool].name.toLowerCase()} on your belt (half chance)` : ` · no ${TOOL_TYPES[tool].name.toLowerCase()} needed`)));
   const facts = [`Sells for ${formatMoney(sellPriceFor(output, lastMastery))}`, `${recipe.xp} XP`, `costs ${STAMINA_COST[skill]} stamina`];
   if (isTool(output)) facts.unshift(`${toolEffect(output)}, ${maxDurability(output)} uses`);
+  if (isGear(output)) {
+    const needs = gearNeeds(output)!;
+    facts.unshift(`${gearEffect(output)}, ${gearDurability(output)} uses, to use: ${findSkill(needs.skill).def.name} ${needs.level}`);
+  }
   if (isStew(output)) facts.unshift(`Gives ${foodStamina(output, lastMastery)} stamina`);
   detail.append(el("craft-info", facts.join(" · ")));
   if (level < recipe.level) detail.append(el("craft-warn", `Needs ${findSkill(skill).def.name} level ${recipe.level}.`));
@@ -794,10 +998,14 @@ function renderInfo() {
   if (target.kind === "slot") {
     id = invItems[target.slot] ?? null;
     uses = durability[target.slot] ?? null;
-  } else {
+  } else if (target.kind === "belt") {
     const t = lastBelt[target.type];
     id = t?.item ?? null;
     uses = t?.durability ?? null;
+  } else {
+    const g = lastGear[target.slot];
+    id = g?.item ?? null;
+    uses = g?.durability ?? null;
   }
   if (!id) return closeInfo();
   const item = ITEMS[id];
@@ -847,6 +1055,26 @@ function renderInfo() {
     }
   }
 
+  // Weapons and armor: what they do, what you need, and how long they last.
+  if (isGear(id)) {
+    const max = gearDurability(id);
+    const left = uses ?? max;
+    const needs = gearNeeds(id)!;
+    const have = levelForXp(lastSkillXp[needs.skill] ?? 0);
+    infoBody.append(infoLine(isWeapon(id) ? "Weapon" : "Armor", gearEffect(id)));
+    if (isWeapon(id)) {
+      const a = attackFor({ ...emptyGear(), weapon: { item: id, durability: 1 } }, lastSpell);
+      const m = combatMasteryIn(lastCombatMastery, a.mastery);
+      if (a.maxHit) infoBody.append(infoLine("Your best hit", String(maxHitWith(a, m)), `${a.name} Mastery ${m}`));
+    }
+    infoBody.append(infoLine("Needs", `${findSkill(needs.skill).def.name} level ${needs.level}`, have < needs.level ? `you're level ${have}` : ""));
+    const bar = durabilityBar(left, max);
+    const row = infoLine("Uses left", `${left} of ${max}`, isWeapon(id) ? "each attack wears it down" : "each attack on you wears down one piece");
+    row.appendChild(bar);
+    infoBody.append(row);
+  }
+  if (id === POTION_ID) infoBody.append(infoLine("Health", `+${POTION_HEAL}`, `you have ${vitals.hp}/${vitals.maxHp}`));
+
   // Tools: what it does and how long it lasts.
   if (isTool(id)) {
     const max = maxDurability(id);
@@ -860,9 +1088,13 @@ function renderInfo() {
 
   if (target.kind === "belt") {
     infoButton("Take off", () => { onUnequip(target.type); closeInfo(); });
+  } else if (target.kind === "gear") {
+    infoButton("Take off", () => { onRemove(target.slot); closeInfo(); });
   } else {
     const slot = target.slot;
     if (isTool(id)) infoButton("Put on belt", () => { onEquip(slot); closeInfo(); });
+    if (isGear(id)) infoButton(isWeapon(id) ? "Hold" : "Wear", () => { onWear(slot); closeInfo(); });
+    if (id === POTION_ID) infoButton(`Drink (+${POTION_HEAL})`, () => { onDrink(slot); closeInfo(); });
     if (isFood(id)) infoButton(`Eat (+${foodStamina(id, lastMastery)})`, () => { onEat(slot); closeInfo(); }, staminaNow >= MAX_STAMINA);
     infoButton(isLocked ? "Unlock" : "Lock", () => onLock(slot, !isLocked));
     infoButton("Drop", () => { onDrop(slot); closeInfo(); }, isLocked);
@@ -872,23 +1104,51 @@ function renderInfo() {
 
 // ---- Stamina bar (top left, always showing) ----
 
+// ---- Health, stamina and mana bars (top left, always showing) ----
+
 const staminaEl = document.getElementById("stamina")!;
 let staminaNow = MAX_STAMINA;
+let staminaMax = MAX_STAMINA;
+const vitals = { hp: 50, maxHp: 50, mana: 50, maxMana: 50 };
+
+function vitalRow(label: string, now: number, max: number, color: string, title: string) {
+  const row = el("vital");
+  row.title = title;
+  const bar = el("stamina-bar");
+  const fill = document.createElement("div");
+  fill.style.width = `${Math.floor((now / max) * 100)}%`;
+  fill.style.background = color;
+  bar.appendChild(fill);
+  row.append(el("stamina-label", `${label} ${now}/${max}`), bar);
+  return row;
+}
+
+function renderVitalBars() {
+  staminaEl.replaceChildren();
+  const c = STAMINA_COST;
+  const hpLow = vitals.hp <= vitals.maxHp / 4;
+  staminaEl.append(
+    vitalRow("❤", vitals.hp, vitals.maxHp, hpLow ? "#ff3b30" : "#d6443a",
+      `Health ${vitals.hp} of ${vitals.maxHp}. Monsters take it away. Drink a health potion to get it back (it also comes back 1 a minute). At 0 you wake up next to Old Maren.`),
+    vitalRow("⚡", staminaNow, staminaMax, staminaNow < 10 ? "#e74c3c" : staminaNow < 30 ? "#f1c40f" : "#f5c542",
+      `Stamina ${staminaNow} of ${staminaMax}. Chopping costs ${c.woodcutting}, mining ${c.mining}, smelting ${c.smelting}, smithing ${c.smithing}, cooking ${c.cooking}, fishing ${c.fishing}, each weapon attack ${c.melee}. ` +
+      "It comes back 1 every 30 seconds. Eat fish or stew (click it in your bag) for more."),
+    vitalRow("🔮", vitals.mana, vitals.maxMana, "#4a7bd9", `Mana ${vitals.mana} of ${vitals.maxMana}. Spells use it. It comes back 1 every 6 seconds.`),
+  );
+  staminaEl.classList.toggle("hurt", hpLow);
+}
 
 export function renderStamina(stamina: number, max: number) {
   staminaNow = stamina;
-  staminaEl.replaceChildren();
-  const bar = el("stamina-bar");
-  const fill = document.createElement("div");
-  fill.style.width = `${Math.floor((stamina / max) * 100)}%`;
-  if (stamina < 10) fill.style.background = "#e74c3c";
-  else if (stamina < 30) fill.style.background = "#f1c40f";
-  bar.appendChild(fill);
-  staminaEl.append(el("stamina-label", `⚡ ${stamina}/${max}`), bar);
-  const c = STAMINA_COST;
-  staminaEl.title = `Stamina ${stamina} of ${max}. Chopping costs ${c.woodcutting}, mining ${c.mining}, smelting ${c.smelting}, smithing ${c.smithing}, cooking ${c.cooking}, fishing ${c.fishing}. ` +
-    "It comes back 1 every 30 seconds. Eat fish or stew (click it in your bag) for more.";
+  staminaMax = max;
+  renderVitalBars();
   renderInfo(); // the Eat button turns off when you're full
+}
+
+export function renderVitals(hp: number, maxHp: number, mana: number, maxMana: number) {
+  Object.assign(vitals, { hp, maxHp, mana, maxMana });
+  renderVitalBars();
+  renderInfo();
 }
 renderStamina(MAX_STAMINA, MAX_STAMINA);
 

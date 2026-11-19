@@ -1,7 +1,8 @@
 import Phaser from "phaser";
 import { WorldScene } from "./WorldScene";
 
-new Phaser.Game({
+// Kept on window so automated browser tests can find the scene.
+(window as any).game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: "game",
   backgroundColor: "#2d6fa3", // same blue as the water tiles
