@@ -180,6 +180,20 @@
       #craft { top: calc(56px + env(safe-area-inset-top)); padding: 8px 10px; max-height: 55vh; }
       #buy-list { max-height: 30vh; }
     }
+    /* Item info card */
+    #info { display: none; left: 50%; top: 18%; transform: translateX(-50%); width: min(320px, calc(100vw - 32px)); padding: 12px 14px; z-index: 6; }
+    body.info-open #info { display: block; }
+    #info-buttons { display: flex; gap: 6px; margin-top: 10px; }
+    .info-row { display: grid; grid-template-columns: 105px 1fr; gap: 0 8px; padding: 4px 0; border-top: 1px solid rgba(107, 90, 62, .5); font-size: 13px; }
+    .info-label { color: #c9bc9c; }
+    .info-value { color: #fff; }
+    .info-note { grid-column: 2; font-size: 11px; color: #9be28a; }
+    .info-row .dura { grid-column: 2; position: static; height: 5px; margin-top: 3px; background: rgba(0,0,0,.6); border-radius: 2px; overflow: hidden; }
+    .info-row .dura div { height: 100%; background: #5fb84a; }
+    #info .craft-head { margin-bottom: 6px; }
+    .svg-icon { width: 1em; height: 1em; display: block; }
+    .slot > span, .belt-slot > span { display: flex; align-items: center; justify-content: center; }
+    .skill { cursor: pointer; }
     #login-error { min-height: 1.3em; font-size: 13px; color: #ff9a8a; text-align: center; }
   </style>
 </head>
@@ -211,6 +225,10 @@
       <button id="craft-all" class="shop-btn">Make all</button>
       <button id="craft-close" class="shop-btn">Close</button>
     </div>
+  </div>
+  <div id="info" class="panel">
+    <div id="info-body"></div>
+    <div id="info-buttons" class="buttons"></div>
   </div>
   <div id="skills" class="panel sidepanel"><h3>Disciplines</h3><div id="skill-list"></div></div>
   <div id="login">

@@ -40,8 +40,8 @@ export const DISCIPLINES: Record<DisciplineId, DisciplineDef> = {
     name: "Crafting", icon: "⚒️",
     description: "Making things from what you gather.",
     skills: [
-      { id: "smelting", name: "Smelting", icon: "🔥", unlockLevel: 1, description: "Use the furnace by the Merchant to turn ore into bars." },
-      { id: "smithing", name: "Smithing", icon: "🔨", unlockLevel: 1, description: "Use the anvil by the Merchant to make tools from a bar and a log." },
+      { id: "smithing", name: "Smithing", icon: "🔨", unlockLevel: 1, description: "Use the anvil by the Merchant to make tools from stone or a metal bar, plus a log." },
+      { id: "smelting", name: "Smelting", icon: "🔥", unlockLevel: 3, description: "Use the furnace by the Merchant to turn ore into bars." },
     ],
   },
 };

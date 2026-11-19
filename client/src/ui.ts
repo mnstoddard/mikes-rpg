@@ -1,11 +1,13 @@
 import { INVENTORY_SIZE, ITEMS, ItemId } from "../../shared/items";
 import { formatMoney, toPurse } from "../../shared/money";
 import { CraftSkill, DISCIPLINES, DISCIPLINE_IDS, DisciplineId, DisciplineXp, MAX_LEVEL, SkillId, SkillXp, emptyDisciplines, emptySkills, findSkill, isCraftSkill, levelForXp, xpForLevel } from "../../shared/disciplines";
-import { ItemMasteryXp, MasteryId, craftSuccess, masteryIn, masteryLevelForXp, masterySuccess, masteryXpForLevel, percent, speedBonusPercent, valueBonusPercent } from "../../shared/mastery";
+import { ItemMasteryXp, MasteryId, craftSuccess, masteryValue, masteryIn, masteryLevelForXp, masterySuccess, masteryXpForLevel, percent, speedBonusPercent, valueBonusPercent } from "../../shared/mastery";
 import { RESOURCES, resourcesFor } from "../../shared/foraging";
-import { SHOP_STOCK, beltBonus, buyPriceFor, recipeFor, sellPriceFor, successFor } from "../../shared/crafting";
+import { SHOP_STOCK, beltBonus, buyPriceFor, masteryIdFor, masteryName, recipeFor, sellPriceFor, successFor } from "../../shared/crafting";
+import { RESOURCE_FOR_ITEM } from "../../shared/foraging";
+import { CRAFT_MARKUP } from "../../shared/items";
 import {
-  BAR_IDS, Belt, METALS, METAL_IDS, Metal, TOOL_TYPES, TOOL_TYPE_IDS, ToolType, WOODS, WOOD_IDS, Wood, barId, emptyBelt,
+  BAR_IDS, Belt, MATERIALS, MATERIAL_IDS, Material, METALS, METAL_IDS, Metal, TOOL_TYPES, TOOL_TYPE_IDS, ToolType, WOODS, WOOD_IDS, Wood, barId, emptyBelt,
   isTool, maxDurability, metalOfBar, parseTool, toolBonus, toolForSkill, toolId,
 } from "../../shared/tools";
 
@@ -46,11 +48,16 @@ let flashType: MasteryId | undefined;
 let lastBelt: Belt = emptyBelt();
 /** Which crafting window is open, and what's picked in it. */
 let station: "furnace" | "anvil" | null = null;
-const pick = { bar: "bronze" as Metal, type: "axe" as ToolType, metal: "bronze" as Metal, wood: "pine" as Wood };
+const pick = { bar: "bronze" as Metal, type: "axe" as ToolType, metal: "stone" as Material, wood: "pine" as Wood };
+/** The item whose info card is showing. */
+type InfoTarget = { kind: "slot"; slot: number } | { kind: "belt"; type: ToolType };
+let info: InfoTarget | null = null;
 /** The Merchant's window is on its Buy tab (otherwise Sell). */
 let shopBuying = false;
 /** Skills whose list of types is showing (click a skill to fold it away). */
-const expanded = new Set<SkillId>(["woodcutting", "fishing", "mining", "smelting", "smithing"]);
+// Everything starts folded up; click a Discipline or skill to open it.
+const expanded = new Set<SkillId>();
+const openDisciplines = new Set<DisciplineId>();
 
 const el = (cls: string, text = "") => {
   const d = document.createElement("div");
@@ -58,6 +65,28 @@ const el = (cls: string, text = "") => {
   d.textContent = text;
   return d;
 };
+
+/** Drawn icons for things with no good emoji (tongs). Tinted the same way as emoji. */
+const SVG_ICONS: Record<string, string> = {
+  tongs: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M3 30 L15 15 Q19 9 22 4 L26 3" stroke="#2b2f33" stroke-width="4.5"/><path d="M9 31 L15 15 Q22 11 27 9 L29 6" stroke="#2b2f33" stroke-width="4.5"/><path d="M3 30 L15 15 Q19 9 22 4 L26 3" stroke="#a9b0b7" stroke-width="2.5"/><path d="M9 31 L15 15 Q22 11 27 9 L29 6" stroke="#a9b0b7" stroke-width="2.5"/></g><circle cx="15" cy="15" r="2.6" fill="#555b61" stroke="#2b2f33" stroke-width="1"/></svg>`,
+};
+
+/** An icon: an emoji, or "svg:name" for a drawn one. */
+function icon(cls: string, glyph: string, tint?: string): HTMLElement {
+  const box = document.createElement("span");
+  box.className = cls;
+  if (glyph.startsWith("svg:")) {
+    const img = document.createElement("img");
+    img.className = "svg-icon";
+    img.alt = "";
+    img.src = `data:image/svg+xml,${encodeURIComponent(SVG_ICONS[glyph.slice(4)] ?? "")}`;
+    box.appendChild(img);
+  } else {
+    box.textContent = glyph;
+  }
+  if (tint) box.style.filter = tint;
+  return box;
+}
 
 export function renderDisciplines(disciplines: DisciplineXp, flash?: DisciplineId) {
   lastDisciplines = disciplines;
@@ -72,33 +101,44 @@ export function renderDisciplines(disciplines: DisciplineXp, flash?: DisciplineI
     const pct = maxed ? 100 : Math.floor(((xp - start) / (next - start)) * 100);
 
     const row = document.createElement("div");
-    row.className = "skill" + (flash === id ? " flash" : "");
-    row.title = def.description;
+    const isOpen = openDisciplines.has(id);
+    row.className = "skill" + (flash === id ? " flash" : "") + (isOpen ? " open" : "");
+    row.title = `${def.description} Click to ${isOpen ? "fold it up" : "show its skills"}.`;
+    row.onclick = () => {
+      if (isOpen) openDisciplines.delete(id); else openDisciplines.add(id);
+      renderDisciplines(lastDisciplines);
+    };
     const bar = el("skill-bar");
     const fill = document.createElement("div");
     fill.style.width = `${pct}%`;
     bar.appendChild(fill);
     row.append(
       el("skill-icon", def.icon),
-      el("skill-name", def.name),
+      el("skill-name", `${isOpen ? "▾" : "▸"} ${def.name}`),
       el("skill-level", `Lv ${level}`),
       bar,
       el("skill-xp", maxed ? `${xp.toLocaleString()} XP (max level)` : `${xp.toLocaleString()} / ${next.toLocaleString()} XP · ${(next - xp).toLocaleString()} to go`),
     );
 
+    if (!isOpen) {
+      skillListEl.appendChild(row);
+      continue;
+    }
     // The skills inside this Discipline, and when they unlock.
     const subs = el("subskills");
     subs.style.gridColumn = "1 / 4";
     for (const skill of def.skills) {
       const unlocked = level >= skill.unlockLevel;
       const sub = el("subskill" + (unlocked ? "" : " locked") + (flashSkill === skill.id ? " flash" : ""));
-      sub.title = `${skill.description} Click to show or hide its types.`;
+      sub.title = `${skill.description} Click to show or hide its details.`;
       const head = el("ss-head");
-      head.append(el("ss-icon", skill.icon), el("ss-name", skill.name),
-        el("ss-state", unlocked ? "✓" : `🔒 Lv ${skill.unlockLevel}`));
+      const open = expanded.has(skill.id);
+      head.append(el("ss-icon", skill.icon), el("ss-name", `${open ? "▾" : "▸"} ${skill.name}`),
+        el("ss-state", unlocked ? `Lv ${levelForXp(lastSkillXp[skill.id] ?? 0)}` : `🔒 ${def.name} ${skill.unlockLevel}`));
       sub.appendChild(head);
-      sub.appendChild(skillDetails(skill.id));
-      sub.onclick = () => {
+      if (open) sub.appendChild(skillDetails(skill.id));
+      sub.onclick = (e) => {
+        e.stopPropagation(); // don't also fold up the Discipline
         if (expanded.has(skill.id)) expanded.delete(skill.id); else expanded.add(skill.id);
         renderDisciplines(lastDisciplines);
       };
@@ -136,17 +176,16 @@ function skillDetails(skill: SkillId): HTMLElement {
     const item = ITEMS[r.item];
     const open = level >= r.level;
     const row = el("m-type" + (open ? "" : " locked") + (flashType === id ? " flash" : ""));
-    const icon = el("m-type-icon", item.icon);
-    if (item.tint) icon.style.filter = item.tint;
+    const ic = icon("m-type-icon", item.icon, item.tint);
     if (!open) {
-      row.append(icon, el("m-type-name", item.name), el("m-type-state", `🔒 Lv ${r.level}`));
+      row.append(ic, el("m-type-name", item.name), el("m-type-state", `🔒 Lv ${r.level}`));
       row.title = `Reach ${findSkill(skill).def.name} level ${r.level} to gather ${item.name}.`;
     } else {
       const mXp = lastMastery[id] ?? 0;
       const m = masteryLevelForXp(mXp);
       const mStart = masteryXpForLevel(m), mNext = masteryXpForLevel(m + 1);
       const price = sellPriceFor(r.item, lastMastery);
-      row.append(icon, el("m-type-name", item.name), el("m-type-state", `Mastery ${m}`));
+      row.append(ic, el("m-type-name", item.name), el("m-type-state", `Mastery ${m}`));
       const mBar = el("skill-bar t-bar");
       const mFill = document.createElement("div");
       mFill.style.width = `${Math.floor(((mXp - mStart) / (mNext - mStart)) * 100)}%`;
@@ -163,13 +202,12 @@ function skillDetails(skill: SkillId): HTMLElement {
 }
 
 /** A Mastery bar with its info line under it. */
-function masteryRow(id: MasteryId, name: string, icon: string, tint: string | undefined, info: (m: number) => string, title: (m: number) => string) {
+function masteryRow(id: MasteryId, name: string, glyph: string, tint: string | undefined, info: (m: number) => string, title: (m: number) => string) {
   const mXp = lastMastery[id] ?? 0;
   const m = masteryLevelForXp(mXp);
   const mStart = masteryXpForLevel(m), mNext = masteryXpForLevel(m + 1);
   const row = el("m-type" + (flashType === id ? " flash" : ""));
-  const iconEl = el("m-type-icon", icon);
-  if (tint) iconEl.style.filter = tint;
+  const iconEl = icon("m-type-icon", glyph, tint);
   const mBar = el("skill-bar t-bar");
   const mFill = document.createElement("div");
   mFill.style.width = `${Math.floor(((mXp - mStart) / (mNext - mStart)) * 100)}%`;
@@ -197,9 +235,7 @@ function craftDetails(skill: CraftSkill, level: number, box: HTMLElement) {
       const metal = METALS[metalOfBar(bar)];
       if (level < metal.level) {
         const row = el("m-type locked");
-        const icon = el("m-type-icon", "🧈");
-        icon.style.filter = metal.tint;
-        row.append(icon, el("m-type-name", ITEMS[bar].name), el("m-type-state", `🔒 Lv ${metal.level}`));
+        row.append(icon("m-type-icon", "🧈", metal.tint), el("m-type-name", ITEMS[bar].name), el("m-type-state", `🔒 Lv ${metal.level}`));
         list.appendChild(row);
         continue;
       }
@@ -323,22 +359,19 @@ const beltEl = document.getElementById("belt")!;
 
 export function renderBelt(belt: Belt) {
   lastBelt = belt;
+  renderInfo();
   beltEl.replaceChildren();
   for (const type of TOOL_TYPE_IDS) {
     const t = TOOL_TYPES[type];
     const on = belt[type];
     const slot = el("slot belt-slot" + (on ? " filled" : ""));
-    const icon = document.createElement("span");
-    icon.textContent = t.icon;
     if (on) {
-      if (ITEMS[on.item].tint) icon.style.filter = ITEMS[on.item].tint!;
       const max = maxDurability(on.item);
-      slot.append(icon, durabilityBar(on.durability, max));
-      slot.title = `${ITEMS[on.item].name}: ${toolEffect(on.item)}. ${on.durability} of ${max} uses left. Click to put it back in your bag.`;
-      slot.onclick = () => onUnequip(type);
+      slot.append(icon("", t.icon, ITEMS[on.item].tint), durabilityBar(on.durability, max));
+      slot.title = `${ITEMS[on.item].name}: ${toolEffect(on.item)}. ${on.durability} of ${max} uses left. Click for details.`;
+      slot.onclick = () => showInfo({ kind: "belt", type });
     } else {
-      icon.className = "empty-tool";
-      slot.appendChild(icon);
+      slot.appendChild(icon("empty-tool", t.icon));
       slot.title = t.helps === "speed"
         ? `No ${t.name.toLowerCase()}: ${findSkill(t.skill).def.name} is 3 times slower. Click one in your bag to put it here.`
         : `No ${t.name.toLowerCase()}: half the ${findSkill(t.skill).def.name} success chance. Click one in your bag to put it here.`;
@@ -384,10 +417,7 @@ export function renderInventory(items: (ItemId | null)[]) {
     if (id) {
       const item = ITEMS[id];
       slot.classList.add("filled");
-      const icon = document.createElement("span");
-      icon.textContent = item.icon;
-      if (item.tint) icon.style.filter = item.tint;
-      slot.appendChild(icon);
+      slot.appendChild(icon("item-icon", item.icon, item.tint));
       if (isTool(id)) slot.appendChild(durabilityBar(durability[i] ?? maxDurability(id), maxDurability(id)));
       const tag = document.createElement("span");
       tag.className = "price-tag";
@@ -405,23 +435,21 @@ export function renderInventory(items: (ItemId | null)[]) {
       slot.title = lockMode ? `${isLocked ? "Unlock" : "Lock"} this ${item.single}`
         : isLocked ? `${item.name} (locked)`
         : selling ? `Sell ${item.single} for ${formatMoney(price)}`
-        : isTool(id) ? `${item.name}: ${toolEffect(id)}, ${durability[i] ?? maxDurability(id)} of ${maxDurability(id)} uses left. Click to put it on your belt.`
-        : `${item.name}: click to drop`;
+        : `${item.name}: click for details`;
       slot.onclick = () => {
         if (lockMode) return toggleLock(i);
         if (shopIsOpen() && !shopBuying) {
           if (isLocked) return showMessage(`That ${item.single} is locked. Tap 🔒 on your inventory, then tap it to unlock.`);
           return onSell(i);
         }
-        if (isTool(id)) return onEquip(i);
-        if (isLocked) return showMessage(`That ${item.single} is locked. Tap 🔒 on your inventory, then tap it to unlock.`);
-        onDrop(i);
+        showInfo({ kind: "slot", slot: i });
       };
     }
     slotsEl.appendChild(slot);
   }
   if (selling) renderShop();
   renderCraft();
+  renderInfo();
 }
 
 // ---- Money: shown under the inventory, doesn't use a slot ----
@@ -461,6 +489,7 @@ document.querySelectorAll<HTMLElement>(".shop-tab").forEach((b) => {
 
 export function openShop() {
   closeCraft();
+  closeInfo();
   document.body.classList.add("shop-open");
   openPanel("inventory"); // so you can click your items, on phones too
   renderInventory(invItems);
@@ -507,10 +536,7 @@ function renderShop() {
   const carrying = [...new Set(invItems.filter((id): id is ItemId => !!id))];
   for (const id of carrying) {
     const span = document.createElement("span");
-    const icon = document.createElement("span");
-    icon.textContent = ITEMS[id].icon;
-    if (ITEMS[id].tint) icon.style.filter = ITEMS[id].tint!;
-    span.append(icon, ` ${ITEMS[id].name}: ${formatMoney(sellPriceFor(id, lastMastery))}`);
+    span.append(icon("", ITEMS[id].icon, ITEMS[id].tint), ` ${ITEMS[id].name}: ${formatMoney(sellPriceFor(id, lastMastery))}`);
     span.className = "price";
     prices.appendChild(span);
   }
@@ -536,11 +562,10 @@ function renderBuy() {
     const item = ITEMS[id];
     const price = buyPriceFor(id);
     const row = el("buy-row" + (coins < price ? " poor" : ""));
-    const icon = el("buy-icon", item.icon);
-    if (item.tint) icon.style.filter = item.tint;
+    const ic = icon("buy-icon", item.icon, item.tint);
     const one = document.createElement("button");
     one.className = "buy-btn";
-    one.append(icon, el("buy-name", item.name), el("buy-price", formatMoney(price)));
+    one.append(ic, el("buy-name", item.name), el("buy-price", formatMoney(price)));
     one.title = isTool(id) ? `${item.name}: ${toolEffect(id)}, ${maxDurability(id)} uses.` : `Buy 1 ${item.single}`;
     one.onclick = () => onBuy(id, 1);
     const five = document.createElement("button");
@@ -566,6 +591,7 @@ const craftAll = document.getElementById("craft-all") as HTMLButtonElement;
 export function openCraft(id: string) {
   if (id !== "furnace" && id !== "anvil") return;
   closeShop();
+  closeInfo();
   station = id;
   document.body.classList.add("craft-open");
   openPanel("inventory");
@@ -588,9 +614,7 @@ function choices<T extends string>(label: string, ids: T[], current: T, show: (i
     const c = show(id);
     const b = document.createElement("button");
     b.className = "pick" + (id === current ? " active" : "") + (c.lockedAt ? " locked" : "");
-    const icon = el("pick-icon", c.icon);
-    if (c.tint) icon.style.filter = c.tint;
-    b.append(icon, el("pick-name", c.lockedAt ? `🔒${c.lockedAt}` : c.name));
+    b.append(icon("pick-icon", c.icon, c.tint), el("pick-name", c.lockedAt ? `🔒${c.lockedAt}` : c.name));
     b.title = c.lockedAt ? `${c.name}: needs level ${c.lockedAt}` : c.name;
     b.onclick = () => { choose(id); renderCraft(); };
     wrap.appendChild(b);
@@ -604,7 +628,15 @@ function renderCraft() {
   const level = levelForXp(lastSkillXp[skill] ?? 0);
   craftTitle.textContent = station === "furnace" ? `Furnace · Smelting level ${level}` : `Anvil · Smithing level ${level}`;
   craftBody.replaceChildren();
-  const lockedAt = (m: Metal) => (level < METALS[m].level ? METALS[m].level : undefined);
+  const lockedAt = (m: Material) => (level < MATERIALS[m].level ? MATERIALS[m].level : undefined);
+  const { discipline, def: skillDef } = findSkill(skill);
+  const disciplineLevel = levelForXp(lastDisciplines[discipline] ?? 0);
+  if (disciplineLevel < skillDef.unlockLevel) {
+    craftBody.append(el("craft-warn", `Smelting unlocks at ${DISCIPLINES[discipline].name} level ${skillDef.unlockLevel} (you're level ${disciplineLevel}). Make a few stone tools at the anvil first.`));
+    craftOne.disabled = true;
+    craftAll.disabled = true;
+    return;
+  }
 
   let output: ItemId;
   if (station === "furnace") {
@@ -613,7 +645,7 @@ function renderCraft() {
   } else {
     craftBody.append(
       choices("Tool", TOOL_TYPE_IDS, pick.type, (t) => ({ icon: TOOL_TYPES[t].icon, name: TOOL_TYPES[t].name }), (t) => { pick.type = t; }),
-      choices("Metal", METAL_IDS, pick.metal, (m) => ({ icon: "🧈", tint: METALS[m].tint, name: METALS[m].name, lockedAt: lockedAt(m) }), (m) => { pick.metal = m; }),
+      choices("Head", MATERIAL_IDS, pick.metal, (m) => ({ icon: m === "stone" ? "🪨" : "🧈", tint: MATERIALS[m].tint, name: MATERIALS[m].name, lockedAt: lockedAt(m) }), (m) => { pick.metal = m; }),
     );
     if (pick.type !== "tongs") {
       craftBody.append(choices("Handle", WOOD_IDS, pick.wood, (w) => ({ icon: "🪵", tint: ITEMS[`${w}_logs`].tint, name: WOODS[w].name }), (w) => { pick.wood = w; }));
@@ -625,9 +657,7 @@ function renderCraft() {
   const item = ITEMS[output];
   const detail = el("craft-detail");
   const head = el("craft-head");
-  const icon = el("craft-icon", item.icon);
-  if (item.tint) icon.style.filter = item.tint;
-  head.append(icon, el("craft-name", item.name));
+  head.append(icon("craft-icon", item.icon, item.tint), el("craft-name", item.name));
   detail.appendChild(head);
 
   // What it takes, and how many you have.
@@ -651,7 +681,8 @@ function renderCraft() {
   const tool = toolForSkill(skill)!;
   const m = masteryIn(lastMastery, recipe.mastery);
   detail.append(el("craft-chance", `${percent(chance)} success`),
-    el("craft-info", `Mastery ${m}` + (lastBelt[tool] ? ` · ${ITEMS[lastBelt[tool]!.item].name} on your belt` : ` · no ${TOOL_TYPES[tool].name.toLowerCase()} on your belt (half chance)`)));
+    el("craft-info", `Mastery ${m}` + (lastBelt[tool] ? ` · ${ITEMS[lastBelt[tool]!.item].name} on your belt`
+      : recipe.needsTool ? ` · no ${TOOL_TYPES[tool].name.toLowerCase()} on your belt (half chance)` : ` · no ${TOOL_TYPES[tool].name.toLowerCase()} needed`)));
   const facts = [`Sells for ${formatMoney(sellPriceFor(output, lastMastery))}`, `${recipe.xp} XP`];
   if (isTool(output)) facts.unshift(`${toolEffect(output)}, ${maxDurability(output)} uses`);
   detail.append(el("craft-info", facts.join(" · ")));
@@ -669,6 +700,106 @@ function renderCraft() {
 }
 
 document.getElementById("craft-close")!.onclick = closeCraft;
+
+// ---- Item info card: click an item (or a belt tool) to see what it's worth and does ----
+
+const infoBody = document.getElementById("info-body")!;
+const infoButtons = document.getElementById("info-buttons")!;
+
+function showInfo(target: InfoTarget) {
+  info = target;
+  document.body.classList.add("info-open");
+  renderInfo();
+}
+
+export function closeInfo() {
+  info = null;
+  document.body.classList.remove("info-open");
+}
+
+function infoLine(label: string, value: string, note = "") {
+  const row = el("info-row");
+  row.append(el("info-label", label), el("info-value", value));
+  if (note) row.append(el("info-note", note));
+  return row;
+}
+
+function infoButton(text: string, action: () => void, disabled = false) {
+  const b = document.createElement("button");
+  b.className = "shop-btn";
+  b.textContent = text;
+  b.disabled = disabled;
+  b.onclick = action;
+  infoButtons.appendChild(b);
+}
+
+function renderInfo() {
+  if (!info) return;
+  const target = info;
+  let id: ItemId | null;
+  let uses: number | null = null;
+  if (target.kind === "slot") {
+    id = invItems[target.slot] ?? null;
+    uses = durability[target.slot] ?? null;
+  } else {
+    const t = lastBelt[target.type];
+    id = t?.item ?? null;
+    uses = t?.durability ?? null;
+  }
+  if (!id) return closeInfo();
+  const item = ITEMS[id];
+  const isLocked = target.kind === "slot" && !!locked[target.slot];
+  infoBody.replaceChildren();
+  infoButtons.replaceChildren();
+  const head = el("craft-head");
+  head.append(icon("craft-icon", item.icon, item.tint), el("craft-name", item.name + (isLocked ? " 🔒" : "")));
+  infoBody.appendChild(head);
+
+  // Value: base price, your Mastery multiplier, and what the Merchant pays and charges.
+  const mid = masteryIdFor(id);
+  const m = masteryIn(lastMastery, mid);
+  infoBody.append(infoLine("Base value", formatMoney(item.sellPrice), item.inputs ? "its materials + 25%" : ""));
+  infoBody.append(infoLine("Mastery", `${masteryName(mid)} ${m}`, `×${masteryValue(m).toFixed(2)} value`));
+  if (item.inputs) {
+    const parts = item.inputs.map((i) => `${ITEMS[i].single} (${formatMoney(sellPriceFor(i, lastMastery))})`).join(" + ");
+    infoBody.append(infoLine("Made from", parts, `×${CRAFT_MARKUP}, then your Mastery`));
+  }
+  const price = sellPriceFor(id, lastMastery, uses);
+  infoBody.append(infoLine("Merchant pays", formatMoney(price), isTool(id) && uses != null && uses < maxDurability(id) ? "less because it's worn" : ""));
+  if (SHOP_STOCK.includes(id)) infoBody.append(infoLine("Merchant sells", formatMoney(buyPriceFor(id))));
+
+  // Where it comes from.
+  const res = RESOURCE_FOR_ITEM[id];
+  const recipe = recipeFor(id);
+  if (res) {
+    const r = RESOURCES[res];
+    infoBody.append(infoLine("Gathered", `${findSkill(r.skill).def.name} level ${r.level}`, `${r.xp} XP each`));
+  } else if (recipe) {
+    infoBody.append(infoLine("Made with", `${findSkill(recipe.skill).def.name} level ${recipe.level}`,
+      `${percent(successFor(recipe, lastMastery, lastBelt))} success for you · ${recipe.xp} XP`));
+  }
+
+  // Tools: what it does and how long it lasts.
+  if (isTool(id)) {
+    const max = maxDurability(id);
+    const left = uses ?? max;
+    infoBody.append(infoLine("Bonus", toolEffect(id)));
+    const bar = durabilityBar(left, max);
+    const row = infoLine("Uses left", `${left} of ${max}`, "harder trees, rocks, fish and recipes wear it faster");
+    row.appendChild(bar);
+    infoBody.append(row);
+  }
+
+  if (target.kind === "belt") {
+    infoButton("Take off", () => { onUnequip(target.type); closeInfo(); });
+  } else {
+    const slot = target.slot;
+    if (isTool(id)) infoButton("Put on belt", () => { onEquip(slot); closeInfo(); });
+    infoButton(isLocked ? "Unlock" : "Lock", () => onLock(slot, !isLocked));
+    infoButton("Drop", () => { onDrop(slot); closeInfo(); }, isLocked);
+  }
+  infoButton("Close", closeInfo);
+}
 
 /** RuneScape-style "Action Target" text next to the cursor. */
 export function setHoverText(action: string | null, target = "", x = 0, y = 0) {

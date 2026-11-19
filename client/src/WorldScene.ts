@@ -4,8 +4,8 @@ import { MAP, MAP_HEIGHT, MAP_WIDTH, TICK_MS, TILE_SIZE, Tile, isWalkable } from
 import { RESOURCES, ResourceId, fishAt, isFishingSpot, nodeAt, treeKey } from "../../shared/foraging";
 
 import { ITEMS, ItemId } from "../../shared/items";
-import { joinWorld } from "./network";
-import { closeCraft, closeShop, flashDiscipline, flashMastery, flashSkillRow, openCraft, renderBelt, renderDurability, renderMastery, renderSkillXp, openShop, renderCoins, renderDisciplines, renderInventory, renderLocks, setHoverText, setInventoryActions, showMessage } from "./ui";
+import { joinWorld, rejoinWorld } from "./network";
+import { closeCraft, closeInfo, closeShop, flashDiscipline, flashMastery, flashSkillRow, openCraft, renderBelt, renderDurability, renderMastery, renderSkillXp, openShop, renderCoins, renderDisciplines, renderInventory, renderLocks, setHoverText, setInventoryActions, showMessage } from "./ui";
 import { masteryName } from "../../shared/crafting";
 import type { Belt, ToolType } from "../../shared/tools";
 import { NPCS, npcAt } from "../../shared/npcs";
@@ -59,10 +59,22 @@ export class WorldScene extends Phaser.Scene {
     this.setupZoom();
     renderInventory([]);
 
-    this.hud.textContent = "Log in to play";
-    this.room = await showLogin(joinWorld);
+    // A mouse click acts the moment you press. A finger acts on release, so a
+    // pinch or a wobbly finger isn't read as a tap.
+    this.input.on("pointerdown", (p: Phaser.Input.Pointer) => { if (this.room && !p.wasTouch && p.leftButtonDown()) this.onClick(p); });
+    this.input.on("pointerup", (p: Phaser.Input.Pointer) => { if (this.room && p.wasTouch) this.onPointerUp(p); });
+    this.input.on("pointermove", (p: Phaser.Input.Pointer) => { if (this.room && !p.wasTouch) this.onHover(p); });
+    this.input.on("gameout", () => setHoverText(null));
+    // Coming back from another app: the browser paused the game while it was hidden.
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) this.onResume(); });
 
-    const room = this.room;
+    this.hud.textContent = "Log in to play";
+    this.attach(await showLogin(joinWorld));
+  }
+
+  /** Hook the scene up to a joined room (first login, or after reconnecting). */
+  private attach(room: Room, reconnected = false) {
+    this.room = room;
     room.onMessage("message", (text: string) => showMessage(text));
     room.onMessage("disciplines", (disciplines: DisciplineXp) => {
       // Floating "+1 Foraging XP" over your head whenever you earn XP.
@@ -107,15 +119,69 @@ export class WorldScene extends Phaser.Scene {
       openShop();
     });
     this.listenToState(room);
-    room.send("ready");
+    room.send("ready", { reconnected });
+    room.onLeave((code: number) => {
+      if (this.room !== room) return;
+      this.room = undefined;
+      // 1000 = we left on purpose. Anything else: the connection dropped, so get it back.
+      if (code === 1000) this.hud.textContent = "Disconnected from server.";
+      else void this.recover(room.reconnectionToken);
+    });
+  }
 
-    // A mouse click acts the moment you press. A finger acts on release, so a
-    // pinch or a wobbly finger isn't read as a tap.
-    this.input.on("pointerdown", (p: Phaser.Input.Pointer) => { if (!p.wasTouch && p.leftButtonDown()) this.onClick(p); });
-    this.input.on("pointerup", (p: Phaser.Input.Pointer) => { if (p.wasTouch) this.onPointerUp(p); });
-    this.input.on("pointermove", (p: Phaser.Input.Pointer) => { if (!p.wasTouch) this.onHover(p); });
-    this.input.on("gameout", () => setHoverText(null));
-    room.onLeave(() => { this.hud.textContent = "Disconnected from server."; });
+  /**
+   * The connection dropped (phone switched apps, Wi-Fi blip). Keep trying to
+   * rejoin as the same character for up to 2 minutes; after that, log in again.
+   */
+  private async recover(token: string) {
+    closeShop();
+    closeCraft();
+    closeInfo();
+    const started = Date.now();
+    for (let wait = 500; Date.now() - started < 110_000; wait = Math.min(wait * 2, 8000)) {
+      this.hud.textContent = "Reconnecting…";
+      try {
+        const room = await rejoinWorld(token);
+        this.clearWorld();
+        this.attach(room, true);
+        return;
+      } catch {
+        await new Promise((r) => setTimeout(r, wait));
+      }
+    }
+    this.clearWorld();
+    this.hud.textContent = "Log in to play";
+    this.attach(await showLogin(joinWorld));
+  }
+
+  /** Forget everything the old connection showed, so the new one can draw it fresh. */
+  private clearWorld() {
+    this.cameras.main.stopFollow();
+    this.players.forEach((v) => v.container.destroy());
+    this.players.clear();
+    for (const key of [...this.trees.keys(), ...this.rocks.keys()]) this.setStump(key, false);
+    this.marker.setVisible(false);
+    this.lastDisciplines = undefined;
+  }
+
+  /**
+   * Back from another app. The browser froze the game while it was hidden, so
+   * half-finished walking animations and finger presses are stale: snap
+   * everyone to where they really are and forget any touch that was down.
+   */
+  private onResume() {
+    this.input.manager.pointers.forEach((p) => p.reset());
+    this.pinchStartDist = 0;
+    this.gestureWasPinch = false;
+    const room = this.room;
+    if (!room) return;
+    room.state.players.forEach((player: any, sessionId: string) => {
+      const view = this.players.get(sessionId);
+      if (!view) return;
+      view.tween?.stop();
+      const [tx, ty] = this.tileCenter(player.x, player.y);
+      view.container.setPosition(tx, ty);
+    });
   }
 
   private drawMap() {
@@ -431,6 +497,7 @@ export class WorldScene extends Phaser.Scene {
     const { x, y } = this.tileAt(pointer);
     closeShop(); // clicking the map walks away from the shop
     closeCraft();
+    closeInfo();
     const npc = npcAt(x, y);
     if (npc) {
       this.room?.send("talk", { id: npc.id });

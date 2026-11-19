@@ -10,8 +10,15 @@ function serverUrl(): string {
 
 export interface LoginDetails { username: string; password: string; create: boolean }
 
+let client: Client | null = null;
+const getClient = () => (client ??= new Client(serverUrl()));
+
 /** Logs in (or creates an account) and joins the world. Rejects with the server's reason. */
 export async function joinWorld(login: LoginDetails): Promise<Room> {
-  const client = new Client(serverUrl());
-  return client.joinOrCreate("world", login);
+  return getClient().joinOrCreate("world", login);
+}
+
+/** After the connection drops (e.g. the phone switched apps), pick up the same character again. */
+export async function rejoinWorld(reconnectionToken: string): Promise<Room> {
+  return getClient().reconnect(reconnectionToken);
 }

@@ -9,7 +9,7 @@ import { RESOURCES, RESOURCE_FOR_ITEM, ResourceId } from "./foraging";
 import { ItemMasteryXp, MasteryId, craftSuccess, masteryIn, masteryValue } from "./mastery";
 import type { CraftSkill } from "./disciplines";
 import {
-  ALL_TOOL_IDS, BAR_IDS, BarId, Belt, METALS, TOOL_TYPES, TOOL_TYPE_IDS, ToolType,
+  ALL_TOOL_IDS, BAR_IDS, BarId, Belt, MATERIALS, METALS, TOOL_TYPES, TOOL_TYPE_IDS, ToolType,
   isTool, maxDurability, metalOfBar, parseTool, toolBonus, toolForSkill, toolId, wearFor,
 } from "./tools";
 
@@ -47,9 +47,9 @@ export function sellPriceFor(item: ItemId, mastery: ItemMasteryXp, durability?: 
 /** What the Merchant charges: 3 times the base price. Your Mastery doesn't change it. */
 export const buyPriceFor = (item: ItemId) => ITEMS[item].sellPrice * BUY_MARKUP;
 
-/** The Merchant has endless stock of these: basic tools, bars, logs and ores. */
+/** The Merchant has endless stock of these: basic (stone) tools, bars, logs and ores. */
 export const SHOP_STOCK: ItemId[] = [
-  ...TOOL_TYPE_IDS.map((t) => toolId(t, "bronze", "pine")),
+  ...TOOL_TYPE_IDS.map((t) => toolId(t, "stone", "pine")),
   ...BAR_IDS,
   ...(Object.keys(ITEMS) as ItemId[]).filter((i) => {
     const r = RESOURCE_FOR_ITEM[i];
@@ -69,18 +69,23 @@ export interface Recipe {
   /** XP for a success (a failure gives half, at least 1). Goes to Crafting, the skill and the Mastery. */
   xp: number;
   mastery: MasteryId;
+  /** Success at Mastery 1 (25% for most things, 80% for stone tools). */
+  start: number;
+  /** Without the right crafting tool, is your chance halved? (Not for stone tools.) */
+  needsTool: boolean;
 }
 
 const RECIPES = new Map<ItemId, Recipe>();
 for (const bar of BAR_IDS) {
   const m = METALS[metalOfBar(bar)];
-  RECIPES.set(bar, { output: bar, skill: "smelting", inputs: ITEMS[bar].inputs!, level: m.level, xp: m.barXp, mastery: bar });
+  RECIPES.set(bar, { output: bar, skill: "smelting", inputs: ITEMS[bar].inputs!, level: m.level, xp: m.barXp, mastery: bar, start: m.startSuccess, needsTool: true });
 }
 for (const tool of ALL_TOOL_IDS) {
   const { type, metal, wood } = parseTool(tool);
   // Better materials give more XP (and so more Mastery).
-  const xp = METALS[metal].toolXp + (wood ? Math.ceil(RESOURCES[wood as ResourceId].xp / 2) : 0);
-  RECIPES.set(tool, { output: tool, skill: "smithing", inputs: ITEMS[tool].inputs!, level: METALS[metal].level, xp, mastery: type });
+  const mat = MATERIALS[metal];
+  const xp = mat.toolXp + (wood ? Math.ceil(RESOURCES[wood as ResourceId].xp / 2) : 0);
+  RECIPES.set(tool, { output: tool, skill: "smithing", inputs: ITEMS[tool].inputs!, level: mat.level, xp, mastery: type, start: mat.startSuccess, needsTool: mat.needsTool });
 }
 
 export const recipeFor = (item: ItemId): Recipe | undefined => RECIPES.get(item);
@@ -98,7 +103,7 @@ export function beltBonus(belt: Belt, skill: string): number | null {
 
 /** Your chance that one try of this recipe works, with what's on your belt. */
 export function successFor(recipe: Recipe, mastery: ItemMasteryXp, belt: Belt): number {
-  return craftSuccess(masteryIn(mastery, recipe.mastery), beltBonus(belt, recipe.skill));
+  return craftSuccess(masteryIn(mastery, recipe.mastery), beltBonus(belt, recipe.skill), recipe.start, recipe.needsTool);
 }
 
 /** Failing still teaches you a little: half the XP, at least 1. */

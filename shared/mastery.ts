@@ -65,17 +65,17 @@ const SUCCESS_CURVE = 0.0436;
  * Chance a smelt or smith works, from Mastery alone: 25% at Mastery 1, 50% at 10,
  * 91% at 50, 99% at 100. Never 100%. (Your tool then changes this; see craftSuccess.)
  */
-export function masterySuccess(level: number): number {
-  return Math.min(MAX_SUCCESS, 1 - (1 - START_SUCCESS) * Math.exp(-SUCCESS_CURVE * (level - 1)));
+export function masterySuccess(level: number, start = START_SUCCESS): number {
+  return Math.min(MAX_SUCCESS, 1 - (1 - start) * Math.exp(-SUCCESS_CURVE * (level - 1)));
 }
 
 /**
  * Your real chance with a tool: its bonus removes that share of your failures
  * (a +10% tool turns 75% failure into 67.5%). No tool: half your chance.
  */
-export function craftSuccess(level: number, toolBonus: number | null): number {
-  const base = masterySuccess(level);
-  if (toolBonus === null) return base * 0.5;
+export function craftSuccess(level: number, toolBonus: number | null, start = START_SUCCESS, needsTool = true): number {
+  const base = masterySuccess(level, start);
+  if (toolBonus === null) return needsTool ? base * 0.5 : base;
   return Math.min(MAX_SUCCESS, 1 - (1 - base) * (1 - toolBonus));
 }
 
