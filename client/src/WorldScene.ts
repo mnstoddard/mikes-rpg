@@ -5,7 +5,7 @@ import { RESOURCES, ResourceId, fishAt, isFishingSpot, nodeAt, treeKey } from ".
 import { MasteryXp, emptyMastery, masteryLevelForXp } from "../../shared/mastery";
 import { ItemId } from "../../shared/items";
 import { joinWorld } from "./network";
-import { closeShop, flashDiscipline, flashMastery, renderMastery, openShop, renderCoins, renderDisciplines, renderInventory, setHoverText, setInventoryActions, showMessage } from "./ui";
+import { closeShop, flashDiscipline, flashMastery, renderMastery, openShop, renderCoins, renderDisciplines, renderInventory, renderLocks, setHoverText, setInventoryActions, showMessage } from "./ui";
 import { NPCS, npcAt } from "../../shared/npcs";
 import { DISCIPLINES, DisciplineId, DisciplineXp, SkillId, findSkill } from "../../shared/disciplines";
 import { showLogin } from "./login";
@@ -81,7 +81,10 @@ export class WorldScene extends Phaser.Scene {
     setInventoryActions({
       drop: (slot) => room.send("drop", { slot }),
       sell: (slot) => room.send("sell", { slot }),
+      sellAll: () => room.send("sellAll"),
+      lock: (item, locked) => room.send("lock", { item, locked }),
     });
+    room.onMessage("locks", (items: ItemId[]) => renderLocks(items));
     room.onMessage("inventory", (items: (ItemId | null)[]) => renderInventory(items));
     room.onMessage("coins", (coins: number) => renderCoins(coins));
     room.onMessage("shop", () => {
