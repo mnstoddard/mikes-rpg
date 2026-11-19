@@ -19,8 +19,13 @@
     #hover b { color: #ffd84a; font-weight: normal; }
     #messages { left: calc(8px + env(safe-area-inset-left)); bottom: calc(8px + env(safe-area-inset-bottom)); width: 380px; padding: 6px 10px; font-size: 13px; line-height: 1.45; pointer-events: none; color: #f2e6c9; }
     #messages div:last-child { color: #fff; }
-    #inventory { right: calc(8px + env(safe-area-inset-right)); bottom: calc(8px + env(safe-area-inset-bottom)); padding: 8px; }
-    #inventory h3 { margin: 0 0 6px; font-size: 13px; color: #ffd84a; font-weight: normal; text-align: center; }
+    #tabs { position: fixed; right: calc(8px + env(safe-area-inset-right)); bottom: calc(8px + env(safe-area-inset-bottom)); display: flex; gap: 6px; }
+    .tab { width: 52px; height: 52px; font-size: 26px; position: relative; }
+    .tab.active { border-color: #ffd84a; background: rgba(90, 74, 47, .95); }
+    .tab-count { position: absolute; right: 3px; bottom: 1px; font-size: 12px; color: #ffd84a; }
+    .sidepanel { display: none; right: calc(8px + env(safe-area-inset-right)); bottom: calc(68px + env(safe-area-inset-bottom)); padding: 8px; }
+    body[data-panel="inventory"] #inventory, body[data-panel="skills"] #skills { display: block; }
+    .sidepanel h3 { margin: 0 0 6px; font-size: 13px; color: #ffd84a; font-weight: normal; text-align: center; }
     #slots { display: grid; grid-template-columns: repeat(4, 40px); grid-auto-rows: 36px; gap: 3px; }
     .slot { background: rgba(0,0,0,.25); border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 24px; user-select: none; }
     .slot.filled { cursor: pointer; }
@@ -36,17 +41,23 @@
     #login button:disabled { opacity: .6; cursor: default; }
     #zoom { position: fixed; top: calc(8px + env(safe-area-inset-top)); right: calc(8px + env(safe-area-inset-right)); display: flex; flex-direction: column; gap: 4px; }
     .btn { width: 40px; height: 40px; padding: 0; font-size: 22px; line-height: 1; color: #f2e6c9; cursor: pointer; position: static; touch-action: manipulation; }
-    #bag { display: none; position: fixed; right: calc(8px + env(safe-area-inset-right)); bottom: calc(8px + env(safe-area-inset-bottom)); width: 52px; height: 52px; font-size: 26px; }
-    #bag-count { position: absolute; right: 2px; bottom: 1px; font-size: 12px; color: #ffd84a; }
+    #skills { width: 184px; }
+    .skill { display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 2px 6px; padding: 6px; background: rgba(0,0,0,.25); border-radius: 3px; }
+    .skill-icon { font-size: 24px; grid-row: span 2; text-align: center; }
+    .skill-name { font-size: 14px; color: #fff; }
+    .skill-level { font-size: 14px; color: #ffd84a; }
+    .skill-bar { grid-column: 2 / 4; height: 8px; background: #1d170f; border: 1px solid #6b5a3e; border-radius: 4px; overflow: hidden; }
+    .skill-bar div { height: 100%; background: #5fb84a; transition: width .3s; }
+    .skill-xp { grid-column: 1 / 4; font-size: 12px; color: #c9bc9c; margin-top: 2px; }
+    .skill.flash { animation: flash 1.2s ease-out; }
+    @keyframes flash { from { background: rgba(255, 216, 74, .5); } to { background: rgba(0,0,0,.25); } }
 
     /* Phones and other small screens */
     @media (max-width: 640px), (max-height: 500px) {
       #hud { font-size: 12px; padding: 4px 8px; }
-      #messages { width: auto; right: calc(72px + env(safe-area-inset-right)); font-size: 12px; padding: 4px 8px; }
+      #messages { width: auto; right: calc(130px + env(safe-area-inset-right)); font-size: 12px; padding: 4px 8px; }
       #messages div:nth-last-child(n+4) { display: none; } /* last 3 lines only */
-      #bag { display: block; }
-      #inventory { display: none; bottom: calc(68px + env(safe-area-inset-bottom)); padding: 6px; }
-      body.bag-open #inventory { display: block; }
+      .sidepanel { padding: 6px; }
       #slots { grid-template-columns: repeat(4, 38px); grid-auto-rows: 34px; }
       .slot { font-size: 22px; }
       #login form { width: min(260px, calc(100vw - 48px)); }
@@ -63,10 +74,14 @@
   <div id="game"></div>
   <div id="hud" class="panel">Connecting…</div>
   <div id="zoom"><button id="zoom-in" class="panel btn" aria-label="Zoom in">+</button><button id="zoom-out" class="panel btn" aria-label="Zoom out">−</button></div>
-  <button id="bag" class="panel btn" aria-label="Inventory">🎒<span id="bag-count"></span></button>
+  <div id="tabs">
+    <button class="panel btn tab" data-tab="skills" aria-label="Skills" title="Skills">📊</button>
+    <button class="panel btn tab" data-tab="inventory" aria-label="Inventory" title="Inventory">🎒<span id="bag-count" class="tab-count"></span></button>
+  </div>
   <div id="hover"></div>
   <div id="messages" class="panel"></div>
-  <div id="inventory" class="panel"><h3>Inventory</h3><div id="slots"></div></div>
+  <div id="inventory" class="panel sidepanel"><h3>Inventory</h3><div id="slots"></div></div>
+  <div id="skills" class="panel sidepanel"><h3>Skills</h3><div id="skill-list"></div></div>
   <div id="login">
     <form class="panel" autocomplete="on">
       <h2>Welcome</h2>
