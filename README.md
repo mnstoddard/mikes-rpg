@@ -41,7 +41,16 @@ tracker** under the stamina bar always shows your current task and progress
 3. **Into the rocks:** reach Foraging 5, mine 5 stone with her worn pickaxe, make
    your own stone pickaxe, buy 2 copper and 2 tin ore from the Merchant, reach
    Crafting 5, smelt 2 bronze bars and make a bronze pickaxe (both can't fail).
-   Reward: Bronze tongs, 2 silver. That's a full Bronze set.
+   Reward: Bronze tongs, 2 silver. That's a full Bronze set of tools.
+4. **Standing your ground:** hold a bronze dagger and defeat 3 chickens, learn
+   about weapon and monster Mastery, wear a bronze helmet and shield and defeat
+   2 rats (they bite back), drink a health potion, reach Combat 3, hold a bronze
+   staff and defeat 2 chickens with Fire blast, smith bronze platelegs at the anvil
+   (can't fail) and wear them. Then she opens the gate to the Dark Forest:
+   defeat a wolf and come back. Reward: bronze platebody and boots (a full
+   bronze armor set), 3 silver.
+
+Characters who had already finished Quest 3 go straight on to Quest 4 (no reset).
 
 There are explicit "put it on your belt" steps for every tool she gives you, and
 guards so you can't get stuck: while a step needs an item, the Merchant won't buy
@@ -49,7 +58,9 @@ it and you can't drop or eat it; a step that needs a tool refuses to start witho
 it on your belt (and the tracker tells you to put it back); "by hand" steps refuse
 while the tool is on your belt. If you lose something a step needs (her rod, the
 log for your stew), talk to her and she hands you another, and if you're out of
-stamina with no food she gives you a stew. She explains Mastery in Quest 2. Steps live in `shared/quests.ts`; Maren is in `shared/npcs.ts`.
+stamina with no food she gives you a stew. In Quest 4, fighting steps refuse to
+start without a weapon in your hand (or a staff, for the magic step), and if
+you're badly hurt with no potion she gives you one. She explains Mastery in Quest 2. Steps live in `shared/quests.ts`; Maren is in `shared/npcs.ts`.
 
 **Starting over:** `SAVE_VERSION` in `server/src/storage.ts` is the save format.
 A save with a different version is wiped on login (skills, items, coins, tools,
@@ -100,6 +111,74 @@ speed, value), `shared/items.ts` (base prices) and `shared/map.ts` (placement).
 There's a ready hook (`gatherSuccessChance`) for giving hard types a chance to fail later.
 Old saves: the old per-skill Mastery level becomes that skill's level, and per-type
 Mastery starts at 1.
+
+## Combat
+
+**Combat** is the third Discipline. Its skills: 🗡️ **Melee** and 🛡️ **Defense**
+(open from the start), 🪄 **Magic** (Combat 3) and 🏹 **Ranged** (Combat 5).
+Numbers live in `shared/combat.ts` (monsters, spells, hit chances) and
+`shared/gear.ts` (weapons and armor).
+
+- **Health ❤, stamina ⚡ and mana 🔮** are the three bars top left. Health is
+  50 + 2 per Defense level above 1, mana 50 + 2 per Magic level above 1.
+  Health comes back 1 a minute on its own (also while logged out); a **health
+  potion** gives 30 (the Merchant sells them for 30 bronze, and goblins, spiders
+  and bandits drop them). Food is for stamina only. Mana comes back 1 every 6 seconds.
+- **Fighting:** click a monster. You walk into range and attack whenever your
+  weapon is ready. Each weapon attack costs 1 stamina, spells cost mana. If a
+  monster hits you while you're standing still, you fight back on your own.
+- **Gear strip** (under the tool belt): Weapon, Shield, Head, Body, Legs, Feet.
+  Click a weapon or armor in your bag, then **Hold** or **Wear**. With nothing
+  in your hand you punch (hits up to 1).
+- **Weapons** (skill level to hold one, biggest hit with stone, seconds between hits):
+  Melee: Dagger 1 (2, 1.8s), Sword 5 (3, 2.4s), Mace 10 (5, 3s), Spear 15 (5, 2.4s, reach 2),
+  Two-handed sword 20 (8, 3.6s, no shield). Ranged: Sling 1 (2, 2.4s, 4 tiles),
+  Darts 5 (2, 1.2s, 3 tiles), Bow 10 (4, 3s, 6 tiles, no shield). Magic: Staff 1.
+  Better metal adds to the biggest hit: Bronze +1, Iron +2, Steel +3, Mithril +5.
+  The handle's wood adds to your hit chance (Pine +5% ... Elderwood +25%).
+- **Spells** (need a staff; pick one under your gear): 🔥 Fire blast (Magic 1, 4 mana,
+  hits up to 4), ❄️ Frost bolt (Magic 5, 7 mana, up to 5, freezes it ~5s),
+  💤 Sleep (Magic 10, 12 mana, no damage, it can't move or attack for 6s).
+  The staff's metal adds to the spell's damage.
+- **Armor** is all metal: Helmet 1 bar, Platebody 3, Platelegs 2, Boots 1, Shield 2.
+  Armor points per piece: Helmet 1, Platebody 3, Platelegs 2, Boots 1, Shield 2,
+  times Bronze 2 / Iron 3 / Steel 4 / Mithril 6 (a full bronze set is 18).
+  Each armor point takes 1% off monsters' hit chance. Wearing a metal needs
+  Defense at that metal's level (Bronze 1, Iron 15, Steel 30, Mithril 60).
+- **Your hit chance:** 55%, +2% per level your skill is above the monster's
+  (−2% below), + the handle's wood, + weapon/spell Mastery, + monster Mastery,
+  between 5% and 95%. **Theirs:** 50%, +2% per level they're above your Defense,
+  −1% per armor point, between 5% and 90%.
+- **XP:** every point of damage gives 1 XP to Combat, your skill (Melee, Ranged or
+  Magic), the weapon's (or spell's) Mastery and the monster's Mastery, plus a bonus
+  for the kill. Every attack on you gives Defense XP (a quarter of its level, at least 1).
+- **Mastery:** every weapon type, spell and monster has its own. Weapon and spell
+  Mastery: up to +25% to hit (about +7% at 10, +20% at 50) and +1% damage per
+  level. Monster Mastery: the same hit bonus against it, and each drop is +2% per
+  level more likely.
+- **Wear:** weapons lose uses with each attack, armor with each attack on you (one
+  random piece). Same uses as tools (Bronze 150 × the handle's wood; armor ×1.5).
+  Weapons and armor are smithed at the anvil (**Make: Weapons / Armor**).
+- **Dying:** at 0 health you wake up next to Old Maren with half your health and
+  keep everything.
+
+**Monsters** (level, health, biggest hit, comes back after):
+
+| Where | Monster | Lv | HP | Hits | Drops |
+|---|---|---|---|---|---|
+| Field NW of town | 🐔 Chicken | 1 | 4 | never | feathers |
+| Rocks N of the road | 🐀 Rat | 2 | 6 | 1 (if you attack) | rat tails, coins |
+| Meadow S of the road | 🐄 Cow | 3 | 12 | never | cowhides |
+| Dark Forest, by the gate | 🐺 Wolf | 8 | 20 | 3 | wolf pelts, coins |
+| Dark Forest, west | 👺 Goblin | 12 | 30 | 4 | goblin charms, potions, coins |
+| Dark Forest, east | 🕷️ Giant spider | 18 | 42 | 6 | spider silk, potions, coins |
+| Dark Forest, deep south | 🦹 Bandit | 25 | 60 | 8 | stolen rings, potions, coins |
+
+Town monsters come back after 30-40 seconds, forest ones after 1-1.5 minutes.
+**The Dark Forest** is south of the meadow, through the gate by the ⚠ sign.
+Its monsters attack anyone within 4 tiles, but never leave the forest, so walking
+back out through the gate is always safe. Until Old Maren opens the gate (Quest 4),
+walking in says "You're not ready to go in there yet." No fighting other players.
 
 ## Merchant and money
 
@@ -179,7 +258,8 @@ in the world meanwhile. After that you just log in again.
 - A crafted item is worth what goes into it **plus 25%** (rounded down). When you
   sell, your Mastery counts on every layer: your ore Mastery, your bar Mastery and
   your tool Mastery all raise the price.
-- The Merchant sells basic tools (Stone + Pine, Stone tongs), all four bars,
+- The Merchant sells basic tools (Stone + Pine, Stone tongs), a stone dagger,
+  sling and staff, health potions, all four bars,
   and every log and ore, with endless stock. He charges **3 times** the base
   price, and Mastery doesn't lower it, so buying to resell always loses.
   Open the **Buy** tab in his window; tap an item to buy one, or **x5**.
@@ -206,9 +286,13 @@ Rules live in `shared/tools.ts` (metals, woods, bonuses, uses), `shared/crafting
 | `shared/crafting.ts` | Recipes, success chances and prices |
 | `shared/npcs.ts` | Old Maren, the Merchant, furnace, anvil and stove |
 | `shared/quests.ts` | Old Maren's tutorial: every step, what she says and gives |
+| `shared/combat.ts` | Monsters, spells, health/mana, hit chances, combat Mastery |
+| `shared/gear.ts` | Weapons and armor: types, damage, armor points, gear slots |
 
 To change the map, edit the text grid in `shared/map.ts`
-(`.` grass, `,` path, `~` water, `T` tree, `#` rock, `=` bridge) and restart.
+(`.` grass, `,` path, `~` water, `T` tree, `#` rock, `=` bridge, `:` dark forest
+floor, `|` fence, `+` gate, `!` warning sign) and restart. Everything from the
+fence row down is the Dark Forest. Monster homes are in `shared/combat.ts`.
 
 ## Production-style run (one port)
 

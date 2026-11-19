@@ -25,7 +25,7 @@ export const NPCS: NpcDef[] = [
   {
     id: "merchant", name: "Merchant", kind: "person", x: 16, y: 10, color: 0x8e44ad,
     badge: "💰",
-    greeting: "I'll buy anything you've got, and I sell tools, fish stew, bars, logs and ore. Click your items to sell, or tap Buy.",
+    greeting: "I'll buy anything you've got, and I sell tools, starter weapons, health potions, fish stew, bars, logs and ore. Click your items to sell, or tap Buy.",
   },
   {
     id: "furnace", name: "Furnace", kind: "station", x: 14, y: 10, color: 0x8b3a1a,
@@ -33,7 +33,7 @@ export const NPCS: NpcDef[] = [
   },
   {
     id: "anvil", name: "Anvil", kind: "station", x: 18, y: 10, color: 0x555a60,
-    greeting: "Pick a tool to make at the anvil.",
+    greeting: "Pick a tool, weapon or piece of armor to make at the anvil.",
   },
   {
     id: "stove", name: "Stove", kind: "station", x: 12, y: 10, color: 0x3a3a3a,

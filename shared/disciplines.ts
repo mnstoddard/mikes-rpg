@@ -5,10 +5,11 @@
 // Discipline's level goes up. All XP from a Discipline's skills goes into the
 // Discipline. Shared so the client shows the same numbers the server uses.
 
-export type DisciplineId = "foraging" | "crafting";
+export type DisciplineId = "foraging" | "crafting" | "combat";
 export type GatherSkill = "woodcutting" | "fishing" | "mining";
 export type CraftSkill = "smelting" | "smithing" | "cooking";
-export type SkillId = GatherSkill | CraftSkill;
+export type CombatSkill = "melee" | "ranged" | "magic" | "defense";
+export type SkillId = GatherSkill | CraftSkill | CombatSkill;
 
 export interface SkillDef {
   id: SkillId;
@@ -45,6 +46,16 @@ export const DISCIPLINES: Record<DisciplineId, DisciplineDef> = {
       { id: "smelting", name: "Smelting", icon: "🔥", unlockLevel: 5, description: "Use the furnace by the Merchant to turn ore into bars." },
     ],
   },
+  combat: {
+    name: "Combat", icon: "⚔️",
+    description: "Fighting monsters, and staying alive.",
+    skills: [
+      { id: "melee", name: "Melee", icon: "🗡️", unlockLevel: 1, description: "Hold a dagger, sword, mace, spear or two-handed sword and click a monster." },
+      { id: "defense", name: "Defense", icon: "🛡️", unlockLevel: 1, description: "Trained by being attacked. Higher Defense means more health, monsters miss more, and you can wear better armor." },
+      { id: "magic", name: "Magic", icon: "🪄", unlockLevel: 3, description: "Hold a staff, pick a spell, and click a monster. Spells use mana." },
+      { id: "ranged", name: "Ranged", icon: "🏹", unlockLevel: 5, description: "Hold a sling, darts or a bow and hit monsters from a distance." },
+    ],
+  },
 };
 export const DISCIPLINE_IDS = Object.keys(DISCIPLINES) as DisciplineId[];
 
@@ -79,6 +90,7 @@ export type DisciplineXp = Record<DisciplineId, number>;
 
 /** Each skill also has its own level (same curve, up to 99). It unlocks better types. */
 export type SkillXp = Record<SkillId, number>;
-export const emptySkills = (): SkillXp => ({ woodcutting: 0, fishing: 0, mining: 0, smelting: 0, smithing: 0, cooking: 0 });
-export const emptyDisciplines = (): DisciplineXp => ({ foraging: 0, crafting: 0 });
+export const emptySkills = (): SkillXp => ({ woodcutting: 0, fishing: 0, mining: 0, smelting: 0, smithing: 0, cooking: 0, melee: 0, ranged: 0, magic: 0, defense: 0 });
+export const emptyDisciplines = (): DisciplineXp => ({ foraging: 0, crafting: 0, combat: 0 });
+export const isCombatSkill = (skill: SkillId): skill is CombatSkill => skill === "melee" || skill === "ranged" || skill === "magic" || skill === "defense";
 export const isCraftSkill = (skill: SkillId): skill is CraftSkill => skill === "smelting" || skill === "smithing" || skill === "cooking";

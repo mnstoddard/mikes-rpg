@@ -22,6 +22,8 @@ import type { CraftSkill, DisciplineId, GatherSkill } from "./disciplines";
 import type { ItemId } from "./items";
 import type { ResourceId } from "./foraging";
 import type { ToolType } from "./tools";
+import type { MonsterId } from "./combat";
+import type { CombatStyle } from "./gear";
 
 export const GUIDE_NAME = "Old Maren";
 
@@ -46,7 +48,13 @@ export type Goal =
   /** Reach a Discipline level. */
   | { kind: "level"; discipline: DisciplineId; level: number }
   /** Have these items in your bag (mined or bought, either way). */
-  | { kind: "have"; items: Partial<Record<ItemId, number>> };
+  | { kind: "have"; items: Partial<Record<ItemId, number>> }
+  /** Wear gear whose item ids start with these ("dagger_", "helmet_"). */
+  | { kind: "gear"; items: string[]; names: string }
+  /** Defeat monsters (of one type, if set; with one style, if set). */
+  | { kind: "kill"; monster?: MonsterId; count: number; style?: CombatStyle }
+  /** Drink a health potion. */
+  | { kind: "drink" };
 
 export interface QuestStep {
   /** Which quest (0, 1, 2). */
@@ -71,15 +79,22 @@ export interface QuestStep {
   protect?: string[];
   /** This step's work needs this tool on your belt. */
   needsTool?: ToolType;
+  /** Fighting during this step needs a weapon in your hand ("weapon"), or one of this style (a staff for "magic"). */
+  fightWith?: "weapon" | CombatStyle;
+  /** Finishing this talk step opens the gate to the Dark Forest. */
+  opensGate?: boolean;
 }
 
-export const QUESTS = ["Living off the land", "The woodcutter's start", "Into the rocks"];
+export const QUESTS = ["Living off the land", "The woodcutter's start", "Into the rocks", "Standing your ground"];
 
 const WORN_ROD: Gift = { item: "rod_stone_pine", durability: 8 };
 const WORN_PICK: Gift = { item: "pickaxe_stone_pine", durability: 10 };
 const LOG: Gift = { item: "pine_logs" };
 const MINNOW: Gift = { item: "minnow" };
 const POT: Gift = { item: "pot_stone" };
+const DAGGER: Gift = { item: "dagger_bronze_pine" };
+const STAFF: Gift = { item: "staff_bronze_pine" };
+const POTION: Gift = { item: "health_potion" };
 
 export const STEPS: QuestStep[] = [
   // ---------------- Quest 1: Living off the land ----------------
@@ -337,12 +352,136 @@ export const STEPS: QuestStep[] = [
     lines: [
       "A bronze pickaxe, made with your own hands! You're ready.",
       "Take these bronze tongs, and some coins. Now you have a whole set of bronze tools: rod, pot, axe, hammer, pickaxe and tongs.",
-      "Soon there'll be a bounty board in town, where folk pay double for the things they need. Until then, go and make your fortune!",
+      "There's one more thing every adventurer needs to know: how to look after yourself. Come and talk to me again when you're ready.",
     ],
     give: [{ item: "tongs_bronze" }],
     coins: 200,
   },
+
+  // ---------------- Quest 4: Standing your ground ----------------
+  {
+    quest: 3, task: `Talk to ${GUIDE_NAME} about fighting`, goal: { kind: "talk" },
+    lines: [
+      "South of here, past the gate with the warning sign, is the Dark Forest. Wolves, goblins, giant spiders and worse. They'll attack anyone who wanders in.",
+      "See the ❤ bar at the top left? That's your health. If it runs out, you'll wake up here with me, a bit shaken but with all your things. Still, best not to make a habit of it.",
+      "Let's start small. Here's a bronze dagger. Weapons and armor go in your gear strip, under the tool belt, not on the belt itself. Click the dagger in your bag and press \"Hold\".",
+    ],
+    give: [DAGGER],
+  },
+  {
+    quest: 3, task: "Hold the dagger (click it in your bag, then Hold)", goal: { kind: "gear", items: ["dagger_"], names: "dagger" },
+    hint: "Click the dagger in your bag and press \"Hold\". It goes in the Weapon slot of your gear strip.",
+    ensure: [DAGGER], protect: ["dagger_"],
+  },
+  {
+    quest: 3, task: "Defeat 3 chickens (in the field north-west of town)", goal: { kind: "kill", monster: "chicken", count: 3 },
+    hint: "The chickens peck about in the field north-west of town, past the big path. Click one to attack it. They never fight back.",
+    ensure: [DAGGER], protect: ["dagger_"], fightWith: "weapon",
+  },
+  {
+    quest: 3, task: `Go back to ${GUIDE_NAME}`, goal: { kind: "talk" },
+    lines: [
+      "Well done. Open the 📊 panel and look at the new Combat discipline. Every hit trains Combat, and Melee too, since you used a blade.",
+      "Your dagger has its own Mastery, and so does every kind of monster. Dagger Mastery makes you hit more often and a little harder. Chicken Mastery helps you hit chickens and makes them drop things more often.",
+      "Rats are next, and they bite back! Being attacked trains your Defense, and armor makes monsters miss. Here's a bronze helmet and a bronze shield. Wear them both.",
+    ],
+    give: [{ item: "helmet_bronze" }, { item: "shield_bronze" }],
+  },
+  {
+    quest: 3, task: "Wear the helmet and the shield", goal: { kind: "gear", items: ["helmet_", "shield_"], names: "helmet and shield" },
+    hint: "Click the helmet in your bag and press \"Wear\", then the same for the shield.",
+    ensure: [{ item: "helmet_bronze" }, { item: "shield_bronze" }], protect: ["helmet_", "shield_"],
+  },
+  {
+    quest: 3, task: "Defeat 2 rats (around the rocks north of the road)", goal: { kind: "kill", monster: "rat", count: 2 },
+    hint: "The rats scurry around the rocks north of the road, up past the Merchant. They bite back, so watch your ❤ health.",
+    ensure: [DAGGER], protect: ["dagger_", "helmet_", "shield_"], fightWith: "weapon",
+  },
+  {
+    quest: 3, task: `Go back to ${GUIDE_NAME}`, goal: { kind: "talk" },
+    lines: [
+      "A few bites, eh? Health comes back on its own, but very slowly. Food is for stamina, not health. For health you want a potion.",
+      "Here are two health potions. Drink one now so you know how. The Merchant sells more, and some monsters drop them.",
+    ],
+    give: [POTION, POTION],
+  },
+  {
+    quest: 3, task: "Drink a health potion (click it in your bag, then Drink)", goal: { kind: "drink" },
+    hint: "Click a health potion in your bag and press Drink.",
+    ensure: [POTION],
+  },
+  {
+    quest: 3, task: "Reach Combat level 3 (fight chickens, rats or cows)", goal: { kind: "level", discipline: "combat", level: 3 },
+    hint: "Keep fighting the chickens, rats, or the cows in the meadow south of the road. At Combat 3 you can use Magic.",
+    fightWith: "weapon",
+  },
+  {
+    quest: 3, task: `Talk to ${GUIDE_NAME} about Magic`, goal: { kind: "talk" },
+    lines: [
+      "Combat 3! Now you can learn Magic. Spells need a staff in your hand, and they use mana, the blue 🔮 bar under your stamina. Mana comes back on its own, 1 every 6 seconds.",
+      "Here's a bronze staff. Hold it, and your dagger goes back in your bag. When you hold a staff, your spells show under your gear. Fire blast is the first.",
+      "Each spell has its own Mastery too, and the staff's metal makes your spells hit harder. Go and defeat 2 chickens with Fire blast.",
+    ],
+    give: [STAFF],
+  },
+  {
+    quest: 3, task: "Hold the staff", goal: { kind: "gear", items: ["staff_"], names: "staff" },
+    hint: "Click the staff in your bag and press \"Hold\".",
+    ensure: [STAFF], protect: ["staff_"],
+  },
+  {
+    quest: 3, task: "Defeat 2 chickens with Fire blast (hold the staff)", goal: { kind: "kill", monster: "chicken", count: 2, style: "magic" },
+    hint: "With the staff in your hand and Fire blast picked, click a chicken. If you run out of mana, wait a little and it comes back.",
+    ensure: [STAFF], protect: ["staff_"], fightWith: "magic",
+  },
+  {
+    quest: 3, task: `Go back to ${GUIDE_NAME}`, goal: { kind: "talk" },
+    lines: [
+      "You're a natural! At Combat 5 you can also use Ranged: slings, darts and bows, to hit from a distance.",
+      "Weapons and armor are made at the anvil, just like tools: a weapon is a head and a handle, armor is all metal. And they wear out like tools, so keep a spare.",
+      "Here are 2 bronze bars. Make yourself some bronze platelegs at the anvil, and put them on.",
+    ],
+    give: [{ item: "bronze_bar", count: 2 }],
+  },
+  {
+    quest: 3, task: "Make bronze platelegs at the anvil (2 bars)", goal: { kind: "craft", skill: "smithing", prefix: "platelegs_bronze", count: 1 },
+    hint: "Click the anvil, pick Armor, then Platelegs and Bronze, and press Make 1. I'll guide your hand.",
+    ensure: [{ item: "bronze_bar", count: 2 }], guaranteed: true, protect: ["bronze_bar"],
+  },
+  {
+    quest: 3, task: "Wear your platelegs", goal: { kind: "gear", items: ["platelegs_"], names: "platelegs" },
+    hint: "Click the platelegs in your bag and press \"Wear\".",
+    protect: ["platelegs_"],
+  },
+  {
+    quest: 3, task: `Talk to ${GUIDE_NAME}`, goal: { kind: "talk" }, opensGate: true,
+    lines: [
+      "Look at you, dressed for trouble! I think you're ready.",
+      "I'll have the gate to the Dark Forest opened for you. It's south of the meadow, past the warning sign. The wolves near the gate are the easiest. Goblins live to the west, giant spiders to the east, and bandits deep in the south. Don't go near those yet!",
+      "Take 3 more health potions. Hold the weapon you like best, defeat a wolf, and come back to me. If it goes badly, walk back out through the gate: they won't follow you past the fence.",
+    ],
+    give: [POTION, POTION, POTION],
+  },
+  {
+    quest: 3, task: "Defeat a wolf in the Dark Forest (through the gate)", goal: { kind: "kill", monster: "wolf", count: 1 },
+    hint: "The gate is south of the meadow, past the warning sign. The wolves are just inside. Drink a potion if your health gets low!",
+    fightWith: "weapon",
+  },
+  {
+    quest: 3, task: `Go back to ${GUIDE_NAME} for your reward`, goal: { kind: "talk" },
+    lines: [
+      "You came back! And in one piece, too.",
+      "Here's a bronze platebody and bronze boots. With those you've a full bronze set: helmet, platebody, platelegs, boots and shield. And some coins.",
+      "That's all I can teach you. The forest gets harder the deeper you go, so train up, make better gear, and keep potions handy. Go and make your fortune!",
+    ],
+    give: [{ item: "platebody_bronze" }, { item: "boots_bronze" }],
+    coins: 300,
+  },
 ];
+
+/** The Dark Forest's gate opens once you're past this step. */
+export const GATE_STEP = STEPS.findIndex((s) => s.opensGate);
+export const gateOpen = (q: { step: number }) => q.step > GATE_STEP;
 
 /** Every stew burns until you've reached this step (the first "Tell Maren what happened"). */
 export const BURN_UNTIL = STEPS.findIndex((s) => s.goal.kind === "craft" && s.goal.tries);

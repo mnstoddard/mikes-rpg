@@ -37,6 +37,11 @@ export interface SaveData {
   belt?: Record<string, { item: string; durability: number } | null>; // tools on the belt, e.g. { axe: { item: "axe_bronze_pine", durability: 120 } }
   stamina?: number; // stamina when saved
   staminaAt?: number; // when that was (ms since 1970), so stamina keeps coming back while logged out
+  hp?: number; // health when saved
+  hpAt?: number; // when that was, so health keeps coming back (1 a minute) while logged out
+  gear?: Record<string, { item: string; durability: number } | null>; // weapon and armor being worn, e.g. { weapon: { item: "dagger_bronze_pine", durability: 140 } }
+  spell?: string; // spell the staff casts, e.g. "fire_blast"
+  combatMastery?: Record<string, number>; // Mastery XP per weapon type, spell and monster, e.g. { dagger: 40, chicken: 22 }
   lockedSlots?: number[]; // inventory slots holding locked items, e.g. [0, 3], so Sell all skips them
   locked?: string[]; // old: item types that were locked; turned into lockedSlots when loaded
   // Add more here later (skills, bank, quests...). Stored as JSON, so no
