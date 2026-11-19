@@ -1,8 +1,11 @@
 // Mastery: every type you gather (Pine, Oak, Copper, Trout...) has its own
 // Mastery level, raised by gathering that type. It has no cap. Higher Mastery
 // makes you faster at gathering that type, and makes it sell for more.
+// Crafted things have Mastery too: each bar (Bronze bar...) and each kind of
+// tool (all axes share one). There, Mastery raises your success chance instead.
 // (Unlocking new types is done by the skill level, e.g. Woodcutting level.)
 import type { ResourceId } from "./foraging";
+import type { BarId, ToolType } from "./tools";
 
 /** XP to go from Mastery 1 to 2. Each level after needs 10% more than the one before. */
 export const MASTERY_FIRST_LEVEL_XP = 10;
@@ -42,5 +45,42 @@ export const MASTERY_VALUE_PER_LEVEL = 0.02;
 export const masteryValue = (level: number) => 1 + (level - 1) * MASTERY_VALUE_PER_LEVEL;
 export const valueBonusPercent = (level: number) => Math.round((masteryValue(level) - 1) * 100);
 
-/** Mastery XP per type. Types you've never gathered aren't listed. */
-export type ItemMasteryXp = Partial<Record<ResourceId, number>>;
+/** What can have Mastery: a gathered type (oak), a bar (bronze_bar) or a kind of tool (axe). */
+export type MasteryId = ResourceId | BarId | ToolType;
+
+/** Mastery XP per type. Types you've never gathered or made aren't listed. */
+export type ItemMasteryXp = Partial<Record<MasteryId, number>>;
+
+/** Your Mastery level in one type. */
+export const masteryIn = (mastery: ItemMasteryXp, id: MasteryId) => masteryLevelForXp(mastery[id] ?? 0);
+
+// ---- Crafting success ----
+
+/** Success never quite reaches 100%. */
+export const MAX_SUCCESS = 0.999;
+const START_SUCCESS = 0.25;
+const SUCCESS_CURVE = 0.0436;
+
+/**
+ * Chance a smelt or smith works, from Mastery alone: 25% at Mastery 1, 50% at 10,
+ * 91% at 50, 99% at 100. Never 100%. (Your tool then changes this; see craftSuccess.)
+ */
+export function masterySuccess(level: number): number {
+  return Math.min(MAX_SUCCESS, 1 - (1 - START_SUCCESS) * Math.exp(-SUCCESS_CURVE * (level - 1)));
+}
+
+/**
+ * Your real chance with a tool: its bonus removes that share of your failures
+ * (a +10% tool turns 75% failure into 67.5%). No tool: half your chance.
+ */
+export function craftSuccess(level: number, toolBonus: number | null): number {
+  const base = masterySuccess(level);
+  if (toolBonus === null) return base * 0.5;
+  return Math.min(MAX_SUCCESS, 1 - (1 - base) * (1 - toolBonus));
+}
+
+/** "32%" or "99.5%": one decimal only when it matters. */
+export function percent(chance: number): string {
+  const p = chance * 100;
+  return `${p >= 99 || p < 10 ? Math.floor(p * 10) / 10 : Math.round(p)}%`;
+}

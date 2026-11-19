@@ -134,6 +134,52 @@
     body.shop-open .slot.locked span:first-child { opacity: .55; }
     #shop-prices .price { font-size: 13px; color: #fff; background: rgba(0,0,0,.25); border-radius: 3px; padding: 3px 6px; }
     #shop-sell-all.armed { background: #8a5a1f; border-color: #ffd84a; }
+    /* Tool belt: one slot per kind of tool, above the bag */
+    #belt-label { font-size: 11px; color: #c9bc9c; margin-bottom: 2px; }
+    #belt { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid #6b5a3e; }
+    .belt-slot { height: 32px; font-size: 20px; background: rgba(0,0,0,.35); }
+    .belt-slot .empty-tool { filter: grayscale(1); opacity: .3; }
+    .slot .dura { position: absolute; left: 3px; right: 3px; bottom: 2px; height: 3px; background: rgba(0,0,0,.6); border-radius: 2px; overflow: hidden; }
+    .slot .dura div { height: 100%; background: #5fb84a; }
+    /* Merchant: Sell / Buy tabs */
+    #shop-tabs { display: flex; gap: 4px; margin-bottom: 8px; }
+    .shop-tab { flex: 1; font: inherit; font-size: 13px; padding: 5px 0; border: 1px solid #6b5a3e; border-radius: 3px; background: rgba(0,0,0,.25); color: #c9bc9c; cursor: pointer; touch-action: manipulation; }
+    .shop-tab.active { background: #5a4a2f; color: #fff; border-color: #ffd84a; }
+    body.shop-buying #shop-sell-all { display: none; }
+    body.shop-buying .slot .price-tag { display: none !important; }
+    body.shop-buying.shop-open .slot.filled { outline: none; }
+    #buy-list { max-height: min(260px, 40vh); overflow-y: auto; margin-top: 6px; display: flex; flex-direction: column; gap: 2px; text-align: left; }
+    .buy-row { display: flex; gap: 3px; }
+    .buy-btn, .buy-five { font: inherit; font-size: 13px; border: 1px solid #6b5a3e; border-radius: 3px; background: rgba(0,0,0,.25); color: #fff; cursor: pointer; touch-action: manipulation; }
+    .buy-btn { flex: 1; display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 4px; padding: 3px 6px; text-align: left; }
+    .buy-five { width: 38px; }
+    .buy-btn:hover, .buy-five:hover { background: rgba(255,255,255,.1); }
+    .buy-price { color: #ffd84a; font-size: 12px; }
+    .buy-row.poor .buy-price { color: #c98a7a; }
+    /* Furnace and anvil */
+    #craft { display: none; left: 50%; top: 14%; transform: translateX(-50%); width: min(340px, calc(100vw - 32px)); padding: 12px 14px; z-index: 5; text-align: center; max-height: calc(100vh - 120px); overflow-y: auto; }
+    body.craft-open #craft { display: block; }
+    #craft h3 { margin: 0 0 8px; font-size: 16px; color: #ffd84a; font-weight: normal; }
+    #craft .buttons { display: flex; gap: 6px; margin-top: 8px; }
+    .pick-row { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; margin-bottom: 5px; }
+    .pick-label { width: 100%; text-align: left; font-size: 11px; color: #c9bc9c; }
+    .pick { font: inherit; display: flex; flex-direction: column; align-items: center; min-width: 40px; padding: 2px 3px; border: 1px solid #6b5a3e; border-radius: 3px; background: rgba(0,0,0,.25); color: #fff; cursor: pointer; touch-action: manipulation; }
+    .pick.active { border-color: #ffd84a; background: rgba(90, 74, 47, .95); }
+    .pick.locked { opacity: .55; }
+    .pick-icon { font-size: 18px; }
+    .pick-name { font-size: 10px; }
+    .craft-detail { margin-top: 6px; padding: 6px 8px; background: rgba(0,0,0,.25); border-radius: 3px; text-align: left; font-size: 13px; color: #f2e6c9; line-height: 1.45; }
+    .craft-head { display: flex; align-items: center; gap: 6px; font-size: 15px; color: #fff; }
+    .craft-icon { font-size: 22px; }
+    .craft-chance { font-size: 16px; color: #9be28a; }
+    .craft-info { font-size: 12px; color: #c9bc9c; }
+    .craft-warn { font-size: 12px; color: #ff9a8a; }
+    .craft-needs .have { color: #9be28a; }
+    .craft-needs .short { color: #ff9a8a; }
+    @media (max-width: 640px), (max-height: 500px) {
+      #craft { top: calc(56px + env(safe-area-inset-top)); padding: 8px 10px; max-height: 55vh; }
+      #buy-list { max-height: 30vh; }
+    }
     #login-error { min-height: 1.3em; font-size: 13px; color: #ff9a8a; text-align: center; }
   </style>
 </head>
@@ -147,13 +193,23 @@
   </div>
   <div id="hover"></div>
   <div id="messages" class="panel"></div>
-  <div id="inventory" class="panel sidepanel"><h3><span id="inv-title">Inventory</span><button id="lock-mode" aria-label="Lock items" title="Lock items so they can't be sold or dropped">🔒</button></h3><div id="slots"></div><div id="money"></div></div>
+  <div id="inventory" class="panel sidepanel"><h3><span id="inv-title">Inventory</span><button id="lock-mode" aria-label="Lock items" title="Lock items so they can't be sold or dropped">🔒</button></h3><div id="belt-label">Tool belt</div><div id="belt"></div><div id="slots"></div><div id="money"></div></div>
   <div id="shop" class="panel">
     <h3 id="shop-title">Merchant</h3>
+    <div id="shop-tabs"><button class="shop-tab active" data-mode="sell">Sell</button><button class="shop-tab" data-mode="buy">Buy</button></div>
     <div id="shop-body"></div>
     <div class="buttons">
       <button id="shop-sell-all" class="shop-btn">Sell all</button>
       <button id="shop-close" class="shop-btn">Close</button>
+    </div>
+  </div>
+  <div id="craft" class="panel">
+    <h3 id="craft-title">Furnace</h3>
+    <div id="craft-body"></div>
+    <div class="buttons">
+      <button id="craft-one" class="shop-btn">Make 1</button>
+      <button id="craft-all" class="shop-btn">Make all</button>
+      <button id="craft-close" class="shop-btn">Close</button>
     </div>
   </div>
   <div id="skills" class="panel sidepanel"><h3>Disciplines</h3><div id="skill-list"></div></div>

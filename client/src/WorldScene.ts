@@ -5,10 +5,12 @@ import { RESOURCES, ResourceId, fishAt, isFishingSpot, nodeAt, treeKey } from ".
 
 import { ITEMS, ItemId } from "../../shared/items";
 import { joinWorld } from "./network";
-import { closeShop, flashDiscipline, flashMastery, flashSkillRow, renderMastery, renderSkillXp, openShop, renderCoins, renderDisciplines, renderInventory, renderLocks, setHoverText, setInventoryActions, showMessage } from "./ui";
+import { closeCraft, closeShop, flashDiscipline, flashMastery, flashSkillRow, openCraft, renderBelt, renderDurability, renderMastery, renderSkillXp, openShop, renderCoins, renderDisciplines, renderInventory, renderLocks, setHoverText, setInventoryActions, showMessage } from "./ui";
+import { masteryName } from "../../shared/crafting";
+import type { Belt, ToolType } from "../../shared/tools";
 import { NPCS, npcAt } from "../../shared/npcs";
 import { DISCIPLINES, DisciplineId, DisciplineXp, SkillId, SkillXp, emptySkills, findSkill, levelForXp } from "../../shared/disciplines";
-import { ItemMasteryXp } from "../../shared/mastery";
+import { ItemMasteryXp, MasteryId } from "../../shared/mastery";
 import { showLogin } from "./login";
 
 const TILE_COLORS: Record<Tile, number> = {
@@ -80,12 +82,22 @@ export class WorldScene extends Phaser.Scene {
     });
     room.onMessage("mastery", (mastery: ItemMasteryXp) => renderMastery(mastery));
     room.onMessage("skillup", (msg: { skill: SkillId; level: number }) => this.celebrateSkill(msg.skill, msg.level));
-    room.onMessage("masteryup", (msg: { resource: ResourceId; level: number }) => this.celebrateMastery(msg.resource, msg.level));
+    room.onMessage("masteryup", (msg: { resource: MasteryId; level: number }) => this.celebrateMastery(msg.resource, msg.level));
     setInventoryActions({
       drop: (slot) => room.send("drop", { slot }),
       sell: (slot) => room.send("sell", { slot }),
       sellAll: () => room.send("sellAll"),
       lock: (slot, locked) => room.send("lock", { slot, locked }),
+      equip: (slot) => room.send("equip", { slot }),
+      unequip: (type: ToolType) => room.send("unequip", { type }),
+      buy: (item, count) => room.send("buy", { item, count }),
+      craft: (item, all) => room.send("craft", { item, all }),
+    });
+    room.onMessage("durability", (slots: (number | null)[]) => renderDurability(slots));
+    room.onMessage("belt", (belt: Belt) => renderBelt(belt));
+    room.onMessage("station", (msg: { npc: string }) => {
+      this.marker.setVisible(false);
+      openCraft(msg.npc);
     });
     room.onMessage("locks", (slots: boolean[]) => renderLocks(slots));
     room.onMessage("inventory", (items: (ItemId | null)[]) => renderInventory(items));
@@ -133,6 +145,7 @@ export class WorldScene extends Phaser.Scene {
 
   private drawNpcs() {
     for (const npc of NPCS) {
+      if (npc.kind === "station") { this.drawStation(npc.id, npc.x, npc.y, npc.name); continue; }
       const [cx, cy] = this.tileCenter(npc.x, npc.y);
       const c = this.add.container(cx, cy).setDepth(10 + npc.y + 0.5);
       const shadow = this.add.ellipse(0, 10, 20, 8, 0x000000, 0.3);
@@ -147,6 +160,33 @@ export class WorldScene extends Phaser.Scene {
       // A little idle bob so he looks alive.
       this.tweens.add({ targets: [body, hat], y: "-=2", duration: 900, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
     }
+  }
+
+  /** The furnace (glowing fire) and the anvil, next to the Merchant. */
+  private drawStation(id: string, x: number, y: number, name: string) {
+    const [cx, cy] = this.tileCenter(x, y);
+    const c = this.add.container(cx, cy).setDepth(10 + y + 0.5);
+    const g = this.add.graphics();
+    g.fillStyle(0x000000, 0.3).fillEllipse(0, 11, 26, 8);
+    if (id === "furnace") {
+      g.fillStyle(0x6e3b25).fillRect(-12, -12, 24, 22);
+      g.lineStyle(1, 0x3b1f12);
+      for (let row = -12; row < 10; row += 5) g.lineBetween(-12, row, 12, row);
+      g.fillStyle(0x3b1f12).fillRect(-4, -18, 8, 6); // chimney
+      g.fillStyle(0x1a0d06).fillRoundedRect(-7, -2, 14, 10, 3);
+      const fire = this.add.ellipse(0, 4, 10, 7, 0xff8a1f);
+      const glow = this.add.ellipse(0, 3, 6, 4, 0xffe066);
+      c.add([g, fire, glow]);
+      this.tweens.add({ targets: [fire, glow], scaleY: 1.3, alpha: 0.75, duration: 300, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+    } else {
+      g.fillStyle(0x3b2410).fillRect(-6, 0, 12, 10); // wooden stump
+      g.fillStyle(0x50565c).fillRect(-6, -6, 12, 6);
+      g.fillStyle(0x6c737a).fillRect(-13, -12, 24, 7).fillTriangle(11, -12, 11, -5, 16, -11);
+      g.fillStyle(0x9aa3ab).fillRect(-12, -12, 22, 2);
+      c.add(g);
+    }
+    const label = this.add.text(0, -28, name, { fontSize: "12px", color: "#ffd84a", stroke: "#000", strokeThickness: 3 }).setOrigin(0.5);
+    c.add(label);
   }
 
   /** A rock with flecks in its ore's colour (plain for stone), and its emptied look. */
@@ -264,7 +304,7 @@ export class WorldScene extends Phaser.Scene {
     if (view === this.players.get(this.room?.sessionId ?? "")) this.marker.setVisible(false);
     const dx = Math.sign(player.faceX - player.x), dy = Math.sign(player.faceY - player.y);
 
-    if (action === "chopping" || action === "mining") {
+    if (action === "chopping" || action === "mining" || action === "smelting" || action === "smithing") {
       view.chopTween = this.tweens.add({
         targets: view.body, x: dx * 6, y: dy * 6,
         duration: TICK_MS / 4, yoyo: true, hold: 30, repeatDelay: TICK_MS / 2 - 30, repeat: -1,
@@ -367,8 +407,8 @@ export class WorldScene extends Phaser.Scene {
     flashSkillRow(skill);
   }
 
-  private celebrateMastery(type: ResourceId, level: number) {
-    const name = ITEMS[RESOURCES[type].item].name;
+  private celebrateMastery(type: MasteryId, level: number) {
+    const name = masteryName(type);
     this.time.delayedCall(700, () => this.floatText(`${name} Mastery ${level}!`, "#7fd0ff"));
     flashMastery(type);
   }
@@ -390,6 +430,7 @@ export class WorldScene extends Phaser.Scene {
   private onClick(pointer: Phaser.Input.Pointer) {
     const { x, y } = this.tileAt(pointer);
     closeShop(); // clicking the map walks away from the shop
+    closeCraft();
     const npc = npcAt(x, y);
     if (npc) {
       this.room?.send("talk", { id: npc.id });
@@ -412,7 +453,7 @@ export class WorldScene extends Phaser.Scene {
     const key = treeKey(x, y);
     const npc = npcAt(x, y);
     if (npc) {
-      setHoverText("Talk-to", npc.name, pointer.x, pointer.y);
+      setHoverText(npc.kind === "station" ? "Use" : "Talk-to", npc.name, pointer.x, pointer.y);
     } else if (this.isStandingTree(x, y)) {
       const type = nodeAt(x, y)!;
       setHoverText("Chop down", RESOURCES[type].node + this.lockNote(type), pointer.x, pointer.y);
