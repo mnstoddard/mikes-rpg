@@ -21,7 +21,8 @@ export interface SaveData {
   coins?: number; // total money, in bronze coins
   skills?: Record<string, number>; // XP per Discipline, e.g. { foraging: 42 } (key kept from before Disciplines)
   mastery?: Record<string, number>; // Mastery XP per skill, e.g. { woodcutting: 120, fishing: 0, mining: 8 }
-  locked?: string[]; // item types the player locked, e.g. ["gold_ore"], so Sell all skips them
+  lockedSlots?: number[]; // inventory slots holding locked items, e.g. [0, 3], so Sell all skips them
+  locked?: string[]; // old: item types that were locked; turned into lockedSlots when loaded
   // Add more here later (skills, bank, quests...). Stored as JSON, so no
   // database migration is needed for new fields.
 }

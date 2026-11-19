@@ -158,20 +158,20 @@ export function showMessage(text: string) {
 
 // Clicking an item drops it, or sells it while the Merchant's shop is open.
 // In lock mode (the 🔒 button on the inventory), clicking an item locks or
-// unlocks every item of that type instead.
+// unlocks just that one item instead.
 let invItems: (ItemId | null)[] = [];
-let locked = new Set<ItemId>();
+let locked: boolean[] = []; // per inventory slot
 let lockMode = false;
 let onDrop: (slot: number) => void = () => {};
 let onSell: (slot: number) => void = () => {};
 let onSellAll: () => void = () => {};
-let onLock: (item: ItemId, locked: boolean) => void = () => {};
+let onLock: (slot: number, locked: boolean) => void = () => {};
 
 export function setInventoryActions(actions: {
   drop: (slot: number) => void;
   sell: (slot: number) => void;
   sellAll: () => void;
-  lock: (item: ItemId, locked: boolean) => void;
+  lock: (slot: number, locked: boolean) => void;
 }) {
   onDrop = actions.drop;
   onSell = actions.sell;
@@ -179,13 +179,13 @@ export function setInventoryActions(actions: {
   onLock = actions.lock;
 }
 
-/** The server tells us which item types are locked. */
-export function renderLocks(items: ItemId[]) {
-  locked = new Set(items);
+/** The server tells us which inventory slots are locked. */
+export function renderLocks(slots: boolean[]) {
+  locked = slots;
   renderInventory(invItems);
 }
 
-const toggleLock = (id: ItemId) => onLock(id, !locked.has(id));
+const toggleLock = (slot: number) => onLock(slot, !locked[slot]);
 
 const lockModeBtn = document.getElementById("lock-mode")!;
 const invTitle = document.getElementById("inv-title")!;
@@ -221,7 +221,7 @@ export function renderInventory(items: (ItemId | null)[]) {
       tag.className = "price-tag";
       tag.textContent = `${item.sellPrice}b`;
       slot.appendChild(tag);
-      const isLocked = locked.has(id);
+      const isLocked = !!locked[i];
       if (isLocked) {
         slot.classList.add("locked");
         const lock = document.createElement("span");
@@ -229,12 +229,12 @@ export function renderInventory(items: (ItemId | null)[]) {
         lock.textContent = "🔒";
         slot.appendChild(lock);
       }
-      slot.title = lockMode ? `${isLocked ? "Unlock" : "Lock"} ${item.name.toLowerCase()}`
+      slot.title = lockMode ? `${isLocked ? "Unlock" : "Lock"} this ${item.single}`
         : isLocked ? `${item.name} (locked)`
         : selling ? `Sell ${item.single} for ${formatMoney(item.sellPrice)}` : `${item.name}: click to drop`;
       slot.onclick = () => {
-        if (lockMode) return toggleLock(id);
-        if (isLocked) return showMessage(`You locked your ${item.name.toLowerCase()}. Tap 🔒 on your inventory to unlock.`);
+        if (lockMode) return toggleLock(i);
+        if (isLocked) return showMessage(`That ${item.single} is locked. Tap 🔒 on your inventory, then tap it to unlock.`);
         if (shopIsOpen()) onSell(i); else onDrop(i);
       };
     }
@@ -304,26 +304,23 @@ sellAllBtn.onclick = () => {
 
 function renderShop() {
   shopBody.replaceChildren();
-  shopBody.append(el("", "Tap an item in your bag to sell it. Tap a price to 🔒 lock that item."));
+  shopBody.append(el("", "Tap an item in your bag to sell it. To keep one, tap 🔒 on your bag, then tap the item."));
   const prices = el("");
   prices.id = "shop-prices";
   // Prices for the kinds of thing you're carrying (there are too many to list them all).
   const carrying = [...new Set(invItems.filter((id): id is ItemId => !!id))];
   for (const id of carrying) {
-    const btn = document.createElement("button");
+    const span = document.createElement("span");
     const icon = document.createElement("span");
     icon.textContent = ITEMS[id].icon;
     if (ITEMS[id].tint) icon.style.filter = ITEMS[id].tint!;
-    const isLocked = locked.has(id);
-    btn.append(icon, ` ${ITEMS[id].name}: ${formatMoney(ITEMS[id].sellPrice)}${isLocked ? " 🔒" : ""}`);
-    btn.className = "price" + (isLocked ? " locked" : "");
-    btn.title = isLocked ? `Unlock ${ITEMS[id].name.toLowerCase()}` : `Lock ${ITEMS[id].name.toLowerCase()} so they won't be sold`;
-    btn.onclick = () => toggleLock(id);
-    prices.appendChild(btn);
+    span.append(icon, ` ${ITEMS[id].name}: ${formatMoney(ITEMS[id].sellPrice)}`);
+    span.className = "price";
+    prices.appendChild(span);
   }
-  const unlocked = invItems.filter((id): id is ItemId => !!id && !locked.has(id));
+  const unlocked = invItems.filter((id, i): id is ItemId => !!id && !locked[i]);
   const total = unlocked.reduce((sum, id) => sum + ITEMS[id].sellPrice, 0);
-  const lockedCount = invItems.filter((id) => id && locked.has(id)).length;
+  const lockedCount = invItems.filter((id, i) => id && locked[i]).length;
   shopBody.append(prices, el("", !invItems.some(Boolean) ? "You have nothing to sell. Go chop or fish!"
     : `Sell all gives you ${formatMoney(total)}` + (lockedCount ? ` (keeps ${lockedCount} locked).` : ".")));
 
