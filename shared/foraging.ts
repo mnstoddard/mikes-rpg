@@ -1,42 +1,116 @@
-// Foraging discipline: tuning numbers for its skills (Woodcutting, Fishing).
-import { MAP, MAP_HEIGHT, MAP_WIDTH, isWalkable } from "./map";
+// Foraging discipline: the types of tree, rock and fish, and tuning numbers.
+import { MAP, MAP_HEIGHT, MAP_NODES, MAP_WIDTH, TICK_MS, isWalkable } from "./map";
+import type { SkillId } from "./disciplines";
+import type { ItemId } from "./items";
+import { masterySpeed } from "./mastery";
 
-// ---- Woodcutting ----
+export type ResourceId =
+  | "pine" | "oak" | "birch" | "maple" | "yew" | "ironwood" | "elderwood"
+  | "stone" | "copper" | "tin" | "iron" | "coal" | "silver" | "gold" | "mithril"
+  | "minnow" | "trout" | "perch" | "salmon" | "pike" | "tuna" | "swordfish" | "eel";
 
-/** Chance of getting logs on each tick spent chopping (about one every 4 ticks / 2.4s). */
-export const CHOP_SUCCESS_CHANCE = 0.25;
+export interface ResourceDef {
+  skill: SkillId;
+  /** What you click, e.g. "Oak tree", "Copper rock", "Trout spot". */
+  node: string;
+  /** What you get. */
+  item: ItemId;
+  /** Mastery level in this skill needed to gather it. */
+  mastery: number;
+  /** Average seconds per item for a brand new player (Mastery makes it faster). */
+  seconds: number;
+  /** XP per item. It goes to both Foraging and this skill's Mastery. */
+  xp: number;
+  /** Trees and rocks: ticks until it grows back / refills (50 ticks = 30s). */
+  respawnTicks: number;
+  /** Colour used to draw it on the map (leaves, ore flecks, ripples). */
+  color: number;
+}
+
+// Better types: higher Mastery, slower, more XP, sell for more (prices in items.ts).
+export const RESOURCES: Record<ResourceId, ResourceDef> = {
+  // ---- Woodcutting ----
+  pine:      { skill: "woodcutting", node: "Pine tree",      item: "pine_logs",      mastery: 1,  seconds: 2.4, xp: 1,  respawnTicks: 50,  color: 0x2e5e22 },
+  oak:       { skill: "woodcutting", node: "Oak tree",       item: "oak_logs",       mastery: 5,  seconds: 3.6, xp: 3,  respawnTicks: 60,  color: 0x6b8e23 },
+  birch:     { skill: "woodcutting", node: "Birch tree",     item: "birch_logs",     mastery: 10, seconds: 4.5, xp: 5,  respawnTicks: 70,  color: 0x9acd32 },
+  maple:     { skill: "woodcutting", node: "Maple tree",     item: "maple_logs",     mastery: 20, seconds: 6,   xp: 9,  respawnTicks: 80,  color: 0xd2531f },
+  yew:       { skill: "woodcutting", node: "Yew tree",       item: "yew_logs",       mastery: 35, seconds: 9,   xp: 16, respawnTicks: 100, color: 0x14422a },
+  ironwood:  { skill: "woodcutting", node: "Ironwood tree",  item: "ironwood_logs",  mastery: 50, seconds: 12,  xp: 28, respawnTicks: 120, color: 0x56636b },
+  elderwood: { skill: "woodcutting", node: "Elderwood tree", item: "elderwood_logs", mastery: 70, seconds: 15,  xp: 45, respawnTicks: 150, color: 0x7b4fbf },
+
+  // ---- Mining ----
+  stone:   { skill: "mining", node: "Stone rock",   item: "stone",       mastery: 1,  seconds: 4,   xp: 2,  respawnTicks: 25,  color: 0xa8a8a8 },
+  copper:  { skill: "mining", node: "Copper rock",  item: "copper_ore",  mastery: 5,  seconds: 4.8, xp: 4,  respawnTicks: 30,  color: 0xd9822b },
+  tin:     { skill: "mining", node: "Tin rock",     item: "tin_ore",     mastery: 10, seconds: 4.8, xp: 5,  respawnTicks: 30,  color: 0xdfe6e9 },
+  iron:    { skill: "mining", node: "Iron rock",    item: "iron_ore",    mastery: 20, seconds: 6.6, xp: 10, respawnTicks: 45,  color: 0x8e3b2a },
+  coal:    { skill: "mining", node: "Coal rock",    item: "coal",        mastery: 30, seconds: 7.8, xp: 14, respawnTicks: 55,  color: 0x1a1a1a },
+  silver:  { skill: "mining", node: "Silver rock",  item: "silver_ore",  mastery: 40, seconds: 9,   xp: 20, respawnTicks: 70,  color: 0xf5f7fa },
+  gold:    { skill: "mining", node: "Gold rock",    item: "gold_ore",    mastery: 55, seconds: 12,  xp: 30, respawnTicks: 90,  color: 0xf5c542 },
+  mithril: { skill: "mining", node: "Mithril rock", item: "mithril_ore", mastery: 70, seconds: 15,  xp: 45, respawnTicks: 120, color: 0x3fa9f5 },
+
+  // ---- Fishing (spots never run out) ----
+  minnow:    { skill: "fishing", node: "Shallow water",  item: "minnow",    mastery: 1,  seconds: 6,    xp: 2,  respawnTicks: 0, color: 0xffffff },
+  trout:     { skill: "fishing", node: "Trout spot",     item: "trout",     mastery: 5,  seconds: 7.2,  xp: 4,  respawnTicks: 0, color: 0x9be28a },
+  perch:     { skill: "fishing", node: "Perch spot",     item: "perch",     mastery: 10, seconds: 7.8,  xp: 6,  respawnTicks: 0, color: 0xffd84a },
+  salmon:    { skill: "fishing", node: "Salmon spot",    item: "salmon",    mastery: 20, seconds: 9,    xp: 10, respawnTicks: 0, color: 0xff8a65 },
+  pike:      { skill: "fishing", node: "Pike spot",      item: "pike",      mastery: 30, seconds: 10.8, xp: 15, respawnTicks: 0, color: 0x7fe0ff },
+  tuna:      { skill: "fishing", node: "Tuna spot",      item: "tuna",      mastery: 45, seconds: 12,   xp: 24, respawnTicks: 0, color: 0x4a7bd9 },
+  swordfish: { skill: "fishing", node: "Swordfish spot", item: "swordfish", mastery: 60, seconds: 15,   xp: 36, respawnTicks: 0, color: 0xc0c0ff },
+  eel:       { skill: "fishing", node: "Eel spot",       item: "eel",       mastery: 75, seconds: 18,   xp: 50, respawnTicks: 0, color: 0xb36bff },
+};
+export const RESOURCE_IDS = Object.keys(RESOURCES) as ResourceId[];
+
+/** All types for one skill, easiest first. */
+export const resourcesFor = (skill: SkillId) =>
+  RESOURCE_IDS.filter((id) => RESOURCES[id].skill === skill).sort((a, b) => RESOURCES[a].mastery - RESOURCES[b].mastery);
+
+/**
+ * Chance per tick (0.6s) of getting an item. Works out to `seconds` on average
+ * for a new player, and faster as Mastery goes up.
+ */
+export function gatherChancePerTick(id: ResourceId, masteryLevel: number): number {
+  return Math.min(1, (TICK_MS / 1000) * masterySpeed(masteryLevel) / RESOURCES[id].seconds);
+}
+
+/**
+ * Hook for later: chance that a catch actually works out (e.g. the fish gets
+ * away). Everything always succeeds for now. Later a hard type could start
+ * around 40% and climb with Mastery, or with a better tool.
+ */
+export function gatherSuccessChance(_id: ResourceId, _masteryLevel: number): number {
+  return 1;
+}
+
+// ---- Trees and rocks ----
+
 /** After each log, chance the tree falls and becomes a stump. */
 export const TREE_FALL_CHANCE = 1 / 4;
-/** How long a stump takes to grow back, in ticks (50 ticks = 30 seconds). */
-export const TREE_RESPAWN_TICKS = 50;
-/** Foraging XP for each log you get. */
-export const XP_PER_LOG = 1;
+/** After each ore, chance the rock is emptied. */
+export const ROCK_EMPTY_CHANCE = 1 / 3;
 
 /** Key for a tree or rock in the world's "depleted" list. */
 export const treeKey = (x: number, y: number) => `${x},${y}`;
 
-// ---- Fishing ----
+const inMap = (x: number, y: number) => y >= 0 && y < MAP_HEIGHT && x >= 0 && x < MAP_WIDTH;
 
-/** Chance of catching a fish on each tick (about one every 10 ticks / 6s, vs 2.4s per log). */
-export const FISH_SUCCESS_CHANCE = 0.1;
-/** Foraging XP for each fish. More than a log, since fish take longer. */
-export const XP_PER_FISH = 2;
+/** The tree or rock type standing on a tile, if any. */
+export function nodeAt(x: number, y: number): ResourceId | null {
+  if (!inMap(x, y) || (MAP[y][x] !== "tree" && MAP[y][x] !== "rock")) return null;
+  return MAP_NODES[y][x];
+}
+
+// ---- Fishing ----
 
 const CARDINAL = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
 
 /** You can fish any water tile that's right next to land you can stand on. */
 export function isFishingSpot(x: number, y: number): boolean {
-  if (y < 0 || y >= MAP_HEIGHT || x < 0 || x >= MAP_WIDTH || MAP[y][x] !== "water") return false;
+  if (!inMap(x, y) || MAP[y][x] !== "water") return false;
   return CARDINAL.some((d) => isWalkable(x + d.x, y + d.y));
 }
 
-// ---- Mining ----
-
-/** Chance of getting ore on each tick (about one every 7 ticks / 4s: between logs and fish). */
-export const MINE_SUCCESS_CHANCE = 0.15;
-/** After each ore, chance the rock is emptied. */
-export const ROCK_EMPTY_CHANCE = 1 / 3;
-/** How long an emptied rock takes to refill, in ticks (25 ticks = 15 seconds). */
-export const ROCK_RESPAWN_TICKS = 25;
-/** Foraging XP for each ore. */
-export const XP_PER_ORE = 2;
+/** What you catch at a fishing spot: Minnows anywhere, better fish at marked spots. */
+export function fishAt(x: number, y: number): ResourceId | null {
+  if (!isFishingSpot(x, y)) return null;
+  return MAP_NODES[y][x] ?? "minnow";
+}

@@ -30,21 +30,42 @@ to see them. Defined in `shared/disciplines.ts` (level curve: level 2 at 10 XP,
 3 at 34, 10 at 521, 99 at 38,389). XP is saved with your character.
 
 **Foraging**
-- 🪓 **Woodcutting** (level 1): click a tree to walk next to it and chop. Each tick
-  (0.6s) has a 25% chance of logs (1 XP). After each log the tree may fall and
-  becomes a stump for 30 seconds.
-- 🎣 **Fishing** (level 3): click water next to the shore. Each tick has a 10%
-  chance of a fish (about 6s per catch, 2 XP).
-- ⛏️ **Mining** (level 5): click a rock (the grey ones with orange flecks). Each
-  tick has a 15% chance of ore (about 4s, 2 XP). After each ore there's a 1 in 3
-  chance the rock empties for 15 seconds.
+- 🪓 **Woodcutting** (level 1): click a tree to walk next to it and chop. After
+  each log the tree may fall and becomes a stump for a while.
+- 🎣 **Fishing** (level 3): click water next to the shore. Plain shoreline gives
+  Minnows; the rippling marked spots give better fish.
+- ⛏️ **Mining** (level 5): click a rock. After each ore there's a 1 in 3 chance
+  the rock empties for a while.
 
-Tuning numbers live in `shared/foraging.ts`. Click an item to drop it. Moving stops what you're doing.
+Click an item to drop it. Moving stops what you're doing.
+
+## Mastery
+
+Each skill (Woodcutting, Fishing, Mining) also has its own **Mastery** level,
+raised by doing that skill (the same XP also goes to Foraging). Mastery has no
+cap: each level needs 10% more XP than the one before (Mastery 10 = 135 XP,
+20 = 511, 50 = 10,571, 100 = 1.25 million). Higher Mastery:
+
+- **Unlocks better types**, which are slower but give more XP and sell for more:
+  - Woodcutting: Pine 1, Oak 5, Birch 10, Maple 20, Yew 35, Ironwood 50, Elderwood 70
+  - Mining: Stone 1, Copper 5, Tin 10, Iron 20, Coal 30, Silver 40, Gold 55, Mithril 70
+  - Fishing: Minnow 1, Trout 5, Perch 10, Salmon 20, Pike 30, Tuna 45, Swordfish 60, Eel 75
+- **Makes you faster** at everything in that skill, with shrinking gains that never
+  reach instant: Mastery 10 = 8% faster, 50 = 33%, 100 = 50%, 200 = 67%.
+
+The best trees, rocks and fish are on the east island, over the bridge at the end
+of the main road. Open 📊 and click a skill to see every type and what it needs.
+All the numbers (time, XP, unlock level) live in `shared/foraging.ts`, the XP curve
+and speed in `shared/mastery.ts`, prices in `shared/items.ts`, and where things are
+in `shared/map.ts`. There's a ready hook (`gatherSuccessChance`) for giving hard
+types a chance to fail later. Old saves turn logs into Pine logs, ore into Stone and
+fish into Minnows (same prices), and start every Mastery at 1.
 
 ## Merchant and money
 
 The Merchant (purple, on the road near the middle of the map) buys
-logs (1 bronze), ore (2 bronze) and fish (3 bronze): click him to open his shop, then click
+everything you gather, from Pine logs (1 bronze) up to Mithril ore and Eels
+(120 bronze): click him to open his shop, then click
 items in your inventory to sell them one at a time.
 100 bronze = 1 silver, 100 silver = 1 gold. Money shows at the bottom of the
 inventory and doesn't use a slot. It's stored as one number (total bronze) and

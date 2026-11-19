@@ -1,12 +1,13 @@
 import Phaser from "phaser";
 import { getStateCallbacks, Room } from "colyseus.js";
 import { MAP, MAP_HEIGHT, MAP_WIDTH, TICK_MS, TILE_SIZE, Tile, isWalkable } from "../../shared/map";
-import { isFishingSpot, treeKey } from "../../shared/foraging";
+import { RESOURCES, ResourceId, fishAt, isFishingSpot, nodeAt, treeKey } from "../../shared/foraging";
+import { MasteryXp, emptyMastery, masteryLevelForXp } from "../../shared/mastery";
 import { ItemId } from "../../shared/items";
 import { joinWorld } from "./network";
-import { closeShop, flashDiscipline, openShop, renderCoins, renderDisciplines, renderInventory, setHoverText, setInventoryActions, showMessage } from "./ui";
+import { closeShop, flashDiscipline, flashMastery, renderMastery, openShop, renderCoins, renderDisciplines, renderInventory, setHoverText, setInventoryActions, showMessage } from "./ui";
 import { NPCS, npcAt } from "../../shared/npcs";
-import { DISCIPLINES, DisciplineId, DisciplineXp } from "../../shared/disciplines";
+import { DISCIPLINES, DisciplineId, DisciplineXp, SkillId, findSkill } from "../../shared/disciplines";
 import { showLogin } from "./login";
 
 const TILE_COLORS: Record<Tile, number> = {
@@ -40,6 +41,7 @@ export class WorldScene extends Phaser.Scene {
   private pinchStartZoom = 1;
   private gestureWasPinch = false;
   private lastDisciplines?: DisciplineXp;
+  private mastery: MasteryXp = emptyMastery();
 
   constructor() { super("world"); }
 
@@ -71,6 +73,11 @@ export class WorldScene extends Phaser.Scene {
       renderDisciplines(disciplines);
     });
     room.onMessage("levelup", (msg: { discipline: DisciplineId; level: number }) => this.celebrateLevelUp(msg.discipline));
+    room.onMessage("mastery", (mastery: MasteryXp) => {
+      this.mastery = mastery;
+      renderMastery(mastery);
+    });
+    room.onMessage("masteryup", (msg: { skill: SkillId; level: number }) => this.celebrateMastery(msg.skill, msg.level));
     setInventoryActions({
       drop: (slot) => room.send("drop", { slot }),
       sell: (slot) => room.send("sell", { slot }),
@@ -105,9 +112,11 @@ export class WorldScene extends Phaser.Scene {
         g.fillStyle(base, (x + y) % 2 ? 1 : 0.92);
         g.fillRect(px, py, TILE_SIZE, TILE_SIZE);
         if (t === "tree") {
-          this.trees.set(treeKey(x, y), this.makeTree(px, py, y));
+          this.trees.set(treeKey(x, y), this.makeTree(px, py, y, nodeAt(x, y)!));
         } else if (t === "rock") {
-          this.rocks.set(treeKey(x, y), this.makeRock(px, py, y));
+          this.rocks.set(treeKey(x, y), this.makeRock(px, py, y, nodeAt(x, y)!));
+        } else if (t === "water" && fishAt(x, y) && fishAt(x, y) !== "minnow") {
+          this.makeFishingSpot(px, py, fishAt(x, y)!);
         } else if (t === "bridge") {
           g.lineStyle(2, 0x5c3a1a).lineBetween(px, py + 10, px + TILE_SIZE, py + 10)
             .lineBetween(px, py + 22, px + TILE_SIZE, py + 22);
@@ -134,27 +143,58 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
-  /** A rock with orange ore flecks, and its emptied look (plain and smaller). */
-  private makeRock(px: number, py: number, row: number): TreeView {
+  /** A rock with flecks in its ore's colour (plain for stone), and its emptied look. */
+  private makeRock(px: number, py: number, row: number, type: ResourceId): TreeView {
     const full = this.add.graphics({ x: px, y: py }).setDepth(10 + row);
     full.fillStyle(TILE_COLORS.rock).fillEllipse(16, 18, 26, 20);
     full.fillStyle(0x9a9a9a).fillEllipse(12, 14, 10, 6);
-    full.fillStyle(0xd9822b).fillCircle(10, 19, 2.5).fillCircle(19, 15, 2).fillCircle(21, 22, 2.5);
+    if (type === "stone") {
+      full.lineStyle(1, 0x5a5a5a).lineBetween(9, 20, 15, 17).lineBetween(18, 23, 23, 19);
+    } else {
+      const fleck = RESOURCES[type].color;
+      full.fillStyle(fleck).fillCircle(10, 19, 2.5).fillCircle(19, 15, 2).fillCircle(21, 22, 2.5).fillCircle(14, 23, 1.5);
+      if (RESOURCES[type].mastery >= 40) {
+        // Rare ores sparkle.
+        full.fillStyle(0xffffff, 0.9).fillCircle(19, 14, 0.8).fillCircle(9, 18, 0.8);
+      }
+    }
     const empty = this.add.graphics({ x: px, y: py }).setDepth(10 + row).setVisible(false);
     empty.fillStyle(0x6a6a6a).fillEllipse(16, 21, 22, 14);
     empty.fillStyle(0x5a5a5a).fillEllipse(16, 22, 12, 6);
     return { tree: full, stump: empty };
   }
 
-  private makeTree(px: number, py: number, row: number): TreeView {
+  private makeTree(px: number, py: number, row: number, type: ResourceId): TreeView {
     const tree = this.add.graphics({ x: px, y: py }).setDepth(10 + row);
-    tree.fillStyle(0x5b3a1e).fillRect(13, 18, 6, 12);
-    tree.fillStyle(TILE_COLORS.tree).fillCircle(16, 13, 11);
-    tree.fillStyle(0x3d7a2e).fillCircle(13, 10, 5);
+    const leaves = RESOURCES[type].color;
+    const highlight = Phaser.Display.Color.ValueToColor(leaves).lighten(18).color;
+    const trunk = type === "birch" ? 0xe8e4d8 : type === "ironwood" ? 0x3a3a3a : 0x5b3a1e;
+    tree.fillStyle(trunk).fillRect(13, 18, 6, 12);
+    if (type === "birch") tree.fillStyle(0x333333).fillRect(14, 21, 3, 1).fillRect(15, 25, 3, 1);
+    if (type === "pine") {
+      // Pines are pointy.
+      tree.fillStyle(leaves).fillTriangle(16, 0, 4, 22, 28, 22);
+      tree.fillStyle(highlight).fillTriangle(16, 3, 10, 14, 18, 14);
+    } else {
+      const big = RESOURCES[type].mastery >= 35 ? 13 : 11; // the rare ones are bigger
+      tree.fillStyle(leaves).fillCircle(16, 13, big);
+      tree.fillStyle(highlight).fillCircle(13, 10, 5);
+      if (type === "elderwood") tree.fillStyle(0xe0c8ff).fillCircle(20, 8, 1.5).fillCircle(10, 15, 1.5).fillCircle(21, 17, 1.5);
+    }
     const stump = this.add.graphics({ x: px, y: py }).setDepth(10 + row).setVisible(false);
     stump.fillStyle(0x5b3a1e).fillEllipse(16, 24, 14, 8);
     stump.fillStyle(0xc9a26b).fillEllipse(16, 22, 12, 6);
     return { tree, stump };
+  }
+
+  /** A special fishing spot: little ripples in the fish's colour. */
+  private makeFishingSpot(px: number, py: number, type: ResourceId) {
+    const color = RESOURCES[type].color;
+    const g = this.add.graphics({ x: px, y: py }).setDepth(5);
+    g.lineStyle(1.5, color, 0.9).strokeEllipse(16, 16, 18, 8);
+    g.lineStyle(1, color, 0.6).strokeEllipse(16, 16, 26, 12);
+    g.fillStyle(0xffffff, 0.8).fillCircle(12, 14, 1.2).fillCircle(20, 17, 1);
+    this.tweens.add({ targets: g, alpha: 0.45, duration: 1100, yoyo: true, repeat: -1, ease: "Sine.easeInOut", delay: (px + py) % 700 });
   }
 
   private setStump(key: string, isStump: boolean) {
@@ -315,6 +355,18 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
+  private celebrateMastery(skill: SkillId, level: number) {
+    const name = findSkill(skill).def.name;
+    this.time.delayedCall(350, () => this.floatText(`${name} Mastery ${level}!`, "#7fd0ff", true));
+    flashMastery(skill);
+  }
+
+  /** " (Mastery 20)" if you can't gather this type yet, else "". */
+  private lockNote(type: ResourceId) {
+    const r = RESOURCES[type];
+    return masteryLevelForXp(this.mastery[r.skill] ?? 0) < r.mastery ? ` (Mastery ${r.mastery})` : "";
+  }
+
   private isStandingTree(x: number, y: number) {
     return this.trees.has(treeKey(x, y)) && !this.room?.state.depleted.has(treeKey(x, y));
   }
@@ -350,15 +402,18 @@ export class WorldScene extends Phaser.Scene {
     if (npc) {
       setHoverText("Talk-to", npc.name, pointer.x, pointer.y);
     } else if (this.isStandingTree(x, y)) {
-      setHoverText("Chop down", "Tree", pointer.x, pointer.y);
+      const type = nodeAt(x, y)!;
+      setHoverText("Chop down", RESOURCES[type].node + this.lockNote(type), pointer.x, pointer.y);
     } else if (this.trees.has(key)) {
-      setHoverText("Examine", "Tree stump", pointer.x, pointer.y);
+      setHoverText("Examine", `${RESOURCES[nodeAt(x, y)!].node} stump`, pointer.x, pointer.y);
     } else if (this.isFullRock(x, y)) {
-      setHoverText("Mine", "Rock", pointer.x, pointer.y);
+      const type = nodeAt(x, y)!;
+      setHoverText("Mine", RESOURCES[type].node + this.lockNote(type), pointer.x, pointer.y);
     } else if (this.rocks.has(key)) {
-      setHoverText("Examine", "Empty rock", pointer.x, pointer.y);
+      setHoverText("Examine", `Empty ${RESOURCES[nodeAt(x, y)!].node.toLowerCase()}`, pointer.x, pointer.y);
     } else if (isFishingSpot(x, y)) {
-      setHoverText("Fish", "Fishing spot", pointer.x, pointer.y);
+      const type = fishAt(x, y)!;
+      setHoverText("Fish", RESOURCES[type].node + this.lockNote(type), pointer.x, pointer.y);
     } else if (isWalkable(x, y)) {
       setHoverText("Walk here", "", pointer.x, pointer.y);
     } else {

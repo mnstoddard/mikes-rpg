@@ -56,15 +56,31 @@
     .shop-btn { flex: 1; font: inherit; font-size: 14px; padding: 9px 0; border: 1px solid #6b5a3e; border-radius: 3px; background: #5a4a2f; color: #fff; cursor: pointer; touch-action: manipulation; }
     .shop-btn:hover:not(:disabled) { background: #6e5b3a; }
     .shop-btn:disabled { opacity: .5; cursor: default; }
-    #skills { width: 200px; }
+    #skills { width: 240px; max-height: calc(100vh - 100px); overflow-y: auto; }
     .subskills { margin-top: 6px; display: flex; flex-direction: column; gap: 3px; }
-    .subskill { display: flex; align-items: center; gap: 6px; font-size: 13px; padding: 4px 6px; background: rgba(0,0,0,.18); border-radius: 3px; color: #fff; }
+    .subskill { font-size: 13px; padding: 4px 6px; background: rgba(0,0,0,.18); border-radius: 3px; color: #fff; cursor: pointer; }
+    .subskill:hover { background: rgba(255,255,255,.08); }
+    .subskill.flash { animation: flash 1.2s ease-out; }
+    .ss-head { display: flex; align-items: center; gap: 6px; }
+    .mastery { margin: 3px 0 1px 28px; }
+    .m-top { display: flex; justify-content: space-between; font-size: 12px; }
+    .m-level { color: #ffd84a; }
+    .m-speed { color: #9be28a; }
+    .m-bar { height: 6px; margin: 2px 0; }
+    .m-bar div { background: #4aa3df; }
+    .m-info { font-size: 11px; color: #c9bc9c; }
+    .m-types { margin-top: 4px; display: flex; flex-direction: column; gap: 1px; }
+    .m-type { display: flex; align-items: center; gap: 5px; font-size: 12px; }
+    .m-type-icon { width: 18px; text-align: center; }
+    .m-type-state { margin-left: auto; color: #9be28a; font-size: 11px; }
+    .m-type.locked { color: #8a8070; }
+    .m-type.locked .m-type-state { color: #c9a26b; }
     .subskill .ss-icon { font-size: 17px; width: 22px; text-align: center; }
     .subskill .ss-state { margin-left: auto; font-size: 12px; color: #9be28a; }
     .subskill.locked { color: #8a8070; }
     .subskill.locked .ss-icon { filter: grayscale(1); opacity: .6; }
     .subskill.locked .ss-state { color: #c9a26b; }
-    #shop-prices { display: flex; justify-content: center; gap: 14px; margin: 6px 0; font-size: 14px; color: #fff; }
+    #shop-prices { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; margin: 6px 0; font-size: 13px; color: #fff; }
     body.shop-open .slot.filled { outline: 1px solid #ffd84a; }
     .slot { position: relative; }
     .slot .price-tag { position: absolute; right: 2px; bottom: 0; font-size: 10px; color: #ffd84a; text-shadow: 1px 1px 0 #000; display: none; }
@@ -102,7 +118,7 @@
   <div id="hud" class="panel">Connecting…</div>
   <div id="zoom"><button id="zoom-in" class="panel btn" aria-label="Zoom in">+</button><button id="zoom-out" class="panel btn" aria-label="Zoom out">−</button></div>
   <div id="tabs">
-    <button class="panel btn tab" data-tab="skills" aria-label="Disciplines" title="Disciplines">📊</button>
+    <button class="panel btn tab" data-tab="skills" aria-label="Disciplines and Mastery" title="Disciplines and Mastery">📊</button>
     <button class="panel btn tab" data-tab="inventory" aria-label="Inventory" title="Inventory">🎒<span id="bag-count" class="tab-count"></span></button>
   </div>
   <div id="hover"></div>
