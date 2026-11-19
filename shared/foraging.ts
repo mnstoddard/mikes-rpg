@@ -42,7 +42,7 @@ export const RESOURCES: Record<ResourceId, ResourceDef> = {
   // ---- Mining ----
   stone:   { skill: "mining", node: "Stone rock",   item: "stone",       level: 1,  seconds: 4,   xp: 2,  respawnTicks: 25,  color: 0xa8a8a8 },
   copper:  { skill: "mining", node: "Copper rock",  item: "copper_ore",  level: 5,  seconds: 4.8, xp: 4,  respawnTicks: 30,  color: 0xd9822b },
-  tin:     { skill: "mining", node: "Tin rock",     item: "tin_ore",     level: 10, seconds: 4.8, xp: 5,  respawnTicks: 30,  color: 0xdfe6e9 },
+  tin:     { skill: "mining", node: "Tin rock",     item: "tin_ore",     level: 5,  seconds: 4.8, xp: 5,  respawnTicks: 30,  color: 0xdfe6e9 },
   iron:    { skill: "mining", node: "Iron rock",    item: "iron_ore",    level: 20, seconds: 6.6, xp: 10, respawnTicks: 45,  color: 0x8e3b2a },
   coal:    { skill: "mining", node: "Coal rock",    item: "coal",        level: 30, seconds: 7.8, xp: 14, respawnTicks: 55,  color: 0x1a1a1a },
   silver:  { skill: "mining", node: "Silver rock",  item: "silver_ore",  level: 40, seconds: 9,   xp: 20, respawnTicks: 70,  color: 0xf5f7fa },

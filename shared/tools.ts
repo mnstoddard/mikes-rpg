@@ -39,14 +39,14 @@ export interface MaterialDef {
 export interface MetalDef extends MaterialDef {
   /** Smelting XP for one bar. */
   barXp: number;
-  /** Ores that go into one bar. */
+  /** Ores that go into one bar (always 2). */
   ores: BaseItemId[];
 }
 
 // Silver and gold aren't tool metals; they're saved for something else later.
 export const METALS: Record<Metal, MetalDef> = {
   bronze:  { name: "Bronze",  tint: "sepia(1) saturate(2.5) hue-rotate(-15deg) brightness(.85)", bonus: 0.05, durability: 150, level: 1,  barXp: 8,  toolXp: 10, startSuccess: 0.25, needsTool: true, ores: ["copper_ore", "tin_ore"] },
-  iron:    { name: "Iron",    tint: "grayscale(1) brightness(.7)",                                 bonus: 0.10, durability: 300, level: 15, barXp: 12, toolXp: 18, startSuccess: 0.25, needsTool: true, ores: ["iron_ore"] },
+  iron:    { name: "Iron",    tint: "grayscale(1) brightness(.7)",                                 bonus: 0.10, durability: 300, level: 15, barXp: 12, toolXp: 18, startSuccess: 0.25, needsTool: true, ores: ["iron_ore", "iron_ore"] },
   steel:   { name: "Steel",   tint: "grayscale(1) brightness(1.3) contrast(1.2)",                  bonus: 0.15, durability: 500, level: 30, barXp: 25, toolXp: 35, startSuccess: 0.25, needsTool: true, ores: ["iron_ore", "coal"] },
   mithril: { name: "Mithril", tint: "sepia(1) saturate(5) hue-rotate(170deg)",                     bonus: 0.25, durability: 900, level: 60, barXp: 60, toolXp: 80, startSuccess: 0.25, needsTool: true, ores: ["mithril_ore", "coal"] },
 };
