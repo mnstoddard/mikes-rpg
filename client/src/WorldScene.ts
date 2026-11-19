@@ -7,6 +7,8 @@ import { RESOURCES, ResourceId, fishAt, isFishingSpot, nodeAt, treeKey } from ".
 
 import { ITEMS, ItemId } from "../../shared/items";
 import { joinWorld, rejoinWorld } from "./network";
+import { closeBounties, setBountyActions, showBounties } from "./ui";
+import type { Bounty } from "../../shared/bounties";
 import { closeDialog, openDialog, renderQuest, renderStamina, renderVitals, renderGear, renderCombatMastery, flashCombatMastery, closeCraft, closeInfo, closeShop, flashDiscipline, flashMastery, flashSkillRow, openCraft, renderBelt, renderDurability, renderMastery, renderSkillXp, openShop, renderCoins, renderDisciplines, renderInventory, renderLocks, setHoverText, setInventoryActions, showMessage } from "./ui";
 import { masteryName } from "../../shared/crafting";
 import type { Belt, ToolType } from "../../shared/tools";
@@ -127,6 +129,14 @@ export class WorldScene extends Phaser.Scene {
       remove: (slot) => room.send("remove", { slot }),
       drink: (slot) => room.send("drink", { slot }),
       spell: (id) => room.send("spell", { id }),
+    });
+    setBountyActions({
+      handIn: (index) => room.send("handIn", { index }),
+      refresh: () => room.send("refreshBounties"),
+    });
+    room.onMessage("bounties", (msg: { bounties: Bounty[]; open: boolean }) => {
+      if (msg.open) this.marker.setVisible(false);
+      showBounties(msg.bounties, msg.open);
     });
     room.onMessage("quest", (q: QuestView) => {
       this.guideAlert?.setVisible(q.talk);
@@ -324,6 +334,15 @@ export class WorldScene extends Phaser.Scene {
       c.add([g, fire, steam]);
       this.tweens.add({ targets: fire, alpha: 0.5, duration: 350, yoyo: true, repeat: -1 });
       this.tweens.add({ targets: steam, y: -30, alpha: 0, scaleX: 1.8, duration: 1400, repeat: -1 });
+    } else if (id === "board") {
+      // A wooden notice board on two posts, with papers pinned to it.
+      g.fillStyle(0x5c3a1a).fillRect(-11, -4, 3, 15).fillRect(8, -4, 3, 15); // posts
+      g.fillStyle(0x8b5a2b).fillRect(-14, -18, 28, 16); // board
+      g.lineStyle(2, 0x5c3a1a).strokeRect(-14, -18, 28, 16);
+      g.fillStyle(0x4a2e14).fillTriangle(-16, -18, 16, -18, 0, -24); // little roof
+      g.fillStyle(0xf2e6c9).fillRect(-11, -16, 7, 9).fillRect(-2, -15, 6, 8).fillRect(6, -16, 6, 10); // notices
+      g.fillStyle(0xc0392b).fillCircle(-7.5, -15, 1).fillCircle(1, -14, 1).fillCircle(9, -15, 1); // pins
+      c.add(g);
     } else {
       g.fillStyle(0x3b2410).fillRect(-6, 0, 12, 10); // wooden stump
       g.fillStyle(0x50565c).fillRect(-6, -6, 12, 6);
@@ -331,7 +350,7 @@ export class WorldScene extends Phaser.Scene {
       g.fillStyle(0x9aa3ab).fillRect(-12, -12, 22, 2);
       c.add(g);
     }
-    const label = this.add.text(0, -28, name, { fontSize: "12px", color: "#ffd84a", stroke: "#000", strokeThickness: 3 }).setOrigin(0.5);
+    const label = this.add.text(0, id === "board" ? -32 : -28, name, { fontSize: "12px", color: "#ffd84a", stroke: "#000", strokeThickness: 3 }).setOrigin(0.5);
     c.add(label);
   }
 
@@ -586,6 +605,7 @@ export class WorldScene extends Phaser.Scene {
     const { x, y } = this.tileAt(pointer);
     closeShop(); // clicking the map walks away from the shop
     closeCraft();
+    closeBounties();
     closeInfo();
     closeDialog();
     const npc = npcAt(x, y);
@@ -619,7 +639,7 @@ export class WorldScene extends Phaser.Scene {
       const def = MONSTERS[m.kind as MonsterId];
       setHoverText("Attack", `${def.name} (level ${def.level})${def.aggressive ? " ⚠" : ""}`, pointer.x, pointer.y);
     } else if (npc) {
-      setHoverText(npc.kind === "station" ? "Use" : "Talk-to", npc.name, pointer.x, pointer.y);
+      setHoverText(npc.id === "board" ? "Read" : npc.kind === "station" ? "Use" : "Talk-to", npc.name, pointer.x, pointer.y);
     } else if (this.isStandingTree(x, y)) {
       const type = nodeAt(x, y)!;
       setHoverText("Chop down", RESOURCES[type].node + this.lockNote(type), pointer.x, pointer.y);

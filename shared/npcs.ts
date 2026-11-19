@@ -1,7 +1,7 @@
 // People and work stations that stand around the world. They block the tile they're on.
 // Click one to walk over and use it: Old Maren talks to you, the Merchant opens his shop, the furnace,
-// anvil and stove open their crafting windows.
-export type NpcId = "maren" | "merchant" | "furnace" | "anvil" | "stove";
+// anvil and stove open their crafting windows, the bounty board shows its jobs.
+export type NpcId = "maren" | "merchant" | "furnace" | "anvil" | "stove" | "board";
 
 export interface NpcDef {
   id: NpcId;
@@ -38,6 +38,11 @@ export const NPCS: NpcDef[] = [
   {
     id: "stove", name: "Stove", kind: "station", x: 12, y: 10, color: 0x3a3a3a,
     greeting: "The stove is ready. Pick a fish, how many, and a log to burn.",
+  },
+  {
+    // Jobs that pay double (shared/bounties.ts). Opens once Old Maren's tutorial is done.
+    id: "board", name: "Bounty board", kind: "station", x: 17, y: 9, color: 0x8b5a2b,
+    greeting: "Folk pin jobs here. Bring the full amount and they pay double what the Merchant would.",
   },
 ];
 

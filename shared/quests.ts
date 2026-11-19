@@ -473,6 +473,7 @@ export const STEPS: QuestStep[] = [
       "You came back! And in one piece, too.",
       "Here's a bronze platebody and bronze boots. With those you've a full bronze set: helmet, platebody, platelegs, boots and shield. And some coins.",
       "That's all I can teach you. The forest gets harder the deeper you go, so train up, make better gear, and keep potions handy. Go and make your fortune!",
+      "One more thing: the bounty board next to the Merchant is open to you now. Folk pin up jobs there, and they pay double what the Merchant would.",
     ],
     give: [{ item: "platebody_bronze" }, { item: "boots_bronze" }],
     coins: 300,
