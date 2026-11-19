@@ -203,12 +203,42 @@
       #stamina { top: calc(36px + env(safe-area-inset-top)); width: 110px; padding: 3px 6px; font-size: 11px; }
     }
     #login-error { min-height: 1.3em; font-size: 13px; color: #ff9a8a; text-align: center; }
+    /* Quest tracker: under the stamina bar, shows the tutorial step you're on */
+    #quest { display: none; top: calc(84px + env(safe-area-inset-top)); left: calc(8px + env(safe-area-inset-left)); width: 230px; padding: 6px 9px; font-size: 12px; color: #f2e6c9; cursor: pointer; }
+    body.has-quest #quest { display: block; }
+    #quest .q-title { color: #ffd84a; font-size: 12px; margin-bottom: 2px; }
+    #quest .q-task { color: #fff; font-size: 13px; line-height: 1.35; }
+    #quest .q-progress { margin-top: 3px; font-size: 11px; color: #9be28a; }
+    #quest .q-bar { height: 6px; margin-top: 3px; background: #1d170f; border: 1px solid #6b5a3e; border-radius: 3px; overflow: hidden; }
+    #quest .q-bar div { height: 100%; background: #9be28a; transition: width .3s; }
+    #quest.flash { animation: flash 1.2s ease-out; }
+    #quest.min .q-task, #quest.min .q-progress, #quest.min .q-bar { display: none; }
+    /* Talking to Old Maren */
+    #dialog { display: none; left: 50%; bottom: calc(150px + env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(420px, calc(100vw - 32px)); padding: 12px 14px; z-index: 7; }
+    body.dialog-open #dialog { display: block; }
+    #dialog-name { color: #7fe0ff; font-size: 14px; margin-bottom: 6px; }
+    #dialog-text { font-size: 15px; line-height: 1.45; color: #fff; min-height: 3em; }
+    #dialog .buttons { display: flex; gap: 6px; margin-top: 10px; align-items: center; }
+    #dialog-page { font-size: 11px; color: #c9bc9c; margin-right: auto; }
+    #dialog .shop-btn { flex: 0 0 110px; }
+    @media (max-width: 640px), (max-height: 500px) {
+      #quest { top: calc(70px + env(safe-area-inset-top)); width: min(200px, calc(100vw - 80px)); padding: 4px 7px; }
+      #quest .q-task { font-size: 12px; }
+      #dialog { bottom: auto; top: calc(56px + env(safe-area-inset-top)); }
+      #dialog-text { font-size: 14px; }
+    }
   </style>
 </head>
 <body>
   <div id="game"></div>
   <div id="hud" class="panel">Connecting…</div>
   <div id="stamina" class="panel"></div>
+  <div id="quest" class="panel" title="Your task from Old Maren. Tap to fold it up."></div>
+  <div id="dialog" class="panel">
+    <div id="dialog-name">Old Maren</div>
+    <div id="dialog-text"></div>
+    <div class="buttons"><span id="dialog-page"></span><button id="dialog-next" class="shop-btn">Next</button></div>
+  </div>
   <div id="zoom"><button id="zoom-in" class="panel btn" aria-label="Zoom in">+</button><button id="zoom-out" class="panel btn" aria-label="Zoom out">−</button></div>
   <div id="tabs">
     <button class="panel btn tab" data-tab="skills" aria-label="Disciplines and Mastery" title="Disciplines and Mastery">📊</button>

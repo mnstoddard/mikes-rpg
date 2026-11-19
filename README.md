@@ -22,6 +22,35 @@ like `http://192.168.1.20:5173`; open that on their device.
 - **Zoom:** pinch with two fingers, scroll the mouse wheel, or use the + / − buttons (top right). Your zoom is remembered.
 - **Skills / Inventory:** the 📊 and 🎒 buttons (bottom right) open each panel; tap again to close. On phones both start closed so they don't cover the map.
 
+## The tutorial: Old Maren
+
+Every new character starts with empty hands next to **Old Maren**, a retired
+fisher standing just south of the furnace. A ❗ floats over her when she has
+something to say: click her to talk (tap **Next** to read on). The **quest
+tracker** under the stamina bar always shows your current task and progress
+(tap it to fold it up). There's no skipping.
+
+1. **Living off the land:** catch a minnow by hand, get her worn rod and fish
+   until it breaks (tools wear out), cook a stew (the first one always burns),
+   get her stone pot (pots raise success, rods/axes/picks raise speed), cook a
+   stew that can't fail, learn about stamina and eat it, then sell a fish.
+   Reward: Bronze rod, Bronze pot, 2 stews, 50 bronze.
+2. **The woodcutter's start:** reach Foraging 3, chop 3 logs by hand, cook up to
+   Crafting 3, make a stone axe at the anvil (can't fail), chop 10 logs with it,
+   sell some logs. Reward: Bronze axe, Bronze hammer, 1 silver.
+3. **Into the rocks:** reach Foraging 5, mine 5 stone with her worn pickaxe, make
+   your own stone pickaxe, buy 2 copper and 2 tin ore from the Merchant, reach
+   Crafting 5, smelt 2 bronze bars and make a bronze pickaxe (both can't fail).
+   Reward: Bronze tongs, 2 silver. That's a full Bronze set.
+
+If you lose something a step needs (her rod, the log for your stew), talk to her
+and she hands you another. Steps live in `shared/quests.ts`; Maren is in `shared/npcs.ts`.
+
+**Starting over:** `SAVE_VERSION` in `server/src/storage.ts` is the save format.
+A save with a different version is wiped on login (skills, items, coins, tools,
+position) and the character starts the tutorial again; the account and password
+stay. Version 1 is the tutorial, so every character from before it started over.
+
 ## Disciplines and skills
 
 A **Discipline** is a broad area you level up; the **skills** inside it unlock
@@ -30,10 +59,10 @@ to see them. Defined in `shared/disciplines.ts` (level curve: level 2 at 10 XP,
 3 at 34, 10 at 521, 99 at 38,389). XP is saved with your character.
 
 **Foraging**
-- 🪓 **Woodcutting** (level 1): click a tree to walk next to it and chop. After
-  each log the tree may fall and becomes a stump for a while.
-- 🎣 **Fishing** (level 3): click water next to the shore. Plain shoreline gives
+- 🎣 **Fishing** (level 1): click water next to the shore. Plain shoreline gives
   Minnows; the rippling marked spots give better fish.
+- 🪓 **Woodcutting** (level 3): click a tree to walk next to it and chop. After
+  each log the tree may fall and becomes a stump for a while.
 - ⛏️ **Mining** (level 5): click a rock. After each ore there's a 1 in 3 chance
   the rock empties for a while.
 
@@ -43,7 +72,8 @@ Click an item to drop it. Moving stops what you're doing.
 
 There are three layers:
 
-1. **Foraging level** (up to 99) unlocks skills: Woodcutting 1, Fishing 3, Mining 5.
+1. **Foraging level** (up to 99) unlocks skills: Fishing 1, Woodcutting 3, Mining 5.
+   **Crafting level** unlocks Cooking 1, Smithing 3, Smelting 5.
 2. **Skill level** (Woodcutting, Fishing, Mining; up to 99, same curve as Foraging)
    unlocks better types, which are slower but give more XP and sell for more:
    - Woodcutting: Pine 1, Oak 5, Birch 10, Maple 20, Yew 35, Ironwood 50, Elderwood 70
@@ -105,8 +135,8 @@ bag); click a belt slot to take it off. Only the tool on the belt counts.
 
 ## Crafting: Smelting and Smithing
 
-**Crafting** is a second Discipline with two skills. Smithing is open from the
-start; Smelting opens at Crafting level 3.
+**Crafting** is a second Discipline. Cooking is open from the start, Smithing
+opens at Crafting level 3 and Smelting at Crafting level 5.
 They're about **success, not speed**: each try takes 1.8 seconds and either
 works or fails. A failed try **loses the materials** and gives half the XP (at
 least 1). The window shows your chance before you start. Crafting never uses
@@ -114,8 +144,8 @@ locked items.
 
 - 🔨 **Smithing** at the **anvil** (right of the Merchant): axe, pickaxe, rod and
   hammer = 1 stone or bar + 1 log; tongs = 1 stone or bar. **Stone tools** are the
-  starter tier: 80% success at Mastery 1 and no hammer needed, so a new player can
-  make a Stone + Pine axe right away. Metals unlock at Smithing 1 / 15 / 30 / 60.
+  starter tier: 80% success at Mastery 1 and no hammer needed, so a new smith
+  can make a Stone + Pine axe right away. Metals unlock at Smithing 1 / 15 / 30 / 60.
 - 🔥 **Smelting** at the **furnace** (left of the Merchant). Every bar takes 2 ores:
   Bronze bar = 1 copper ore + 1 tin ore (level 1), Iron bar = 2 iron ore (15),
   Steel bar = 1 iron ore + 1 coal (30), Mithril bar = 1 mithril ore + 1 coal (60).
@@ -168,7 +198,8 @@ Rules live in `shared/tools.ts` (metals, woods, bonuses, uses), `shared/crafting
 | `shared/items.ts` | Every item (gathered, bars, tools) and inventory size |
 | `shared/tools.ts` | Metals, woods, tool bonuses and how long tools last |
 | `shared/crafting.ts` | Recipes, success chances and prices |
-| `shared/npcs.ts` | The Merchant, furnace and anvil |
+| `shared/npcs.ts` | Old Maren, the Merchant, furnace, anvil and stove |
+| `shared/quests.ts` | Old Maren's tutorial: every step, what she says and gives |
 
 To change the map, edit the text grid in `shared/map.ts`
 (`.` grass, `,` path, `~` water, `T` tree, `#` rock, `=` bridge) and restart.
@@ -199,7 +230,7 @@ little stamina you can't do that action. Stamina comes back 1 every 30 seconds,
 also while logged out, and from **eating** (click a fish or stew, then Eat).
 
 - **Raw fish:** Minnow 2, Trout 3, Perch 4, Salmon 5, Pike 7, Tuna 10, Swordfish 14, Eel 20.
-- **Fish stew** (🍲 **Cooking**, a Crafting skill from Crafting level 5): at the
+- **Fish stew** (🍲 **Cooking**, a Crafting skill open from the start): at the
   stove next to the furnace, cook 1 to 5 of one kind of fish plus 1 log as fuel.
   Stew stamina = 3 × the fish eaten raw + the fire (Pine 12, Oak 15, Birch 18,
   Maple 22, Yew 28, Ironwood 35, Elderwood 45), then +2% per Fish stew Mastery level.
