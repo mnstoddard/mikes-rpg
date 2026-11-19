@@ -2,7 +2,7 @@ import { INVENTORY_SIZE, ITEMS, ItemId } from "../../shared/items";
 import { formatMoney, toPurse } from "../../shared/money";
 import { CraftSkill, DISCIPLINES, DISCIPLINE_IDS, DisciplineId, DisciplineXp, MAX_LEVEL, SkillId, SkillXp, emptyDisciplines, emptySkills, findSkill, isCraftSkill, levelForXp, xpForLevel } from "../../shared/disciplines";
 import { ItemMasteryXp, MasteryId, craftSuccess, masteryValue, masteryIn, masteryLevelForXp, masterySuccess, masteryXpForLevel, percent, speedBonusPercent, valueBonusPercent } from "../../shared/mastery";
-import { RESOURCES, resourcesFor } from "../../shared/foraging";
+import { RESOURCES, forageXp, resourcesFor } from "../../shared/foraging";
 import { SHOP_STOCK, STEW_START_SUCCESS, beltBonus, buyPriceFor, masteryIdFor, masteryName, recipeFor, sellPriceFor, successFor } from "../../shared/crafting";
 import { RESOURCE_FOR_ITEM } from "../../shared/foraging";
 import { CRAFT_MARKUP } from "../../shared/items";
@@ -143,7 +143,11 @@ export function renderDisciplines(disciplines: DisciplineXp, flash?: DisciplineI
       head.append(el("ss-icon", skill.icon), el("ss-name", `${open ? "▾" : "▸"} ${skill.name}`),
         el("ss-state", unlocked ? `Lv ${levelForXp(lastSkillXp[skill.id] ?? 0)}` : `🔒 ${def.name} ${skill.unlockLevel}`));
       sub.appendChild(head);
-      if (open) sub.appendChild(skillDetails(skill.id));
+      if (open) {
+        // A locked skill shows nothing as available yet (not even its level-1 types, like Bronze).
+        sub.appendChild(unlocked ? skillDetails(skill.id)
+          : el("mastery m-info", `🔒 Unlocks at ${def.name} level ${skill.unlockLevel}. Until then you can't use any of it.`));
+      }
       sub.onclick = (e) => {
         e.stopPropagation(); // don't also fold up the Discipline
         if (expanded.has(skill.id)) expanded.delete(skill.id); else expanded.add(skill.id);
@@ -201,7 +205,8 @@ function skillDetails(skill: SkillId): HTMLElement {
       const detail = el("t-info", `${speedBonusPercent(m)}% faster · sells for ${formatMoney(price)}`);
       row.append(mBar, detail);
       row.title = `${item.name} Mastery ${m}: ${(mNext - mXp).toLocaleString()} XP to ${m + 1}. ` +
-        `${speedBonusPercent(m)}% faster to gather, ${valueBonusPercent(m)}% more money (base price ${formatMoney(item.sellPrice)}). ${r.xp} XP each.`;
+        `${speedBonusPercent(m)}% faster to gather, ${valueBonusPercent(m)}% more money (base price ${formatMoney(item.sellPrice)}). ${r.xp} XP each` +
+        (forageXp(id) !== r.xp ? ` (${forageXp(id)} Foraging XP: fishing is easy on stamina, so it gives Foraging half).` : ".");
     }
     list.appendChild(row);
   }
@@ -910,6 +915,7 @@ export function renderQuest(q: QuestView, flash = false) {
   document.body.classList.add("has-quest");
   questEl.replaceChildren();
   questEl.append(el("q-title", q.done ? `📜 ${q.quest}` : `📜 Quest ${q.number}/${q.of}: ${q.quest}`), el("q-task", (q.talk ? "❗ " : "") + q.task));
+  if (q.warning) questEl.append(el("q-warn", `⚠️ ${q.warning}`));
   if (q.progress) questEl.append(el("q-progress", q.progress));
   if (q.fraction != null) {
     const bar = el("q-bar");
