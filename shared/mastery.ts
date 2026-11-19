@@ -1,7 +1,8 @@
-// Mastery: each skill (Woodcutting, Fishing, Mining) has its own Mastery level,
-// raised by doing that skill. It has no cap. Higher Mastery unlocks better
-// types (Oak trees, Copper rocks, Trout...) and makes you faster at the skill.
-import type { SkillId } from "./disciplines";
+// Mastery: every type you gather (Pine, Oak, Copper, Trout...) has its own
+// Mastery level, raised by gathering that type. It has no cap. Higher Mastery
+// makes you faster at gathering that type, and makes it sell for more.
+// (Unlocking new types is done by the skill level, e.g. Woodcutting level.)
+import type { ResourceId } from "./foraging";
 
 /** XP to go from Mastery 1 to 2. Each level after needs 10% more than the one before. */
 export const MASTERY_FIRST_LEVEL_XP = 10;
@@ -33,8 +34,13 @@ export function masterySpeed(level: number): number {
   return 1 + (level - 1) / (level + 99);
 }
 
-/** "33%": how much faster than a brand new player. */
+/** "33%": how much faster than Mastery 1. */
 export const speedBonusPercent = (level: number) => Math.round((masterySpeed(level) - 1) * 100);
 
-export type MasteryXp = Record<SkillId, number>;
-export const emptyMastery = (): MasteryXp => ({ woodcutting: 0, fishing: 0, mining: 0 });
+/** Each Mastery level adds 2% to what the Merchant pays: Mastery 11 = +20%, 51 = double. */
+export const MASTERY_VALUE_PER_LEVEL = 0.02;
+export const masteryValue = (level: number) => 1 + (level - 1) * MASTERY_VALUE_PER_LEVEL;
+export const valueBonusPercent = (level: number) => Math.round((masteryValue(level) - 1) * 100);
+
+/** Mastery XP per type. Types you've never gathered aren't listed. */
+export type ItemMasteryXp = Partial<Record<ResourceId, number>>;

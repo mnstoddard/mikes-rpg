@@ -70,9 +70,13 @@
     .m-bar div { background: #4aa3df; }
     .m-info { font-size: 11px; color: #c9bc9c; }
     .m-types { margin-top: 4px; display: flex; flex-direction: column; gap: 1px; }
-    .m-type { display: flex; align-items: center; gap: 5px; font-size: 12px; }
     .m-type-icon { width: 18px; text-align: center; }
     .m-type-state { margin-left: auto; color: #9be28a; font-size: 11px; }
+    .m-type { display: grid; grid-template-columns: 20px 1fr auto; align-items: center; column-gap: 5px; font-size: 12px; padding: 2px 3px; border-radius: 3px; }
+    .m-type.flash { animation: flash 1.2s ease-out; }
+    .t-bar { grid-column: 2 / 4; height: 4px; margin: 1px 0; }
+    .t-bar div { background: #4aa3df; }
+    .t-info { grid-column: 2 / 4; font-size: 10.5px; color: #9be28a; }
     .m-type.locked { color: #8a8070; }
     .m-type.locked .m-type-state { color: #c9a26b; }
     .subskill .ss-icon { font-size: 17px; width: 22px; text-align: center; }

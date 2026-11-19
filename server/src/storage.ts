@@ -20,7 +20,10 @@ export interface SaveData {
   inventory?: (string | null)[];
   coins?: number; // total money, in bronze coins
   skills?: Record<string, number>; // XP per Discipline, e.g. { foraging: 42 } (key kept from before Disciplines)
-  mastery?: Record<string, number>; // Mastery XP per skill, e.g. { woodcutting: 120, fishing: 0, mining: 8 }
+  skillXp?: Record<string, number>; // XP per skill, e.g. { woodcutting: 120, fishing: 0, mining: 8 }
+  // Mastery XP per type, e.g. { pine: 300, oak: 12 }. (Saves from before skillXp
+  // existed had Mastery per skill here instead, e.g. { woodcutting: 120 }.)
+  mastery?: Record<string, number>;
   lockedSlots?: number[]; // inventory slots holding locked items, e.g. [0, 3], so Sell all skips them
   locked?: string[]; // old: item types that were locked; turned into lockedSlots when loaded
   // Add more here later (skills, bank, quests...). Stored as JSON, so no

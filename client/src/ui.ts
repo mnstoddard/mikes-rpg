@@ -1,8 +1,8 @@
 import { INVENTORY_SIZE, ITEMS, ItemId } from "../../shared/items";
 import { formatMoney, toPurse } from "../../shared/money";
-import { DISCIPLINES, DISCIPLINE_IDS, DisciplineId, DisciplineXp, MAX_LEVEL, SkillId, emptyDisciplines, levelForXp, xpForLevel } from "../../shared/disciplines";
-import { MasteryXp, emptyMastery, masteryLevelForXp, masteryXpForLevel, speedBonusPercent } from "../../shared/mastery";
-import { RESOURCES, resourcesFor } from "../../shared/foraging";
+import { DISCIPLINES, DISCIPLINE_IDS, DisciplineId, DisciplineXp, MAX_LEVEL, SkillId, SkillXp, emptyDisciplines, emptySkills, findSkill, levelForXp, xpForLevel } from "../../shared/disciplines";
+import { ItemMasteryXp, masteryLevelForXp, masteryXpForLevel, speedBonusPercent, valueBonusPercent } from "../../shared/mastery";
+import { RESOURCES, ResourceId, resourcesFor, sellPriceFor } from "../../shared/foraging";
 
 const MAX_MESSAGES = 6;
 const messagesEl = document.getElementById("messages")!;
@@ -34,10 +34,12 @@ openPanel(isSmallScreen() ? "" : "inventory");
 // ---- Disciplines (and the skills inside them) ----
 
 let lastDisciplines: DisciplineXp = emptyDisciplines();
-let lastMastery: MasteryXp = emptyMastery();
+let lastSkillXp: SkillXp = emptySkills();
+let lastMastery: ItemMasteryXp = {};
 let flashSkill: SkillId | undefined;
-/** Skills whose list of types is opened up (click a skill to toggle). */
-const expanded = new Set<SkillId>();
+let flashType: ResourceId | undefined;
+/** Skills whose list of types is showing (click a skill to fold it away). */
+const expanded = new Set<SkillId>(["woodcutting", "fishing", "mining"]);
 
 const el = (cls: string, text = "") => {
   const d = document.createElement("div");
@@ -79,12 +81,12 @@ export function renderDisciplines(disciplines: DisciplineXp, flash?: DisciplineI
     for (const skill of def.skills) {
       const unlocked = level >= skill.unlockLevel;
       const sub = el("subskill" + (unlocked ? "" : " locked") + (flashSkill === skill.id ? " flash" : ""));
-      sub.title = `${skill.description} Click to see what Mastery unlocks.`;
+      sub.title = `${skill.description} Click to show or hide its types.`;
       const head = el("ss-head");
       head.append(el("ss-icon", skill.icon), el("ss-name", skill.name),
         el("ss-state", unlocked ? "✓" : `🔒 Lv ${skill.unlockLevel}`));
       sub.appendChild(head);
-      sub.appendChild(masteryDetails(skill.id));
+      sub.appendChild(skillDetails(skill.id));
       sub.onclick = () => {
         if (expanded.has(skill.id)) expanded.delete(skill.id); else expanded.add(skill.id);
         renderDisciplines(lastDisciplines);
@@ -96,55 +98,83 @@ export function renderDisciplines(disciplines: DisciplineXp, flash?: DisciplineI
   }
 }
 
-/** Mastery level, progress bar, speed bonus and what's next, under each skill. */
-function masteryDetails(skill: SkillId): HTMLElement {
-  const xp = lastMastery[skill] ?? 0;
-  const level = masteryLevelForXp(xp);
-  const start = masteryXpForLevel(level);
-  const next = masteryXpForLevel(level + 1);
+/** Skill level (unlocks types), then every type with its own Mastery. */
+function skillDetails(skill: SkillId): HTMLElement {
+  const xp = lastSkillXp[skill] ?? 0;
+  const level = levelForXp(xp);
+  const maxed = level >= MAX_LEVEL;
+  const start = xpForLevel(level);
+  const next = xpForLevel(level + 1);
   const box = el("mastery");
   const top = el("m-top");
-  top.append(el("m-level", `Mastery ${level}`), el("m-speed", `${speedBonusPercent(level)}% faster`));
+  top.append(el("m-level", `Level ${level}`), el("m-speed", maxed ? "max level" : `${(next - xp).toLocaleString()} XP to ${level + 1}`));
   const bar = el("skill-bar m-bar");
   const fill = document.createElement("div");
-  fill.style.width = `${Math.floor(((xp - start) / (next - start)) * 100)}%`;
+  fill.style.width = `${maxed ? 100 : Math.floor(((xp - start) / (next - start)) * 100)}%`;
   bar.appendChild(fill);
+  box.append(top, bar);
   const types = resourcesFor(skill);
-  const upcoming = types.find((id) => RESOURCES[id].mastery > level);
-  const info = el("m-info", `${(next - xp).toLocaleString()} XP to Mastery ${level + 1}` +
-    (upcoming ? ` · Next: ${ITEMS[RESOURCES[upcoming].item].name} at ${RESOURCES[upcoming].mastery}` : ""));
-  box.append(top, bar, info);
-  if (expanded.has(skill)) {
-    const list = el("m-types");
-    for (const id of types) {
-      const r = RESOURCES[id];
-      const item = ITEMS[r.item];
-      const open = level >= r.mastery;
-      const row = el("m-type" + (open ? "" : " locked"));
-      const icon = el("m-type-icon", item.icon);
-      if (item.tint) icon.style.filter = item.tint;
-      row.append(icon, el("m-type-name", item.name), el("m-type-state", open ? `${r.xp} XP` : `🔒 ${r.mastery}`));
-      row.title = `${r.node}: about ${r.seconds}s each for a new player, ${r.xp} XP, sells for ${formatMoney(item.sellPrice)}`;
-      list.appendChild(row);
+  const upcoming = types.find((id) => RESOURCES[id].level > level);
+  if (upcoming) box.append(el("m-info", `Next unlock: ${ITEMS[RESOURCES[upcoming].item].name} at level ${RESOURCES[upcoming].level}`));
+  if (!expanded.has(skill)) return box;
+
+  const list = el("m-types");
+  for (const id of types) {
+    const r = RESOURCES[id];
+    const item = ITEMS[r.item];
+    const open = level >= r.level;
+    const row = el("m-type" + (open ? "" : " locked") + (flashType === id ? " flash" : ""));
+    const icon = el("m-type-icon", item.icon);
+    if (item.tint) icon.style.filter = item.tint;
+    if (!open) {
+      row.append(icon, el("m-type-name", item.name), el("m-type-state", `🔒 Lv ${r.level}`));
+      row.title = `Reach ${findSkill(skill).def.name} level ${r.level} to gather ${item.name}.`;
+    } else {
+      const mXp = lastMastery[id] ?? 0;
+      const m = masteryLevelForXp(mXp);
+      const mStart = masteryXpForLevel(m), mNext = masteryXpForLevel(m + 1);
+      const price = sellPriceFor(r.item, lastMastery);
+      row.append(icon, el("m-type-name", item.name), el("m-type-state", `Mastery ${m}`));
+      const mBar = el("skill-bar t-bar");
+      const mFill = document.createElement("div");
+      mFill.style.width = `${Math.floor(((mXp - mStart) / (mNext - mStart)) * 100)}%`;
+      mBar.appendChild(mFill);
+      const detail = el("t-info", `${speedBonusPercent(m)}% faster · sells for ${formatMoney(price)}`);
+      row.append(mBar, detail);
+      row.title = `${item.name} Mastery ${m}: ${(mNext - mXp).toLocaleString()} XP to ${m + 1}. ` +
+        `${speedBonusPercent(m)}% faster to gather, ${valueBonusPercent(m)}% more money (base price ${formatMoney(item.sellPrice)}). ${r.xp} XP each.`;
     }
-    box.appendChild(list);
+    list.appendChild(row);
   }
+  box.appendChild(list);
   return box;
 }
 
-export function renderMastery(mastery: MasteryXp) {
+export function renderSkillXp(skillXp: SkillXp) {
+  lastSkillXp = skillXp;
+  renderDisciplines(lastDisciplines);
+}
+
+export function renderMastery(mastery: ItemMasteryXp) {
   lastMastery = mastery;
   renderDisciplines(lastDisciplines);
+  renderInventory(invItems); // prices depend on Mastery
 }
 
 export function flashDiscipline(id: DisciplineId) {
   renderDisciplines(lastDisciplines, id);
 }
 
-export function flashMastery(skill: SkillId) {
+export function flashSkillRow(skill: SkillId) {
   flashSkill = skill;
   renderDisciplines(lastDisciplines);
   flashSkill = undefined;
+}
+
+export function flashMastery(type: ResourceId) {
+  flashType = type;
+  renderDisciplines(lastDisciplines);
+  flashType = undefined;
 }
 
 renderDisciplines(lastDisciplines);
@@ -219,7 +249,8 @@ export function renderInventory(items: (ItemId | null)[]) {
       slot.appendChild(icon);
       const tag = document.createElement("span");
       tag.className = "price-tag";
-      tag.textContent = `${item.sellPrice}b`;
+      const price = sellPriceFor(id, lastMastery);
+      tag.textContent = `${price}b`;
       slot.appendChild(tag);
       const isLocked = !!locked[i];
       if (isLocked) {
@@ -231,7 +262,7 @@ export function renderInventory(items: (ItemId | null)[]) {
       }
       slot.title = lockMode ? `${isLocked ? "Unlock" : "Lock"} this ${item.single}`
         : isLocked ? `${item.name} (locked)`
-        : selling ? `Sell ${item.single} for ${formatMoney(item.sellPrice)}` : `${item.name}: click to drop`;
+        : selling ? `Sell ${item.single} for ${formatMoney(price)}` : `${item.name}: click to drop`;
       slot.onclick = () => {
         if (lockMode) return toggleLock(i);
         if (isLocked) return showMessage(`That ${item.single} is locked. Tap 🔒 on your inventory, then tap it to unlock.`);
@@ -314,12 +345,12 @@ function renderShop() {
     const icon = document.createElement("span");
     icon.textContent = ITEMS[id].icon;
     if (ITEMS[id].tint) icon.style.filter = ITEMS[id].tint!;
-    span.append(icon, ` ${ITEMS[id].name}: ${formatMoney(ITEMS[id].sellPrice)}`);
+    span.append(icon, ` ${ITEMS[id].name}: ${formatMoney(sellPriceFor(id, lastMastery))}`);
     span.className = "price";
     prices.appendChild(span);
   }
   const unlocked = invItems.filter((id, i): id is ItemId => !!id && !locked[i]);
-  const total = unlocked.reduce((sum, id) => sum + ITEMS[id].sellPrice, 0);
+  const total = unlocked.reduce((sum, id) => sum + sellPriceFor(id, lastMastery), 0);
   const lockedCount = invItems.filter((id, i) => id && locked[i]).length;
   shopBody.append(prices, el("", !invItems.some(Boolean) ? "You have nothing to sell. Go chop or fish!"
     : `Sell all gives you ${formatMoney(total)}` + (lockedCount ? ` (keeps ${lockedCount} locked).` : ".")));

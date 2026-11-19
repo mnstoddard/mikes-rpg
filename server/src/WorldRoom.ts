@@ -4,11 +4,12 @@ import { MAP, MAP_HEIGHT, MAP_WIDTH, TICK_MS, isWalkable, randomSpawn } from "..
 import { findPath, Point } from "../../shared/pathfinding";
 import {
   RESOURCES, ROCK_EMPTY_CHANCE, ResourceId, TREE_FALL_CHANCE,
-  fishAt, gatherChancePerTick, gatherSuccessChance, nodeAt, resourcesFor, treeKey,
+  RESOURCE_IDS, fishAt, gatherChancePerTick, gatherSuccessChance, masteryIn, nodeAt, resourcesFor, sellPriceFor, treeKey,
 } from "../../shared/foraging";
-import { MasteryXp, emptyMastery, masteryLevelForXp } from "../../shared/mastery";
+import { ItemMasteryXp, masteryLevelForXp, speedBonusPercent, valueBonusPercent } from "../../shared/mastery";
 import {
-  DISCIPLINES, DISCIPLINE_IDS, DisciplineId, DisciplineXp, SkillId, emptyDisciplines, findSkill, levelForXp,
+  DISCIPLINES, DISCIPLINE_IDS, DisciplineId, DisciplineXp, SkillId, SkillXp, emptyDisciplines, emptySkills, findSkill,
+  levelForXp, xpForLevel,
 } from "../../shared/disciplines";
 import { INVENTORY_SIZE, ITEMS, ItemId, LEGACY_ITEMS } from "../../shared/items";
 import { NPCS, NpcDef, npcById } from "../../shared/npcs";
@@ -42,7 +43,8 @@ export class Player extends Schema {
   resource: ResourceId | null = null; // which type of tree / rock / fish
   inventory: (ItemId | null)[] = new Array(INVENTORY_SIZE).fill(null);
   disciplines: DisciplineXp = emptyDisciplines(); // XP per Discipline
-  mastery: MasteryXp = emptyMastery(); // Mastery XP per skill
+  skillXp: SkillXp = emptySkills(); // XP per skill (Woodcutting level etc.)
+  mastery: ItemMasteryXp = {}; // Mastery XP per type (Pine, Copper, Trout...)
   coins = 0; // total money, in bronze coins
   locked: boolean[] = new Array(INVENTORY_SIZE).fill(false); // per slot: locked items can't be sold or dropped by accident
   talkTo: NpcDef | null = null; // person the player is walking over to talk to
@@ -150,7 +152,7 @@ export class WorldRoom extends Room<WorldState> {
       if (p.locked[msg.slot]) return this.say(client, `That ${ITEMS[item].single} is locked. Unlock it to sell it.`);
       if (!this.nearMerchant(p)) return this.say(client, "You need to be next to the Merchant to sell.");
       p.inventory[msg.slot] = null;
-      const price = ITEMS[item].sellPrice;
+      const price = sellPriceFor(item, p.mastery);
       p.coins += price;
       this.sendInventory(client, p);
       this.say(client, `You sell 1 ${ITEMS[item].single} for ${formatMoney(price)}.`);
@@ -169,7 +171,7 @@ export class WorldRoom extends Room<WorldState> {
         if (!item || p.locked[i]) continue;
         p.inventory[i] = null;
         count++;
-        total += ITEMS[item].sellPrice;
+        total += sellPriceFor(item, p.mastery);
       }
       if (!count) return this.say(client, "You have nothing to sell that isn't locked.");
       p.coins += total;
@@ -195,7 +197,7 @@ export class WorldRoom extends Room<WorldState> {
       this.sendDisciplines(client, p);
       this.sendMastery(client, p);
       this.say(client, "Welcome! Chop trees for logs (fish from Foraging level 3, mine from level 5), then sell them to the Merchant.");
-      this.say(client, "Each skill has a Mastery level. Raise it to unlock better trees, rocks and fish, and to work faster.");
+      this.say(client, "Skill levels unlock better trees, rocks and fish. Mastery in each type makes you faster at it and makes it sell for more.");
     });
 
     this.onMessage("drop", (client, msg: { slot: number }) => {
@@ -252,9 +254,9 @@ export class WorldRoom extends Room<WorldState> {
     if (level < def.unlockLevel) {
       return this.say(client, `You need ${DISCIPLINES[discipline].name} level ${def.unlockLevel} to use ${def.name}.`);
     }
-    const mastery = masteryLevelForXp(p.mastery[skill]);
-    if (mastery < res.mastery) {
-      return this.say(client, `You need ${def.name} Mastery ${res.mastery} to ${verbFor(resource)}. (You're Mastery ${mastery}.)`);
+    const skillLevel = levelForXp(p.skillXp[skill]);
+    if (skillLevel < res.level) {
+      return this.say(client, `You need ${def.name} level ${res.level} to ${verbFor(resource)}. (You're level ${skillLevel}.)`);
     }
     this.stopActions(p);
     p.target = target;
@@ -299,7 +301,7 @@ export class WorldRoom extends Room<WorldState> {
       return;
     }
 
-    const mastery = masteryLevelForXp(p.mastery[skill]);
+    const mastery = masteryIn(p.mastery, resource);
     if (Math.random() >= gatherChancePerTick(resource, mastery)) return;
     if (Math.random() >= gatherSuccessChance(resource, mastery)) {
       // Never happens yet (success is always 100%); here for harder types later.
@@ -319,7 +321,8 @@ export class WorldRoom extends Room<WorldState> {
       this.say(client, GOT[skill]);
     }
     this.addXp(p, client, "foraging", res.xp);
-    this.addMasteryXp(p, client, skill, res.xp);
+    this.addMasteryXp(p, client, resource, res.xp);
+    this.addSkillXp(p, client, skill, res.xp); // sends both skill levels and Mastery
     this.saveSoon(p);
 
     if (skill === "fishing") return; // fishing spots never run out
@@ -389,28 +392,42 @@ export class WorldRoom extends Room<WorldState> {
     }
   }
 
-  private addMasteryXp(p: Player, client: Client | undefined, skill: SkillId, xp: number) {
-    const before = masteryLevelForXp(p.mastery[skill]);
-    p.mastery[skill] += xp;
-    const after = masteryLevelForXp(p.mastery[skill]);
+  /** Skill level (up to 99): unlocks better types. */
+  private addSkillXp(p: Player, client: Client | undefined, skill: SkillId, xp: number) {
+    const before = levelForXp(p.skillXp[skill]);
+    p.skillXp[skill] += xp;
+    const after = levelForXp(p.skillXp[skill]);
     if (!client) return;
     this.sendMastery(client, p);
     if (after > before) {
       const { def } = findSkill(skill);
-      this.say(client, `Your ${def.name} Mastery is now ${after}!`);
+      this.say(client, `Your ${def.name} level is now ${after}!`);
       for (const id of resourcesFor(skill)) {
         const r = RESOURCES[id];
-        if (r.mastery > before && r.mastery <= after) this.say(client, `You can now ${verbFor(id)}!`);
+        if (r.level > before && r.level <= after) this.say(client, `You can now ${verbFor(id)}!`);
       }
-      client.send("masteryup", { skill, level: after });
+      client.send("skillup", { skill, level: after });
     }
+  }
+
+  /** Mastery in one type (no cap): faster at it, and it sells for more. */
+  private addMasteryXp(p: Player, client: Client | undefined, resource: ResourceId, xp: number) {
+    const before = masteryIn(p.mastery, resource);
+    p.mastery[resource] = (p.mastery[resource] ?? 0) + xp;
+    const after = masteryIn(p.mastery, resource);
+    if (!client || after <= before) return;
+    const name = ITEMS[RESOURCES[resource].item].name;
+    this.say(client, `${name} Mastery ${after}! ${speedBonusPercent(after)}% faster, sells for ${valueBonusPercent(after)}% more.`);
+    client.send("masteryup", { resource, level: after });
   }
 
   private sendDisciplines(client: Client, p: Player) {
     client.send("disciplines", p.disciplines);
   }
 
+  /** Skill levels and per-type Mastery, both shown in the Skills panel. */
   private sendMastery(client: Client, p: Player) {
+    client.send("skillxp", p.skillXp);
     client.send("mastery", p.mastery);
   }
 
@@ -525,17 +542,24 @@ export class WorldRoom extends Room<WorldState> {
       const xp = save.skills?.[id];
       if (typeof xp === "number" && Number.isFinite(xp) && xp >= 0) p.disciplines[id] = Math.floor(xp);
     }
-    // Saves from before Mastery have none, so everyone starts at Mastery 1.
-    for (const id of Object.keys(p.mastery) as SkillId[]) {
-      const xp = save.mastery?.[id];
-      if (typeof xp === "number" && Number.isFinite(xp) && xp >= 0) p.mastery[id] = Math.floor(xp);
+    const ok = (xp: unknown): xp is number => typeof xp === "number" && Number.isFinite(xp) && xp >= 0;
+    for (const id of Object.keys(p.skillXp) as SkillId[]) {
+      if (save.skillXp) {
+        if (ok(save.skillXp[id])) p.skillXp[id] = Math.floor(save.skillXp[id]);
+      } else if (ok(save.mastery?.[id])) {
+        // Older saves had one Mastery per skill. That level becomes the skill's level.
+        p.skillXp[id] = xpForLevel(Math.min(99, masteryLevelForXp(save.mastery[id])));
+      }
+    }
+    if (save.skillXp) {
+      for (const id of RESOURCE_IDS) if (ok(save.mastery?.[id])) p.mastery[id] = Math.floor(save.mastery![id]);
     }
   }
 
   private snapshot(p: Player): SaveData {
     // Save where the player is heading, so walking off mid-path doesn't lose the move.
     const dest = p.path.length ? p.path[p.path.length - 1] : p;
-    return { x: dest.x, y: dest.y, inventory: [...p.inventory], coins: p.coins, skills: { ...p.disciplines }, mastery: { ...p.mastery }, lockedSlots: p.locked.flatMap((on, i) => (on && p.inventory[i] ? [i] : [])) };
+    return { x: dest.x, y: dest.y, inventory: [...p.inventory], coins: p.coins, skills: { ...p.disciplines }, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, lockedSlots: p.locked.flatMap((on, i) => (on && p.inventory[i] ? [i] : [])) };
   }
 
   private async save(p: Player) {

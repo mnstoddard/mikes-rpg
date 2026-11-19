@@ -39,27 +39,31 @@ to see them. Defined in `shared/disciplines.ts` (level curve: level 2 at 10 XP,
 
 Click an item to drop it. Moving stops what you're doing.
 
-## Mastery
+## Skill levels and Mastery
 
-Each skill (Woodcutting, Fishing, Mining) also has its own **Mastery** level,
-raised by doing that skill (the same XP also goes to Foraging). Mastery has no
-cap: each level needs 10% more XP than the one before (Mastery 10 = 135 XP,
-20 = 511, 50 = 10,571, 100 = 1.25 million). Higher Mastery:
+There are three layers:
 
-- **Unlocks better types**, which are slower but give more XP and sell for more:
-  - Woodcutting: Pine 1, Oak 5, Birch 10, Maple 20, Yew 35, Ironwood 50, Elderwood 70
-  - Mining: Stone 1, Copper 5, Tin 10, Iron 20, Coal 30, Silver 40, Gold 55, Mithril 70
-  - Fishing: Minnow 1, Trout 5, Perch 10, Salmon 20, Pike 30, Tuna 45, Swordfish 60, Eel 75
-- **Makes you faster** at everything in that skill, with shrinking gains that never
-  reach instant: Mastery 10 = 8% faster, 50 = 33%, 100 = 50%, 200 = 67%.
+1. **Foraging level** (up to 99) unlocks skills: Woodcutting 1, Fishing 3, Mining 5.
+2. **Skill level** (Woodcutting, Fishing, Mining; up to 99, same curve as Foraging)
+   unlocks better types, which are slower but give more XP and sell for more:
+   - Woodcutting: Pine 1, Oak 5, Birch 10, Maple 20, Yew 35, Ironwood 50, Elderwood 70
+   - Mining: Stone 1, Copper 5, Tin 10, Iron 20, Coal 30, Silver 40, Gold 55, Mithril 70
+   - Fishing: Minnow 1, Trout 5, Perch 10, Salmon 20, Pike 30, Tuna 45, Swordfish 60, Eel 75
+3. **Mastery** belongs to each type (Pine, Oak, Copper, Trout...) and has no cap.
+   Each Mastery level needs 10% more XP than the last (Mastery 10 = 135 XP,
+   50 = 10,571, 100 = 1.25 million). It makes you **faster** at that type
+   (Mastery 10 = 8% faster, 50 = 33%, 100 = 50%, never instant) and makes it
+   **sell for more**: +2% per level (Mastery 51 = double), always rounded down to
+   whole bronze, so cheap items need a few levels before the price ticks up.
 
-The best trees, rocks and fish are on the east island, over the bridge at the end
-of the main road. Open 📊 and click a skill to see every type and what it needs.
-All the numbers (time, XP, unlock level) live in `shared/foraging.ts`, the XP curve
-and speed in `shared/mastery.ts`, prices in `shared/items.ts`, and where things are
-in `shared/map.ts`. There's a ready hook (`gatherSuccessChance`) for giving hard
-types a chance to fail later. Old saves turn logs into Pine logs, ore into Stone and
-fish into Minnows (same prices), and start every Mastery at 1.
+Every item you gather gives its XP to all three. The best trees, rocks and fish
+are on the east island, over the bridge at the end of the main road. Open 📊 to
+see everything; click a skill to fold its list away.
+Numbers live in `shared/foraging.ts` (types), `shared/mastery.ts` (Mastery curve,
+speed, value), `shared/items.ts` (base prices) and `shared/map.ts` (placement).
+There's a ready hook (`gatherSuccessChance`) for giving hard types a chance to fail later.
+Old saves: the old per-skill Mastery level becomes that skill's level, and per-type
+Mastery starts at 1.
 
 ## Merchant and money
 
