@@ -12,6 +12,7 @@ export const TREE_RESPAWN_TICKS = 50;
 /** Foraging XP for each log you get. */
 export const XP_PER_LOG = 1;
 
+/** Key for a tree or rock in the world's "depleted" list. */
 export const treeKey = (x: number, y: number) => `${x},${y}`;
 
 // ---- Fishing ----
@@ -28,3 +29,14 @@ export function isFishingSpot(x: number, y: number): boolean {
   if (y < 0 || y >= MAP_HEIGHT || x < 0 || x >= MAP_WIDTH || MAP[y][x] !== "water") return false;
   return CARDINAL.some((d) => isWalkable(x + d.x, y + d.y));
 }
+
+// ---- Mining ----
+
+/** Chance of getting ore on each tick (about one every 7 ticks / 4s: between logs and fish). */
+export const MINE_SUCCESS_CHANCE = 0.15;
+/** After each ore, chance the rock is emptied. */
+export const ROCK_EMPTY_CHANCE = 1 / 3;
+/** How long an emptied rock takes to refill, in ticks (25 ticks = 15 seconds). */
+export const ROCK_RESPAWN_TICKS = 25;
+/** Foraging XP for each ore. */
+export const XP_PER_ORE = 2;

@@ -3,7 +3,8 @@ import { MapSchema, Schema, type } from "@colyseus/schema";
 import { MAP, MAP_HEIGHT, MAP_WIDTH, TICK_MS, isWalkable, randomSpawn } from "../../shared/map";
 import { findPath, Point } from "../../shared/pathfinding";
 import {
-  CHOP_SUCCESS_CHANCE, FISH_SUCCESS_CHANCE, TREE_FALL_CHANCE, TREE_RESPAWN_TICKS, XP_PER_FISH, XP_PER_LOG,
+  CHOP_SUCCESS_CHANCE, FISH_SUCCESS_CHANCE, MINE_SUCCESS_CHANCE, ROCK_EMPTY_CHANCE, ROCK_RESPAWN_TICKS,
+  TREE_FALL_CHANCE, TREE_RESPAWN_TICKS, XP_PER_FISH, XP_PER_LOG, XP_PER_ORE,
   isFishingSpot, treeKey,
 } from "../../shared/foraging";
 import {
@@ -30,7 +31,7 @@ export class Player extends Schema {
   @type("number") x = 0; // tile coordinates
   @type("number") y = 0;
   @type("number") color = 0xffffff;
-  @type("string") action = "idle"; // "idle" | "chopping" | "fishing" (so others see the animation)
+  @type("string") action = "idle"; // "idle" | "chopping" | "fishing" | "mining" (so others see the animation)
   @type("number") faceX = 0; // tile the player is working on, for the animation
   @type("number") faceY = 0;
 
@@ -49,14 +50,16 @@ export class Player extends Schema {
 
 export class WorldState extends Schema {
   @type({ map: Player }) players = new MapSchema<Player>();
-  /** Trees that have been chopped down: key "x,y" -> tick when it grows back. */
-  @type({ map: "number" }) stumps = new MapSchema<number>();
+  /** Chopped-down trees and emptied rocks: key "x,y" -> tick when it comes back. */
+  @type({ map: "number" }) depleted = new MapSchema<number>();
   @type("number") tick = 0;
 }
 
 const COLORS = [0xe74c3c, 0x3498db, 0xf1c40f, 0x9b59b6, 0x1abc9c, 0xe67e22, 0xecf0f1, 0xff6ec7];
 const CARDINAL = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
 
+const isRock = (x: number, y: number) =>
+  y >= 0 && y < MAP_HEIGHT && x >= 0 && x < MAP_WIDTH && MAP[y][x] === "rock";
 const isTree = (x: number, y: number) =>
   y >= 0 && y < MAP_HEIGHT && x >= 0 && x < MAP_WIDTH && MAP[y][x] === "tree";
 
@@ -93,8 +96,16 @@ export class WorldRoom extends Room<WorldState> {
       const p = this.state.players.get(client.sessionId);
       if (!p || !Number.isInteger(msg?.x) || !Number.isInteger(msg?.y)) return;
       if (!isTree(msg.x, msg.y)) return;
-      if (this.state.stumps.has(treeKey(msg.x, msg.y))) return this.say(client, "That tree has been cut down.");
+      if (this.state.depleted.has(treeKey(msg.x, msg.y))) return this.say(client, "That tree has been cut down.");
       this.startGathering(client, p, "woodcutting", { x: msg.x, y: msg.y });
+    });
+
+    this.onMessage("mine", (client, msg: { x: number; y: number }) => {
+      const p = this.state.players.get(client.sessionId);
+      if (!p || !Number.isInteger(msg?.x) || !Number.isInteger(msg?.y)) return;
+      if (!isRock(msg.x, msg.y)) return;
+      if (this.state.depleted.has(treeKey(msg.x, msg.y))) return this.say(client, "There's no ore left in that rock right now.");
+      this.startGathering(client, p, "mining", { x: msg.x, y: msg.y });
     });
 
     this.onMessage("fish", (client, msg: { x: number; y: number }) => {
@@ -142,7 +153,7 @@ export class WorldRoom extends Room<WorldState> {
       if (!p) return;
       this.sendInventory(client, p);
       this.sendDisciplines(client, p);
-      this.say(client, "Welcome! Chop trees for logs (and fish, from Foraging level 3), then sell them to the Merchant.");
+      this.say(client, "Welcome! Chop trees for logs (fish from Foraging level 3, mine from level 5), then sell them to the Merchant.");
     });
 
     this.onMessage("drop", (client, msg: { slot: number }) => {
@@ -159,8 +170,8 @@ export class WorldRoom extends Room<WorldState> {
     if (tick % AUTOSAVE_TICKS === 0) this.autosave();
 
     // Grow back trees whose time is up.
-    this.state.stumps.forEach((respawnAt, key) => {
-      if (tick >= respawnAt) this.state.stumps.delete(key);
+    this.state.depleted.forEach((respawnAt, key) => {
+      if (tick >= respawnAt) this.state.depleted.delete(key);
     });
 
     this.state.players.forEach((p, sessionId) => {
@@ -210,7 +221,8 @@ export class WorldRoom extends Room<WorldState> {
     const t = p.target!;
     const skill = p.activity;
     if (!skill || !this.isNextTo(p, t)) return this.stopActions(p);
-    if (skill === "woodcutting" && this.state.stumps.has(treeKey(t.x, t.y))) return this.stopActions(p); // someone else felled it
+    // Someone else felled the tree or emptied the rock.
+    if (skill !== "fishing" && this.state.depleted.has(treeKey(t.x, t.y))) return this.stopActions(p);
 
     const free = p.inventory.indexOf(null);
     if (free === -1) {
@@ -218,12 +230,33 @@ export class WorldRoom extends Room<WorldState> {
       return this.stopActions(p);
     }
 
-    const action = skill === "woodcutting" ? "chopping" : "fishing";
+    const ACTIONS = { woodcutting: "chopping", fishing: "fishing", mining: "mining" } as const;
+    const START = { woodcutting: "You swing at the tree.", fishing: "You cast out your line...", mining: "You swing your pick at the rock." };
+    const action = ACTIONS[skill];
     if (p.action !== action) {
       p.action = action;
       p.faceX = t.x;
       p.faceY = t.y;
-      if (client) this.say(client, skill === "woodcutting" ? "You swing at the tree." : "You cast out your line...");
+      if (client) this.say(client, START[skill]);
+      return;
+    }
+
+    if (skill === "mining") {
+      if (Math.random() >= MINE_SUCCESS_CHANCE) return;
+      p.inventory[free] = "ore";
+      if (client) {
+        this.sendInventory(client, p);
+        this.say(client, "You mine some ore.");
+      }
+      this.addXp(p, client, "foraging", XP_PER_ORE);
+      this.saveSoon(p);
+      if (Math.random() < ROCK_EMPTY_CHANCE) {
+        this.state.depleted.set(treeKey(t.x, t.y), this.state.tick + ROCK_RESPAWN_TICKS);
+        if (client) this.say(client, "The rock is out of ore.");
+        this.state.players.forEach((other) => {
+          if (other.activity === "mining" && other.target?.x === t.x && other.target?.y === t.y) this.stopActions(other);
+        });
+      }
       return;
     }
 
@@ -248,7 +281,7 @@ export class WorldRoom extends Room<WorldState> {
     this.addXp(p, client, "foraging", XP_PER_LOG);
     this.saveSoon(p);
     if (Math.random() < TREE_FALL_CHANCE) {
-      this.state.stumps.set(treeKey(t.x, t.y), this.state.tick + TREE_RESPAWN_TICKS);
+      this.state.depleted.set(treeKey(t.x, t.y), this.state.tick + TREE_RESPAWN_TICKS);
       if (client) this.say(client, "The tree falls down.");
       // Everyone chopping this tree stops.
       this.state.players.forEach((other) => {

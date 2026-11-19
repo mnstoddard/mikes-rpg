@@ -6,7 +6,7 @@
 // Discipline. Shared so the client shows the same numbers the server uses.
 
 export type DisciplineId = "foraging";
-export type SkillId = "woodcutting" | "fishing";
+export type SkillId = "woodcutting" | "fishing" | "mining";
 
 export interface SkillDef {
   id: SkillId;
@@ -31,6 +31,7 @@ export const DISCIPLINES: Record<DisciplineId, DisciplineDef> = {
     skills: [
       { id: "woodcutting", name: "Woodcutting", icon: "🪓", unlockLevel: 1, description: "Click a tree to chop logs." },
       { id: "fishing", name: "Fishing", icon: "🎣", unlockLevel: 3, description: "Click the water's edge to fish." },
+      { id: "mining", name: "Mining", icon: "⛏️", unlockLevel: 5, description: "Click a rock to mine ore." },
     ],
   },
 };

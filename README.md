@@ -35,13 +35,16 @@ to see them. Defined in `shared/disciplines.ts` (level curve: level 2 at 10 XP,
   becomes a stump for 30 seconds.
 - 🎣 **Fishing** (level 3): click water next to the shore. Each tick has a 10%
   chance of a fish (about 6s per catch, 2 XP).
+- ⛏️ **Mining** (level 5): click a rock (the grey ones with orange flecks). Each
+  tick has a 15% chance of ore (about 4s, 2 XP). After each ore there's a 1 in 3
+  chance the rock empties for 15 seconds.
 
 Tuning numbers live in `shared/foraging.ts`. Click an item to drop it. Moving stops what you're doing.
 
 ## Merchant and money
 
 The Merchant (purple, on the road near the middle of the map) buys
-logs (1 bronze) and fish (3 bronze): click him to open his shop, then click
+logs (1 bronze), ore (2 bronze) and fish (3 bronze): click him to open his shop, then click
 items in your inventory to sell them one at a time.
 100 bronze = 1 silver, 100 silver = 1 gold. Money shows at the bottom of the
 inventory and doesn't use a slot. It's stored as one number (total bronze) and
