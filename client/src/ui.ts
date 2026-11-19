@@ -3,13 +3,17 @@ import { formatMoney, toPurse } from "../../shared/money";
 import { CraftSkill, DISCIPLINES, DISCIPLINE_IDS, DisciplineId, DisciplineXp, MAX_LEVEL, SkillId, SkillXp, emptyDisciplines, emptySkills, findSkill, isCraftSkill, levelForXp, xpForLevel } from "../../shared/disciplines";
 import { ItemMasteryXp, MasteryId, craftSuccess, masteryValue, masteryIn, masteryLevelForXp, masterySuccess, masteryXpForLevel, percent, speedBonusPercent, valueBonusPercent } from "../../shared/mastery";
 import { RESOURCES, resourcesFor } from "../../shared/foraging";
-import { SHOP_STOCK, beltBonus, buyPriceFor, masteryIdFor, masteryName, recipeFor, sellPriceFor, successFor } from "../../shared/crafting";
+import { SHOP_STOCK, STEW_START_SUCCESS, beltBonus, buyPriceFor, masteryIdFor, masteryName, recipeFor, sellPriceFor, successFor } from "../../shared/crafting";
 import { RESOURCE_FOR_ITEM } from "../../shared/foraging";
 import { CRAFT_MARKUP } from "../../shared/items";
 import {
   BAR_IDS, Belt, MATERIALS, MATERIAL_IDS, Material, METALS, METAL_IDS, Metal, TOOL_TYPES, TOOL_TYPE_IDS, ToolType, WOODS, WOOD_IDS, Wood, barId, emptyBelt,
-  isTool, maxDurability, metalOfBar, parseTool, toolBonus, toolForSkill, toolId,
+  hasHandle, isTool, maxDurability, metalOfBar, parseTool, toolBonus, toolForSkill, toolId,
 } from "../../shared/tools";
+import {
+  FISH_IDS, FUEL_STAMINA, FishId, MAX_STAMINA, RAW_FISH_STAMINA, STAMINA_COST, STEW_COUNTS, STEW_MASTERY, STEW_MULTIPLIER, StewCount,
+  foodStamina, isFood, isStew, parseStew, stewBaseStamina, stewId,
+} from "../../shared/cooking";
 
 const MAX_MESSAGES = 6;
 const messagesEl = document.getElementById("messages")!;
@@ -47,8 +51,9 @@ let flashSkill: SkillId | undefined;
 let flashType: MasteryId | undefined;
 let lastBelt: Belt = emptyBelt();
 /** Which crafting window is open, and what's picked in it. */
-let station: "furnace" | "anvil" | null = null;
-const pick = { bar: "bronze" as Metal, type: "axe" as ToolType, metal: "stone" as Material, wood: "pine" as Wood };
+let station: "furnace" | "anvil" | "stove" | null = null;
+const pick = { bar: "bronze" as Metal, type: "axe" as ToolType, metal: "stone" as Material, wood: "pine" as Wood, fish: "minnow" as FishId, count: 3 as StewCount, fuel: "pine" as Wood };
+const STATION_SKILL = { furnace: "smelting", anvil: "smithing", stove: "cooking" } as const;
 /** The item whose info card is showing. */
 type InfoTarget = { kind: "slot"; slot: number } | { kind: "belt"; type: ToolType };
 let info: InfoTarget | null = null;
@@ -66,9 +71,10 @@ const el = (cls: string, text = "") => {
   return d;
 };
 
-/** Drawn icons for things with no good emoji (tongs). Tinted the same way as emoji. */
+/** Drawn icons for things with no good emoji (tongs, pot). Tinted the same way as emoji. */
 const SVG_ICONS: Record<string, string> = {
   tongs: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M3 30 L15 15 Q19 9 22 4 L26 3" stroke="#2b2f33" stroke-width="4.5"/><path d="M9 31 L15 15 Q22 11 27 9 L29 6" stroke="#2b2f33" stroke-width="4.5"/><path d="M3 30 L15 15 Q19 9 22 4 L26 3" stroke="#a9b0b7" stroke-width="2.5"/><path d="M9 31 L15 15 Q22 11 27 9 L29 6" stroke="#a9b0b7" stroke-width="2.5"/></g><circle cx="15" cy="15" r="2.6" fill="#555b61" stroke="#2b2f33" stroke-width="1"/></svg>`,
+  pot: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><g stroke="#2b2f33" stroke-width="1.6" stroke-linejoin="round"><path d="M2 13 h5 M25 13 h5" stroke-width="3.5" stroke-linecap="round"/><path d="M5 11 h22 v3 q0 14 -11 14 q-11 0 -11 -14 z" fill="#a9b0b7"/><rect x="4" y="8.5" width="24" height="3.5" rx="1.5" fill="#c9d0d6"/><path d="M13 8.5 q3 -4 6 0" fill="none" stroke-width="2.2"/></g><path d="M9 15 q0 8 5 10" fill="none" stroke="#e4e9ed" stroke-width="1.6" stroke-linecap="round"/></svg>`,
 };
 
 /** An icon: an emoji, or "svg:name" for a drawn one. */
@@ -164,6 +170,7 @@ function skillDetails(skill: SkillId): HTMLElement {
   fill.style.width = `${maxed ? 100 : Math.floor(((xp - start) / (next - start)) * 100)}%`;
   bar.appendChild(fill);
   box.append(top, bar);
+  if (skill === "cooking") return cookingDetails(level, box);
   if (isCraftSkill(skill)) return craftDetails(skill, level, box);
   const types = resourcesFor(skill);
   const upcoming = types.find((id) => RESOURCES[id].level > level);
@@ -217,6 +224,36 @@ function masteryRow(id: MasteryId, name: string, glyph: string, tint: string | u
   return row;
 }
 
+/** Your belt tool for a crafting skill, or what having none does. */
+function beltLine(skill: CraftSkill) {
+  const tool = toolForSkill(skill)!;
+  const bonus = beltBonus(lastBelt, skill);
+  return el("m-info", lastBelt[tool] ? `Using ${ITEMS[lastBelt[tool]!.item].name}: ${Math.round(bonus! * 100)}% fewer failures`
+    : `No ${TOOL_TYPES[tool].name.toLowerCase()} on your belt: half the success chance`);
+}
+
+/** Cooking: which fish you can cook, and your Fish stew Mastery. */
+function cookingDetails(level: number, box: HTMLElement) {
+  const upcoming = FISH_IDS.find((f) => RESOURCES[f].level > level);
+  if (upcoming) box.append(el("m-info", `Next unlock: ${ITEMS[upcoming].name} stew at level ${RESOURCES[upcoming].level}`));
+  box.append(beltLine("cooking"));
+  if (!expanded.has("cooking")) return box;
+  const list = el("m-types");
+  const bonus = beltBonus(lastBelt, "cooking");
+  list.appendChild(masteryRow(STEW_MASTERY, "Fish stew", "🍲", undefined,
+    (m) => `${percent(craftSuccess(m, bonus, STEW_START_SUCCESS))} success · +${valueBonusPercent(m)}% stamina and value`,
+    (m) => `Every fish stew shares this Mastery. ${percent(masterySuccess(m, STEW_START_SUCCESS))} base success; stews give ${valueBonusPercent(m)}% more stamina and sell for ${valueBonusPercent(m)}% more.`));
+  for (const fish of FISH_IDS) {
+    const lv = RESOURCES[fish].level;
+    const row = el("m-type" + (level < lv ? " locked" : ""));
+    row.append(icon("m-type-icon", ITEMS[fish].icon, ITEMS[fish].tint), el("m-type-name", `${ITEMS[fish].name} stew`),
+      el("m-type-state", level < lv ? `🔒 Lv ${lv}` : `${RAW_FISH_STAMINA[fish] * STEW_MULTIPLIER} per fish`));
+    list.appendChild(row);
+  }
+  box.appendChild(list);
+  return box;
+}
+
 /** Smelting: each bar's Mastery. Smithing: each kind of tool's Mastery. Shows your success chance with your belt tool. */
 function craftDetails(skill: CraftSkill, level: number, box: HTMLElement) {
   const upcoming = METAL_IDS.find((m) => METALS[m].level > level);
@@ -224,10 +261,8 @@ function craftDetails(skill: CraftSkill, level: number, box: HTMLElement) {
     const m = METALS[upcoming];
     box.append(el("m-info", `Next unlock: ${skill === "smelting" ? `${m.name} bars` : `${m.name} tools`} at level ${m.level}`));
   }
-  const tool = toolForSkill(skill)!;
   const bonus = beltBonus(lastBelt, skill);
-  box.append(el("m-info", lastBelt[tool] ? `Using ${ITEMS[lastBelt[tool]!.item].name}: ${Math.round(bonus! * 100)}% fewer failures`
-    : `No ${TOOL_TYPES[tool].name.toLowerCase()} on your belt: half the success chance`));
+  box.append(beltLine(skill));
   if (!expanded.has(skill)) return box;
   const list = el("m-types");
   if (skill === "smelting") {
@@ -246,6 +281,7 @@ function craftDetails(skill: CraftSkill, level: number, box: HTMLElement) {
   } else {
     for (const type of TOOL_TYPE_IDS) {
       const t = TOOL_TYPES[type];
+      if (type === "pot") continue; // pots are made at the anvil, but they help Cooking
       list.appendChild(masteryRow(type, type === "tongs" ? t.name : `${t.name}s`, t.icon, undefined,
         (m) => `${percent(craftSuccess(m, bonus))} success · +${valueBonusPercent(m)}% value`,
         (m) => `Every kind of ${t.name.toLowerCase()} shares this Mastery. ${percent(masterySuccess(m))} base success, ${valueBonusPercent(m)}% more money. Better metal and wood give more XP.`));
@@ -307,6 +343,7 @@ let onEquip: (slot: number) => void = () => {};
 let onUnequip: (type: ToolType) => void = () => {};
 let onBuy: (item: ItemId, count: number) => void = () => {};
 let onCraft: (item: ItemId, all: boolean) => void = () => {};
+let onEat: (slot: number) => void = () => {};
 
 export function setInventoryActions(actions: {
   drop: (slot: number) => void;
@@ -317,7 +354,9 @@ export function setInventoryActions(actions: {
   unequip: (type: ToolType) => void;
   buy: (item: ItemId, count: number) => void;
   craft: (item: ItemId, all: boolean) => void;
+  eat: (slot: number) => void;
 }) {
+  onEat = actions.eat;
   onDrop = actions.drop;
   onSell = actions.sell;
   onSellAll = actions.sellAll;
@@ -589,7 +628,7 @@ const craftOne = document.getElementById("craft-one") as HTMLButtonElement;
 const craftAll = document.getElementById("craft-all") as HTMLButtonElement;
 
 export function openCraft(id: string) {
-  if (id !== "furnace" && id !== "anvil") return;
+  if (id !== "furnace" && id !== "anvil" && id !== "stove") return;
   closeShop();
   closeInfo();
   station = id;
@@ -624,15 +663,15 @@ function choices<T extends string>(label: string, ids: T[], current: T, show: (i
 
 function renderCraft() {
   if (!station) return;
-  const skill: CraftSkill = station === "furnace" ? "smelting" : "smithing";
+  const skill: CraftSkill = STATION_SKILL[station];
   const level = levelForXp(lastSkillXp[skill] ?? 0);
-  craftTitle.textContent = station === "furnace" ? `Furnace · Smelting level ${level}` : `Anvil · Smithing level ${level}`;
+  craftTitle.textContent = `${{ furnace: "Furnace", anvil: "Anvil", stove: "Stove" }[station]} · ${findSkill(skill).def.name} level ${level}`;
   craftBody.replaceChildren();
   const lockedAt = (m: Material) => (level < MATERIALS[m].level ? MATERIALS[m].level : undefined);
   const { discipline, def: skillDef } = findSkill(skill);
   const disciplineLevel = levelForXp(lastDisciplines[discipline] ?? 0);
   if (disciplineLevel < skillDef.unlockLevel) {
-    craftBody.append(el("craft-warn", `Smelting unlocks at ${DISCIPLINES[discipline].name} level ${skillDef.unlockLevel} (you're level ${disciplineLevel}). Make a few stone tools at the anvil first.`));
+    craftBody.append(el("craft-warn", `${skillDef.name} unlocks at ${DISCIPLINES[discipline].name} level ${skillDef.unlockLevel} (you're level ${disciplineLevel}). Make a few stone tools at the anvil first.`));
     craftOne.disabled = true;
     craftAll.disabled = true;
     return;
@@ -642,12 +681,19 @@ function renderCraft() {
   if (station === "furnace") {
     craftBody.append(choices("Bar", METAL_IDS, pick.bar, (m) => ({ icon: "🧈", tint: METALS[m].tint, name: METALS[m].name, lockedAt: lockedAt(m) }), (m) => { pick.bar = m; }));
     output = barId(pick.bar);
+  } else if (station === "stove") {
+    craftBody.append(
+      choices("Fish", FISH_IDS, pick.fish, (f) => ({ icon: ITEMS[f].icon, tint: ITEMS[f].tint, name: ITEMS[f].name, lockedAt: level < RESOURCES[f].level ? RESOURCES[f].level : undefined }), (f) => { pick.fish = f; }),
+      choices("How many fish", STEW_COUNTS.map(String), String(pick.count), (n) => ({ icon: "🐟", name: `×${n}` }), (n) => { pick.count = Number(n) as StewCount; }),
+      choices("Log to burn (better wood, more stamina)", WOOD_IDS, pick.fuel, (w) => ({ icon: "🪵", tint: ITEMS[`${w}_logs`].tint, name: `${WOODS[w].name} +${FUEL_STAMINA[w]}` }), (w) => { pick.fuel = w; }),
+    );
+    output = stewId(pick.fish, pick.count, pick.fuel);
   } else {
     craftBody.append(
       choices("Tool", TOOL_TYPE_IDS, pick.type, (t) => ({ icon: TOOL_TYPES[t].icon, name: TOOL_TYPES[t].name }), (t) => { pick.type = t; }),
       choices("Head", MATERIAL_IDS, pick.metal, (m) => ({ icon: m === "stone" ? "🪨" : "🧈", tint: MATERIALS[m].tint, name: MATERIALS[m].name, lockedAt: lockedAt(m) }), (m) => { pick.metal = m; }),
     );
-    if (pick.type !== "tongs") {
+    if (hasHandle(pick.type)) {
       craftBody.append(choices("Handle", WOOD_IDS, pick.wood, (w) => ({ icon: "🪵", tint: ITEMS[`${w}_logs`].tint, name: WOODS[w].name }), (w) => { pick.wood = w; }));
     }
     output = toolId(pick.type, pick.metal, pick.wood);
@@ -683,11 +729,12 @@ function renderCraft() {
   detail.append(el("craft-chance", `${percent(chance)} success`),
     el("craft-info", `Mastery ${m}` + (lastBelt[tool] ? ` · ${ITEMS[lastBelt[tool]!.item].name} on your belt`
       : recipe.needsTool ? ` · no ${TOOL_TYPES[tool].name.toLowerCase()} on your belt (half chance)` : ` · no ${TOOL_TYPES[tool].name.toLowerCase()} needed`)));
-  const facts = [`Sells for ${formatMoney(sellPriceFor(output, lastMastery))}`, `${recipe.xp} XP`];
+  const facts = [`Sells for ${formatMoney(sellPriceFor(output, lastMastery))}`, `${recipe.xp} XP`, `costs ${STAMINA_COST[skill]} stamina`];
   if (isTool(output)) facts.unshift(`${toolEffect(output)}, ${maxDurability(output)} uses`);
+  if (isStew(output)) facts.unshift(`Gives ${foodStamina(output, lastMastery)} stamina`);
   detail.append(el("craft-info", facts.join(" · ")));
   if (level < recipe.level) detail.append(el("craft-warn", `Needs ${findSkill(skill).def.name} level ${recipe.level}.`));
-  else if (!canMake) detail.append(el("craft-warn", "You don't have the materials. The Merchant sells them."));
+  else if (!canMake) detail.append(el("craft-warn", station === "stove" ? "You don't have the fish and log. Go fishing!" : "You don't have the materials. The Merchant sells them."));
   else detail.append(el("craft-info", `You have enough for ${canMake}. A failed try loses the materials.`));
   craftBody.appendChild(detail);
 
@@ -781,6 +828,19 @@ function renderInfo() {
       `${percent(successFor(recipe, lastMastery, lastBelt))} success for you · ${recipe.xp} XP`));
   }
 
+  // Food: how much stamina it gives (stews: what goes into that).
+  if (isFood(id)) {
+    const gain = foodStamina(id, lastMastery);
+    if (isStew(id)) {
+      const { fish, count, wood } = parseStew(id);
+      const sm = masteryIn(lastMastery, STEW_MASTERY);
+      infoBody.append(infoLine("Stamina", `+${gain}`,
+        `${count} ${ITEMS[fish].single} × ${RAW_FISH_STAMINA[fish]} × ${STEW_MULTIPLIER} + ${WOODS[wood].name.toLowerCase()} fire ${FUEL_STAMINA[wood]} = ${stewBaseStamina(id)}, ×${masteryValue(sm).toFixed(2)} Mastery`));
+    } else {
+      infoBody.append(infoLine("Stamina", `+${gain}`, `raw; cook it into stew at the stove for ${STEW_MULTIPLIER} times as much`));
+    }
+  }
+
   // Tools: what it does and how long it lasts.
   if (isTool(id)) {
     const max = maxDurability(id);
@@ -797,11 +857,34 @@ function renderInfo() {
   } else {
     const slot = target.slot;
     if (isTool(id)) infoButton("Put on belt", () => { onEquip(slot); closeInfo(); });
+    if (isFood(id)) infoButton(`Eat (+${foodStamina(id, lastMastery)})`, () => { onEat(slot); closeInfo(); }, staminaNow >= MAX_STAMINA);
     infoButton(isLocked ? "Unlock" : "Lock", () => onLock(slot, !isLocked));
     infoButton("Drop", () => { onDrop(slot); closeInfo(); }, isLocked);
   }
   infoButton("Close", closeInfo);
 }
+
+// ---- Stamina bar (top left, always showing) ----
+
+const staminaEl = document.getElementById("stamina")!;
+let staminaNow = MAX_STAMINA;
+
+export function renderStamina(stamina: number, max: number) {
+  staminaNow = stamina;
+  staminaEl.replaceChildren();
+  const bar = el("stamina-bar");
+  const fill = document.createElement("div");
+  fill.style.width = `${Math.floor((stamina / max) * 100)}%`;
+  if (stamina < 10) fill.style.background = "#e74c3c";
+  else if (stamina < 30) fill.style.background = "#f1c40f";
+  bar.appendChild(fill);
+  staminaEl.append(el("stamina-label", `⚡ ${stamina}/${max}`), bar);
+  const c = STAMINA_COST;
+  staminaEl.title = `Stamina ${stamina} of ${max}. Chopping costs ${c.woodcutting}, mining ${c.mining}, smelting ${c.smelting}, smithing ${c.smithing}, cooking ${c.cooking}, fishing ${c.fishing}. ` +
+    "It comes back 1 every 30 seconds. Eat fish or stew (click it in your bag) for more.";
+  renderInfo(); // the Eat button turns off when you're full
+}
+renderStamina(MAX_STAMINA, MAX_STAMINA);
 
 /** RuneScape-style "Action Target" text next to the cursor. */
 export function setHoverText(action: string | null, target = "", x = 0, y = 0) {

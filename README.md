@@ -189,3 +189,22 @@ TypeScript, Phaser 3 (client), Colyseus 0.16 (multiplayer server), Vite (dev ser
 (the game server, which also serves the client and WebSockets on the same address).
 Every push to `main` redeploys it automatically. The free plan sleeps after about
 15 minutes with no visitors, so the first visit after that takes ~30-60 seconds to wake.
+
+## Stamina and cooking
+
+Every action costs **stamina** (the ⚡ bar, top left). You start with 100.
+Costs (in `shared/cooking.ts`): Woodcutting 10 and Mining 10 per log or ore,
+Smelting 5 and Smithing 5 per try, Cooking 2 per try, Fishing 1 per fish. At too
+little stamina you can't do that action. Stamina comes back 1 every 30 seconds,
+also while logged out, and from **eating** (click a fish or stew, then Eat).
+
+- **Raw fish:** Minnow 2, Trout 3, Perch 4, Salmon 5, Pike 7, Tuna 10, Swordfish 14, Eel 20.
+- **Fish stew** (🍲 **Cooking**, a Crafting skill from Crafting level 5): at the
+  stove next to the furnace, cook 1 to 5 of one kind of fish plus 1 log as fuel.
+  Stew stamina = 3 × the fish eaten raw + the fire (Pine 12, Oak 15, Birch 18,
+  Maple 22, Yew 28, Ironwood 35, Elderwood 45), then +2% per Fish stew Mastery level.
+  You can cook a fish once your Cooking level reaches its Fishing level.
+  Success starts at 50% (a failed try burns the fish and the log) and climbs
+  with Mastery; a **pot** on the tool belt removes failures, no pot halves the chance.
+- **Pot and tongs** take 3 bars (or 3 stone) and no wood.
+- The Merchant sells a stone pot and a Minnow stew ×3 (pine) at his usual 3× price.

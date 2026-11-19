@@ -1,7 +1,8 @@
 // Item definitions shared by server and client.
 import {
-  ALL_TOOL_IDS, BAR_IDS, BarId, MATERIALS, METALS, TOOL_TYPES, ToolItemId, WOODS, barId, metalOfBar, parseTool,
+  ALL_TOOL_IDS, BAR_IDS, BarId, MATERIALS, METALS, TOOL_TYPES, ToolItemId, WOODS, barId, headCount, metalOfBar, parseTool,
 } from "./tools";
+import { ALL_STEW_IDS, StewId, parseStew } from "./cooking";
 
 /** Things you gather. */
 export type BaseItemId =
@@ -25,8 +26,8 @@ export interface ItemDef {
   inputs?: ItemId[];
 }
 
-/** Bars (smelted from ore) and tools (smithed from a bar and a log). */
-export type ItemId = BaseItemId | BarId | ToolItemId;
+/** Bars (smelted from ore), tools (smithed from a bar and a log) and stews (cooked from fish and a log). */
+export type ItemId = BaseItemId | BarId | ToolItemId | StewId;
 
 /** A crafted item is worth what goes into it, plus 25%. */
 export const CRAFT_MARKUP = 1.25;
@@ -79,9 +80,20 @@ for (const tool of ALL_TOOL_IDS) {
     name: wood ? `${name} (${WOODS[wood].name})` : name,
     single: wood ? `${name.toLowerCase()} (${WOODS[wood].name.toLowerCase()})` : name.toLowerCase(),
     icon: TOOL_TYPES[type].icon, tint: MATERIALS[metal].tint, sellPrice: 0,
-    inputs: [metal === "stone" ? "stone" : barId(metal), ...(wood ? [`${wood}_logs` as BaseItemId] : [])],
+    inputs: [...Array<ItemId>(headCount(type)).fill(metal === "stone" ? "stone" : barId(metal)), ...(wood ? [`${wood}_logs` as BaseItemId] : [])],
   };
   ITEMS[tool].sellPrice = Math.floor(exactBase(tool));
+}
+for (const stew of ALL_STEW_IDS) {
+  const { fish, count, wood } = parseStew(stew);
+  const fishName = ITEMS[fish].name;
+  ITEMS[stew] = {
+    name: `${fishName} stew ×${count} (${WOODS[wood].name.toLowerCase()})`,
+    single: `${fishName.toLowerCase()} stew`,
+    icon: "🍲", sellPrice: 0,
+    inputs: [...Array<ItemId>(count).fill(fish), `${wood}_logs` as BaseItemId],
+  };
+  ITEMS[stew].sellPrice = Math.floor(exactBase(stew));
 }
 
 /**

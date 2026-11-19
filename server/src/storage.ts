@@ -26,6 +26,8 @@ export interface SaveData {
   mastery?: Record<string, number>;
   durability?: (number | null)[]; // per inventory slot: uses left on a tool
   belt?: Record<string, { item: string; durability: number } | null>; // tools on the belt, e.g. { axe: { item: "axe_bronze_pine", durability: 120 } }
+  stamina?: number; // stamina when saved
+  staminaAt?: number; // when that was (ms since 1970), so stamina keeps coming back while logged out
   lockedSlots?: number[]; // inventory slots holding locked items, e.g. [0, 3], so Sell all skips them
   locked?: string[]; // old: item types that were locked; turned into lockedSlots when loaded
   // Add more here later (skills, bank, quests...). Stored as JSON, so no

@@ -7,7 +7,7 @@
 
 export type DisciplineId = "foraging" | "crafting";
 export type GatherSkill = "woodcutting" | "fishing" | "mining";
-export type CraftSkill = "smelting" | "smithing";
+export type CraftSkill = "smelting" | "smithing" | "cooking";
 export type SkillId = GatherSkill | CraftSkill;
 
 export interface SkillDef {
@@ -42,6 +42,7 @@ export const DISCIPLINES: Record<DisciplineId, DisciplineDef> = {
     skills: [
       { id: "smithing", name: "Smithing", icon: "🔨", unlockLevel: 1, description: "Use the anvil by the Merchant to make tools from stone or a metal bar, plus a log." },
       { id: "smelting", name: "Smelting", icon: "🔥", unlockLevel: 3, description: "Use the furnace by the Merchant to turn ore into bars." },
+      { id: "cooking", name: "Cooking", icon: "🍲", unlockLevel: 5, description: "Use the stove by the furnace to cook fish into stew, which gives back lots of stamina." },
     ],
   },
 };
@@ -78,6 +79,6 @@ export type DisciplineXp = Record<DisciplineId, number>;
 
 /** Each skill also has its own level (same curve, up to 99). It unlocks better types. */
 export type SkillXp = Record<SkillId, number>;
-export const emptySkills = (): SkillXp => ({ woodcutting: 0, fishing: 0, mining: 0, smelting: 0, smithing: 0 });
+export const emptySkills = (): SkillXp => ({ woodcutting: 0, fishing: 0, mining: 0, smelting: 0, smithing: 0, cooking: 0 });
 export const emptyDisciplines = (): DisciplineXp => ({ foraging: 0, crafting: 0 });
-export const isCraftSkill = (skill: SkillId): skill is CraftSkill => skill === "smelting" || skill === "smithing";
+export const isCraftSkill = (skill: SkillId): skill is CraftSkill => skill === "smelting" || skill === "smithing" || skill === "cooking";
