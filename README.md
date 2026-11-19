@@ -16,6 +16,12 @@ and the server finds the path (A*) and moves players one tile per 600ms tick.
 Other people on your home Wi-Fi can join too: the terminal prints a "Network" address
 like `http://192.168.1.20:5173`; open that on their device.
 
+## Controls
+
+- **Walk / chop:** click or tap a tile or a tree.
+- **Zoom:** pinch with two fingers, scroll the mouse wheel, or use the + / − buttons (top right). Your zoom is remembered.
+- **Phones:** the inventory hides behind the 🎒 button (bottom right) so it doesn't cover the map.
+
 ## Foraging (gathering skill)
 
 Click a tree to walk next to it and start chopping. Every tick (0.6s) you have
