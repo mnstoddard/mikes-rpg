@@ -18,6 +18,11 @@ interface PlayerView {
   chopTween?: Phaser.Tweens.Tween;
 }
 
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 3;
+const TAP_SLOP = 12; // px a finger can wobble and still count as a tap
+const ZOOM_KEY = "rpg.zoom";
+
 interface TreeView { tree: Phaser.GameObjects.Graphics; stump: Phaser.GameObjects.Graphics }
 
 export class WorldScene extends Phaser.Scene {
@@ -26,6 +31,10 @@ export class WorldScene extends Phaser.Scene {
   private trees = new Map<string, TreeView>();
   private marker!: Phaser.GameObjects.Text;
   private hud = document.getElementById("hud")!;
+  // Touch gesture state
+  private pinchStartDist = 0;
+  private pinchStartZoom = 1;
+  private gestureWasPinch = false;
 
   constructor() { super("world"); }
 
@@ -33,7 +42,10 @@ export class WorldScene extends Phaser.Scene {
     this.drawMap();
     this.marker = this.add.text(0, 0, "✕", { fontSize: "20px", color: "#ffeb3b" })
       .setOrigin(0.5).setDepth(500).setVisible(false);
-    this.cameras.main.setBounds(0, 0, MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE);
+    // No camera bounds: the camera stays centred on you, and past the map edge
+    // the background is the same colour as the sea, so the island just floats.
+    this.cameras.main.centerOn(MAP_WIDTH * TILE_SIZE / 2, MAP_HEIGHT * TILE_SIZE / 2);
+    this.setupZoom();
     renderInventory([], () => {});
 
     this.hud.textContent = "Log in to play";
@@ -46,8 +58,9 @@ export class WorldScene extends Phaser.Scene {
     this.listenToState(room);
     room.send("ready");
 
-    this.input.on("pointerdown", (p: Phaser.Input.Pointer) => this.onClick(p));
-    this.input.on("pointermove", (p: Phaser.Input.Pointer) => this.onHover(p));
+    // Act on release, not press, so a pinch or a wobbly finger isn't read as a tap.
+    this.input.on("pointerup", (p: Phaser.Input.Pointer) => this.onPointerUp(p));
+    this.input.on("pointermove", (p: Phaser.Input.Pointer) => { if (!p.wasTouch) this.onHover(p); });
     this.input.on("gameout", () => setHoverText(null));
     room.onLeave(() => { this.hud.textContent = "Disconnected from server."; });
   }
@@ -153,7 +166,57 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private tileAt(pointer: Phaser.Input.Pointer) {
-    return { x: Math.floor(pointer.worldX / TILE_SIZE), y: Math.floor(pointer.worldY / TILE_SIZE) };
+    const world = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+    return { x: Math.floor(world.x / TILE_SIZE), y: Math.floor(world.y / TILE_SIZE) };
+  }
+
+  // ---- Zoom: pinch with two fingers, mouse wheel, or the +/- buttons ----
+
+  private setupZoom() {
+    const saved = Number(localStorage.getItem(ZOOM_KEY));
+    this.setZoom(saved > 0 ? saved : 1);
+
+    this.input.on("pointerdown", () => {
+      if (this.downPointers().length === 1) this.gestureWasPinch = false;
+      if (this.downPointers().length === 2) this.startPinch();
+    });
+    this.input.on("pointermove", () => {
+      const [a, b] = this.downPointers();
+      if (!a || !b) return;
+      if (!this.pinchStartDist) this.startPinch();
+      const dist = Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y);
+      this.setZoom(this.pinchStartZoom * dist / this.pinchStartDist);
+    });
+    this.input.on("wheel", (_p: unknown, _o: unknown, _dx: number, dy: number) => {
+      this.setZoom(this.cameras.main.zoom * (dy > 0 ? 0.9 : 1.1));
+    });
+    document.getElementById("zoom-in")!.onclick = () => this.setZoom(this.cameras.main.zoom * 1.25);
+    document.getElementById("zoom-out")!.onclick = () => this.setZoom(this.cameras.main.zoom / 1.25);
+  }
+
+  private downPointers() {
+    return this.input.manager.pointers.filter((p) => p.isDown);
+  }
+
+  private startPinch() {
+    const [a, b] = this.downPointers();
+    this.gestureWasPinch = true;
+    this.pinchStartDist = Math.max(1, Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y));
+    this.pinchStartZoom = this.cameras.main.zoom;
+  }
+
+  private setZoom(zoom: number) {
+    const z = Phaser.Math.Clamp(zoom, MIN_ZOOM, MAX_ZOOM);
+    this.cameras.main.setZoom(z);
+    localStorage.setItem(ZOOM_KEY, String(z));
+  }
+
+  private onPointerUp(pointer: Phaser.Input.Pointer) {
+    if (this.downPointers().length < 2) this.pinchStartDist = 0;
+    if (this.gestureWasPinch) return; // the end of a pinch is not a tap
+    const moved = Phaser.Math.Distance.Between(pointer.downX, pointer.downY, pointer.upX, pointer.upY);
+    if (moved > TAP_SLOP) return;
+    this.onClick(pointer);
   }
 
   private isStandingTree(x: number, y: number) {

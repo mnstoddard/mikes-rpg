@@ -4,6 +4,10 @@ const MAX_MESSAGES = 6;
 const messagesEl = document.getElementById("messages")!;
 const slotsEl = document.getElementById("slots")!;
 const hoverEl = document.getElementById("hover")!;
+const bagCountEl = document.getElementById("bag-count")!;
+
+// On small screens the inventory hides behind a bag button.
+document.getElementById("bag")!.addEventListener("click", () => document.body.classList.toggle("bag-open"));
 
 export function showMessage(text: string) {
   const line = document.createElement("div");
@@ -14,6 +18,8 @@ export function showMessage(text: string) {
 
 export function renderInventory(items: (ItemId | null)[], onDrop: (slot: number) => void) {
   slotsEl.replaceChildren();
+  const used = items.filter(Boolean).length;
+  bagCountEl.textContent = used ? String(used) : "";
   for (let i = 0; i < INVENTORY_SIZE; i++) {
     const slot = document.createElement("div");
     slot.className = "slot";
