@@ -80,7 +80,7 @@
     .subskill.locked { color: #8a8070; }
     .subskill.locked .ss-icon { filter: grayscale(1); opacity: .6; }
     .subskill.locked .ss-state { color: #c9a26b; }
-    #shop-prices { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; margin: 6px 0; font-size: 13px; color: #fff; }
+    #shop-prices { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 6px; margin: 6px 0; font-size: 13px; color: #fff; }
     body.shop-open .slot.filled { outline: 1px solid #ffd84a; }
     .slot { position: relative; }
     .slot .price-tag { position: absolute; right: 2px; bottom: 0; font-size: 10px; color: #ffd84a; text-shadow: 1px 1px 0 #000; display: none; }
@@ -104,12 +104,33 @@
       #slots { grid-template-columns: repeat(4, 38px); grid-auto-rows: 34px; }
       .slot { font-size: 22px; }
       #login form { width: min(260px, calc(100vw - 48px)); }
+      /* Shop sits at the top so it doesn't cover the inventory. */
+      #shop { top: calc(56px + env(safe-area-inset-top)); padding: 8px 10px; }
+      #shop h3 { margin-bottom: 4px; font-size: 15px; }
+      #shop-body { font-size: 12px; line-height: 1.4; margin-bottom: 6px; }
+      #shop-prices { margin: 4px 0; }
+      #shop-prices .price { font-size: 12px; padding: 2px 5px; }
+      .shop-btn { padding: 7px 0; }
     }
     /* Phone held sideways: little height, so put the inventory in 7 columns. */
     @media (max-height: 500px) {
       #slots { grid-template-columns: repeat(7, 34px); grid-auto-rows: 30px; }
       .slot { font-size: 20px; }
     }
+    /* Locking items: 🔒 button on the inventory, and a lock badge on locked items */
+    #inventory h3 { position: relative; }
+    #lock-mode { position: absolute; right: 0; top: -4px; width: 28px; height: 24px; padding: 0; font-size: 14px; line-height: 1;
+      background: rgba(0,0,0,.25); border: 1px solid #6b5a3e; border-radius: 3px; cursor: pointer; touch-action: manipulation; filter: grayscale(1); opacity: .8; }
+    #lock-mode.active { filter: none; opacity: 1; border-color: #ffd84a; background: rgba(90, 74, 47, .95); }
+    body.lock-mode #inventory h3 { color: #fff; }
+    body.lock-mode .slot.filled { outline: 1px dashed #ffd84a; }
+    .slot .lock-badge { position: absolute; left: 1px; top: -1px; font-size: 10px; }
+    .slot.locked { background: rgba(255, 216, 74, .12); }
+    body.shop-open .slot.locked { outline-color: #6b5a3e; }
+    body.shop-open .slot.locked span:first-child { opacity: .55; }
+    #shop-prices .price { font: inherit; font-size: 13px; color: #fff; background: rgba(0,0,0,.25); border: 1px solid transparent; border-radius: 3px; padding: 3px 6px; cursor: pointer; touch-action: manipulation; }
+    #shop-prices .price.locked { border-color: #ffd84a; color: #ffd84a; }
+    #shop-sell-all.armed { background: #8a5a1f; border-color: #ffd84a; }
     #login-error { min-height: 1.3em; font-size: 13px; color: #ff9a8a; text-align: center; }
   </style>
 </head>
@@ -123,11 +144,12 @@
   </div>
   <div id="hover"></div>
   <div id="messages" class="panel"></div>
-  <div id="inventory" class="panel sidepanel"><h3>Inventory</h3><div id="slots"></div><div id="money"></div></div>
+  <div id="inventory" class="panel sidepanel"><h3><span id="inv-title">Inventory</span><button id="lock-mode" aria-label="Lock items" title="Lock items so they can't be sold or dropped">🔒</button></h3><div id="slots"></div><div id="money"></div></div>
   <div id="shop" class="panel">
     <h3 id="shop-title">Merchant</h3>
     <div id="shop-body"></div>
     <div class="buttons">
+      <button id="shop-sell-all" class="shop-btn">Sell all</button>
       <button id="shop-close" class="shop-btn">Close</button>
     </div>
   </div>

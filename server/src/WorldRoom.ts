@@ -44,6 +44,7 @@ export class Player extends Schema {
   disciplines: DisciplineXp = emptyDisciplines(); // XP per Discipline
   mastery: MasteryXp = emptyMastery(); // Mastery XP per skill
   coins = 0; // total money, in bronze coins
+  locked = new Set<ItemId>(); // item types the player locked, so they can't be sold or dropped by accident
   talkTo: NpcDef | null = null; // person the player is walking over to talk to
   nextStepAt = 0; // time (ms) this player may take their next step
   dirty = false; // something changed since the last save
@@ -146,15 +147,44 @@ export class WorldRoom extends Room<WorldState> {
       if (!p || !Number.isInteger(msg?.slot)) return;
       const item = p.inventory[msg.slot];
       if (!item) return;
-      const merchant = NPCS.find((n) => n.id === "merchant")!;
-      if (Math.max(Math.abs(p.x - merchant.x), Math.abs(p.y - merchant.y)) > 1) {
-        return this.say(client, "You need to be next to the Merchant to sell.");
-      }
+      if (p.locked.has(item)) return this.say(client, `You locked your ${ITEMS[item].name.toLowerCase()}. Unlock to sell.`);
+      if (!this.nearMerchant(p)) return this.say(client, "You need to be next to the Merchant to sell.");
       p.inventory[msg.slot] = null;
       const price = ITEMS[item].sellPrice;
       p.coins += price;
       this.sendInventory(client, p);
       this.say(client, `You sell 1 ${ITEMS[item].single} for ${formatMoney(price)}.`);
+      this.saveSoon(p);
+    });
+
+    // Sell everything that isn't locked, in one go.
+    this.onMessage("sellAll", (client) => {
+      const p = this.state.players.get(client.sessionId);
+      if (!p) return;
+      if (!this.nearMerchant(p)) return this.say(client, "You need to be next to the Merchant to sell.");
+      let count = 0;
+      let total = 0;
+      for (let i = 0; i < INVENTORY_SIZE; i++) {
+        const item = p.inventory[i];
+        if (!item || p.locked.has(item)) continue;
+        p.inventory[i] = null;
+        count++;
+        total += ITEMS[item].sellPrice;
+      }
+      if (!count) return this.say(client, "You have nothing to sell that isn't locked.");
+      p.coins += total;
+      this.sendInventory(client, p);
+      this.say(client, `You sell ${count} item${count === 1 ? "" : "s"} for ${formatMoney(total)}.`);
+      this.saveSoon(p);
+    });
+
+    // Lock or unlock a type of item (e.g. all your Gold ore).
+    this.onMessage("lock", (client, msg: { item: string; locked: boolean }) => {
+      const p = this.state.players.get(client.sessionId);
+      const item = String(msg?.item);
+      if (!p || !(item in ITEMS)) return;
+      if (msg.locked) p.locked.add(item as ItemId); else p.locked.delete(item as ItemId);
+      client.send("locks", [...p.locked]);
       this.saveSoon(p);
     });
 
@@ -172,6 +202,8 @@ export class WorldRoom extends Room<WorldState> {
     this.onMessage("drop", (client, msg: { slot: number }) => {
       const p = this.state.players.get(client.sessionId);
       if (!p || !Number.isInteger(msg?.slot) || !p.inventory[msg.slot]) return;
+      const item = p.inventory[msg.slot]!;
+      if (p.locked.has(item)) return this.say(client, `You locked your ${ITEMS[item].name.toLowerCase()}. Unlock to drop.`);
       p.inventory[msg.slot] = null;
       this.sendInventory(client, p);
       this.saveSoon(p);
@@ -309,6 +341,11 @@ export class WorldRoom extends Room<WorldState> {
     client.send("shop", { npc: npc.id });
   }
 
+  private nearMerchant(p: Player) {
+    const merchant = NPCS.find((n) => n.id === "merchant")!;
+    return Math.max(Math.abs(p.x - merchant.x), Math.abs(p.y - merchant.y)) <= 1;
+  }
+
   private stopActions(p: Player) {
     p.target = null;
     p.activity = null;
@@ -383,6 +420,7 @@ export class WorldRoom extends Room<WorldState> {
 
   // The inventory goes only to its owner, not to every player.
   private sendInventory(client: Client, p: Player) {
+    client.send("locks", [...p.locked]);
     client.send("inventory", p.inventory);
     client.send("coins", p.coins);
   }
@@ -476,6 +514,9 @@ export class WorldRoom extends Room<WorldState> {
       }
     }
     if (typeof save.coins === "number" && Number.isFinite(save.coins) && save.coins >= 0) p.coins = Math.floor(save.coins);
+    if (Array.isArray(save.locked)) {
+      for (const item of save.locked) if (typeof item === "string" && item in ITEMS) p.locked.add(item as ItemId);
+    }
     // Saved under "skills" (its name before Disciplines existed), so old saves keep working.
     for (const id of DISCIPLINE_IDS) {
       const xp = save.skills?.[id];
@@ -491,7 +532,7 @@ export class WorldRoom extends Room<WorldState> {
   private snapshot(p: Player): SaveData {
     // Save where the player is heading, so walking off mid-path doesn't lose the move.
     const dest = p.path.length ? p.path[p.path.length - 1] : p;
-    return { x: dest.x, y: dest.y, inventory: [...p.inventory], coins: p.coins, skills: { ...p.disciplines }, mastery: { ...p.mastery } };
+    return { x: dest.x, y: dest.y, inventory: [...p.inventory], coins: p.coins, skills: { ...p.disciplines }, mastery: { ...p.mastery }, locked: [...p.locked] };
   }
 
   private async save(p: Player) {
