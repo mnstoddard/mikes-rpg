@@ -45,8 +45,8 @@ export const MASTERY_VALUE_PER_LEVEL = 0.02;
 export const masteryValue = (level: number) => 1 + (level - 1) * MASTERY_VALUE_PER_LEVEL;
 export const valueBonusPercent = (level: number) => Math.round((masteryValue(level) - 1) * 100);
 
-/** What can have Mastery: a gathered type (oak), a bar (bronze_bar) or a kind of tool (axe). */
-export type MasteryId = ResourceId | BarId | ToolType;
+/** What can have Mastery: a gathered type (oak), a bar (bronze_bar), a kind of tool (axe) or fish stew. */
+export type MasteryId = ResourceId | BarId | ToolType | "fish_stew";
 
 /** Mastery XP per type. Types you've never gathered or made aren't listed. */
 export type ItemMasteryXp = Partial<Record<MasteryId, number>>;

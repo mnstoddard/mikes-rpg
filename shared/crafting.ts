@@ -1,5 +1,6 @@
-// Crafting: Smelting (ore -> bars at the furnace) and Smithing (bar + log ->
-// tools at the anvil), plus prices for everything. Shared so the client shows
+// Crafting: Smelting (ore -> bars at the furnace), Smithing (bar + log ->
+// tools at the anvil) and Cooking (fish + log -> stew at the stove), plus
+// prices for everything. Shared so the client shows
 // the same success chances and prices the server uses.
 //
 // Crafting isn't about speed: each try takes the same time, and either works or
@@ -10,19 +11,21 @@ import { ItemMasteryXp, MasteryId, craftSuccess, masteryIn, masteryValue } from 
 import type { CraftSkill } from "./disciplines";
 import {
   ALL_TOOL_IDS, BAR_IDS, BarId, Belt, MATERIALS, METALS, TOOL_TYPES, TOOL_TYPE_IDS, ToolType,
-  isTool, maxDurability, metalOfBar, parseTool, toolBonus, toolForSkill, toolId, wearFor,
+  headCount, isTool, maxDurability, metalOfBar, parseTool, toolBonus, toolForSkill, toolId, wearFor,
 } from "./tools";
+import { ALL_STEW_IDS, SHOP_STEW, STEW_MASTERY, isStew, parseStew } from "./cooking";
 
 // ---- Prices ----
 
 /** The Merchant sells for 3 times what he pays (before Mastery), so buying to resell always loses. */
 export const BUY_MARKUP = 3;
 
-/** Whose Mastery raises an item's price: oak_logs -> oak, bronze_bar -> bronze_bar, any axe -> axe. */
+/** Whose Mastery raises an item's price: oak_logs -> oak, bronze_bar -> bronze_bar, any axe -> axe, any stew -> fish_stew. */
 export function masteryIdFor(item: ItemId): MasteryId {
   const resource = RESOURCE_FOR_ITEM[item];
   if (resource) return resource;
   if (isTool(item)) return parseTool(item).type;
+  if (isStew(item)) return STEW_MASTERY;
   return item as BarId;
 }
 
@@ -47,9 +50,10 @@ export function sellPriceFor(item: ItemId, mastery: ItemMasteryXp, durability?: 
 /** What the Merchant charges: 3 times the base price. Your Mastery doesn't change it. */
 export const buyPriceFor = (item: ItemId) => ITEMS[item].sellPrice * BUY_MARKUP;
 
-/** The Merchant has endless stock of these: basic (stone) tools, bars, logs and ores. */
+/** The Merchant has endless stock of these: basic (stone) tools, a fish stew, bars, logs and ores. */
 export const SHOP_STOCK: ItemId[] = [
   ...TOOL_TYPE_IDS.map((t) => toolId(t, "stone", "pine")),
+  SHOP_STEW,
   ...BAR_IDS,
   ...(Object.keys(ITEMS) as ItemId[]).filter((i) => {
     const r = RESOURCE_FOR_ITEM[i];
@@ -64,12 +68,12 @@ export interface Recipe {
   skill: CraftSkill;
   /** Items used up by one try. */
   inputs: ItemId[];
-  /** Smelting or Smithing level needed. */
+  /** Smelting, Smithing or Cooking level needed. */
   level: number;
   /** XP for a success (a failure gives half, at least 1). Goes to Crafting, the skill and the Mastery. */
   xp: number;
   mastery: MasteryId;
-  /** Success at Mastery 1 (25% for most things, 80% for stone tools). */
+  /** Success at Mastery 1 (25% for most things, 80% for stone tools, 50% for stew). */
   start: number;
   /** Without the right crafting tool, is your chance halved? (Not for stone tools.) */
   needsTool: boolean;
@@ -84,8 +88,20 @@ for (const tool of ALL_TOOL_IDS) {
   const { type, metal, wood } = parseTool(tool);
   // Better materials give more XP (and so more Mastery).
   const mat = MATERIALS[metal];
-  const xp = mat.toolXp + (wood ? Math.ceil(RESOURCES[wood as ResourceId].xp / 2) : 0);
+  // Tongs and the pot use 3 bars, so they give 3 times the XP.
+  const xp = mat.toolXp * headCount(type) + (wood ? Math.ceil(RESOURCES[wood as ResourceId].xp / 2) : 0);
   RECIPES.set(tool, { output: tool, skill: "smithing", inputs: ITEMS[tool].inputs!, level: mat.level, xp, mastery: type, start: mat.startSuccess, needsTool: mat.needsTool });
+}
+
+/** Cooking starts at 50% (it's your way back to stamina), and climbs with Fish stew Mastery. */
+export const STEW_START_SUCCESS = 0.5;
+for (const stew of ALL_STEW_IDS) {
+  const { fish, count } = parseStew(stew);
+  // You can cook a fish once you can catch it (Cooking level = its Fishing level).
+  // XP: the fish's Fishing XP for each fish, plus 2 for tending the fire.
+  const r = RESOURCES[fish];
+  const xp = r.xp * count + 2;
+  RECIPES.set(stew, { output: stew, skill: "cooking", inputs: ITEMS[stew].inputs!, level: r.level, xp, mastery: STEW_MASTERY, start: STEW_START_SUCCESS, needsTool: true });
 }
 
 export const recipeFor = (item: ItemId): Recipe | undefined => RECIPES.get(item);
@@ -109,12 +125,13 @@ export function successFor(recipe: Recipe, mastery: ItemMasteryXp, belt: Belt): 
 /** Failing still teaches you a little: half the XP, at least 1. */
 export const failXp = (xp: number) => Math.max(1, Math.floor(xp / 2));
 
-/** Display name for a Mastery: "Oak logs", "Bronze bar", "Axe". */
+/** Display name for a Mastery: "Oak logs", "Bronze bar", "Axe", "Fish stew". */
 export function masteryName(id: MasteryId): string {
+  if (id === STEW_MASTERY) return "Fish stew";
   if (id in RESOURCES) return ITEMS[RESOURCES[id as ResourceId].item].name;
   if (id in TOOL_TYPES) return TOOL_TYPES[id as ToolType].name;
   return ITEMS[id as BarId].name;
 }
 
 /** Every Mastery id there is (for loading saves). */
-export const ALL_MASTERY_IDS: MasteryId[] = [...(Object.keys(RESOURCES) as ResourceId[]), ...BAR_IDS, ...TOOL_TYPE_IDS];
+export const ALL_MASTERY_IDS: MasteryId[] = [...(Object.keys(RESOURCES) as ResourceId[]), ...BAR_IDS, ...TOOL_TYPE_IDS, STEW_MASTERY];

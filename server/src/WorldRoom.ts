@@ -25,6 +25,7 @@ import {
 import { INVENTORY_SIZE, ITEMS, ItemId, LEGACY_ITEMS } from "../../shared/items";
 import { NPCS, NpcDef, npcById } from "../../shared/npcs";
 import { formatMoney } from "../../shared/money";
+import { MAX_STAMINA, STAMINA_COST, STAMINA_REGEN_MS, FISH_IDS, foodStamina, isFood } from "../../shared/cooking";
 import { Account, SaveData, checkPassword, hashPassword, store, usernameKey } from "./storage";
 
 const STEP_LOOP_MS = 50; // how often the server checks whether someone should take a step
@@ -32,7 +33,8 @@ const AUTOSAVE_TICKS = 100; // 100 x 0.6s = once a minute
 const MIN_SAVE_GAP_MS = 10_000; // "important" saves happen right away, but at most every 10s per player
 const USERNAME_RE = /^[A-Za-z0-9][A-Za-z0-9 _-]{0,11}$/;
 const MIN_PASSWORD = 6;
-const CRAFT_TICKS = 3; // one smelt or smith every 3 ticks (1.8s); crafting is about success, not speed
+const CRAFT_TICKS = 3; // one smelt, smith or cook every 3 ticks (1.8s); crafting is about success, not speed
+const REGEN_TICKS = Math.round(STAMINA_REGEN_MS / TICK_MS); // 50 ticks = 30s per stamina
 
 // Shared by every room on this server process.
 const online = new Set<string>(); // username keys currently logged in
@@ -48,7 +50,7 @@ export class Player extends Schema {
   @type("number") x = 0; // tile coordinates
   @type("number") y = 0;
   @type("number") color = 0xffffff;
-  @type("string") action = "idle"; // "idle" | "chopping" | "fishing" | "mining" | "smelting" | "smithing" (so others see the animation)
+  @type("string") action = "idle"; // "idle" | "chopping" | "fishing" | "mining" | "smelting" | "smithing" | "cooking" (so others see the animation)
   @type("number") faceX = 0; // tile the player is working on, for the animation
   @type("number") faceY = 0;
 
@@ -66,6 +68,8 @@ export class Player extends Schema {
   skillXp: SkillXp = emptySkills(); // XP per skill (Woodcutting level etc.)
   mastery: ItemMasteryXp = {}; // Mastery XP per type (Pine, Copper, Trout...)
   coins = 0; // total money, in bronze coins
+  stamina = MAX_STAMINA; // each action costs some; food and time bring it back
+  regenTicks = 0; // ticks since the last stamina came back on its own
   locked: boolean[] = new Array(INVENTORY_SIZE).fill(false); // per slot: locked items can't be sold or dropped by accident
   talkTo: NpcDef | null = null; // person the player is walking over to talk to
   nextStepAt = 0; // time (ms) this player may take their next step
@@ -82,6 +86,9 @@ export class WorldState extends Schema {
 
 const COLORS = [0xe74c3c, 0x3498db, 0xf1c40f, 0x9b59b6, 0x1abc9c, 0xe67e22, 0xecf0f1, 0xff6ec7];
 const CARDINAL = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
+
+/** Where each crafting skill is done. */
+const STATION_FOR = { smelting: "furnace", smithing: "anvil", cooking: "stove" } as const;
 
 const isRock = (x: number, y: number) =>
   y >= 0 && y < MAP_HEIGHT && x >= 0 && x < MAP_WIDTH && MAP[y][x] === "rock";
@@ -260,17 +267,38 @@ export class WorldRoom extends Room<WorldState> {
       this.saveSoon(p);
     });
 
-    // At the furnace or anvil: make one, or keep going until you run out.
+    // Eat a fish or a stew from your bag to get stamina back. Doesn't stop what you're doing.
+    this.onMessage("eat", (client, msg: { slot: number }) => {
+      const p = this.state.players.get(client.sessionId);
+      if (!p || !Number.isInteger(msg?.slot)) return;
+      const item = p.inventory[msg.slot];
+      if (!item || !isFood(item)) return;
+      if (p.stamina >= MAX_STAMINA) return this.say(client, `You're not hungry. Your stamina is full (${MAX_STAMINA}).`);
+      const gain = foodStamina(item, p.mastery);
+      p.inventory[msg.slot] = null;
+      p.locked[msg.slot] = false;
+      const before = p.stamina;
+      p.stamina = Math.min(MAX_STAMINA, p.stamina + gain);
+      this.sendInventory(client, p);
+      this.sendStamina(client, p);
+      const wasted = gain - (p.stamina - before);
+      this.say(client, `You eat the ${ITEMS[item].single}. +${p.stamina - before} stamina (${p.stamina}/${MAX_STAMINA}).` +
+        (wasted > 0 ? ` (${wasted} more would have gone past full.)` : ""));
+      this.saveSoon(p);
+    });
+
+    // At the furnace, anvil or stove: make one, or keep going until you run out.
     this.onMessage("craft", (client, msg: { item: string; all?: boolean }) => {
       const p = this.state.players.get(client.sessionId);
       const recipe = p && recipeFor(msg?.item as ItemId);
       if (!p || !recipe) return;
-      const station = NPCS.find((n) => n.id === (recipe.skill === "smelting" ? "furnace" : "anvil"))!;
+      const station = NPCS.find((n) => n.id === STATION_FOR[recipe.skill])!;
       if (!this.nearNpc(p, station.id)) return this.say(client, `You need to be next to the ${station.name.toLowerCase()}.`);
       const { discipline, def } = findSkill(recipe.skill);
       if (levelForXp(p.disciplines[discipline]) < def.unlockLevel) {
         return this.say(client, `You need ${DISCIPLINES[discipline].name} level ${def.unlockLevel} to use ${def.name}. Make a few tools at the anvil first.`);
       }
+      if (!this.hasStamina(client, p, recipe.skill)) return;
       const level = levelForXp(p.skillXp[recipe.skill]);
       if (level < recipe.level) {
         return this.say(client, `You need ${def.name} level ${recipe.level} to make ${aOr(ITEMS[recipe.output].single)}. (You're level ${level}.)`);
@@ -287,7 +315,8 @@ export class WorldRoom extends Room<WorldState> {
       p.faceY = station.y;
       const chance = successFor(recipe, p.mastery, p.belt);
       const tool = toolForSkill(recipe.skill)!;
-      this.say(client, `You start ${recipe.skill === "smelting" ? "smelting" : "making"} ${msg.all ? ITEMS[recipe.output].name.toLowerCase() : aOr(ITEMS[recipe.output].single)}. ` +
+      const verb = { smelting: "smelting", smithing: "making", cooking: "cooking" }[recipe.skill];
+      this.say(client, `You start ${verb} ${msg.all ? ITEMS[recipe.output].name.toLowerCase() : aOr(ITEMS[recipe.output].single)}. ` +
         `${percent(chance)} chance each.` + (p.belt[tool] || !recipe.needsTool ? "" : ` (No ${TOOL_TYPES[tool].name.toLowerCase()} on your belt: half the chance.)`));
     });
 
@@ -308,14 +337,17 @@ export class WorldRoom extends Room<WorldState> {
         this.sendInventory(client, p);
         this.sendDisciplines(client, p);
         this.sendMastery(client, p);
+        this.sendStamina(client, p);
         return;
       }
       this.sendInventory(client, p);
       this.sendDisciplines(client, p);
       this.sendMastery(client, p);
+      this.sendStamina(client, p);
       this.say(client, "Welcome! Chop trees for logs (fish from Foraging level 3, mine from level 5), then sell them to the Merchant.");
       this.say(client, "Tools on your belt make gathering faster; without one it's 3 times slower. The Merchant sells basic tools.");
       this.say(client, "Smelt ore into bars at the furnace and make tools at the anvil, both next to the Merchant.");
+      this.say(client, "Every action costs stamina (the ⚡ bar). It comes back 1 every 30 seconds, or eat fish, or cook them into stew at the stove.");
     });
 
     this.onMessage("drop", (client, msg: { slot: number }) => {
@@ -339,6 +371,14 @@ export class WorldRoom extends Room<WorldState> {
     });
 
     this.state.players.forEach((p, sessionId) => {
+      // Stamina comes back on its own, 1 every 30 seconds.
+      if (p.stamina < MAX_STAMINA && ++p.regenTicks >= REGEN_TICKS) {
+        p.regenTicks = 0;
+        p.stamina++;
+        p.dirty = true;
+        const client = this.clients.getById(sessionId);
+        if (client) this.sendStamina(client, p);
+      }
       if (p.path.length || !p.target) return;
       if (p.crafting) this.craftTick(p, sessionId); else this.gatherTick(p, sessionId);
     });
@@ -377,6 +417,7 @@ export class WorldRoom extends Room<WorldState> {
     if (skillLevel < res.level) {
       return this.say(client, `You need ${def.name} level ${res.level} to ${verbFor(resource)}. (You're level ${skillLevel}.)`);
     }
+    if (!this.hasStamina(client, p, skill)) return;
     this.stopActions(p);
     p.target = target;
     p.activity = skill;
@@ -425,6 +466,10 @@ export class WorldRoom extends Room<WorldState> {
       return;
     }
 
+    if (p.stamina < STAMINA_COST[skill]) {
+      if (client) this.hasStamina(client, p, skill);
+      return this.stopActions(p);
+    }
     const mastery = masteryIn(p.mastery, resource);
     if (Math.random() >= gatherChancePerTick(resource, mastery, belt ? toolBonus(belt.item) : null)) return;
     if (Math.random() >= gatherSuccessChance(resource, mastery)) {
@@ -435,8 +480,10 @@ export class WorldRoom extends Room<WorldState> {
 
     this.place(p, free, res.item);
     this.wearTool(p, client, tool, wearFor(res.level));
+    this.useStamina(p, skill);
     if (client) {
       this.sendInventory(client, p);
+      this.sendStamina(client, p);
       const GOT = {
         woodcutting: `You get some ${item.name.toLowerCase()}.`,
         mining: `You mine some ${item.name.toLowerCase()}.`,
@@ -475,6 +522,11 @@ export class WorldRoom extends Room<WorldState> {
       if (client) this.say(client, `You've run out: you need ${missing}.`);
       return this.stopActions(p);
     }
+    if (p.stamina < STAMINA_COST[recipe.skill]) {
+      if (client) this.hasStamina(client, p, recipe.skill);
+      return this.stopActions(p);
+    }
+    this.useStamina(p, recipe.skill);
     // Use the inputs (never locked ones).
     let freed = -1;
     for (const input of recipe.inputs) {
@@ -491,13 +543,18 @@ export class WorldRoom extends Room<WorldState> {
     this.wearTool(p, client, tool, recipeWear(recipe));
     if (client) {
       this.sendInventory(client, p);
-      if (worked) {
-        this.say(client, recipe.skill === "smelting" ? `You smelt ${aOr(output.single)}.` : `You make ${aOr(output.single)}!`);
-      } else {
-        this.say(client, recipe.skill === "smelting"
-          ? `The ore burns away. You fail to smelt ${aOr(output.single)}.`
-          : `You ruin the metal. You fail to make ${aOr(output.single)}.`);
-      }
+      this.sendStamina(client, p);
+      const WORKED = {
+        smelting: `You smelt ${aOr(output.single)}.`,
+        smithing: `You make ${aOr(output.single)}!`,
+        cooking: `You cook ${aOr(output.single)}! Eat it for ${foodStamina(recipe.output, p.mastery)} stamina.`,
+      };
+      const FAILED = {
+        smelting: `The ore burns away. You fail to smelt ${aOr(output.single)}.`,
+        smithing: `You ruin the metal. You fail to make ${aOr(output.single)}.`,
+        cooking: `You burn the stew. The fish and the log are gone.`,
+      };
+      this.say(client, (worked ? WORKED : FAILED)[recipe.skill]);
     }
     this.addXp(p, client, "crafting", xp);
     this.addMasteryXp(p, client, recipe.mastery, xp);
@@ -510,6 +567,25 @@ export class WorldRoom extends Room<WorldState> {
       if (client) this.say(client, `You've run out: you need ${next}.`);
       this.stopActions(p);
     }
+  }
+
+  /** Enough stamina for one more of this? If not, say so (and how to get more). */
+  private hasStamina(client: Client | undefined, p: Player, skill: SkillId): boolean {
+    const cost = STAMINA_COST[skill];
+    if (p.stamina >= cost) return true;
+    if (client) {
+      const eat = p.inventory.some((it) => isFood(it)) ? "Eat something from your bag" : "Eat a fish or a stew (the Merchant sells stew)";
+      this.say(client, `You're too tired: ${findSkill(skill).def.name} needs ${cost} stamina and you have ${p.stamina}. ${eat}, or rest (1 stamina every 30 seconds).`);
+    }
+    return false;
+  }
+
+  private useStamina(p: Player, skill: SkillId) {
+    p.stamina = Math.max(0, p.stamina - STAMINA_COST[skill]);
+  }
+
+  private sendStamina(client: Client, p: Player) {
+    client.send("stamina", { stamina: p.stamina, max: MAX_STAMINA });
   }
 
   /** "1 tin ore" if you're short of something for this recipe (locked items don't count), else null. */
@@ -622,7 +698,12 @@ export class WorldRoom extends Room<WorldState> {
     if (after > before) {
       const { def } = findSkill(skill);
       this.say(client, `Your ${def.name} level is now ${after}!`);
-      if (isCraftSkill(skill)) {
+      if (skill === "cooking") {
+        for (const fish of FISH_IDS) {
+          const lv = RESOURCES[fish].level;
+          if (lv > before && lv <= after) this.say(client, `You can now cook ${ITEMS[fish].name.toLowerCase()} stew!`);
+        }
+      } else if (isCraftSkill(skill)) {
         for (const m of Object.values(METALS)) {
           if (m.level > before && m.level <= after) {
             this.say(client, skill === "smelting" ? `You can now smelt ${m.name.toLowerCase()} bars!` : `You can now make ${m.name.toLowerCase()} tools!`);
@@ -796,6 +877,11 @@ export class WorldRoom extends Room<WorldState> {
       }
     }
     if (typeof save.coins === "number" && Number.isFinite(save.coins) && save.coins >= 0) p.coins = Math.floor(save.coins);
+    // Stamina also came back while you were logged out (1 every 30 seconds). Old saves start full.
+    if (typeof save.stamina === "number" && Number.isFinite(save.stamina)) {
+      const away = typeof save.staminaAt === "number" ? Math.max(0, Date.now() - save.staminaAt) : 0;
+      p.stamina = Math.max(0, Math.min(MAX_STAMINA, Math.floor(save.stamina) + Math.floor(away / STAMINA_REGEN_MS)));
+    }
     if (Array.isArray(save.lockedSlots)) {
       for (const i of save.lockedSlots) if (Number.isInteger(i) && i >= 0 && i < INVENTORY_SIZE && p.inventory[i]) p.locked[i] = true;
     } else if (Array.isArray(save.locked)) {
@@ -824,7 +910,7 @@ export class WorldRoom extends Room<WorldState> {
   private snapshot(p: Player): SaveData {
     // Save where the player is heading, so walking off mid-path doesn't lose the move.
     const dest = p.path.length ? p.path[p.path.length - 1] : p;
-    return { x: dest.x, y: dest.y, inventory: [...p.inventory], coins: p.coins, skills: { ...p.disciplines }, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: [...p.durability], belt: { ...p.belt }, lockedSlots: p.locked.flatMap((on, i) => (on && p.inventory[i] ? [i] : [])) };
+    return { x: dest.x, y: dest.y, inventory: [...p.inventory], coins: p.coins, skills: { ...p.disciplines }, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: [...p.durability], belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), lockedSlots: p.locked.flatMap((on, i) => (on && p.inventory[i] ? [i] : [])) };
   }
 
   private async save(p: Player) {

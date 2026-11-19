@@ -5,7 +5,7 @@ import { RESOURCES, ResourceId, fishAt, isFishingSpot, nodeAt, treeKey } from ".
 
 import { ITEMS, ItemId } from "../../shared/items";
 import { joinWorld, rejoinWorld } from "./network";
-import { closeCraft, closeInfo, closeShop, flashDiscipline, flashMastery, flashSkillRow, openCraft, renderBelt, renderDurability, renderMastery, renderSkillXp, openShop, renderCoins, renderDisciplines, renderInventory, renderLocks, setHoverText, setInventoryActions, showMessage } from "./ui";
+import { renderStamina, closeCraft, closeInfo, closeShop, flashDiscipline, flashMastery, flashSkillRow, openCraft, renderBelt, renderDurability, renderMastery, renderSkillXp, openShop, renderCoins, renderDisciplines, renderInventory, renderLocks, setHoverText, setInventoryActions, showMessage } from "./ui";
 import { masteryName } from "../../shared/crafting";
 import type { Belt, ToolType } from "../../shared/tools";
 import { NPCS, npcAt } from "../../shared/npcs";
@@ -104,7 +104,9 @@ export class WorldScene extends Phaser.Scene {
       unequip: (type: ToolType) => room.send("unequip", { type }),
       buy: (item, count) => room.send("buy", { item, count }),
       craft: (item, all) => room.send("craft", { item, all }),
+      eat: (slot) => room.send("eat", { slot }),
     });
+    room.onMessage("stamina", (msg: { stamina: number; max: number }) => renderStamina(msg.stamina, msg.max));
     room.onMessage("durability", (slots: (number | null)[]) => renderDurability(slots));
     room.onMessage("belt", (belt: Belt) => renderBelt(belt));
     room.onMessage("station", (msg: { npc: string }) => {
@@ -228,7 +230,7 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
-  /** The furnace (glowing fire) and the anvil, next to the Merchant. */
+  /** The furnace (glowing fire), the anvil and the stove (pot on top), next to the Merchant. */
   private drawStation(id: string, x: number, y: number, name: string) {
     const [cx, cy] = this.tileCenter(x, y);
     const c = this.add.container(cx, cy).setDepth(10 + y + 0.5);
@@ -244,6 +246,17 @@ export class WorldScene extends Phaser.Scene {
       const glow = this.add.ellipse(0, 3, 6, 4, 0xffe066);
       c.add([g, fire, glow]);
       this.tweens.add({ targets: [fire, glow], scaleY: 1.3, alpha: 0.75, duration: 300, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+    } else if (id === "stove") {
+      g.fillStyle(0x2f2f33).fillRect(-12, -6, 24, 16); // iron stove body
+      g.fillStyle(0x45454b).fillRect(-13, -8, 26, 3);
+      g.fillStyle(0x1a1a1d).fillRoundedRect(-6, 0, 12, 7, 2); // fire door
+      g.fillStyle(0x8e969d).fillRect(-8, -16, 16, 8).fillRect(-10, -17, 20, 2); // pot
+      g.fillStyle(0x8e969d).fillRect(-12, -14, 3, 2).fillRect(9, -14, 3, 2); // pot handles
+      const fire = this.add.ellipse(0, 4, 8, 4, 0xff8a1f);
+      const steam = this.add.ellipse(0, -21, 6, 4, 0xffffff, 0.6);
+      c.add([g, fire, steam]);
+      this.tweens.add({ targets: fire, alpha: 0.5, duration: 350, yoyo: true, repeat: -1 });
+      this.tweens.add({ targets: steam, y: -30, alpha: 0, scaleX: 1.8, duration: 1400, repeat: -1 });
     } else {
       g.fillStyle(0x3b2410).fillRect(-6, 0, 12, 10); // wooden stump
       g.fillStyle(0x50565c).fillRect(-6, -6, 12, 6);
@@ -370,7 +383,7 @@ export class WorldScene extends Phaser.Scene {
     if (view === this.players.get(this.room?.sessionId ?? "")) this.marker.setVisible(false);
     const dx = Math.sign(player.faceX - player.x), dy = Math.sign(player.faceY - player.y);
 
-    if (action === "chopping" || action === "mining" || action === "smelting" || action === "smithing") {
+    if (action === "chopping" || action === "mining" || action === "smelting" || action === "smithing" || action === "cooking") {
       view.chopTween = this.tweens.add({
         targets: view.body, x: dx * 6, y: dy * 6,
         duration: TICK_MS / 4, yoyo: true, hold: 30, repeatDelay: TICK_MS / 2 - 30, repeat: -1,
