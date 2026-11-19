@@ -70,9 +70,9 @@ items in your inventory to sell them one at a time, or press **Sell all**
 (tap it twice to confirm) to sell everything that isn't locked.
 
 **Locking items:** tap the 🔒 button at the top of your inventory, then tap an
-item to lock or unlock every item of that type (tap 🔒 again when done). You can
-also tap a price in the shop to lock it. Locked items show a small 🔒 and can't be
-sold or dropped, so Sell all skips them. Locks are saved with your character.
+item to lock or unlock just that one item (tap 🔒 again when done). Locked items
+show a small 🔒 and can't be sold or dropped, so Sell all skips them. Locks are
+saved with your character.
 100 bronze = 1 silver, 100 silver = 1 gold. Money shows at the bottom of the
 inventory and doesn't use a slot. It's stored as one number (total bronze) and
 saved with your character. Prices live in `shared/items.ts`, people in `shared/npcs.ts`.

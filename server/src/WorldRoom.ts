@@ -44,7 +44,7 @@ export class Player extends Schema {
   disciplines: DisciplineXp = emptyDisciplines(); // XP per Discipline
   mastery: MasteryXp = emptyMastery(); // Mastery XP per skill
   coins = 0; // total money, in bronze coins
-  locked = new Set<ItemId>(); // item types the player locked, so they can't be sold or dropped by accident
+  locked: boolean[] = new Array(INVENTORY_SIZE).fill(false); // per slot: locked items can't be sold or dropped by accident
   talkTo: NpcDef | null = null; // person the player is walking over to talk to
   nextStepAt = 0; // time (ms) this player may take their next step
   dirty = false; // something changed since the last save
@@ -147,7 +147,7 @@ export class WorldRoom extends Room<WorldState> {
       if (!p || !Number.isInteger(msg?.slot)) return;
       const item = p.inventory[msg.slot];
       if (!item) return;
-      if (p.locked.has(item)) return this.say(client, `You locked your ${ITEMS[item].name.toLowerCase()}. Unlock to sell.`);
+      if (p.locked[msg.slot]) return this.say(client, `That ${ITEMS[item].single} is locked. Unlock it to sell it.`);
       if (!this.nearMerchant(p)) return this.say(client, "You need to be next to the Merchant to sell.");
       p.inventory[msg.slot] = null;
       const price = ITEMS[item].sellPrice;
@@ -166,7 +166,7 @@ export class WorldRoom extends Room<WorldState> {
       let total = 0;
       for (let i = 0; i < INVENTORY_SIZE; i++) {
         const item = p.inventory[i];
-        if (!item || p.locked.has(item)) continue;
+        if (!item || p.locked[i]) continue;
         p.inventory[i] = null;
         count++;
         total += ITEMS[item].sellPrice;
@@ -178,13 +178,12 @@ export class WorldRoom extends Room<WorldState> {
       this.saveSoon(p);
     });
 
-    // Lock or unlock a type of item (e.g. all your Gold ore).
-    this.onMessage("lock", (client, msg: { item: string; locked: boolean }) => {
+    // Lock or unlock one item (the one in this inventory slot).
+    this.onMessage("lock", (client, msg: { slot: number; locked: boolean }) => {
       const p = this.state.players.get(client.sessionId);
-      const item = String(msg?.item);
-      if (!p || !(item in ITEMS)) return;
-      if (msg.locked) p.locked.add(item as ItemId); else p.locked.delete(item as ItemId);
-      client.send("locks", [...p.locked]);
+      if (!p || !Number.isInteger(msg?.slot) || !p.inventory[msg.slot]) return;
+      p.locked[msg.slot] = !!msg.locked;
+      client.send("locks", p.locked);
       this.saveSoon(p);
     });
 
@@ -203,7 +202,7 @@ export class WorldRoom extends Room<WorldState> {
       const p = this.state.players.get(client.sessionId);
       if (!p || !Number.isInteger(msg?.slot) || !p.inventory[msg.slot]) return;
       const item = p.inventory[msg.slot]!;
-      if (p.locked.has(item)) return this.say(client, `You locked your ${ITEMS[item].name.toLowerCase()}. Unlock to drop.`);
+      if (p.locked[msg.slot]) return this.say(client, `That ${ITEMS[item].single} is locked. Unlock it to drop it.`);
       p.inventory[msg.slot] = null;
       this.sendInventory(client, p);
       this.saveSoon(p);
@@ -309,6 +308,7 @@ export class WorldRoom extends Room<WorldState> {
     }
 
     p.inventory[free] = res.item;
+    p.locked[free] = false; // new items start unlocked
     if (client) {
       this.sendInventory(client, p);
       const GOT = {
@@ -420,7 +420,7 @@ export class WorldRoom extends Room<WorldState> {
 
   // The inventory goes only to its owner, not to every player.
   private sendInventory(client: Client, p: Player) {
-    client.send("locks", [...p.locked]);
+    client.send("locks", p.locked);
     client.send("inventory", p.inventory);
     client.send("coins", p.coins);
   }
@@ -514,8 +514,11 @@ export class WorldRoom extends Room<WorldState> {
       }
     }
     if (typeof save.coins === "number" && Number.isFinite(save.coins) && save.coins >= 0) p.coins = Math.floor(save.coins);
-    if (Array.isArray(save.locked)) {
-      for (const item of save.locked) if (typeof item === "string" && item in ITEMS) p.locked.add(item as ItemId);
+    if (Array.isArray(save.lockedSlots)) {
+      for (const i of save.lockedSlots) if (Number.isInteger(i) && i >= 0 && i < INVENTORY_SIZE && p.inventory[i]) p.locked[i] = true;
+    } else if (Array.isArray(save.locked)) {
+      // Briefly, locks were per item type: lock every item of those types that's in the bag.
+      p.inventory.forEach((item, i) => { if (item && save.locked!.includes(item)) p.locked[i] = true; });
     }
     // Saved under "skills" (its name before Disciplines existed), so old saves keep working.
     for (const id of DISCIPLINE_IDS) {
@@ -532,7 +535,7 @@ export class WorldRoom extends Room<WorldState> {
   private snapshot(p: Player): SaveData {
     // Save where the player is heading, so walking off mid-path doesn't lose the move.
     const dest = p.path.length ? p.path[p.path.length - 1] : p;
-    return { x: dest.x, y: dest.y, inventory: [...p.inventory], coins: p.coins, skills: { ...p.disciplines }, mastery: { ...p.mastery }, locked: [...p.locked] };
+    return { x: dest.x, y: dest.y, inventory: [...p.inventory], coins: p.coins, skills: { ...p.disciplines }, mastery: { ...p.mastery }, lockedSlots: p.locked.flatMap((on, i) => (on && p.inventory[i] ? [i] : [])) };
   }
 
   private async save(p: Player) {

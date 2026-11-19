@@ -82,9 +82,9 @@ export class WorldScene extends Phaser.Scene {
       drop: (slot) => room.send("drop", { slot }),
       sell: (slot) => room.send("sell", { slot }),
       sellAll: () => room.send("sellAll"),
-      lock: (item, locked) => room.send("lock", { item, locked }),
+      lock: (slot, locked) => room.send("lock", { slot, locked }),
     });
-    room.onMessage("locks", (items: ItemId[]) => renderLocks(items));
+    room.onMessage("locks", (slots: boolean[]) => renderLocks(slots));
     room.onMessage("inventory", (items: (ItemId | null)[]) => renderInventory(items));
     room.onMessage("coins", (coins: number) => renderCoins(coins));
     room.onMessage("shop", () => {
