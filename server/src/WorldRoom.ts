@@ -3,14 +3,14 @@ import { MapSchema, Schema, type } from "@colyseus/schema";
 import { MAP, MAP_HEIGHT, MAP_WIDTH, TICK_MS, isWalkable, randomSpawn } from "../../shared/map";
 import { findPath, Point } from "../../shared/pathfinding";
 import {
-  CHOP_SUCCESS_CHANCE, FISH_SUCCESS_CHANCE, MINE_SUCCESS_CHANCE, ROCK_EMPTY_CHANCE, ROCK_RESPAWN_TICKS,
-  TREE_FALL_CHANCE, TREE_RESPAWN_TICKS, XP_PER_FISH, XP_PER_LOG, XP_PER_ORE,
-  isFishingSpot, treeKey,
+  RESOURCES, ROCK_EMPTY_CHANCE, ResourceId, TREE_FALL_CHANCE,
+  fishAt, gatherChancePerTick, gatherSuccessChance, nodeAt, resourcesFor, treeKey,
 } from "../../shared/foraging";
+import { MasteryXp, emptyMastery, masteryLevelForXp } from "../../shared/mastery";
 import {
   DISCIPLINES, DISCIPLINE_IDS, DisciplineId, DisciplineXp, SkillId, emptyDisciplines, findSkill, levelForXp,
 } from "../../shared/disciplines";
-import { INVENTORY_SIZE, ITEMS, ItemId } from "../../shared/items";
+import { INVENTORY_SIZE, ITEMS, ItemId, LEGACY_ITEMS } from "../../shared/items";
 import { NPCS, NpcDef, npcById } from "../../shared/npcs";
 import { formatMoney } from "../../shared/money";
 import { Account, SaveData, checkPassword, hashPassword, store, usernameKey } from "./storage";
@@ -39,8 +39,10 @@ export class Player extends Schema {
   path: Point[] = [];
   target: Point | null = null; // tree or water the player is heading to / working on
   activity: SkillId | null = null; // what they'll do when they get there
+  resource: ResourceId | null = null; // which type of tree / rock / fish
   inventory: (ItemId | null)[] = new Array(INVENTORY_SIZE).fill(null);
   disciplines: DisciplineXp = emptyDisciplines(); // XP per Discipline
+  mastery: MasteryXp = emptyMastery(); // Mastery XP per skill
   coins = 0; // total money, in bronze coins
   talkTo: NpcDef | null = null; // person the player is walking over to talk to
   nextStepAt = 0; // time (ms) this player may take their next step
@@ -62,6 +64,14 @@ const isRock = (x: number, y: number) =>
   y >= 0 && y < MAP_HEIGHT && x >= 0 && x < MAP_WIDTH && MAP[y][x] === "rock";
 const isTree = (x: number, y: number) =>
   y >= 0 && y < MAP_HEIGHT && x >= 0 && x < MAP_WIDTH && MAP[y][x] === "tree";
+
+/** "chop Oak trees", "mine Copper rocks", "fish at Trout spots": for messages. */
+function verbFor(id: ResourceId) {
+  const r = RESOURCES[id];
+  if (r.skill === "woodcutting") return `chop ${r.node}s`;
+  if (r.skill === "mining") return `mine ${r.node}s`;
+  return id === "minnow" ? "catch Minnows" : `fish at ${r.node}s`;
+}
 
 export class WorldRoom extends Room<WorldState> {
   maxClients = 100;
@@ -97,7 +107,7 @@ export class WorldRoom extends Room<WorldState> {
       if (!p || !Number.isInteger(msg?.x) || !Number.isInteger(msg?.y)) return;
       if (!isTree(msg.x, msg.y)) return;
       if (this.state.depleted.has(treeKey(msg.x, msg.y))) return this.say(client, "That tree has been cut down.");
-      this.startGathering(client, p, "woodcutting", { x: msg.x, y: msg.y });
+      this.startGathering(client, p, nodeAt(msg.x, msg.y)!, { x: msg.x, y: msg.y });
     });
 
     this.onMessage("mine", (client, msg: { x: number; y: number }) => {
@@ -105,14 +115,15 @@ export class WorldRoom extends Room<WorldState> {
       if (!p || !Number.isInteger(msg?.x) || !Number.isInteger(msg?.y)) return;
       if (!isRock(msg.x, msg.y)) return;
       if (this.state.depleted.has(treeKey(msg.x, msg.y))) return this.say(client, "There's no ore left in that rock right now.");
-      this.startGathering(client, p, "mining", { x: msg.x, y: msg.y });
+      this.startGathering(client, p, nodeAt(msg.x, msg.y)!, { x: msg.x, y: msg.y });
     });
 
     this.onMessage("fish", (client, msg: { x: number; y: number }) => {
       const p = this.state.players.get(client.sessionId);
       if (!p || !Number.isInteger(msg?.x) || !Number.isInteger(msg?.y)) return;
-      if (!isFishingSpot(msg.x, msg.y)) return;
-      this.startGathering(client, p, "fishing", { x: msg.x, y: msg.y });
+      const fish = fishAt(msg.x, msg.y);
+      if (!fish) return;
+      this.startGathering(client, p, fish, { x: msg.x, y: msg.y });
     });
 
     this.onMessage("talk", (client, msg: { id: string }) => {
@@ -153,7 +164,9 @@ export class WorldRoom extends Room<WorldState> {
       if (!p) return;
       this.sendInventory(client, p);
       this.sendDisciplines(client, p);
+      this.sendMastery(client, p);
       this.say(client, "Welcome! Chop trees for logs (fish from Foraging level 3, mine from level 5), then sell them to the Merchant.");
+      this.say(client, "Each skill has a Mastery level. Raise it to unlock better trees, rocks and fish, and to work faster.");
     });
 
     this.onMessage("drop", (client, msg: { slot: number }) => {
@@ -199,16 +212,23 @@ export class WorldRoom extends Room<WorldState> {
     });
   }
 
-  /** Walk next to a tree or the water, then start working it on the next tick. */
-  private startGathering(client: Client, p: Player, skill: SkillId, target: Point) {
+  /** Walk next to a tree, rock or the water, then start working it on the next tick. */
+  private startGathering(client: Client, p: Player, resource: ResourceId, target: Point) {
+    const res = RESOURCES[resource];
+    const skill = res.skill;
     const { discipline, def } = findSkill(skill);
     const level = levelForXp(p.disciplines[discipline]);
     if (level < def.unlockLevel) {
       return this.say(client, `You need ${DISCIPLINES[discipline].name} level ${def.unlockLevel} to use ${def.name}.`);
     }
+    const mastery = masteryLevelForXp(p.mastery[skill]);
+    if (mastery < res.mastery) {
+      return this.say(client, `You need ${def.name} Mastery ${res.mastery} to ${verbFor(resource)}. (You're Mastery ${mastery}.)`);
+    }
     this.stopActions(p);
     p.target = target;
     p.activity = skill;
+    p.resource = resource;
     p.path = this.pathNextTo(p, target);
     if (!p.path.length && !this.isNextTo(p, target)) {
       this.stopActions(p);
@@ -220,7 +240,8 @@ export class WorldRoom extends Room<WorldState> {
     const client = this.clients.getById(sessionId);
     const t = p.target!;
     const skill = p.activity;
-    if (!skill || !this.isNextTo(p, t)) return this.stopActions(p);
+    const resource = p.resource;
+    if (!skill || !resource || !this.isNextTo(p, t)) return this.stopActions(p);
     // Someone else felled the tree or emptied the rock.
     if (skill !== "fishing" && this.state.depleted.has(treeKey(t.x, t.y))) return this.stopActions(p);
 
@@ -230,8 +251,14 @@ export class WorldRoom extends Room<WorldState> {
       return this.stopActions(p);
     }
 
+    const res = RESOURCES[resource];
+    const item = ITEMS[res.item];
     const ACTIONS = { woodcutting: "chopping", fishing: "fishing", mining: "mining" } as const;
-    const START = { woodcutting: "You swing at the tree.", fishing: "You cast out your line...", mining: "You swing your pick at the rock." };
+    const START = {
+      woodcutting: `You swing at the ${res.node.toLowerCase()}.`,
+      fishing: "You cast out your line...",
+      mining: `You swing your pick at the ${res.node.toLowerCase()}.`,
+    };
     const action = ACTIONS[skill];
     if (p.action !== action) {
       p.action = action;
@@ -241,51 +268,36 @@ export class WorldRoom extends Room<WorldState> {
       return;
     }
 
-    if (skill === "mining") {
-      if (Math.random() >= MINE_SUCCESS_CHANCE) return;
-      p.inventory[free] = "ore";
-      if (client) {
-        this.sendInventory(client, p);
-        this.say(client, "You mine some ore.");
-      }
-      this.addXp(p, client, "foraging", XP_PER_ORE);
-      this.saveSoon(p);
-      if (Math.random() < ROCK_EMPTY_CHANCE) {
-        this.state.depleted.set(treeKey(t.x, t.y), this.state.tick + ROCK_RESPAWN_TICKS);
-        if (client) this.say(client, "The rock is out of ore.");
-        this.state.players.forEach((other) => {
-          if (other.activity === "mining" && other.target?.x === t.x && other.target?.y === t.y) this.stopActions(other);
-        });
-      }
+    const mastery = masteryLevelForXp(p.mastery[skill]);
+    if (Math.random() >= gatherChancePerTick(resource, mastery)) return;
+    if (Math.random() >= gatherSuccessChance(resource, mastery)) {
+      // Never happens yet (success is always 100%); here for harder types later.
+      if (client) this.say(client, skill === "fishing" ? "Something bites, but it gets away." : "You don't manage to get anything.");
       return;
     }
 
-    if (skill === "fishing") {
-      if (Math.random() >= FISH_SUCCESS_CHANCE) return;
-      p.inventory[free] = "fish";
-      if (client) {
-        this.sendInventory(client, p);
-        this.say(client, "You catch a fish!");
-      }
-      this.addXp(p, client, "foraging", XP_PER_FISH);
-      this.saveSoon(p);
-      return;
-    }
-
-    if (Math.random() >= CHOP_SUCCESS_CHANCE) return;
-    p.inventory[free] = "logs";
+    p.inventory[free] = res.item;
     if (client) {
       this.sendInventory(client, p);
-      this.say(client, "You get some logs.");
+      const GOT = {
+        woodcutting: `You get some ${item.name.toLowerCase()}.`,
+        mining: `You mine some ${item.name.toLowerCase()}.`,
+        fishing: `You catch a ${item.single}!`,
+      };
+      this.say(client, GOT[skill]);
     }
-    this.addXp(p, client, "foraging", XP_PER_LOG);
+    this.addXp(p, client, "foraging", res.xp);
+    this.addMasteryXp(p, client, skill, res.xp);
     this.saveSoon(p);
-    if (Math.random() < TREE_FALL_CHANCE) {
-      this.state.depleted.set(treeKey(t.x, t.y), this.state.tick + TREE_RESPAWN_TICKS);
-      if (client) this.say(client, "The tree falls down.");
-      // Everyone chopping this tree stops.
+
+    if (skill === "fishing") return; // fishing spots never run out
+    const isTreeNode = skill === "woodcutting";
+    if (Math.random() < (isTreeNode ? TREE_FALL_CHANCE : ROCK_EMPTY_CHANCE)) {
+      this.state.depleted.set(treeKey(t.x, t.y), this.state.tick + res.respawnTicks);
+      if (client) this.say(client, isTreeNode ? "The tree falls down." : "The rock is out of ore.");
+      // Everyone working this tree or rock stops.
       this.state.players.forEach((other) => {
-        if (other.activity === "woodcutting" && other.target?.x === t.x && other.target?.y === t.y) this.stopActions(other);
+        if (other.activity === skill && other.target?.x === t.x && other.target?.y === t.y) this.stopActions(other);
       });
     }
   }
@@ -300,6 +312,7 @@ export class WorldRoom extends Room<WorldState> {
   private stopActions(p: Player) {
     p.target = null;
     p.activity = null;
+    p.resource = null;
     p.talkTo = null;
     p.action = "idle";
   }
@@ -339,8 +352,29 @@ export class WorldRoom extends Room<WorldState> {
     }
   }
 
+  private addMasteryXp(p: Player, client: Client | undefined, skill: SkillId, xp: number) {
+    const before = masteryLevelForXp(p.mastery[skill]);
+    p.mastery[skill] += xp;
+    const after = masteryLevelForXp(p.mastery[skill]);
+    if (!client) return;
+    this.sendMastery(client, p);
+    if (after > before) {
+      const { def } = findSkill(skill);
+      this.say(client, `Your ${def.name} Mastery is now ${after}!`);
+      for (const id of resourcesFor(skill)) {
+        const r = RESOURCES[id];
+        if (r.mastery > before && r.mastery <= after) this.say(client, `You can now ${verbFor(id)}!`);
+      }
+      client.send("masteryup", { skill, level: after });
+    }
+  }
+
   private sendDisciplines(client: Client, p: Player) {
     client.send("disciplines", p.disciplines);
+  }
+
+  private sendMastery(client: Client, p: Player) {
+    client.send("mastery", p.mastery);
   }
 
   private say(client: Client, text: string) {
@@ -436,7 +470,8 @@ export class WorldRoom extends Room<WorldState> {
     }
     if (Array.isArray(save.inventory)) {
       for (let i = 0; i < INVENTORY_SIZE; i++) {
-        const item = save.inventory[i];
+        let item = save.inventory[i];
+        if (typeof item === "string" && item in LEGACY_ITEMS) item = LEGACY_ITEMS[item]; // logs -> pine logs, etc.
         p.inventory[i] = typeof item === "string" && item in ITEMS ? (item as ItemId) : null;
       }
     }
@@ -446,12 +481,17 @@ export class WorldRoom extends Room<WorldState> {
       const xp = save.skills?.[id];
       if (typeof xp === "number" && Number.isFinite(xp) && xp >= 0) p.disciplines[id] = Math.floor(xp);
     }
+    // Saves from before Mastery have none, so everyone starts at Mastery 1.
+    for (const id of Object.keys(p.mastery) as SkillId[]) {
+      const xp = save.mastery?.[id];
+      if (typeof xp === "number" && Number.isFinite(xp) && xp >= 0) p.mastery[id] = Math.floor(xp);
+    }
   }
 
   private snapshot(p: Player): SaveData {
     // Save where the player is heading, so walking off mid-path doesn't lose the move.
     const dest = p.path.length ? p.path[p.path.length - 1] : p;
-    return { x: dest.x, y: dest.y, inventory: [...p.inventory], coins: p.coins, skills: { ...p.disciplines } };
+    return { x: dest.x, y: dest.y, inventory: [...p.inventory], coins: p.coins, skills: { ...p.disciplines }, mastery: { ...p.mastery } };
   }
 
   private async save(p: Player) {
