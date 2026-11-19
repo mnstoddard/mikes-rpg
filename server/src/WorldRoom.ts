@@ -4,7 +4,7 @@ import { MAP, MAP_HEIGHT, MAP_WIDTH, TICK_MS, isWalkable, randomSpawn } from "..
 import { findPath, Point } from "../../shared/pathfinding";
 import {
   RESOURCES, RESOURCE_FOR_ITEM, ROCK_EMPTY_CHANCE, ResourceId, TREE_FALL_CHANCE,
-  fishAt, gatherChancePerTick, gatherSuccessChance, masteryIn, nodeAt, resourcesFor, treeKey,
+  fishAt, forageXp, gatherChancePerTick, gatherSuccessChance, masteryIn, nodeAt, resourcesFor, treeKey,
 } from "../../shared/foraging";
 import {
   ItemMasteryXp, MasteryId, masteryIn as masteryLevelIn, masteryLevelForXp, percent,
@@ -27,7 +27,7 @@ import { NPCS, NpcDef, npcById } from "../../shared/npcs";
 import { formatMoney } from "../../shared/money";
 import { MAX_STAMINA, STAMINA_COST, STAMINA_REGEN_MS, FISH_IDS, foodStamina, isFood, isStew } from "../../shared/cooking";
 import {
-  BURN_UNTIL, GUIDE_NAME, Gift, QUESTS, QuestProgress, QuestStep, QuestView, STEPS, giftItems, newQuestProgress, tutorialDone,
+  BURN_UNTIL, GUIDE_NAME, Gift, QUESTS, isProtected, QuestProgress, QuestStep, QuestView, STEPS, giftItems, newQuestProgress, tutorialDone,
 } from "../../shared/quests";
 import { Account, SAVE_VERSION, SaveData, checkPassword, hashPassword, store, usernameKey } from "./storage";
 
@@ -194,6 +194,7 @@ export class WorldRoom extends Room<WorldState> {
       const item = p.inventory[msg.slot];
       if (!item) return;
       if (p.locked[msg.slot]) return this.say(client, `That ${ITEMS[item].single} is locked. Unlock it to sell it.`);
+      if (isProtected(p.quest, item)) return this.say(client, this.keepIt(item, "sell"));
       if (!this.nearNpc(p, "merchant")) return this.say(client, "You need to be next to the Merchant to sell.");
       const price = sellPriceFor(item, p.mastery, p.durability[msg.slot]);
       p.inventory[msg.slot] = null;
@@ -212,15 +213,18 @@ export class WorldRoom extends Room<WorldState> {
       let count = 0;
       let total = 0;
       const sold: ItemId[] = [];
+      const kept = new Set<ItemId>();
       for (let i = 0; i < INVENTORY_SIZE; i++) {
         const item = p.inventory[i];
         if (!item || p.locked[i]) continue;
+        if (isProtected(p.quest, item)) { kept.add(item); continue; }
         total += sellPriceFor(item, p.mastery, p.durability[i]);
         p.inventory[i] = null;
         sold.push(item);
         count++;
       }
-      if (!count) return this.say(client, "You have nothing to sell that isn't locked.");
+      if (kept.size) this.say(client, `Merchant: I'll leave your ${[...kept].map((i) => ITEMS[i].name.toLowerCase()).join(" and ")} alone. ${GUIDE_NAME} needs you to use those first.`);
+      if (!count) return this.say(client, kept.size ? "You have nothing else to sell." : "You have nothing to sell that isn't locked.");
       p.coins += total;
       this.say(client, `You sell ${count} item${count === 1 ? "" : "s"} for ${formatMoney(total)}.`);
       for (const item of sold) this.questEvent(p, client, { kind: "sell", item });
@@ -282,6 +286,7 @@ export class WorldRoom extends Room<WorldState> {
       this.place(p, free, t.item, t.durability);
       this.sendInventory(client, p);
       this.say(client, `You take the ${ITEMS[t.item].single} off your belt.`);
+      if (this.step(p)?.needsTool === type) this.say(client, `${GUIDE_NAME} said to keep your ${TOOL_TYPES[type].name.toLowerCase()} on your belt for this. Put it back on before you carry on.`);
       this.saveSoon(p);
     });
 
@@ -291,6 +296,7 @@ export class WorldRoom extends Room<WorldState> {
       if (!p || !Number.isInteger(msg?.slot)) return;
       const item = p.inventory[msg.slot];
       if (!item || !isFood(item)) return;
+      if (isProtected(p.quest, item)) return this.say(client, this.keepIt(item, "eat"));
       const questEat = this.step(p)?.goal.kind === "eat" && isStew(item); // Maren asked you to eat it, so you can even when full
       if (p.stamina >= MAX_STAMINA && !questEat) return this.say(client, `You're not hungry. Your stamina is full (${MAX_STAMINA}).`);
       const gain = foodStamina(item, p.mastery);
@@ -318,6 +324,8 @@ export class WorldRoom extends Room<WorldState> {
       if (levelForXp(p.disciplines[discipline]) < def.unlockLevel) {
         return this.say(client, `You need ${DISCIPLINES[discipline].name} level ${def.unlockLevel} to use ${def.name}. ${GUIDE_NAME} will tell you how to get there.`);
       }
+      const blocked = this.toolBlock(p, recipe.skill);
+      if (blocked) return this.say(client, blocked);
       if (!this.hasStamina(client, p, recipe.skill)) return;
       const level = levelForXp(p.skillXp[recipe.skill]);
       if (level < recipe.level) {
@@ -370,6 +378,7 @@ export class WorldRoom extends Room<WorldState> {
       if (!p || !Number.isInteger(msg?.slot) || !p.inventory[msg.slot]) return;
       const item = p.inventory[msg.slot]!;
       if (p.locked[msg.slot]) return this.say(client, `That ${ITEMS[item].single} is locked. Unlock it to drop it.`);
+      if (isProtected(p.quest, item)) return this.say(client, this.keepIt(item, "drop"));
       p.inventory[msg.slot] = null;
       this.sendInventory(client, p);
       this.saveSoon(p);
@@ -432,6 +441,8 @@ export class WorldRoom extends Room<WorldState> {
     if (skillLevel < res.level) {
       return this.say(client, `You need ${def.name} level ${res.level} to ${verbFor(resource)}. (You're level ${skillLevel}.)`);
     }
+    const blocked = this.toolBlock(p, skill);
+    if (blocked) return this.say(client, blocked);
     if (!this.hasStamina(client, p, skill)) return;
     this.stopActions(p);
     p.target = target;
@@ -471,6 +482,11 @@ export class WorldRoom extends Room<WorldState> {
       mining: `You swing your pick at the ${res.node.toLowerCase()}.`,
     };
     const action = ACTIONS[gather];
+    const blocked = this.toolBlock(p, skill);
+    if (blocked) {
+      if (client) this.say(client, blocked);
+      return this.stopActions(p);
+    }
     if (p.action !== action) {
       p.action = action;
       p.faceX = t.x;
@@ -507,7 +523,7 @@ export class WorldRoom extends Room<WorldState> {
       };
       this.say(client, GOT[gather]);
     }
-    this.addXp(p, client, "foraging", res.xp);
+    this.addXp(p, client, "foraging", forageXp(resource));
     this.addMasteryXp(p, client, resource, res.xp);
     this.addSkillXp(p, client, skill, res.xp); // sends both skill levels and Mastery
     this.saveSoon(p);
@@ -675,7 +691,7 @@ export class WorldRoom extends Room<WorldState> {
     const g = step.goal;
     let counts = 0;
     if (g.kind === "gather" && ev.kind === "gather") {
-      if (ev.skill === g.skill && (!g.resource || ev.resource === g.resource) && (!g.withTool || ev.withTool)) counts = 1;
+      if (ev.skill === g.skill && (!g.resource || ev.resource === g.resource) && (!g.withTool || ev.withTool) && (!g.byHand || !ev.withTool)) counts = 1;
     } else if (g.kind === "toolBreaks" && ev.kind === "toolBreak") {
       if (ev.tool === g.tool) counts = 1;
     } else if (g.kind === "craft" && ev.kind === "craft") {
@@ -703,6 +719,7 @@ export class WorldRoom extends Room<WorldState> {
   private goalMet(p: Player, step: QuestStep): boolean {
     const g = step.goal;
     if (g.kind === "level") return levelForXp(p.disciplines[g.discipline]) >= g.level;
+    if (g.kind === "equip") return g.tools.every((prefix) => TOOL_TYPE_IDS.some((t) => p.belt[t]?.item.startsWith(prefix)));
     if (g.kind === "have") return Object.entries(g.items).every(([item, n]) => this.countOf(p, item as ItemId) >= n!);
     return false;
   }
@@ -736,6 +753,31 @@ export class WorldRoom extends Room<WorldState> {
     return null;
   }
 
+  /** Is this step's work refused right now? (Needs a tool you've taken off, or must be done by hand.) Returns what to say. */
+  private toolBlock(p: Player, skill: SkillId): string | null {
+    const step = this.step(p);
+    if (!step) return null;
+    const tool = toolForSkill(skill);
+    if (!tool) return null;
+    const name = TOOL_TYPES[tool].name.toLowerCase();
+    if (step.needsTool === tool && !p.belt[tool]) {
+      return `${GUIDE_NAME} wants you to use your ${name} for this. Click it in your bag and press "Put on belt" first.`;
+    }
+    const g = step.goal;
+    if (g.kind === "gather" && g.byHand && g.skill === skill && p.belt[tool]) {
+      return `${GUIDE_NAME} asked you to do this by hand. Take the ${name} off your belt first (click it on the belt).`;
+    }
+    return null;
+  }
+
+  /** Why you can't sell, drop or eat something Maren's current task needs. */
+  private keepIt(item: ItemId, what: "sell" | "drop" | "eat"): string {
+    const name = ITEMS[item].single;
+    if (what === "sell") return `Merchant: Hold on to that ${name}, ${GUIDE_NAME} needs you to use it. Come back once you've done what she asked.`;
+    if (what === "eat") return `Not yet! ${GUIDE_NAME} wants to see that ${name} first. Go and show her.`;
+    return `Better keep that ${name}. ${GUIDE_NAME} needs you to use it.`;
+  }
+
   /** Click Old Maren: she explains the next thing (and hands things over), or reminds you what to do. */
   private talkToGuide(client: Client, p: Player) {
     const step = this.step(p);
@@ -743,11 +785,19 @@ export class WorldRoom extends Room<WorldState> {
       return this.dialog(client, ["You've learned all I can teach you. Go and make your fortune!",
         "Keep an eye out for the bounty board. It's coming soon."]);
     }
+    // Worn out with nothing to eat? She won't let you get stuck.
+    if (p.stamina < 20 && !p.inventory.some((it) => isFood(it)) && p.inventory.includes(null)) {
+      this.place(p, p.inventory.indexOf(null), "stew_minnow_3_pine");
+      this.say(client, `${GUIDE_NAME}: You look worn out! Here, eat this stew. Next time, cook some of your own.`);
+      this.sendInventory(client, p);
+    }
     if (step.goal.kind !== "talk") {
       const given = this.giveMissing(p, step.ensure);
       if (given) this.sendInventory(client, p);
-      return this.dialog(client, [`${step.hint ?? step.task}` + (given ? ` Here, take ${given}.` : "")]);
+      const t = step.needsTool && !p.belt[step.needsTool] ? ` And put your ${TOOL_TYPES[step.needsTool].name.toLowerCase()} back on your belt!` : "";
+      return this.dialog(client, [`${step.hint ?? step.task}` + (given ? ` Here, take ${given}.` : "") + t]);
     }
+    if (step.need && !p.inventory.some((it) => it?.startsWith(step.need!.prefix))) return this.dialog(client, [step.need.line]);
     const gifts = giftItems(step.give);
     const free = p.inventory.filter((it) => !it).length;
     if (free < gifts.length) {
@@ -830,7 +880,8 @@ export class WorldRoom extends Room<WorldState> {
       progress = `${p.quest.count} / ${g.count}`;
       fraction = p.quest.count / g.count;
     }
-    return { done: false, quest: QUESTS[step.quest], number: step.quest + 1, of: QUESTS.length, task: step.task, progress, fraction, talk: g.kind === "talk" };
+    const warning = step.needsTool && !p.belt[step.needsTool] ? `Put your ${TOOL_TYPES[step.needsTool].name.toLowerCase()} back on your belt first!` : undefined;
+    return { done: false, quest: QUESTS[step.quest], number: step.quest + 1, of: QUESTS.length, task: step.task, progress, fraction, talk: g.kind === "talk", warning };
   }
 
   private sendQuest(client: Client, p: Player) {

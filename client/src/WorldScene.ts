@@ -521,7 +521,9 @@ export class WorldScene extends Phaser.Scene {
   /** " (Woodcutting level 20)" if you can't gather this type yet, else "". */
   private lockNote(type: ResourceId) {
     const r = RESOURCES[type];
-    return levelForXp(this.skillXp[r.skill] ?? 0) < r.level ? ` (${findSkill(r.skill).def.name} level ${r.level})` : "";
+    const { discipline, def } = findSkill(r.skill);
+    if (levelForXp(this.lastDisciplines?.[discipline] ?? 0) < def.unlockLevel) return ` (${DISCIPLINES[discipline].name} level ${def.unlockLevel})`;
+    return levelForXp(this.skillXp[r.skill] ?? 0) < r.level ? ` (${def.name} level ${r.level})` : "";
   }
 
   private isStandingTree(x: number, y: number) {

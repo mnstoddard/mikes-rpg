@@ -86,6 +86,17 @@ export function gatherSuccessChance(_id: ResourceId, _masteryLevel: number): num
   return 1;
 }
 
+/**
+ * Foraging (Discipline) XP for one item. Fishing costs much less stamina than
+ * chopping or mining, so it gives half the Foraging XP (at least 1). The
+ * Fishing skill and the fish's Mastery still get the full XP.
+ */
+export const FISHING_FORAGE_SHARE = 0.5;
+export function forageXp(id: ResourceId): number {
+  const r = RESOURCES[id];
+  return r.skill === "fishing" ? Math.max(1, Math.floor(r.xp * FISHING_FORAGE_SHARE)) : r.xp;
+}
+
 /** Which type an item comes from (oak_logs -> oak). */
 export const RESOURCE_FOR_ITEM = Object.fromEntries(RESOURCE_IDS.map((id) => [RESOURCES[id].item, id])) as Partial<Record<ItemId, ResourceId>>;
 

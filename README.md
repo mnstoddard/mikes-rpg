@@ -43,13 +43,18 @@ tracker** under the stamina bar always shows your current task and progress
    Crafting 5, smelt 2 bronze bars and make a bronze pickaxe (both can't fail).
    Reward: Bronze tongs, 2 silver. That's a full Bronze set.
 
-If you lose something a step needs (her rod, the log for your stew), talk to her
-and she hands you another. Steps live in `shared/quests.ts`; Maren is in `shared/npcs.ts`.
+There are explicit "put it on your belt" steps for every tool she gives you, and
+guards so you can't get stuck: while a step needs an item, the Merchant won't buy
+it and you can't drop or eat it; a step that needs a tool refuses to start without
+it on your belt (and the tracker tells you to put it back); "by hand" steps refuse
+while the tool is on your belt. If you lose something a step needs (her rod, the
+log for your stew), talk to her and she hands you another, and if you're out of
+stamina with no food she gives you a stew. She explains Mastery in Quest 2. Steps live in `shared/quests.ts`; Maren is in `shared/npcs.ts`.
 
 **Starting over:** `SAVE_VERSION` in `server/src/storage.ts` is the save format.
 A save with a different version is wiped on login (skills, items, coins, tools,
 position) and the character starts the tutorial again; the account and password
-stay. Version 1 is the tutorial, so every character from before it started over.
+stay. Version 1 was the tutorial and version 2 its reworked steps; each time, every character started over.
 
 ## Disciplines and skills
 
@@ -86,7 +91,8 @@ There are three layers:
    **sell for more**: +2% per level (Mastery 51 = double), always rounded down to
    whole bronze, so cheap items need a few levels before the price ticks up.
 
-Every item you gather gives its XP to all three. The best trees, rocks and fish
+Every item you gather gives its XP to all three, except that fishing gives only
+half to Foraging (at least 1), because it costs so little stamina. The best trees, rocks and fish
 are on the east island, over the bridge at the end of the main road. Open 📊 to
 see everything; click a skill to fold its list away.
 Numbers live in `shared/foraging.ts` (types), `shared/mastery.ts` (Mastery curve,
