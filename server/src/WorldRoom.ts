@@ -40,6 +40,7 @@ import { MAX_STAMINA, STAMINA_COST, STAMINA_REGEN_MS, FISH_IDS, foodStamina, isF
 import {
   BURN_UNTIL, GUIDE_NAME, Gift, QUESTS, isProtected, QuestProgress, QuestStep, QuestView, STEPS, gateOpen, giftItems, newQuestProgress, tutorialDone,
 } from "../../shared/quests";
+import { BOUNTY_COUNT, Bounty, bountyName, bountyReward, newBoard, newBounty, slotCounts, validBounty } from "../../shared/bounties";
 import { Account, SAVE_VERSION, SaveData, checkPassword, hashPassword, store, usernameKey } from "./storage";
 
 const STEP_LOOP_MS = 50; // how often the server checks whether someone should take a step
@@ -100,6 +101,7 @@ export class Player extends Schema {
   attackTimer = 0; // ticks since the last attack
   healthTicks = 0; // ticks since health last came back on its own
   manaTicks = 0;
+  bounties: Bounty[] = []; // the 5 jobs on this player's bounty board (filled the first time they look)
   dirty = false; // something changed since the last save
   lastSavedAt = 0;
 }
@@ -402,6 +404,47 @@ export class WorldRoom extends Room<WorldState> {
       this.say(client, `You start ${verb} ${msg.all ? ITEMS[recipe.output].name.toLowerCase() : aOr(ITEMS[recipe.output].single)}. ` +
         (this.forcedCraft(p, recipe) === "success" ? `${GUIDE_NAME} is guiding your hand, so this one will work.`
           : `${percent(chance)} chance each.` + (p.belt[tool] || !recipe.needsTool ? "" : ` (No ${TOOL_TYPES[tool].name.toLowerCase()} on your belt: half the chance.)`)));
+    });
+
+    // Bounty board: hand in the full amount for one bounty (never locked or worn items).
+    this.onMessage("handIn", (client, msg: { index: number }) => {
+      const p = this.state.players.get(client.sessionId);
+      if (!p || !Number.isInteger(msg?.index)) return;
+      const b = p.bounties[msg.index];
+      if (!b || !this.boardReady(client, p)) return;
+      const slots = p.inventory.flatMap((it, i) => slotCounts(b.item, it, p.locked[i], p.durability[i]) && !isProtected(p.quest, b.item) ? [i] : []);
+      if (slots.length < b.count) {
+        const unused = isTool(b.item) || isGear(b.item) ? " unused" : "";
+        return this.say(client, `You need ${b.count}${unused} ${b.count === 1 ? ITEMS[b.item].single : ITEMS[b.item].name.toLowerCase()} for that bounty (you have ${slots.length}). Locked items don't count.`);
+      }
+      const reward = bountyReward(b, p.mastery);
+      for (const i of slots.slice(0, b.count)) {
+        p.inventory[i] = null;
+        p.locked[i] = false;
+        p.durability[i] = null;
+      }
+      p.coins += reward.coins;
+      this.say(client, `📋 Bounty done: ${bountyName(b).toLowerCase()}! You get ${formatMoney(reward.coins)} and ${reward.xp} ${reward.label} XP.`);
+      this.addXp(p, client, reward.discipline, reward.xp);
+      if (reward.skill) this.addSkillXp(p, client, reward.skill, reward.xp);
+      if (reward.monster) this.addCombatMastery(p, client, reward.monster, reward.xp);
+      // A new job goes up in its place.
+      const others = p.bounties.filter((_, i) => i !== msg.index).map((x) => x.item);
+      const next = newBounty(p, [...others, b.item]);
+      if (next) p.bounties[msg.index] = next; else p.bounties.splice(msg.index, 1);
+      this.sendInventory(client, p);
+      this.sendBounties(client, p);
+      this.saveSoon(p);
+    });
+
+    // Bounty board: swap all 5 for new ones (free for now).
+    this.onMessage("refreshBounties", (client) => {
+      const p = this.state.players.get(client.sessionId);
+      if (!p || !this.boardReady(client, p)) return;
+      p.bounties = newBoard(p);
+      this.say(client, "📋 You take down the old notices. New ones are pinned up.");
+      this.sendBounties(client, p);
+      p.dirty = true;
     });
 
     // Lock or unlock one item (the one in this inventory slot).
@@ -840,10 +883,43 @@ export class WorldRoom extends Room<WorldState> {
     p.faceX = npc.x;
     p.faceY = npc.y;
     if (npc.id === "maren") return this.talkToGuide(client, p);
+    if (npc.id === "board") return this.openBoard(client, p);
     this.say(client, `${npc.name}: ${npc.greeting}`);
     client.send(npc.kind === "station" ? "station" : "shop", { npc: npc.id });
   }
 
+
+  // ---- Bounty board (rules in shared/bounties.ts) ----
+
+  /** Click the board: shut until the tutorial is done, then show your 5 bounties. */
+  private openBoard(client: Client, p: Player) {
+    if (!tutorialDone(p.quest)) {
+      return this.say(client, `📋 The bounty board isn't open to you yet. Finish ${GUIDE_NAME}'s lessons first.`);
+    }
+    if (p.bounties.length < BOUNTY_COUNT) {
+      p.bounties = newBoard(p);
+      p.dirty = true;
+    }
+    this.sendBounties(client, p, true);
+  }
+
+  /** Can this player use the board right now? Says why not. */
+  private boardReady(client: Client, p: Player): boolean {
+    if (!tutorialDone(p.quest)) {
+      this.say(client, `📋 The bounty board isn't open to you yet. Finish ${GUIDE_NAME}'s lessons first.`);
+      return false;
+    }
+    if (!this.nearNpc(p, "board")) {
+      this.say(client, "You need to be next to the bounty board.");
+      return false;
+    }
+    return true;
+  }
+
+  /** The board's bounties (the client works out rewards and what you have with the same shared code). */
+  private sendBounties(client: Client, p: Player, open = false) {
+    client.send("bounties", { bounties: p.bounties, open });
+  }
 
   // ---- Combat (numbers in shared/combat.ts) ----
 
@@ -1271,7 +1347,7 @@ export class WorldRoom extends Room<WorldState> {
     const step = this.step(p);
     if (!step) {
       return this.dialog(client, ["You've learned all I can teach you. Go and make your fortune!",
-        "Keep an eye out for the bounty board. It's coming soon."]);
+        "If you're after work, try the bounty board next to the Merchant. Folk pay double for the things they need."]);
     }
     // Worn out with nothing to eat? She won't let you get stuck.
     if (p.stamina < 20 && !p.inventory.some((it) => isFood(it)) && p.inventory.includes(null)) {
@@ -1315,6 +1391,7 @@ export class WorldRoom extends Room<WorldState> {
     if (finished) {
       this.say(client, `🎉 Quest complete: ${QUESTS[step.quest]}!`);
       client.send("questDone", { quest: QUESTS[step.quest] });
+      if (!STEPS[p.quest.step + 1]) this.say(client, "📋 The bounty board next to the Merchant is open to you now. Click it to see what folk need.");
     }
     this.advance(p, client);
     // Hand over anything the next step needs that you don't have (e.g. a minnow to cook).
@@ -1359,7 +1436,7 @@ export class WorldRoom extends Room<WorldState> {
   /** What the quest tracker shows. */
   private questView(p: Player): QuestView {
     const step = this.step(p);
-    if (!step) return { done: true, quest: "Tutorial complete", number: QUESTS.length, of: QUESTS.length, task: "The bounty board is coming soon.", talk: false };
+    if (!step) return { done: true, quest: "Tutorial complete", number: QUESTS.length, of: QUESTS.length, task: "Check the bounty board next to the Merchant for work.", talk: false };
     const g = step.goal;
     let progress: string | undefined;
     let fraction: number | undefined;
@@ -1700,12 +1777,13 @@ export class WorldRoom extends Room<WorldState> {
       p.hp = Math.max(1, Math.min(p.maxHp, Math.floor(save.hp) + Math.floor(away / HEALTH_REGEN_MS)));
     }
     p.mana = maxMana(levelForXp(p.skillXp.magic));
+    if (Array.isArray(save.bounties)) p.bounties = save.bounties.filter(validBounty).slice(0, BOUNTY_COUNT);
   }
 
   private snapshot(p: Player): SaveData {
     // Save where the player is heading, so walking off mid-path doesn't lose the move.
     const dest = p.path.length ? p.path[p.path.length - 1] : p;
-    return { saveVersion: SAVE_VERSION, quest: { ...p.quest }, x: dest.x, y: dest.y, inventory: [...p.inventory], coins: p.coins, skills: { ...p.disciplines }, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: [...p.durability], belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), hp: p.hp, hpAt: Date.now(), gear: { ...p.gear }, spell: p.spell, combatMastery: { ...p.combatMastery }, lockedSlots: p.locked.flatMap((on, i) => (on && p.inventory[i] ? [i] : [])) };
+    return { saveVersion: SAVE_VERSION, quest: { ...p.quest }, x: dest.x, y: dest.y, inventory: [...p.inventory], coins: p.coins, skills: { ...p.disciplines }, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: [...p.durability], belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), hp: p.hp, hpAt: Date.now(), gear: { ...p.gear }, spell: p.spell, combatMastery: { ...p.combatMastery }, lockedSlots: p.locked.flatMap((on, i) => (on && p.inventory[i] ? [i] : [])), bounties: p.bounties.map((b) => ({ ...b })) };
   }
 
   private async save(p: Player) {

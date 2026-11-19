@@ -20,6 +20,7 @@ import {
   combatMasteryIn, gearEffect, gearNeeds, masteryAccuracy, masteryDamage, masteryDrops, maxHitWith,
 } from "../../shared/combat";
 import { gearDurability } from "../../shared/crafting";
+import { Bounty, bountyReward, slotCounts } from "../../shared/bounties";
 import {
   FISH_IDS, FUEL_STAMINA, FishId, MAX_STAMINA, RAW_FISH_STAMINA, STAMINA_COST, STEW_COUNTS, STEW_MASTERY, STEW_MULTIPLIER, StewCount,
   foodStamina, isFood, isStew, parseStew, stewBaseStamina, stewId,
@@ -683,6 +684,7 @@ export function renderInventory(items: (ItemId | null)[]) {
     slotsEl.appendChild(slot);
   }
   if (selling) renderShop();
+  renderBounties();
   renderCraft();
   renderInfo();
 }
@@ -724,6 +726,7 @@ document.querySelectorAll<HTMLElement>(".shop-tab").forEach((b) => {
 
 export function openShop() {
   closeCraft();
+  closeBounties();
   closeInfo();
   document.body.classList.add("shop-open");
   openPanel("inventory"); // so you can click your items, on phones too
@@ -826,6 +829,7 @@ const craftAll = document.getElementById("craft-all") as HTMLButtonElement;
 export function openCraft(id: string) {
   if (id !== "furnace" && id !== "anvil" && id !== "stove") return;
   closeShop();
+  closeBounties();
   closeInfo();
   station = id;
   document.body.classList.add("craft-open");
@@ -957,6 +961,64 @@ function renderCraft() {
 }
 
 document.getElementById("craft-close")!.onclick = closeCraft;
+
+// ---- Bounty board: 5 jobs, hand in the full amount for double the Merchant's price plus XP ----
+
+const bountyList = document.getElementById("bounty-list")!;
+let bounties: Bounty[] = [];
+let onHandIn: (index: number) => void = () => {};
+let onRefreshBounties: () => void = () => {};
+const bountyIsOpen = () => document.body.classList.contains("bounty-open");
+
+export function setBountyActions(actions: { handIn: (index: number) => void; refresh: () => void }) {
+  onHandIn = actions.handIn;
+  onRefreshBounties = actions.refresh;
+}
+
+/** The server sent the board's bounties. `open`: the player just clicked the board. */
+export function showBounties(list: Bounty[], open: boolean) {
+  bounties = list;
+  if (open) {
+    closeShop();
+    closeCraft();
+    closeInfo();
+    closeDialog();
+    document.body.classList.add("bounty-open");
+    if (!isSmallScreen()) openPanel("inventory"); // see what you're carrying (on phones it would cover the board)
+  }
+  renderBounties();
+}
+
+export function closeBounties() {
+  document.body.classList.remove("bounty-open");
+}
+
+function renderBounties() {
+  if (!bountyIsOpen()) return;
+  bountyList.replaceChildren();
+  if (!bounties.length) bountyList.append(el("bounty-note", "No one needs anything right now. Try Refresh."));
+  bounties.forEach((b, index) => {
+    const item = ITEMS[b.item];
+    const have = invItems.filter((id, i) => slotCounts(b.item, id, !!locked[i], durability[i])).length;
+    const ready = have >= b.count;
+    const reward = bountyReward(b, lastMastery);
+    const row = el("bounty-row" + (ready ? " ready" : ""));
+    const btn = document.createElement("button");
+    btn.className = "shop-btn";
+    btn.textContent = "Hand in";
+    btn.disabled = !ready;
+    btn.title = ready ? `Hand in ${b.count} ${item.name.toLowerCase()}` : `You need ${b.count - have} more`;
+    btn.onclick = () => onHandIn(index);
+    const unused = isTool(b.item) || isGear(b.item) ? " (unused)" : "";
+    row.append(icon("bounty-icon", item.icon, item.tint), el("bounty-what", `${b.count} × ${item.name}${unused}`), btn,
+      el("bounty-have", `You have ${Math.min(have, b.count)} / ${b.count}`),
+      el("bounty-reward", `Reward: ${formatMoney(reward.coins)} · +${reward.xp} ${reward.label} XP`));
+    bountyList.appendChild(row);
+  });
+}
+
+document.getElementById("bounty-refresh")!.onclick = () => onRefreshBounties();
+document.getElementById("bounty-close")!.onclick = closeBounties;
 
 // ---- Item info card: click an item (or a belt tool) to see what it's worth and does ----
 
@@ -1202,6 +1264,7 @@ let dialogAt = 0;
 export function openDialog(name: string, lines: string[]) {
   if (!lines.length) return;
   closeShop();
+  closeBounties();
   closeCraft();
   closeInfo();
   dialogLines = lines;

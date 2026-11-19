@@ -180,6 +180,29 @@ Its monsters attack anyone within 4 tiles, but never leave the forest, so walkin
 back out through the gate is always safe. Until Old Maren opens the gate (Quest 4),
 walking in says "You're not ready to go in there yet." No fighting other players.
 
+## The bounty board
+
+A notice board stands just above the Merchant (between him and the anvil). It
+opens once you finish Old Maren's tutorial; before that, clicking it says it isn't
+open to you yet. Click it to see **5 bounties**, each asking for an amount of one item:
+
+- **Only things you could get yourself right now:** types you can chop, mine or
+  catch; bars you can smelt, tools, weapons and armor you can smith, and stews you
+  can cook, all from materials you can gather; and drops from monsters you've
+  defeated before (not health potions). The board picks a kind at random (Oak logs,
+  Bronze bars, Iron tools, Trout stew, Wolf pelts...), then one exact item of that kind.
+- **Amounts:** 3-8 logs, ore or fish, 2-6 monster drops, 2-5 bars, 1-3 stews, 1-2 tools, weapons or armor.
+- **Hand in** the full amount from your bag (no part hand-ins). Locked items don't
+  count, and tools, weapons and armor must be unused.
+- **Reward:** double what the Merchant would pay you for them, with your Mastery,
+  plus the XP of gathering or making them once more, in that item's skill and its
+  Discipline (8 Pine logs = 8 Woodcutting XP). Monster drops give the monster's kill
+  bonus XP each, to Combat and that monster's Mastery.
+- A finished bounty is replaced by a new one. **Refresh** rerolls all 5 (free for now).
+- Your 5 bounties are saved with your character.
+
+Rules live in `shared/bounties.ts`; the board is in `shared/npcs.ts`.
+
 ## Merchant and money
 
 The Merchant (purple, on the road near the middle of the map) buys
@@ -288,6 +311,7 @@ Rules live in `shared/tools.ts` (metals, woods, bonuses, uses), `shared/crafting
 | `shared/quests.ts` | Old Maren's tutorial: every step, what she says and gives |
 | `shared/combat.ts` | Monsters, spells, health/mana, hit chances, combat Mastery |
 | `shared/gear.ts` | Weapons and armor: types, damage, armor points, gear slots |
+| `shared/bounties.ts` | The bounty board: which bounties you can get, amounts, rewards |
 
 To change the map, edit the text grid in `shared/map.ts`
 (`.` grass, `,` path, `~` water, `T` tree, `#` rock, `=` bridge, `:` dark forest
