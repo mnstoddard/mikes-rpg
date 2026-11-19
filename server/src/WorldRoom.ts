@@ -3,7 +3,7 @@ import { MapSchema, Schema, type } from "@colyseus/schema";
 import { MAP, MAP_HEIGHT, MAP_WIDTH, TICK_MS, isWalkable, randomSpawn } from "../../shared/map";
 import { findPath, Point } from "../../shared/pathfinding";
 import {
-  RESOURCES, ROCK_EMPTY_CHANCE, ResourceId, TREE_FALL_CHANCE,
+  RESOURCES, RESOURCE_FOR_ITEM, ROCK_EMPTY_CHANCE, ResourceId, TREE_FALL_CHANCE,
   fishAt, gatherChancePerTick, gatherSuccessChance, masteryIn, nodeAt, resourcesFor, treeKey,
 } from "../../shared/foraging";
 import {
@@ -25,8 +25,11 @@ import {
 import { INVENTORY_SIZE, ITEMS, ItemId, LEGACY_ITEMS } from "../../shared/items";
 import { NPCS, NpcDef, npcById } from "../../shared/npcs";
 import { formatMoney } from "../../shared/money";
-import { MAX_STAMINA, STAMINA_COST, STAMINA_REGEN_MS, FISH_IDS, foodStamina, isFood } from "../../shared/cooking";
-import { Account, SaveData, checkPassword, hashPassword, store, usernameKey } from "./storage";
+import { MAX_STAMINA, STAMINA_COST, STAMINA_REGEN_MS, FISH_IDS, foodStamina, isFood, isStew } from "../../shared/cooking";
+import {
+  BURN_UNTIL, GUIDE_NAME, Gift, QUESTS, QuestProgress, QuestStep, QuestView, STEPS, giftItems, newQuestProgress, tutorialDone,
+} from "../../shared/quests";
+import { Account, SAVE_VERSION, SaveData, checkPassword, hashPassword, store, usernameKey } from "./storage";
 
 const STEP_LOOP_MS = 50; // how often the server checks whether someone should take a step
 const AUTOSAVE_TICKS = 100; // 100 x 0.6s = once a minute
@@ -35,6 +38,8 @@ const USERNAME_RE = /^[A-Za-z0-9][A-Za-z0-9 _-]{0,11}$/;
 const MIN_PASSWORD = 6;
 const CRAFT_TICKS = 3; // one smelt, smith or cook every 3 ticks (1.8s); crafting is about success, not speed
 const REGEN_TICKS = Math.round(STAMINA_REGEN_MS / TICK_MS); // 50 ticks = 30s per stamina
+// For automated play-tests only (never set on Render): every gathering tick gets an item.
+const FAST_GATHER_FOR_TESTS = process.env.RPG_FAST_GATHER === "1";
 
 // Shared by every room on this server process.
 const online = new Set<string>(); // username keys currently logged in
@@ -72,6 +77,7 @@ export class Player extends Schema {
   regenTicks = 0; // ticks since the last stamina came back on its own
   locked: boolean[] = new Array(INVENTORY_SIZE).fill(false); // per slot: locked items can't be sold or dropped by accident
   talkTo: NpcDef | null = null; // person the player is walking over to talk to
+  quest: QuestProgress = newQuestProgress(); // where they are in Old Maren's tutorial
   nextStepAt = 0; // time (ms) this player may take their next step
   dirty = false; // something changed since the last save
   lastSavedAt = 0;
@@ -86,6 +92,14 @@ export class WorldState extends Schema {
 
 const COLORS = [0xe74c3c, 0x3498db, 0xf1c40f, 0x9b59b6, 0x1abc9c, 0xe67e22, 0xecf0f1, 0xff6ec7];
 const CARDINAL = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
+
+/** Things that can count toward a tutorial step. */
+type QuestEvent =
+  | { kind: "gather"; skill: GatherSkill; resource: ResourceId; withTool: boolean }
+  | { kind: "toolBreak"; tool: ToolType }
+  | { kind: "craft"; item: ItemId; worked: boolean }
+  | { kind: "eat"; item: ItemId }
+  | { kind: "sell"; item: ItemId };
 
 /** Where each crafting skill is done. */
 const STATION_FOR = { smelting: "furnace", smithing: "anvil", cooking: "stove" } as const;
@@ -184,8 +198,9 @@ export class WorldRoom extends Room<WorldState> {
       const price = sellPriceFor(item, p.mastery, p.durability[msg.slot]);
       p.inventory[msg.slot] = null;
       p.coins += price;
-      this.sendInventory(client, p);
       this.say(client, `You sell 1 ${ITEMS[item].single} for ${formatMoney(price)}.`);
+      this.questEvent(p, client, { kind: "sell", item });
+      this.sendInventory(client, p);
       this.saveSoon(p);
     });
 
@@ -196,17 +211,20 @@ export class WorldRoom extends Room<WorldState> {
       if (!this.nearNpc(p, "merchant")) return this.say(client, "You need to be next to the Merchant to sell.");
       let count = 0;
       let total = 0;
+      const sold: ItemId[] = [];
       for (let i = 0; i < INVENTORY_SIZE; i++) {
         const item = p.inventory[i];
         if (!item || p.locked[i]) continue;
         total += sellPriceFor(item, p.mastery, p.durability[i]);
         p.inventory[i] = null;
+        sold.push(item);
         count++;
       }
       if (!count) return this.say(client, "You have nothing to sell that isn't locked.");
       p.coins += total;
-      this.sendInventory(client, p);
       this.say(client, `You sell ${count} item${count === 1 ? "" : "s"} for ${formatMoney(total)}.`);
+      for (const item of sold) this.questEvent(p, client, { kind: "sell", item });
+      this.sendInventory(client, p);
       this.saveSoon(p);
     });
 
@@ -273,7 +291,8 @@ export class WorldRoom extends Room<WorldState> {
       if (!p || !Number.isInteger(msg?.slot)) return;
       const item = p.inventory[msg.slot];
       if (!item || !isFood(item)) return;
-      if (p.stamina >= MAX_STAMINA) return this.say(client, `You're not hungry. Your stamina is full (${MAX_STAMINA}).`);
+      const questEat = this.step(p)?.goal.kind === "eat" && isStew(item); // Maren asked you to eat it, so you can even when full
+      if (p.stamina >= MAX_STAMINA && !questEat) return this.say(client, `You're not hungry. Your stamina is full (${MAX_STAMINA}).`);
       const gain = foodStamina(item, p.mastery);
       p.inventory[msg.slot] = null;
       p.locked[msg.slot] = false;
@@ -284,6 +303,7 @@ export class WorldRoom extends Room<WorldState> {
       const wasted = gain - (p.stamina - before);
       this.say(client, `You eat the ${ITEMS[item].single}. +${p.stamina - before} stamina (${p.stamina}/${MAX_STAMINA}).` +
         (wasted > 0 ? ` (${wasted} more would have gone past full.)` : ""));
+      this.questEvent(p, client, { kind: "eat", item });
       this.saveSoon(p);
     });
 
@@ -296,7 +316,7 @@ export class WorldRoom extends Room<WorldState> {
       if (!this.nearNpc(p, station.id)) return this.say(client, `You need to be next to the ${station.name.toLowerCase()}.`);
       const { discipline, def } = findSkill(recipe.skill);
       if (levelForXp(p.disciplines[discipline]) < def.unlockLevel) {
-        return this.say(client, `You need ${DISCIPLINES[discipline].name} level ${def.unlockLevel} to use ${def.name}. Make a few tools at the anvil first.`);
+        return this.say(client, `You need ${DISCIPLINES[discipline].name} level ${def.unlockLevel} to use ${def.name}. ${GUIDE_NAME} will tell you how to get there.`);
       }
       if (!this.hasStamina(client, p, recipe.skill)) return;
       const level = levelForXp(p.skillXp[recipe.skill]);
@@ -317,7 +337,8 @@ export class WorldRoom extends Room<WorldState> {
       const tool = toolForSkill(recipe.skill)!;
       const verb = { smelting: "smelting", smithing: "making", cooking: "cooking" }[recipe.skill];
       this.say(client, `You start ${verb} ${msg.all ? ITEMS[recipe.output].name.toLowerCase() : aOr(ITEMS[recipe.output].single)}. ` +
-        `${percent(chance)} chance each.` + (p.belt[tool] || !recipe.needsTool ? "" : ` (No ${TOOL_TYPES[tool].name.toLowerCase()} on your belt: half the chance.)`));
+        (this.forcedCraft(p, recipe) === "success" ? `${GUIDE_NAME} is guiding your hand, so this one will work.`
+          : `${percent(chance)} chance each.` + (p.belt[tool] || !recipe.needsTool ? "" : ` (No ${TOOL_TYPES[tool].name.toLowerCase()} on your belt: half the chance.)`)));
     });
 
     // Lock or unlock one item (the one in this inventory slot).
@@ -333,21 +354,15 @@ export class WorldRoom extends Room<WorldState> {
     this.onMessage("ready", (client, msg?: { reconnected?: boolean }) => {
       const p = this.state.players.get(client.sessionId);
       if (!p) return;
-      if (msg?.reconnected) {
-        this.sendInventory(client, p);
-        this.sendDisciplines(client, p);
-        this.sendMastery(client, p);
-        this.sendStamina(client, p);
-        return;
-      }
       this.sendInventory(client, p);
       this.sendDisciplines(client, p);
       this.sendMastery(client, p);
       this.sendStamina(client, p);
-      this.say(client, "Welcome! Chop trees for logs (fish from Foraging level 3, mine from level 5), then sell them to the Merchant.");
-      this.say(client, "Tools on your belt make gathering faster; without one it's 3 times slower. The Merchant sells basic tools.");
-      this.say(client, "Smelt ore into bars at the furnace and make tools at the anvil, both next to the Merchant.");
-      this.say(client, "Every action costs stamina (the ⚡ bar). It comes back 1 every 30 seconds, or eat fish, or cook them into stew at the stove.");
+      if (msg?.reconnected) return;
+      const step = this.step(p);
+      if (!step) this.say(client, "Welcome back!");
+      else if (p.quest.step === 0) this.say(client, `Welcome! Go and talk to ${GUIDE_NAME} (the ❗ just south of the furnace). She'll show you how to get started.`);
+      else this.say(client, `Welcome back! Your task: ${step.task}.`);
     });
 
     this.onMessage("drop", (client, msg: { slot: number }) => {
@@ -471,7 +486,7 @@ export class WorldRoom extends Room<WorldState> {
       return this.stopActions(p);
     }
     const mastery = masteryIn(p.mastery, resource);
-    if (Math.random() >= gatherChancePerTick(resource, mastery, belt ? toolBonus(belt.item) : null)) return;
+    if (!FAST_GATHER_FOR_TESTS && Math.random() >= gatherChancePerTick(resource, mastery, belt ? toolBonus(belt.item) : null)) return;
     if (Math.random() >= gatherSuccessChance(resource, mastery)) {
       // Never happens yet (success is always 100%); here for harder types later.
       if (client) this.say(client, skill === "fishing" ? "Something bites, but it gets away." : "You don't manage to get anything.");
@@ -479,8 +494,9 @@ export class WorldRoom extends Room<WorldState> {
     }
 
     this.place(p, free, res.item);
-    this.wearTool(p, client, tool, wearFor(res.level));
     this.useStamina(p, skill);
+    this.questEvent(p, client, { kind: "gather", skill: gather, resource, withTool: !!belt });
+    this.wearTool(p, client, tool, wearFor(res.level));
     if (client) {
       this.sendInventory(client, p);
       this.sendStamina(client, p);
@@ -536,7 +552,8 @@ export class WorldRoom extends Room<WorldState> {
     }
     const output = ITEMS[recipe.output];
     const chance = successFor(recipe, p.mastery, p.belt);
-    const worked = Math.random() < chance;
+    const forced = this.forcedCraft(p, recipe); // the tutorial's first stew always burns; some tries always work
+    const worked = forced ? forced === "success" : Math.random() < chance;
     const xp = worked ? recipe.xp : failXp(recipe.xp);
     if (worked) this.place(p, freed, recipe.output);
     const tool = toolForSkill(recipe.skill)!;
@@ -559,6 +576,7 @@ export class WorldRoom extends Room<WorldState> {
     this.addXp(p, client, "crafting", xp);
     this.addMasteryXp(p, client, recipe.mastery, xp);
     this.addSkillXp(p, client, recipe.skill, xp);
+    this.questEvent(p, client, { kind: "craft", item: recipe.output, worked });
     this.saveSoon(p);
 
     if (--job.remaining <= 0) return this.stopActions(p);
@@ -617,10 +635,14 @@ export class WorldRoom extends Room<WorldState> {
     if (t.durability <= 0) {
       p.belt[type] = null;
       if (client) this.say(client, `Your ${ITEMS[t.item].single} breaks!`);
+      this.questEvent(p, client, { kind: "toolBreak", tool: type });
     } else if (before > max * TOOL_WARN_AT && t.durability <= max * TOOL_WARN_AT) {
       if (client) this.say(client, `Your ${ITEMS[t.item].single} is about to break (${t.durability} uses left).`);
     }
-    if (client) client.send("belt", p.belt);
+    if (client) {
+      client.send("belt", p.belt);
+      this.sendQuest(client, p); // "5 uses left" on the tracker
+    }
   }
 
   /** "+10% gathering speed, 150 uses" */
@@ -634,8 +656,185 @@ export class WorldRoom extends Room<WorldState> {
   private openShop(client: Client, p: Player, npc: NpcDef) {
     p.faceX = npc.x;
     p.faceY = npc.y;
+    if (npc.id === "maren") return this.talkToGuide(client, p);
     this.say(client, `${npc.name}: ${npc.greeting}`);
     client.send(npc.kind === "station" ? "station" : "shop", { npc: npc.id });
+  }
+
+  // ---- Old Maren's tutorial (steps in shared/quests.ts) ----
+
+  /** The tutorial step this player is on, or null once it's finished. */
+  private step(p: Player): QuestStep | null {
+    return STEPS[p.quest.step] ?? null;
+  }
+
+  /** Something happened that might finish (or count toward) the current step. */
+  private questEvent(p: Player, client: Client | undefined, ev: QuestEvent) {
+    const step = this.step(p);
+    if (!step) return;
+    const g = step.goal;
+    let counts = 0;
+    if (g.kind === "gather" && ev.kind === "gather") {
+      if (ev.skill === g.skill && (!g.resource || ev.resource === g.resource) && (!g.withTool || ev.withTool)) counts = 1;
+    } else if (g.kind === "toolBreaks" && ev.kind === "toolBreak") {
+      if (ev.tool === g.tool) counts = 1;
+    } else if (g.kind === "craft" && ev.kind === "craft") {
+      if (ev.item.startsWith(g.prefix) && (ev.worked || g.tries)) counts = 1;
+    } else if (g.kind === "eat" && ev.kind === "eat") {
+      if (isStew(ev.item)) counts = 1;
+    } else if (g.kind === "sell" && ev.kind === "sell") {
+      const r = RESOURCE_FOR_ITEM[ev.item];
+      if (r && RESOURCES[r].skill === g.what) counts = 1;
+    }
+    if (!counts) return;
+    p.quest.count += counts;
+    p.dirty = true;
+    if (p.quest.count >= ("count" in g ? g.count : 1)) this.advance(p, client);
+    else if (client) this.sendQuest(client, p);
+  }
+
+  /** Steps that finish on their own: reaching a level, or having some items. */
+  private checkQuest(p: Player, client: Client) {
+    const step = this.step(p);
+    if (step && this.goalMet(p, step)) this.advance(p, client);
+    else this.sendQuest(client, p);
+  }
+
+  private goalMet(p: Player, step: QuestStep): boolean {
+    const g = step.goal;
+    if (g.kind === "level") return levelForXp(p.disciplines[g.discipline]) >= g.level;
+    if (g.kind === "have") return Object.entries(g.items).every(([item, n]) => this.countOf(p, item as ItemId) >= n!);
+    return false;
+  }
+
+  private countOf(p: Player, item: ItemId) {
+    return p.inventory.filter((it) => it === item).length;
+  }
+
+  /** On to the next step (and past any that are already done, like a level you already have). */
+  private advance(p: Player, client: Client | undefined) {
+    p.quest.step++;
+    p.quest.count = 0;
+    p.dirty = true;
+    let step = this.step(p);
+    while (step && this.goalMet(p, step)) {
+      p.quest.step++;
+      step = this.step(p);
+    }
+    this.saveSoon(p);
+    if (!client) return;
+    if (step) this.say(client, `📜 Next: ${step.task}.`);
+    this.sendQuest(client, p);
+  }
+
+  /** The tutorial makes some crafting turn out a set way: every stew burns until Maren explains it, and some tries always work. */
+  private forcedCraft(p: Player, recipe: Recipe): "fail" | "success" | null {
+    if (tutorialDone(p.quest)) return null;
+    if (recipe.skill === "cooking" && p.quest.step <= BURN_UNTIL) return "fail";
+    const step = this.step(p)!;
+    if (step.guaranteed && step.goal.kind === "craft" && recipe.output.startsWith(step.goal.prefix)) return "success";
+    return null;
+  }
+
+  /** Click Old Maren: she explains the next thing (and hands things over), or reminds you what to do. */
+  private talkToGuide(client: Client, p: Player) {
+    const step = this.step(p);
+    if (!step) {
+      return this.dialog(client, ["You've learned all I can teach you. Go and make your fortune!",
+        "Keep an eye out for the bounty board. It's coming soon."]);
+    }
+    if (step.goal.kind !== "talk") {
+      const given = this.giveMissing(p, step.ensure);
+      if (given) this.sendInventory(client, p);
+      return this.dialog(client, [`${step.hint ?? step.task}` + (given ? ` Here, take ${given}.` : "")]);
+    }
+    const gifts = giftItems(step.give);
+    const free = p.inventory.filter((it) => !it).length;
+    if (free < gifts.length) {
+      return this.dialog(client, [`I've got ${gifts.length} things for you, but your bag is too full. Make room for ${gifts.length - free} more and come back.`]);
+    }
+    for (const g of gifts) this.place(p, p.inventory.indexOf(null), g.item, g.durability);
+    if (step.coins) p.coins += step.coins;
+    const finished = STEPS[p.quest.step + 1]?.quest !== step.quest;
+    this.dialog(client, step.lines ?? []);
+    if (gifts.length || step.coins) {
+      const names = [...new Set(gifts.map((g) => g.item))].map((item) => {
+        const n = gifts.filter((g) => g.item === item).length;
+        if (n === 1) return item.startsWith("tongs_") ? `a pair of ${ITEMS[item].single}` : aOr(ITEMS[item].single);
+        return `${n} ${ITEMS[item].name.toLowerCase()}`;
+      });
+      if (step.coins) names.push(formatMoney(step.coins));
+      this.say(client, `${GUIDE_NAME} gives you ${names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0]}.`);
+    }
+    if (finished) {
+      this.say(client, `🎉 Quest complete: ${QUESTS[step.quest]}!`);
+      client.send("questDone", { quest: QUESTS[step.quest] });
+    }
+    this.advance(p, client);
+    // Hand over anything the next step needs that you don't have (e.g. a minnow to cook).
+    const extra = this.giveMissing(p, this.step(p)?.ensure);
+    if (extra) this.say(client, `${GUIDE_NAME} also gives you ${extra}.`);
+    this.sendInventory(client, p);
+    this.saveSoon(p);
+  }
+
+  /** Give whatever of these you don't have. Returns what was given ("a pine log and a minnow"), or "". */
+  private giveMissing(p: Player, gifts?: Gift[]): string {
+    const given: string[] = [];
+    for (const g of gifts ?? []) {
+      // A tool counts if you have any of that kind (in your bag or on your belt); a stew counts if you have any stew.
+      let have: number;
+      if (isTool(g.item)) {
+        const type = parseTool(g.item).type;
+        have = (p.belt[type] ? 1 : 0) + p.inventory.filter((it) => isTool(it) && parseTool(it).type === type).length;
+      } else if (isStew(g.item)) {
+        have = p.inventory.filter((it) => isStew(it)).length;
+      } else {
+        have = this.countOf(p, g.item);
+      }
+      for (let n = have; n < (g.count ?? 1); n++) {
+        const free = p.inventory.indexOf(null);
+        if (free === -1) break;
+        this.place(p, free, g.item, g.durability);
+        given.push(aOr(ITEMS[g.item].single));
+      }
+    }
+    if (given.length) p.dirty = true;
+    return given.length > 1 ? `${given.slice(0, -1).join(", ")} and ${given[given.length - 1]}` : given[0] ?? "";
+  }
+
+  private dialog(client: Client, lines: string[]) {
+    client.send("dialog", { name: GUIDE_NAME, lines });
+  }
+
+  /** What the quest tracker shows. */
+  private questView(p: Player): QuestView {
+    const step = this.step(p);
+    if (!step) return { done: true, quest: "Tutorial complete", number: QUESTS.length, of: QUESTS.length, task: "The bounty board is coming soon.", talk: false };
+    const g = step.goal;
+    let progress: string | undefined;
+    let fraction: number | undefined;
+    if (g.kind === "level") {
+      const xp = p.disciplines[g.discipline];
+      const need = xpForLevel(g.level);
+      progress = `${DISCIPLINES[g.discipline].name} XP ${Math.min(xp, need)} / ${need}`;
+      fraction = Math.min(1, xp / need);
+    } else if (g.kind === "have") {
+      const want = Object.entries(g.items) as [ItemId, number][];
+      progress = want.map(([item, n]) => `${Math.min(n, this.countOf(p, item))}/${n} ${ITEMS[item].name.toLowerCase()}`).join(", ");
+      fraction = want.reduce((sum, [item, n]) => sum + Math.min(n, this.countOf(p, item)), 0) / want.reduce((sum, [, n]) => sum + n, 0);
+    } else if (g.kind === "toolBreaks") {
+      const t = p.belt[g.tool];
+      progress = t ? `${t.durability} use${t.durability === 1 ? "" : "s"} left` : `Not on your belt yet`;
+    } else if ("count" in g && g.count > 1) {
+      progress = `${p.quest.count} / ${g.count}`;
+      fraction = p.quest.count / g.count;
+    }
+    return { done: false, quest: QUESTS[step.quest], number: step.quest + 1, of: QUESTS.length, task: step.task, progress, fraction, talk: g.kind === "talk" };
+  }
+
+  private sendQuest(client: Client, p: Player) {
+    client.send("quest", this.questView(p));
   }
 
   /** Standing on one of the 8 tiles around the Merchant, furnace or anvil. */
@@ -676,6 +875,7 @@ export class WorldRoom extends Room<WorldState> {
     const after = levelForXp(p.disciplines[discipline]);
     if (!client) return;
     this.sendDisciplines(client, p);
+    this.checkQuest(p, client); // "Reach Foraging level 3" steps
     if (after > before) {
       const d = DISCIPLINES[discipline];
       this.say(client, `Congratulations, you just advanced a ${d.name} level! You are now level ${after}.`);
@@ -753,6 +953,7 @@ export class WorldRoom extends Room<WorldState> {
     client.send("belt", p.belt);
     client.send("inventory", p.inventory);
     client.send("coins", p.coins);
+    this.checkQuest(p, client); // "Have 2 copper ore" steps
   }
 
   // ---- Accounts ----
@@ -850,6 +1051,18 @@ export class WorldRoom extends Room<WorldState> {
   // ---- Saving and loading ----
 
   private restore(p: Player, save: SaveData) {
+    // Saves from before the tutorial (or an older save version) start over from
+    // scratch, so everyone plays Old Maren's tutorial. The account itself is kept.
+    if (save.saveVersion !== SAVE_VERSION) {
+      if (Object.keys(save).length) console.log(`${p.name}: old save (version ${save.saveVersion ?? "none"}), starting over`);
+      save = {};
+      // New characters start on the road near Old Maren.
+      const spawn = { x: 16 + Math.floor(Math.random() * 4), y: 11 };
+      if (isWalkable(spawn.x, spawn.y)) { p.x = spawn.x; p.y = spawn.y; return; }
+    }
+    if (save.quest && Number.isInteger(save.quest.step) && save.quest.step >= 0) {
+      p.quest = { step: Math.min(save.quest.step, STEPS.length), count: Number.isInteger(save.quest.count) && save.quest.count >= 0 ? save.quest.count : 0 };
+    }
     if (Number.isInteger(save.x) && Number.isInteger(save.y) && isWalkable(save.x!, save.y!)) {
       p.x = save.x!;
       p.y = save.y!;
@@ -910,7 +1123,7 @@ export class WorldRoom extends Room<WorldState> {
   private snapshot(p: Player): SaveData {
     // Save where the player is heading, so walking off mid-path doesn't lose the move.
     const dest = p.path.length ? p.path[p.path.length - 1] : p;
-    return { x: dest.x, y: dest.y, inventory: [...p.inventory], coins: p.coins, skills: { ...p.disciplines }, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: [...p.durability], belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), lockedSlots: p.locked.flatMap((on, i) => (on && p.inventory[i] ? [i] : [])) };
+    return { saveVersion: SAVE_VERSION, quest: { ...p.quest }, x: dest.x, y: dest.y, inventory: [...p.inventory], coins: p.coins, skills: { ...p.disciplines }, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: [...p.durability], belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), lockedSlots: p.locked.flatMap((on, i) => (on && p.inventory[i] ? [i] : [])) };
   }
 
   private async save(p: Player) {

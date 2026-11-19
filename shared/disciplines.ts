@@ -31,8 +31,8 @@ export const DISCIPLINES: Record<DisciplineId, DisciplineDef> = {
     name: "Foraging", icon: "🌿",
     description: "Gathering from the wild.",
     skills: [
-      { id: "woodcutting", name: "Woodcutting", icon: "🪓", unlockLevel: 1, description: "Click a tree to chop logs." },
-      { id: "fishing", name: "Fishing", icon: "🎣", unlockLevel: 3, description: "Click the water's edge to fish." },
+      { id: "fishing", name: "Fishing", icon: "🎣", unlockLevel: 1, description: "Click the water's edge to fish." },
+      { id: "woodcutting", name: "Woodcutting", icon: "🪓", unlockLevel: 3, description: "Click a tree to chop logs." },
       { id: "mining", name: "Mining", icon: "⛏️", unlockLevel: 5, description: "Click a rock to mine ore." },
     ],
   },
@@ -40,9 +40,9 @@ export const DISCIPLINES: Record<DisciplineId, DisciplineDef> = {
     name: "Crafting", icon: "⚒️",
     description: "Making things from what you gather.",
     skills: [
-      { id: "smithing", name: "Smithing", icon: "🔨", unlockLevel: 1, description: "Use the anvil by the Merchant to make tools from stone or a metal bar, plus a log." },
-      { id: "smelting", name: "Smelting", icon: "🔥", unlockLevel: 3, description: "Use the furnace by the Merchant to turn ore into bars." },
-      { id: "cooking", name: "Cooking", icon: "🍲", unlockLevel: 5, description: "Use the stove by the furnace to cook fish into stew, which gives back lots of stamina." },
+      { id: "cooking", name: "Cooking", icon: "🍲", unlockLevel: 1, description: "Use the stove by the furnace to cook fish into stew, which gives back lots of stamina." },
+      { id: "smithing", name: "Smithing", icon: "🔨", unlockLevel: 3, description: "Use the anvil by the Merchant to make tools from stone or a metal bar, plus a log." },
+      { id: "smelting", name: "Smelting", icon: "🔥", unlockLevel: 5, description: "Use the furnace by the Merchant to turn ore into bars." },
     ],
   },
 };

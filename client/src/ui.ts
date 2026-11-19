@@ -10,6 +10,7 @@ import {
   BAR_IDS, Belt, MATERIALS, MATERIAL_IDS, Material, METALS, METAL_IDS, Metal, TOOL_TYPES, TOOL_TYPE_IDS, ToolType, WOODS, WOOD_IDS, Wood, barId, emptyBelt,
   hasHandle, isTool, maxDurability, metalOfBar, parseTool, toolBonus, toolForSkill, toolId,
 } from "../../shared/tools";
+import type { QuestView } from "../../shared/quests";
 import {
   FISH_IDS, FUEL_STAMINA, FishId, MAX_STAMINA, RAW_FISH_STAMINA, STAMINA_COST, STEW_COUNTS, STEW_MASTERY, STEW_MULTIPLIER, StewCount,
   foodStamina, isFood, isStew, parseStew, stewBaseStamina, stewId,
@@ -52,7 +53,7 @@ let flashType: MasteryId | undefined;
 let lastBelt: Belt = emptyBelt();
 /** Which crafting window is open, and what's picked in it. */
 let station: "furnace" | "anvil" | "stove" | null = null;
-const pick = { bar: "bronze" as Metal, type: "axe" as ToolType, metal: "stone" as Material, wood: "pine" as Wood, fish: "minnow" as FishId, count: 3 as StewCount, fuel: "pine" as Wood };
+const pick = { bar: "bronze" as Metal, type: "axe" as ToolType, metal: "stone" as Material, wood: "pine" as Wood, fish: "minnow" as FishId, count: 1 as StewCount, fuel: "pine" as Wood };
 const STATION_SKILL = { furnace: "smelting", anvil: "smithing", stove: "cooking" } as const;
 /** The item whose info card is showing. */
 type InfoTarget = { kind: "slot"; slot: number } | { kind: "belt"; type: ToolType };
@@ -671,7 +672,7 @@ function renderCraft() {
   const { discipline, def: skillDef } = findSkill(skill);
   const disciplineLevel = levelForXp(lastDisciplines[discipline] ?? 0);
   if (disciplineLevel < skillDef.unlockLevel) {
-    craftBody.append(el("craft-warn", `${skillDef.name} unlocks at ${DISCIPLINES[discipline].name} level ${skillDef.unlockLevel} (you're level ${disciplineLevel}). Make a few stone tools at the anvil first.`));
+    craftBody.append(el("craft-warn", `${skillDef.name} unlocks at ${DISCIPLINES[discipline].name} level ${skillDef.unlockLevel} (you're level ${disciplineLevel}). Old Maren will tell you how to get there.`));
     craftOne.disabled = true;
     craftAll.disabled = true;
     return;
@@ -897,4 +898,63 @@ export function setHoverText(action: string | null, target = "", x = 0, y = 0) {
   hoverEl.style.left = `${x + 14}px`;
   hoverEl.style.top = `${y + 14}px`;
   hoverEl.style.display = "block";
+}
+
+// ---- Old Maren: the quest tracker and her dialog ----
+
+const questEl = document.getElementById("quest")!;
+let questMin = false;
+questEl.onclick = () => { questMin = !questMin; questEl.classList.toggle("min", questMin); };
+
+export function renderQuest(q: QuestView, flash = false) {
+  document.body.classList.add("has-quest");
+  questEl.replaceChildren();
+  questEl.append(el("q-title", q.done ? `📜 ${q.quest}` : `📜 Quest ${q.number}/${q.of}: ${q.quest}`), el("q-task", (q.talk ? "❗ " : "") + q.task));
+  if (q.progress) questEl.append(el("q-progress", q.progress));
+  if (q.fraction != null) {
+    const bar = el("q-bar");
+    const fill = document.createElement("div");
+    fill.style.width = `${Math.floor(Math.min(1, q.fraction) * 100)}%`;
+    bar.appendChild(fill);
+    questEl.append(bar);
+  }
+  if (flash) {
+    questEl.classList.remove("flash");
+    void questEl.offsetWidth; // restart the animation
+    questEl.classList.add("flash");
+  }
+}
+
+const dialogName = document.getElementById("dialog-name")!;
+const dialogText = document.getElementById("dialog-text")!;
+const dialogPage = document.getElementById("dialog-page")!;
+const dialogNext = document.getElementById("dialog-next") as HTMLButtonElement;
+let dialogLines: string[] = [];
+let dialogAt = 0;
+
+/** Show what someone says, one paragraph at a time (Next, then OK). */
+export function openDialog(name: string, lines: string[]) {
+  if (!lines.length) return;
+  closeShop();
+  closeCraft();
+  closeInfo();
+  dialogLines = lines;
+  dialogAt = 0;
+  dialogName.textContent = name;
+  document.body.classList.add("dialog-open");
+  renderDialog();
+}
+
+function renderDialog() {
+  dialogText.textContent = dialogLines[dialogAt];
+  dialogPage.textContent = dialogLines.length > 1 ? `${dialogAt + 1} / ${dialogLines.length}` : "";
+  dialogNext.textContent = dialogAt < dialogLines.length - 1 ? "Next ▸" : "OK";
+}
+
+dialogNext.onclick = () => {
+  if (dialogAt < dialogLines.length - 1) { dialogAt++; renderDialog(); } else closeDialog();
+};
+
+export function closeDialog() {
+  document.body.classList.remove("dialog-open");
 }

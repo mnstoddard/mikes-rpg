@@ -5,13 +5,14 @@ import { RESOURCES, ResourceId, fishAt, isFishingSpot, nodeAt, treeKey } from ".
 
 import { ITEMS, ItemId } from "../../shared/items";
 import { joinWorld, rejoinWorld } from "./network";
-import { renderStamina, closeCraft, closeInfo, closeShop, flashDiscipline, flashMastery, flashSkillRow, openCraft, renderBelt, renderDurability, renderMastery, renderSkillXp, openShop, renderCoins, renderDisciplines, renderInventory, renderLocks, setHoverText, setInventoryActions, showMessage } from "./ui";
+import { closeDialog, openDialog, renderQuest, renderStamina, closeCraft, closeInfo, closeShop, flashDiscipline, flashMastery, flashSkillRow, openCraft, renderBelt, renderDurability, renderMastery, renderSkillXp, openShop, renderCoins, renderDisciplines, renderInventory, renderLocks, setHoverText, setInventoryActions, showMessage } from "./ui";
 import { masteryName } from "../../shared/crafting";
 import type { Belt, ToolType } from "../../shared/tools";
 import { NPCS, npcAt } from "../../shared/npcs";
 import { DISCIPLINES, DisciplineId, DisciplineXp, SkillId, SkillXp, emptySkills, findSkill, levelForXp } from "../../shared/disciplines";
 import { ItemMasteryXp, MasteryId } from "../../shared/mastery";
 import { showLogin } from "./login";
+import type { QuestView } from "../../shared/quests";
 
 const TILE_COLORS: Record<Tile, number> = {
   grass: 0x4a8f3c, path: 0xb89b6a, water: 0x2d6fa3, tree: 0x2e5e22, rock: 0x7d7d7d, bridge: 0x8b5a2b,
@@ -45,6 +46,8 @@ export class WorldScene extends Phaser.Scene {
   private gestureWasPinch = false;
   private lastDisciplines?: DisciplineXp;
   private skillXp: SkillXp = emptySkills();
+  /** The ❗ over Old Maren when she has something to say. */
+  private guideAlert?: Phaser.GameObjects.Text;
 
   constructor() { super("world"); }
 
@@ -106,6 +109,15 @@ export class WorldScene extends Phaser.Scene {
       craft: (item, all) => room.send("craft", { item, all }),
       eat: (slot) => room.send("eat", { slot }),
     });
+    room.onMessage("quest", (q: QuestView) => {
+      this.guideAlert?.setVisible(q.talk);
+      renderQuest(q);
+    });
+    room.onMessage("questDone", () => this.floatText("Quest complete!", "#ffd84a", true));
+    room.onMessage("dialog", (msg: { name: string; lines: string[] }) => {
+      this.marker.setVisible(false);
+      openDialog(msg.name, msg.lines);
+    });
     room.onMessage("stamina", (msg: { stamina: number; max: number }) => renderStamina(msg.stamina, msg.max));
     room.onMessage("durability", (slots: (number | null)[]) => renderDurability(slots));
     room.onMessage("belt", (belt: Belt) => renderBelt(belt));
@@ -139,6 +151,7 @@ export class WorldScene extends Phaser.Scene {
     closeShop();
     closeCraft();
     closeInfo();
+    closeDialog();
     const started = Date.now();
     for (let wait = 500; Date.now() - started < 110_000; wait = Math.min(wait * 2, 8000)) {
       this.hud.textContent = "Reconnecting…";
@@ -219,14 +232,27 @@ export class WorldScene extends Phaser.Scene {
       const shadow = this.add.ellipse(0, 10, 20, 8, 0x000000, 0.3);
       const body = this.add.circle(0, 0, 10, npc.color).setStrokeStyle(2, 0x000000);
       const hat = this.add.graphics();
-      hat.fillStyle(0x3b2410).fillRect(-9, -12, 18, 3).fillRect(-6, -18, 12, 7);
-      const bag = this.add.text(11, 2, "💰", { fontSize: "13px" }).setOrigin(0.5);
+      if (npc.id === "maren") {
+        // A grey bun of hair and a straw sun hat.
+        hat.fillStyle(0xd9d4c7).fillCircle(0, -9, 5);
+        hat.fillStyle(0xe8c56a).fillEllipse(0, -11, 24, 5).fillRect(-6, -17, 12, 6);
+        hat.fillStyle(0x2e86c1).fillRect(-6, -13, 12, 2);
+      } else {
+        hat.fillStyle(0x3b2410).fillRect(-9, -12, 18, 3).fillRect(-6, -18, 12, 7);
+      }
+      const badge = this.add.text(11, 2, npc.badge ?? "", { fontSize: "13px" }).setOrigin(0.5);
       const label = this.add.text(0, -28, npc.name, {
         fontSize: "12px", color: "#7fe0ff", stroke: "#000", strokeThickness: 3,
       }).setOrigin(0.5);
-      c.add([shadow, body, hat, bag, label]);
-      // A little idle bob so he looks alive.
+      c.add([shadow, body, hat, badge, label]);
+      // A little idle bob so they look alive.
       this.tweens.add({ targets: [body, hat], y: "-=2", duration: 900, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+      if (npc.id === "maren") {
+        // ❗ when she has something for you (the server says when, with the quest tracker).
+        this.guideAlert = this.add.text(0, -46, "❗", { fontSize: "18px" }).setOrigin(0.5).setVisible(false);
+        c.add(this.guideAlert);
+        this.tweens.add({ targets: this.guideAlert, y: -50, duration: 500, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+      }
     }
   }
 
@@ -511,6 +537,7 @@ export class WorldScene extends Phaser.Scene {
     closeShop(); // clicking the map walks away from the shop
     closeCraft();
     closeInfo();
+    closeDialog();
     const npc = npcAt(x, y);
     if (npc) {
       this.room?.send("talk", { id: npc.id });

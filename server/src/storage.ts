@@ -13,8 +13,17 @@ import pg from "pg";
 
 const scrypt = promisify(scryptCb) as (pw: string, salt: Buffer, len: number) => Promise<Buffer>;
 
+/**
+ * Bump this to make every character start over from scratch on their next login
+ * (their account and password are kept). Version 1 = Old Maren's tutorial: saves
+ * from before it have no version, so everyone replays from the start.
+ */
+export const SAVE_VERSION = 1;
+
 /** Everything about a character that survives logging out. */
 export interface SaveData {
+  saveVersion?: number; // see SAVE_VERSION
+  quest?: { step: number; count: number }; // tutorial step (shared/quests.ts) and progress on it
   x?: number;
   y?: number;
   inventory?: (string | null)[];
