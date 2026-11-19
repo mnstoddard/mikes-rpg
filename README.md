@@ -47,7 +47,7 @@ There are three layers:
 2. **Skill level** (Woodcutting, Fishing, Mining; up to 99, same curve as Foraging)
    unlocks better types, which are slower but give more XP and sell for more:
    - Woodcutting: Pine 1, Oak 5, Birch 10, Maple 20, Yew 35, Ironwood 50, Elderwood 70
-   - Mining: Stone 1, Copper 5, Tin 10, Iron 20, Coal 30, Silver 40, Gold 55, Mithril 70
+   - Mining: Stone 1, Copper 5, Tin 5, Iron 20, Coal 30, Silver 40, Gold 55, Mithril 70
    - Fishing: Minnow 1, Trout 5, Perch 10, Salmon 20, Pike 30, Tuna 45, Swordfish 60, Eel 75
 3. **Mastery** belongs to each type (Pine, Oak, Copper, Trout...) and has no cap.
    Each Mastery level needs 10% more XP than the last (Mastery 10 = 135 XP,
@@ -116,9 +116,9 @@ locked items.
   hammer = 1 stone or bar + 1 log; tongs = 1 stone or bar. **Stone tools** are the
   starter tier: 80% success at Mastery 1 and no hammer needed, so a new player can
   make a Stone + Pine axe right away. Metals unlock at Smithing 1 / 15 / 30 / 60.
-- 🔥 **Smelting** at the **furnace** (left of the Merchant): Bronze bar = copper
-  ore + tin ore (level 1), Iron bar = iron ore (15), Steel bar = iron ore + coal
-  (30), Mithril bar = mithril ore + coal (60).
+- 🔥 **Smelting** at the **furnace** (left of the Merchant). Every bar takes 2 ores:
+  Bronze bar = 1 copper ore + 1 tin ore (level 1), Iron bar = 2 iron ore (15),
+  Steel bar = 1 iron ore + 1 coal (30), Mithril bar = 1 mithril ore + 1 coal (60).
 
 **Mastery** for crafting is per bar (Bronze bar...) and per kind of tool (all
 axes share one). Better materials give more XP. Success from Mastery: 25% at

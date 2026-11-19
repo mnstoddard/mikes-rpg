@@ -88,6 +88,9 @@ const isRock = (x: number, y: number) =>
 const isTree = (x: number, y: number) =>
   y >= 0 && y < MAP_HEIGHT && x >= 0 && x < MAP_WIDTH && MAP[y][x] === "tree";
 
+/** "a bronze bar" / "an iron bar". */
+const aOr = (word: string) => `${/^[aeiou]/i.test(word) ? "an" : "a"} ${word}`;
+
 /** "chop Oak trees", "mine Copper rocks", "fish at Trout spots": for messages. */
 function verbFor(id: ResourceId) {
   const r = RESOURCES[id];
@@ -218,7 +221,7 @@ export class WorldRoom extends Room<WorldState> {
       }
       if (!bought) {
         return this.say(client, p.inventory.includes(null)
-          ? `You need ${formatMoney(price)} for a ${ITEMS[item].single}.` : "Your inventory is full.");
+          ? `You need ${formatMoney(price)} for ${aOr(ITEMS[item].single)}.` : "Your inventory is full.");
       }
       this.sendInventory(client, p);
       this.say(client, `You buy ${bought} ${bought === 1 ? ITEMS[item].single : ITEMS[item].name.toLowerCase()} for ${formatMoney(price * bought)}.`);
@@ -270,10 +273,10 @@ export class WorldRoom extends Room<WorldState> {
       }
       const level = levelForXp(p.skillXp[recipe.skill]);
       if (level < recipe.level) {
-        return this.say(client, `You need ${def.name} level ${recipe.level} to make a ${ITEMS[recipe.output].single}. (You're level ${level}.)`);
+        return this.say(client, `You need ${def.name} level ${recipe.level} to make ${aOr(ITEMS[recipe.output].single)}. (You're level ${level}.)`);
       }
       const missing = this.missingInputs(p, recipe);
-      if (missing) return this.say(client, `You need ${missing} to make a ${ITEMS[recipe.output].single}.`);
+      if (missing) return this.say(client, `You need ${missing} to make ${aOr(ITEMS[recipe.output].single)}.`);
       this.stopActions(p);
       p.crafting = { recipe, remaining: msg.all ? Infinity : 1, station };
       p.target = { x: station.x, y: station.y };
@@ -284,7 +287,7 @@ export class WorldRoom extends Room<WorldState> {
       p.faceY = station.y;
       const chance = successFor(recipe, p.mastery, p.belt);
       const tool = toolForSkill(recipe.skill)!;
-      this.say(client, `You start ${recipe.skill === "smelting" ? "smelting" : "making"} ${msg.all ? "" : "a "}${msg.all ? ITEMS[recipe.output].name.toLowerCase() : ITEMS[recipe.output].single}. ` +
+      this.say(client, `You start ${recipe.skill === "smelting" ? "smelting" : "making"} ${msg.all ? ITEMS[recipe.output].name.toLowerCase() : aOr(ITEMS[recipe.output].single)}. ` +
         `${percent(chance)} chance each.` + (p.belt[tool] || !recipe.needsTool ? "" : ` (No ${TOOL_TYPES[tool].name.toLowerCase()} on your belt: half the chance.)`));
     });
 
@@ -437,7 +440,7 @@ export class WorldRoom extends Room<WorldState> {
       const GOT = {
         woodcutting: `You get some ${item.name.toLowerCase()}.`,
         mining: `You mine some ${item.name.toLowerCase()}.`,
-        fishing: `You catch a ${item.single}!`,
+        fishing: `You catch ${aOr(item.single)}!`,
       };
       this.say(client, GOT[gather]);
     }
@@ -489,11 +492,11 @@ export class WorldRoom extends Room<WorldState> {
     if (client) {
       this.sendInventory(client, p);
       if (worked) {
-        this.say(client, recipe.skill === "smelting" ? `You smelt a ${output.single}.` : `You make a ${output.single}!`);
+        this.say(client, recipe.skill === "smelting" ? `You smelt ${aOr(output.single)}.` : `You make ${aOr(output.single)}!`);
       } else {
         this.say(client, recipe.skill === "smelting"
-          ? `The ore burns away. You fail to smelt a ${output.single}.`
-          : `You ruin the metal. You fail to make a ${output.single}.`);
+          ? `The ore burns away. You fail to smelt ${aOr(output.single)}.`
+          : `You ruin the metal. You fail to make ${aOr(output.single)}.`);
       }
     }
     this.addXp(p, client, "crafting", xp);

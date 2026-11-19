@@ -761,7 +761,9 @@ function renderInfo() {
   infoBody.append(infoLine("Base value", formatMoney(item.sellPrice), item.inputs ? "its materials + 25%" : ""));
   infoBody.append(infoLine("Mastery", `${masteryName(mid)} ${m}`, `×${masteryValue(m).toFixed(2)} value`));
   if (item.inputs) {
-    const parts = item.inputs.map((i) => `${ITEMS[i].single} (${formatMoney(sellPriceFor(i, lastMastery))})`).join(" + ");
+    const counts = new Map<ItemId, number>();
+    for (const i of item.inputs) counts.set(i, (counts.get(i) ?? 0) + 1);
+    const parts = [...counts].map(([i, n]) => `${n} ${n === 1 ? ITEMS[i].single : ITEMS[i].name.toLowerCase()} (${formatMoney(sellPriceFor(i, lastMastery))} each)`).join(" + ");
     infoBody.append(infoLine("Made from", parts, `×${CRAFT_MARKUP}, then your Mastery`));
   }
   const price = sellPriceFor(id, lastMastery, uses);
