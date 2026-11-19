@@ -89,8 +89,8 @@ tool in your bag to put it on the belt (the one already there goes back in your
 bag); click a belt slot to take it off. Only the tool on the belt counts.
 
 - **Gathering tools** (axe, pickaxe, rod) make you faster. Without one, gathering
-  takes **3 times longer**. The metal and the handle's wood each add a bonus:
-  Bronze 5%, Iron 10%, Steel 15%, Mithril 25%; Pine 5%, Oak 7%, Birch 9%,
+  takes **3 times longer**. The head (stone or metal) and the handle's wood each add a bonus:
+  Stone 2%, Bronze 5%, Iron 10%, Steel 15%, Mithril 25%; Pine 5%, Oak 7%, Birch 9%,
   Maple 12%, Yew 15%, Ironwood 20%, Elderwood 25%. So a Bronze + Pine axe is
   10% faster, a Mithril + Elderwood one 50% faster. Anyone can use any tool.
 - **Crafting tools**: the hammer helps Smithing, the tongs help Smelting. They
@@ -98,36 +98,52 @@ bag); click a belt slot to take it off. Only the tool on the belt counts.
   67.5%). Without one, your success chance is **cut in half**. Tongs have no
   handle, so their metal counts twice.
 - **Wear:** every use costs a tool some of its uses: 1 for level 1-9 trees,
-  rocks, fish and recipes, up to 8 for level 70+. Uses: Bronze 150, Iron 300,
+  rocks, fish and recipes, up to 8 for level 70+. Uses: Stone 60, Bronze 150, Iron 300,
   Steel 500, Mithril 900, times the wood (Pine x1 up to Elderwood x2.5; tongs
   x1.5). You get a warning at 10% and the tool breaks at 0. No repairs yet.
   A worn tool sells for its share of uses left.
 
 ## Crafting: Smelting and Smithing
 
-**Crafting** is a second Discipline (unlocked from the start) with two skills.
+**Crafting** is a second Discipline with two skills. Smithing is open from the
+start; Smelting opens at Crafting level 3.
 They're about **success, not speed**: each try takes 1.8 seconds and either
 works or fails. A failed try **loses the materials** and gives half the XP (at
 least 1). The window shows your chance before you start. Crafting never uses
 locked items.
 
+- 🔨 **Smithing** at the **anvil** (right of the Merchant): axe, pickaxe, rod and
+  hammer = 1 stone or bar + 1 log; tongs = 1 stone or bar. **Stone tools** are the
+  starter tier: 80% success at Mastery 1 and no hammer needed, so a new player can
+  make a Stone + Pine axe right away. Metals unlock at Smithing 1 / 15 / 30 / 60.
 - 🔥 **Smelting** at the **furnace** (left of the Merchant): Bronze bar = copper
   ore + tin ore (level 1), Iron bar = iron ore (15), Steel bar = iron ore + coal
   (30), Mithril bar = mithril ore + coal (60).
-- 🔨 **Smithing** at the **anvil** (right of the Merchant): axe, pickaxe, rod and
-  hammer = 1 bar + 1 log; tongs = 1 bar. Metals unlock at Smithing 1 / 15 / 30 / 60.
 
 **Mastery** for crafting is per bar (Bronze bar...) and per kind of tool (all
 axes share one). Better materials give more XP. Success from Mastery: 25% at
 Mastery 1, about 50% at 10, 91% at 50, 99% at 100, and never 100%. Mastery
 also raises the selling price by 2% per level, like gathering.
 
+## Item info
+
+Click any item in your bag (or a tool on your belt) for its info card: base value,
+your Mastery multiplier, what the Merchant pays and charges, what it's made from,
+and for tools their bonus and uses left. The card has the buttons to put a tool
+on your belt, lock, or drop. (While the Merchant's Sell tab is open, a click sells.)
+
+## Switching apps
+
+If the connection drops (a phone switching apps, a Wi-Fi blip), the game
+reconnects you as the same character for up to 2 minutes; your character waits
+in the world meanwhile. After that you just log in again.
+
 ## Prices
 
 - A crafted item is worth what goes into it **plus 25%** (rounded down). When you
   sell, your Mastery counts on every layer: your ore Mastery, your bar Mastery and
   your tool Mastery all raise the price.
-- The Merchant sells basic tools (Bronze + Pine, Bronze tongs), all four bars,
+- The Merchant sells basic tools (Stone + Pine, Stone tongs), all four bars,
   and every log and ore, with endless stock. He charges **3 times** the base
   price, and Mastery doesn't lower it, so buying to resell always loses.
   Open the **Buy** tab in his window; tap an item to buy one, or **x5**.

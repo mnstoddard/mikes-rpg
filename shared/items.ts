@@ -1,6 +1,6 @@
 // Item definitions shared by server and client.
 import {
-  ALL_TOOL_IDS, BAR_IDS, BarId, METALS, TOOL_TYPES, ToolItemId, WOODS, barId, metalOfBar, parseTool,
+  ALL_TOOL_IDS, BAR_IDS, BarId, MATERIALS, METALS, TOOL_TYPES, ToolItemId, WOODS, barId, metalOfBar, parseTool,
 } from "./tools";
 
 /** Things you gather. */
@@ -74,12 +74,12 @@ for (const bar of BAR_IDS) {
 }
 for (const tool of ALL_TOOL_IDS) {
   const { type, metal, wood } = parseTool(tool);
-  const name = `${METALS[metal].name} ${TOOL_TYPES[type].name.toLowerCase()}`;
+  const name = `${MATERIALS[metal].name} ${TOOL_TYPES[type].name.toLowerCase()}`;
   ITEMS[tool] = {
     name: wood ? `${name} (${WOODS[wood].name})` : name,
     single: wood ? `${name.toLowerCase()} (${WOODS[wood].name.toLowerCase()})` : name.toLowerCase(),
-    icon: TOOL_TYPES[type].icon, tint: METALS[metal].tint, sellPrice: 0,
-    inputs: wood ? [barId(metal), `${wood}_logs` as BaseItemId] : [barId(metal)],
+    icon: TOOL_TYPES[type].icon, tint: MATERIALS[metal].tint, sellPrice: 0,
+    inputs: [metal === "stone" ? "stone" : barId(metal), ...(wood ? [`${wood}_logs` as BaseItemId] : [])],
   };
   ITEMS[tool].sellPrice = Math.floor(exactBase(tool));
 }

@@ -7,7 +7,7 @@ import {
   fishAt, gatherChancePerTick, gatherSuccessChance, masteryIn, nodeAt, resourcesFor, treeKey,
 } from "../../shared/foraging";
 import {
-  ItemMasteryXp, MasteryId, masteryIn as masteryLevelIn, masteryLevelForXp, masterySuccess, percent,
+  ItemMasteryXp, MasteryId, masteryIn as masteryLevelIn, masteryLevelForXp, percent,
   speedBonusPercent, valueBonusPercent,
 } from "../../shared/mastery";
 import {
@@ -38,6 +38,10 @@ const CRAFT_TICKS = 3; // one smelt or smith every 3 ticks (1.8s); crafting is a
 const online = new Set<string>(); // username keys currently logged in
 const pendingSaves = new Map<string, Promise<void>>(); // logout saves still being written
 const failedLogins = new Map<string, { count: number; until: number }>();
+// Players whose connection dropped (phone switched apps, Wi-Fi blip). They get
+// RECONNECT_SECONDS to come back as if nothing happened before being logged out.
+const RECONNECT_SECONDS = 120;
+const waitingToReconnect = new Map<string, { reject: Function }>();
 
 export class Player extends Schema {
   @type("string") name = "";
@@ -260,7 +264,10 @@ export class WorldRoom extends Room<WorldState> {
       if (!p || !recipe) return;
       const station = NPCS.find((n) => n.id === (recipe.skill === "smelting" ? "furnace" : "anvil"))!;
       if (!this.nearNpc(p, station.id)) return this.say(client, `You need to be next to the ${station.name.toLowerCase()}.`);
-      const { def } = findSkill(recipe.skill);
+      const { discipline, def } = findSkill(recipe.skill);
+      if (levelForXp(p.disciplines[discipline]) < def.unlockLevel) {
+        return this.say(client, `You need ${DISCIPLINES[discipline].name} level ${def.unlockLevel} to use ${def.name}. Make a few tools at the anvil first.`);
+      }
       const level = levelForXp(p.skillXp[recipe.skill]);
       if (level < recipe.level) {
         return this.say(client, `You need ${def.name} level ${recipe.level} to make a ${ITEMS[recipe.output].single}. (You're level ${level}.)`);
@@ -278,7 +285,7 @@ export class WorldRoom extends Room<WorldState> {
       const chance = successFor(recipe, p.mastery, p.belt);
       const tool = toolForSkill(recipe.skill)!;
       this.say(client, `You start ${recipe.skill === "smelting" ? "smelting" : "making"} ${msg.all ? "" : "a "}${msg.all ? ITEMS[recipe.output].name.toLowerCase() : ITEMS[recipe.output].single}. ` +
-        `${percent(chance)} chance each.` + (p.belt[tool] ? "" : ` (No ${TOOL_TYPES[tool].name.toLowerCase()} on your belt: half the chance.)`));
+        `${percent(chance)} chance each.` + (p.belt[tool] || !recipe.needsTool ? "" : ` (No ${TOOL_TYPES[tool].name.toLowerCase()} on your belt: half the chance.)`));
     });
 
     // Lock or unlock one item (the one in this inventory slot).
@@ -291,9 +298,15 @@ export class WorldRoom extends Room<WorldState> {
     });
 
     // The client says it's ready once its message handlers are set up.
-    this.onMessage("ready", (client) => {
+    this.onMessage("ready", (client, msg?: { reconnected?: boolean }) => {
       const p = this.state.players.get(client.sessionId);
       if (!p) return;
+      if (msg?.reconnected) {
+        this.sendInventory(client, p);
+        this.sendDisciplines(client, p);
+        this.sendMastery(client, p);
+        return;
+      }
       this.sendInventory(client, p);
       this.sendDisciplines(client, p);
       this.sendMastery(client, p);
@@ -630,7 +643,7 @@ export class WorldRoom extends Room<WorldState> {
     if (!client || after <= before) return;
     const crafted = !(id in RESOURCES);
     this.say(client, `${masteryName(id)} Mastery ${after}! ` + (crafted
-      ? `${percent(masterySuccess(after))} base success, sells for ${valueBonusPercent(after)}% more.`
+      ? `Fewer failures, and it sells for ${valueBonusPercent(after)}% more.`
       : `${speedBonusPercent(after)}% faster, sells for ${valueBonusPercent(after)}% more.`));
     client.send("masteryup", { resource: id, level: after });
   }
@@ -673,6 +686,12 @@ export class WorldRoom extends Room<WorldState> {
 
     const lock = failedLogins.get(k);
     if (lock && lock.until > Date.now()) throw new ServerError(429, "Too many wrong passwords. Wait a minute and try again.");
+    // Logging in again while an old connection waits to reconnect: end the old one first.
+    const waiting = waitingToReconnect.get(k);
+    if (waiting) {
+      waiting.reject(new Error("logged in again"));
+      await new Promise((r) => setTimeout(r, 50));
+    }
     await pendingSaves.get(k); // finish saving a previous session first
 
     let account: Account | null;
@@ -711,11 +730,27 @@ export class WorldRoom extends Room<WorldState> {
     console.log(`${p.name} logged in (${this.state.players.size} online)`);
   }
 
-  async onLeave(client: Client) {
+  async onLeave(client: Client, consented: boolean) {
     const p = this.state.players.get(client.sessionId);
-    this.state.players.delete(client.sessionId);
     if (!p) return;
     const k = usernameKey(p.name);
+    if (!consented) {
+      // The connection dropped rather than the player leaving: keep them in the
+      // world (standing still) and let the same browser pick up where it left off.
+      this.stopActions(p);
+      p.path = [];
+      const reconnection = this.allowReconnection(client, RECONNECT_SECONDS);
+      waitingToReconnect.set(k, reconnection);
+      try {
+        await reconnection;
+        waitingToReconnect.delete(k);
+        console.log(`${p.name} reconnected`);
+        return;
+      } catch {
+        waitingToReconnect.delete(k);
+      }
+    }
+    this.state.players.delete(client.sessionId);
     console.log(`${p.name} logged out (${this.state.players.size} online)`);
     const saving = this.save(p).finally(() => { pendingSaves.delete(k); });
     pendingSaves.set(k, saving);
