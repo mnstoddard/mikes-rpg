@@ -54,7 +54,7 @@ stamina with no food she gives you a stew. She explains Mastery in Quest 2. Step
 **Starting over:** `SAVE_VERSION` in `server/src/storage.ts` is the save format.
 A save with a different version is wiped on login (skills, items, coins, tools,
 position) and the character starts the tutorial again; the account and password
-stay. Version 1 is the tutorial, so every character from before it started over.
+stay. Version 1 was the tutorial and version 2 its reworked steps; each time, every character started over.
 
 ## Disciplines and skills
 
