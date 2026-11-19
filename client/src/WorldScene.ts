@@ -2,12 +2,13 @@ import Phaser from "phaser";
 import { getStateCallbacks, Room } from "colyseus.js";
 import { MAP, MAP_HEIGHT, MAP_WIDTH, TICK_MS, TILE_SIZE, Tile, isWalkable } from "../../shared/map";
 import { RESOURCES, ResourceId, fishAt, isFishingSpot, nodeAt, treeKey } from "../../shared/foraging";
-import { MasteryXp, emptyMastery, masteryLevelForXp } from "../../shared/mastery";
-import { ItemId } from "../../shared/items";
+
+import { ITEMS, ItemId } from "../../shared/items";
 import { joinWorld } from "./network";
-import { closeShop, flashDiscipline, flashMastery, renderMastery, openShop, renderCoins, renderDisciplines, renderInventory, renderLocks, setHoverText, setInventoryActions, showMessage } from "./ui";
+import { closeShop, flashDiscipline, flashMastery, flashSkillRow, renderMastery, renderSkillXp, openShop, renderCoins, renderDisciplines, renderInventory, renderLocks, setHoverText, setInventoryActions, showMessage } from "./ui";
 import { NPCS, npcAt } from "../../shared/npcs";
-import { DISCIPLINES, DisciplineId, DisciplineXp, SkillId, findSkill } from "../../shared/disciplines";
+import { DISCIPLINES, DisciplineId, DisciplineXp, SkillId, SkillXp, emptySkills, findSkill, levelForXp } from "../../shared/disciplines";
+import { ItemMasteryXp } from "../../shared/mastery";
 import { showLogin } from "./login";
 
 const TILE_COLORS: Record<Tile, number> = {
@@ -41,7 +42,7 @@ export class WorldScene extends Phaser.Scene {
   private pinchStartZoom = 1;
   private gestureWasPinch = false;
   private lastDisciplines?: DisciplineXp;
-  private mastery: MasteryXp = emptyMastery();
+  private skillXp: SkillXp = emptySkills();
 
   constructor() { super("world"); }
 
@@ -73,11 +74,13 @@ export class WorldScene extends Phaser.Scene {
       renderDisciplines(disciplines);
     });
     room.onMessage("levelup", (msg: { discipline: DisciplineId; level: number }) => this.celebrateLevelUp(msg.discipline));
-    room.onMessage("mastery", (mastery: MasteryXp) => {
-      this.mastery = mastery;
-      renderMastery(mastery);
+    room.onMessage("skillxp", (skillXp: SkillXp) => {
+      this.skillXp = skillXp;
+      renderSkillXp(skillXp);
     });
-    room.onMessage("masteryup", (msg: { skill: SkillId; level: number }) => this.celebrateMastery(msg.skill, msg.level));
+    room.onMessage("mastery", (mastery: ItemMasteryXp) => renderMastery(mastery));
+    room.onMessage("skillup", (msg: { skill: SkillId; level: number }) => this.celebrateSkill(msg.skill, msg.level));
+    room.onMessage("masteryup", (msg: { resource: ResourceId; level: number }) => this.celebrateMastery(msg.resource, msg.level));
     setInventoryActions({
       drop: (slot) => room.send("drop", { slot }),
       sell: (slot) => room.send("sell", { slot }),
@@ -156,7 +159,7 @@ export class WorldScene extends Phaser.Scene {
     } else {
       const fleck = RESOURCES[type].color;
       full.fillStyle(fleck).fillCircle(10, 19, 2.5).fillCircle(19, 15, 2).fillCircle(21, 22, 2.5).fillCircle(14, 23, 1.5);
-      if (RESOURCES[type].mastery >= 40) {
+      if (RESOURCES[type].level >= 40) {
         // Rare ores sparkle.
         full.fillStyle(0xffffff, 0.9).fillCircle(19, 14, 0.8).fillCircle(9, 18, 0.8);
       }
@@ -179,7 +182,7 @@ export class WorldScene extends Phaser.Scene {
       tree.fillStyle(leaves).fillTriangle(16, 0, 4, 22, 28, 22);
       tree.fillStyle(highlight).fillTriangle(16, 3, 10, 14, 18, 14);
     } else {
-      const big = RESOURCES[type].mastery >= 35 ? 13 : 11; // the rare ones are bigger
+      const big = RESOURCES[type].level >= 35 ? 13 : 11; // the rare ones are bigger
       tree.fillStyle(leaves).fillCircle(16, 13, big);
       tree.fillStyle(highlight).fillCircle(13, 10, 5);
       if (type === "elderwood") tree.fillStyle(0xe0c8ff).fillCircle(20, 8, 1.5).fillCircle(10, 15, 1.5).fillCircle(21, 17, 1.5);
@@ -358,16 +361,22 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
-  private celebrateMastery(skill: SkillId, level: number) {
+  private celebrateSkill(skill: SkillId, level: number) {
     const name = findSkill(skill).def.name;
-    this.time.delayedCall(350, () => this.floatText(`${name} Mastery ${level}!`, "#7fd0ff", true));
-    flashMastery(skill);
+    this.time.delayedCall(350, () => this.floatText(`${name} level ${level}!`, "#ffd84a", true));
+    flashSkillRow(skill);
   }
 
-  /** " (Mastery 20)" if you can't gather this type yet, else "". */
+  private celebrateMastery(type: ResourceId, level: number) {
+    const name = ITEMS[RESOURCES[type].item].name;
+    this.time.delayedCall(700, () => this.floatText(`${name} Mastery ${level}!`, "#7fd0ff"));
+    flashMastery(type);
+  }
+
+  /** " (Woodcutting level 20)" if you can't gather this type yet, else "". */
   private lockNote(type: ResourceId) {
     const r = RESOURCES[type];
-    return masteryLevelForXp(this.mastery[r.skill] ?? 0) < r.mastery ? ` (Mastery ${r.mastery})` : "";
+    return levelForXp(this.skillXp[r.skill] ?? 0) < r.level ? ` (${findSkill(r.skill).def.name} level ${r.level})` : "";
   }
 
   private isStandingTree(x: number, y: number) {

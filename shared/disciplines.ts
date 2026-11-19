@@ -65,4 +65,8 @@ export function levelForXp(xp: number): number {
 }
 
 export type DisciplineXp = Record<DisciplineId, number>;
+
+/** Each skill also has its own level (same curve, up to 99). It unlocks better types. */
+export type SkillXp = Record<SkillId, number>;
+export const emptySkills = (): SkillXp => ({ woodcutting: 0, fishing: 0, mining: 0 });
 export const emptyDisciplines = (): DisciplineXp => ({ foraging: 0 });
