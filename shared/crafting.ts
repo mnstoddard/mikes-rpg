@@ -22,7 +22,7 @@ import {
 
 // ---- Prices ----
 
-/** The Merchant sells for 3 times what he pays (before Mastery), so buying to resell always loses. */
+/** A shop sells for 3 times what he pays (before Mastery), so buying to resell always loses. */
 export const BUY_MARKUP = 3;
 
 /** Whose Mastery raises an item's price: oak_logs -> oak, bronze_bar -> bronze_bar, any axe -> axe, any curry -> curry. */
@@ -45,7 +45,7 @@ function exactValue(item: ItemId, mastery: ItemMasteryXp): number {
 }
 
 /**
- * What the Merchant pays you for one item: its value raised by your Mastery
+ * What a shop pays you for one item: its value raised by your Mastery
  * (in it and in what it's made from), rounded down to whole bronze coins. A
  * worn tool sells for its share of uses left.
  */
@@ -55,10 +55,10 @@ export function sellPriceFor(item: ItemId, mastery: ItemMasteryXp, durability?: 
   return Math.floor(exactValue(item, mastery) * worn);
 }
 
-/** What the Merchant charges: 3 times the base price. Your Mastery doesn't change it. */
+/** What a shop charges: 3 times the base price. Your Mastery doesn't change it. */
 export const buyPriceFor = (item: ItemId) => ITEMS[item].sellPrice * BUY_MARKUP;
 
-/** The Merchant has endless stock of these: basic (stone) tools and weapons, a stew, health potions, vegetables, worms, bars, logs and ores. */
+/** A shop has endless stock of these: basic (stone) tools and weapons, a stew, health potions, vegetables, worms, bars, logs and ores. */
 export const SHOP_STOCK: ItemId[] = [
   ...TOOL_TYPE_IDS.map((t) => toolId(t, "stone", "pine")),
   weaponId("dagger", "stone", "pine"), weaponId("sling", "stone", "pine"), weaponId("staff", "stone", "pine"),

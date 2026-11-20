@@ -9,7 +9,7 @@
 // Lock a bait to keep it for later (fishing skips locked bait).
 //
 // Bait is made from worms (dug up now and then while chopping or mining, or
-// bought from the Merchant), food scraps (left over sometimes when you cook a
+// bought from a shop), food scraps (left over sometimes when you cook a
 // meal) and feathers (from chickens).
 //
 // Only type imports from items, so items.ts can build these.

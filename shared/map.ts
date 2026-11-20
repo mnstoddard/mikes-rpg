@@ -13,27 +13,29 @@ import type { ResourceId } from "./foraging";
 //          Everything from the fence row down is the Dark Forest (the danger zone),
 //          where monsters attack on sight. The gate stays shut until Old Maren's combat lesson.
 // Houses:  W wall   _ floor (the Mages' Guild hall, south-west of town; its door faces the road)
+//          H wall   p floor (the wooden trainer buildings: Trainer Row north of the road,
+//          Tam's General Store and Rook's workshop in the square, Kael's lodge by the gate)
 const RAW = `
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~~~~~~...........TT.......~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~~~~.......TT.....T.........44~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~~....T....T..........,,,,.....~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~.........,,,,,,,,,,,,,..,......~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~..OO.....,...............,.......~~~~~~~~~~~~~77~~~~~~~~~~
-~...OO.....,....##cc.......,.........~~~~~~~~~......~~~~~~~~
-~..........,....##tt.......,....MM....~~~~~~...I..I...~~~~~~
-~..........,...............,....MM....~~~~~...I.....E..~~~~~
-~...~22~...,......TTT......,,,,,,,,...~~~~~.......,..E..~~~~
-~..5~~~~~..,.......T.............,....~~~~~.......,......~~~
+~~~~~~~.........T.TT.iikk..~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~.......TT.T...T.##cc.#....~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~....T....T....T...##tt.#.....~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~.........,,,,,,,,,,,,,,,,,,,,,,,~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~..OO.....,.....................,.~~~~~~~~~~~~~77~~~~~~~~~~
+~...OO.....,HHHHHHH.HHHHHHH.HHHHH,.MM~~~~~~~~~......~~~~~~~~
+~..........,HpppppH.HpppppH.HpppH,.MM.~~~~~~...I..I...~~~~~~
+~..........,HpppppH.HpppppH.HpppH,....~~~~~...I.....E..~~~~~
+~...~22~...,HHHpHHH.HHHpHHH.HHpHH,....~~~~~.......,..E..~~~~
+~..5~~~~~..,.....................,....~~~~~.......,......~~~
 ~..5~~~~~==,,,,,,,,,,,,,,,,,,,,,,,,,,,====,,,,,,,,,..vv...8~
-~..~~~~~~..,..........T..........,....~~~~~.......,..vg...8~
-~...~33~...,....T.........iik....,....~~~~~..gg...,.......~~
-~..........,..............ikk....,.YY.~~~~~..mm...,...E..~~~
-~...BB.....,.........T...........,.YY.~~~~~~......,.....~~~~
+~..~~~~~~..,HHHpHHH.HHHpHHH......,....~~~~~.......,..vg...8~
+~...~33~...,HpppppH.HpppppH......,....~~~~~..gg...,.......~~
+~..........,HpppppH.HpppppH......,.YY.~~~~~..mm...,...E..~~~
+~...BB.....,HHHHHHH.HHHHHHH......,.YY.~~~~~~......,.....~~~~
 ~...BB.....,,,,,,,,,,,,,,,,,,,,,,,....~~~~~~~~...mm....~~~~~
-~~...WWW_WWW...........T.............~~~~~~~~~~~......~~~~~~
-~~~..W_____W.......TT.........T....~~~~~~~~~~~~~~~~~~~~~~~~~
-~~~~~W_W_W_W......................~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~...WWW_WWW.........HHHHHHH.........~~~~~~~~~~~......~~~~~~
+~~~..W_____W.......TTHpppppH..T....~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~W_W_W_W.........HHHpHHH......~~~~~~~~~~~~~~~~~~~~~~~~~~
 ~~~~~~~~~~~~~~~~~~~~66~~..!,...~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ~~~~~~~~~~~~~~~~~~~~~~~||||+||||~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ~~~~~~~~~~~~~~~~~~~::::T:::,::::T::::~~~~~~~~~~~~~~~~~~~~~~~
@@ -54,11 +56,11 @@ const RAW = `
 export const TILE_SIZE = 32;
 export const TICK_MS = 600; // one game tick, like old-school RuneScape
 
-export type Tile = "grass" | "path" | "water" | "tree" | "rock" | "bridge" | "fence" | "gate" | "sign" | "wall" | "floor";
+export type Tile = "grass" | "path" | "water" | "tree" | "rock" | "bridge" | "fence" | "gate" | "sign" | "wall" | "floor" | "house" | "boards";
 
 const LEGEND: Record<string, Tile> = {
   ".": "grass", ",": "path", "~": "water", "=": "bridge", ":": "grass", "|": "fence", "+": "gate", "!": "sign",
-  W: "wall", _: "floor",
+  W: "wall", _: "floor", H: "house", p: "boards",
 };
 
 /** Map letters for each type of tree, rock and fishing spot. */
@@ -78,7 +80,7 @@ export const MAP_NODES: (ResourceId | null)[][] = ROWS.map((row) => row.map((ch)
 export const MAP_HEIGHT = MAP.length;
 export const MAP_WIDTH = MAP[0].length;
 
-const BLOCKED: ReadonlySet<Tile> = new Set<Tile>(["water", "tree", "rock", "fence", "sign", "wall"]);
+const BLOCKED: ReadonlySet<Tile> = new Set<Tile>(["water", "tree", "rock", "fence", "sign", "wall", "house"]);
 
 /** The gate into the Dark Forest, and the first row of the danger zone (the fence row). */
 export const GATE = (() => {

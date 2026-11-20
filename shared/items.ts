@@ -26,13 +26,13 @@ export interface ItemDef {
   icon: string; // an emoji, or "svg:..." for one the client draws (tools: "svg:tool/axe/bronze/oak")
   /** CSS filter that tints the emoji so similar items look different, e.g. oak vs pine logs. */
   tint?: string;
-  /** What the Merchant pays for one, in bronze coins (before Mastery). */
+  /** What a shop pays for one, in bronze coins (before Mastery). */
   sellPrice: number;
   /** Crafted items: what goes into one. Its value is these inputs plus 25%. */
   inputs?: ItemId[];
 }
 
-/** Things monsters drop (the Merchant buys them), and the health potion. */
+/** Things monsters drop (a shop buys them), and the health potion. */
 export type LootId = "feather" | "rat_tail" | "cowhide" | "wolf_pelt" | "goblin_charm" | "spider_silk" | "stolen_ring" | "health_potion";
 
 /**
@@ -81,7 +81,7 @@ const LOOT: Record<LootId, ItemDef> = {
   goblin_charm: { name: "Goblin charms", single: "goblin charm", icon: "🧿", sellPrice: 20 },
   spider_silk: { name: "Spider silk", single: "spider silk", icon: "🕸️", sellPrice: 30 },
   stolen_ring: { name: "Stolen rings", single: "stolen ring", icon: "💍", sellPrice: 60 },
-  // Drink it for health (shared/combat.ts). The Merchant sells them.
+  // Drink it for health (shared/combat.ts). A shop sells them.
   health_potion: { name: "Health potion", single: "health potion", icon: "🧪", tint: "hue-rotate(230deg) saturate(2.5)", sellPrice: 10 },
 };
 

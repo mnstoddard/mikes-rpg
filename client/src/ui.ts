@@ -4,14 +4,16 @@ import { CraftSkill, DISCIPLINES, DISCIPLINE_IDS, DisciplineId, DisciplineView, 
 import { buyWithCharisma, maxHealth, maxMana, maxStamina, sellWithCharisma, walkBonus } from "../../shared/stats";
 import { ItemMasteryXp, MasteryId, craftSuccess, masteryValue, masteryIn, masteryLevelForXp, masterySuccess, masteryXpForLevel, percent, speedBonusPercent, valueBonusPercent } from "../../shared/mastery";
 import { RESOURCES, forageXp, resourcesFor } from "../../shared/foraging";
-import { SHOP_STOCK, beltBonus, buyPriceFor, masteryIdFor, masteryName, recipeFor, sellPriceFor, successFor } from "../../shared/crafting";
+import { beltBonus, buyPriceFor, masteryIdFor, masteryName, recipeFor, sellPriceFor, successFor } from "../../shared/crafting";
 import { RESOURCE_FOR_ITEM } from "../../shared/foraging";
 import { CRAFT_MARKUP } from "../../shared/items";
 import {
   BAR_IDS, Belt, MATERIALS, MATERIAL_IDS, Material, METALS, METAL_IDS, Metal, TOOL_TYPES, TOOL_TYPE_IDS, ToolType, WOODS, WOOD_IDS, Wood, barId, emptyBelt,
   ROD_LOGS, hasHandle, isTool, isWoodTool, maxDurability, metalOfBar, parseTool, toolBonus, toolForSkill, toolId,
 } from "../../shared/tools";
-import { GUIDE_NAME, type QuestView } from "../../shared/quests";
+import { GUIDE_NAME, teacherOf, type ChapterView, type QuestView } from "../../shared/quests";
+import { SHOPS, SHOP_IDS, sellersOf, type ShopId } from "../../shared/shops";
+import { npcById } from "../../shared/npcs";
 import { PLAYER_COLORS } from "../../shared/colors";
 import {
   ARMOR, ARMOR_TYPES, ArmorType, GEAR_SLOTS, Gear, GearSlot, SLOT_ICONS, SLOT_NAMES, WEAPONS, WEAPON_TYPES, WeaponType,
@@ -71,8 +73,15 @@ openPanel(isSmallScreen() ? "" : "inventory");
 let lastDisciplines: DisciplineView = newDisciplineView();
 /** What a shop pays you for one, with your Mastery and Charisma. */
 const sellPrice = (id: ItemId, uses?: number | null) => sellWithCharisma(sellPriceFor(id, lastMastery, uses), lastDisciplines.levels.charisma);
-/** What the Merchant charges you for one, with your Charisma. */
+/** What a shop charges you for one, with your Charisma. */
 const buyPrice = (id: ItemId) => buyWithCharisma(buyPriceFor(id), lastDisciplines.levels.charisma);
+
+/** "Forester Holt teaches it, on Trainer Row (📜 Quests)." */
+function teachNote(skill: SkillId): string {
+  const c = teacherOf(skill);
+  if (!c) return "";
+  return c.id === "maren" ? `${GUIDE_NAME} will teach you this in her lessons (📜 Quests).` : `${c.name} teaches it, ${c.where} (📜 Quests).`;
+}
 
 /** What each Discipline does for you right now: "Max health 60". */
 function disciplineStat(id: DisciplineId, level: number): string {
@@ -119,7 +128,7 @@ const potSize = () => BASE_INGREDIENTS + tree("cooking", "slots");
 /** A bag slot shows one of the things in it at a time: `pick` is which (0 = the one on top). */
 type InfoTarget = { kind: "slot"; slot: number; pick: number } | { kind: "belt"; type: ToolType } | { kind: "gear"; slot: GearSlot };
 let info: InfoTarget | null = null;
-/** The Merchant's window is on its Buy tab (otherwise Sell). */
+/** The shop window is on its Buy tab (otherwise Sell). */
 let shopBuying = false;
 /** Skills whose list of types is showing (click a skill to fold it away). */
 // Everything starts folded up; click a Discipline or skill to open it.
@@ -218,7 +227,7 @@ export function renderDisciplines(disciplines: DisciplineView, flash?: Disciplin
       if (open) {
         // A locked skill shows nothing as available yet (not even its level-1 types, like Bronze).
         sub.appendChild(unlocked ? skillDetails(skill.id)
-          : el("mastery m-info", "🔒 Old Maren will teach you this in one of her lessons (📜 Quests). Until then you can't use any of it."));
+          : el("mastery m-info", `🔒 ${teachNote(skill.id)} Until then you can't use any of it.`));
       }
       sub.onclick = (e) => {
         e.stopPropagation(); // don't also fold up the Discipline
@@ -593,7 +602,7 @@ messagesEl.onclick = () => {
 };
 document.getElementById("history-close")!.onclick = () => document.body.classList.remove("history-open");
 
-// Clicking a slot opens its item card (or sells it while the Merchant's shop is open).
+// Clicking a slot opens its item card (or sells it while a shop is open).
 // Similar things share a slot (shared/bag.ts): the card cycles through them.
 // In lock mode (the 🔒 button on the inventory), clicking a slot locks or
 // unlocks everything in it instead.
@@ -897,6 +906,8 @@ export function renderInventory() {
       slot.appendChild(tag);
       const lockedHere = here.filter((e) => locked[e]).length;
       const allLocked = lockedHere === kinds;
+      const noBuy = selling && !shopBuying && !SHOPS[shopId].buys(id);
+      if (noBuy) slot.classList.add("no-buy");
       if (lockedHere) {
         if (allLocked) slot.classList.add("locked");
         const lock = document.createElement("span");
@@ -909,6 +920,7 @@ export function renderInventory() {
       slot.title = lockMode ? `${allLocked ? "Unlock" : "Lock"} ${n > 1 ? "these" : "this"} ${many}`
         : allLocked ? `${n > 1 ? `${n} × ` : ""}${name} (locked)`
         : chestIsOpen() ? `Put ${many} in your chest`
+        : noBuy ? `${SHOPS[shopId].title.replace(/^\S+ /, "")} doesn't buy ${item.name.toLowerCase()} (Tam at the General Store buys anything)`
         : selling && kinds > 1 ? `${many}: tap to pick which to sell`
         : selling ? `Sell ${many} for ${formatMoney(price * n)}`
         : kinds > 1 ? `${many}: click to see each one, or drag to move them`
@@ -923,6 +935,7 @@ export function renderInventory() {
           for (const e of here) onDeposit(e);
           return;
         }
+        if (noBuy) return showMessage(`This shop only buys ${SHOPS[shopId].buysText}. Shopkeeper Tam at the General Store buys anything.`);
         if (shopIsOpen() && !shopBuying && kinds === 1) {
           if (allLocked) return showMessage(`That ${item.single} is locked. Tap 🔒 on your inventory, then tap it to unlock.`);
           if (n > 1) return askAmount({ title: `Sell ${item.name.toLowerCase()}`, glyph: item.icon, tint: item.tint, max: n, start: n, each: price, verb: "Sell", ok: (k) => onSell(top, k) });
@@ -988,7 +1001,7 @@ export function renderCoins(totalBronze: number) {
 }
 renderCoins(0);
 
-// ---- Shop window (the Merchant) ----
+// ---- Shop window (the General Store or a trainer's shop) ----
 // You sell by clicking items in your inventory while this is open.
 
 const shopBody = document.getElementById("shop-body")!;
@@ -1001,7 +1014,12 @@ document.querySelectorAll<HTMLElement>(".shop-tab").forEach((b) => {
   };
 });
 
-export function openShop() {
+/** Which shop is open. */
+let shopId: ShopId = "tam";
+
+export function openShop(id: ShopId) {
+  shopId = SHOPS[id] ? id : "tam";
+  document.getElementById("shop-title")!.textContent = SHOPS[shopId].title;
   closeCraft();
   closeBounties();
   closeGuild();
@@ -1047,22 +1065,25 @@ function renderShop() {
   document.body.classList.toggle("shop-buying", shopBuying);
   if (shopBuying) return renderBuy();
   shopBody.replaceChildren();
-  shopBody.append(el("", "Tap an item in your bag to sell it (a stack sells all at once). If a slot holds different kinds (like two axes), tap it to pick which one. To keep one, tap 🔒 on your bag, then tap the item."));
+  const shop = SHOPS[shopId];
+  shopBody.append(el("", shopId === "tam" ? "Tam buys anything. Tap an item in your bag to sell it. To keep one, tap 🔒 on your bag, then tap the item."
+    : `This shop buys ${shop.buysText} (Tam at the General Store buys anything). Tap an item in your bag to sell it. To keep one, tap 🔒 on your bag.`));
   const prices = el("");
   prices.id = "shop-prices";
   // Prices for the kinds of thing you're carrying (there are too many to list them all).
-  const carrying = [...new Set(invItems.filter((id): id is ItemId => !!id))];
+  const carrying = [...new Set(invItems.filter((id): id is ItemId => !!id && shop.buys(id)))];
   for (const id of carrying) {
     const span = document.createElement("span");
     span.append(icon("", ITEMS[id].icon, ITEMS[id].tint), ` ${ITEMS[id].name}: ${formatMoney(sellPrice(id))}`);
     span.className = "price";
     prices.appendChild(span);
   }
-  const unlockedSlots = invItems.flatMap((id, i) => (id && !locked[i] ? [i] : []));
+  const unlockedSlots = invItems.flatMap((id, i) => (id && !locked[i] && shop.buys(id) ? [i] : []));
   const total = unlockedSlots.reduce((sum, i) => sum + sellPrice(invItems[i]!, durability[i]) * countAt(i), 0);
   const unlockedCount = unlockedSlots.reduce((sum, i) => sum + countAt(i), 0);
   const lockedCount = invItems.reduce((sum, id, i) => sum + (id && locked[i] ? countAt(i) : 0), 0);
   shopBody.append(prices, el("", !invItems.some(Boolean) ? "You have nothing to sell. Go chop or fish!"
+    : !carrying.length ? `You have nothing this shop buys.`
     : `Sell all gives you ${formatMoney(total)}` + (lockedCount ? ` (keeps ${lockedCount} locked).` : ".")));
 
   sellAllBtn.disabled = !unlockedCount;
@@ -1071,13 +1092,13 @@ function renderShop() {
   sellAllBtn.classList.toggle("armed", sellAllArmed);
 }
 
-/** The Merchant's goods: click one to pick how many to buy. */
+/** The shop's goods: click one to pick how many to buy. */
 function renderBuy() {
   shopBody.replaceChildren();
-  shopBody.append(el("", `He never runs out. You have ${formatMoney(coins)}.`));
+  shopBody.append(el("", `Never runs out. You have ${formatMoney(coins)}.`));
   const list = el("");
   list.id = "buy-list";
-  for (const id of SHOP_STOCK) {
+  for (const id of SHOPS[shopId].stock) {
     const item = ITEMS[id];
     const price = buyPrice(id);
     const row = el("buy-row" + (coins < price ? " poor" : ""));
@@ -1223,7 +1244,7 @@ function renderCraft() {
   const lockedAt = (m: Material) => (level < MATERIALS[m].level ? MATERIALS[m].level : undefined);
   const { def: skillDef } = findSkill(skill);
   if (!isUnlocked(lastDisciplines.unlocked, skill)) {
-    craftBody.append(el("craft-warn", `You haven't learned ${skillDef.name} yet. Old Maren will teach you in one of her lessons (📜 Quests).`));
+    craftBody.append(el("craft-warn", `You haven't learned ${skillDef.name} yet. ${teachNote(skill)}`));
     craftOne.disabled = true;
     craftAll.disabled = true;
     return;
@@ -1316,7 +1337,7 @@ function renderCraft() {
   if (isBait(output)) facts.unshift(`Lasts ${BAITS[output].uses} catches`);
   detail.append(el("craft-info", facts.join(" · ")));
   if (level < recipe.level) detail.append(el("craft-warn", `Needs ${findSkill(skill).def.name} level ${recipe.level}.`));
-  else if (!canMake) detail.append(el("craft-warn", station === "stove" ? "You don't have all of that (and the log) unlocked in your bag." : station === "workbench" ? "You don't have the materials. Worms turn up while chopping and mining (or the Merchant sells them); cooking leaves food scraps." : "You don't have the materials. The Merchant sells them."));
+  else if (!canMake) detail.append(el("craft-warn", station === "stove" ? "You don't have all of that (and the log) unlocked in your bag." : station === "workbench" ? "You don't have the materials. Worms turn up while chopping and mining (or Rook and Tam sell them); cooking leaves food scraps." : "You don't have the materials. Miner Greta sells ore and stone, Smith Brann sells bars, and Forester Holt sells logs."));
   else detail.append(el("craft-info", `You have enough for ${canMake}. A failed try loses the materials.`));
   craftBody.appendChild(detail);
 
@@ -1392,7 +1413,7 @@ function renderStove(level: number): ItemId | null {
     if (usable) b.onclick = () => { pick.pot.push(it); renderCraft(); };
     bagRow.appendChild(b);
   }
-  if (!mine.some((it) => fitsDish(pick.dish, it))) bagRow.append(el("craft-warn", `Nothing in your bag goes in a ${dish.name.toLowerCase()}. Catch fish, get raw chicken or beef from chickens and cows, or buy vegetables from the Merchant.`));
+  if (!mine.some((it) => fitsDish(pick.dish, it))) bagRow.append(el("craft-warn", `Nothing in your bag goes in a ${dish.name.toLowerCase()}. Catch fish, get raw chicken or beef from chickens and cows, or buy vegetables at the General Store.`));
   craftBody.append(bagRow);
 
   craftBody.append(choices("Log to burn (better wood, more stamina)", WOOD_IDS, pick.fuel,
@@ -1407,7 +1428,7 @@ function renderStove(level: number): ItemId | null {
 
 document.getElementById("craft-close")!.onclick = closeCraft;
 
-// ---- Bounty board: 5 jobs, hand in the full amount for double the Merchant's price plus XP ----
+// ---- Bounty board: 5 jobs, hand in the full amount for double a shop's price plus XP ----
 
 const bountyList = document.getElementById("bounty-list")!;
 let bounties: Bounty[] = [];
@@ -1752,7 +1773,7 @@ function renderInfo() {
     if (wood) infoBody.append(infoLine(metal ? "Handle" : "Wood", WOODS[wood].name));
   }
 
-  // Value: base price, your Mastery multiplier, and what the Merchant pays and charges.
+  // Value: base price, your Mastery multiplier, and what shops pay and charge.
   const mid = masteryIdFor(id);
   const m = masteryIn(lastMastery, mid);
   infoBody.append(infoLine("Weight", kg(weightOf(id)) + (stack > 1 ? ` each, ${kg(weightOf(id) * stack)} for the stack` : ""),
@@ -1766,8 +1787,11 @@ function renderInfo() {
     infoBody.append(infoLine("Made from", parts, `×${CRAFT_MARKUP}, then your Mastery`));
   }
   const price = sellPrice(id, uses);
-  infoBody.append(infoLine("Merchant pays", formatMoney(price), isTool(id) && uses != null && uses < maxDurability(id) ? "less because it's worn" : ""));
-  if (SHOP_STOCK.includes(id)) infoBody.append(infoLine("Merchant sells", formatMoney(buyPrice(id))));
+  const buyers = SHOP_IDS.filter((s) => s !== "tam" && SHOPS[s].buys(id)).map((s) => npcById(s)!.name);
+  infoBody.append(infoLine("Shops pay", formatMoney(price), (isTool(id) && uses != null && uses < maxDurability(id) ? "less because it's worn. " : "") +
+    `Tam at the General Store${buyers.length ? `, ${buyers.join(", ")}` : ""}`));
+  const sellers = sellersOf(id);
+  if (sellers.length) infoBody.append(infoLine("Shops sell", formatMoney(buyPrice(id)), sellers.map((s) => npcById(s)!.name).join(", ")));
 
   // Where it comes from.
   const res = RESOURCE_FOR_ITEM[id];
@@ -1846,7 +1870,7 @@ function renderInfo() {
     // Buttons act on the one showing. With several kinds in the slot, the card stays open so you can pick another.
     const e = entry;
     const done = () => { if (here.length === 1) closeInfo(); };
-    if (shopIsOpen() && !shopBuying) {
+    if (shopIsOpen() && !shopBuying && SHOPS[shopId].buys(id)) {
       const each = sellPrice(id, uses);
       infoButton(stack > 1 ? `Sell… (${formatMoney(each)} each)` : `Sell (${formatMoney(each)})`, () => {
         if (stack === 1) { onSell(e); done(); return; }
@@ -1926,10 +1950,10 @@ export function setHoverText(action: string | null, target = "", x = 0, y = 0) {
   hoverEl.style.display = "block";
 }
 
-// ---- Old Maren: the quest tracker and her dialog ----
+// ---- The quest tracker and the trainers' dialog ----
 
 // ---- The quest tracker (next to your health) and the 📜 Quests tab ----
-// The tracker shows one thing: Maren's current step, or a bounty you picked in the Quests tab.
+// The tracker shows one thing: the current lesson's step, or a bounty you picked in the Quests tab.
 
 const questEl = document.getElementById("quest")!;
 const questListEl = document.getElementById("quest-list")!;
@@ -1979,7 +2003,7 @@ function renderTracker(flash = false) {
     questEl.append(el("q-title", "📋 Bounty"), el("q-task", `${b.count} × ${item.name}${isTool(b.item) || isGear(b.item) ? " (unused)" : ""}`),
       el("q-progress", have >= b.count ? `✓ ${b.count} / ${b.count}: hand it in at the board!` : `${have} / ${b.count}`), bar(have / b.count));
   } else if (q) {
-    questEl.append(el("q-title", q.done ? `📜 ${q.quest}` : `📜 Quest ${q.number}/${q.of}: ${q.quest}`), el("q-task", (q.talk ? "❗ " : "") + q.task));
+    questEl.append(el("q-title", q.done || !q.giver ? `📜 ${q.quest}` : `📜 ${q.quest} · ${q.giver}`), el("q-task", (q.talk ? "❗ " : "") + q.task));
     if (q.warning) questEl.append(el("q-warn", `⚠️ ${q.warning}`));
     if (q.progress) questEl.append(el("q-progress", q.progress));
     if (q.fraction != null) questEl.append(bar(q.fraction));
@@ -1992,7 +2016,7 @@ function renderTracker(flash = false) {
   }
 }
 
-/** The 📜 tab: Maren's quest, then each bounty on the board. Tap one to track it. */
+/** The 📜 tab: the lessons (every trainer's chapter), then each bounty on the board. Tap one to track it. */
 function renderQuestTab() {
   questListEl.replaceChildren();
   const row = (glyph: string, tint: string | undefined, title: string, sub: string, state: string, tracked: boolean, onclick: () => void) => {
@@ -2003,14 +2027,22 @@ function renderQuestTab() {
     return r;
   };
   const tb = trackedBounty();
-  questListEl.append(el("qt-head", `${GUIDE_NAME}'s lessons`));
-  if (lastQuest) {
-    const q = lastQuest;
-    questListEl.append(row("📜", undefined, q.done ? q.quest : `Quest ${q.number}/${q.of}: ${q.quest}`, q.task, q.progress ?? (q.done ? "" : "Tap to track"), !tb, () => onTrack(null)));
+  const q = lastQuest;
+  questListEl.append(el("qt-head", q ? `📜 Lessons (${q.number} of ${q.of} done)` : "📜 Lessons"));
+  if (q) {
+    // What you're on now (or "pick your next lesson"), then every chapter.
+    questListEl.append(row("📜", undefined, q.giver ? `${q.quest} · ${q.giver}` : q.quest, q.task, q.progress ?? (q.done ? "" : "Tap to track"), !tb, () => onTrack(null)));
+    const glyph: Record<ChapterView["state"], string> = { done: "✅", active: "📍", started: "⏸️", open: "❗", locked: "🔒" };
+    for (const c of q.chapters) {
+      const sub = c.state === "done" ? "Done" : c.state === "locked" ? `Opens after ${GUIDE_NAME}'s lessons` : c.task ? `${c.task} (step ${c.step + 1} of ${c.of})` : `Talk to ${c.name}, ${c.where}`;
+      const r = el("qt-row qt-chapter" + (c.state === "done" ? " done" : ""));
+      r.append(el("qt-icon", glyph[c.state]), el("qt-title", `${c.title} · ${c.name}`), el("qt-sub", sub));
+      questListEl.append(r);
+    }
   }
   questListEl.append(el("qt-head", "📋 Bounties"));
   if (!bounties.length) {
-    questListEl.append(el("qt-note", `The bounty board next to the Merchant opens later in ${GUIDE_NAME}'s lessons.`));
+    questListEl.append(el("qt-note", "Captain Bryn opens the bounty board for you in one of the lessons."));
     return;
   }
   bounties.forEach((b, i) => {
@@ -2020,7 +2052,7 @@ function renderQuestTab() {
     questListEl.append(row(item.icon, item.tint, `${b.count} × ${item.name}`, `${formatMoney(reward.coins)} · +${reward.xp} ${reward.label} XP · +${reward.renown} Renown`,
       have >= b.count ? "✓ Ready to hand in" : `You have ${have} / ${b.count}`, tb === b, () => onTrack(i)));
   });
-  questListEl.append(el("qt-note", "Hand bounties in at the board next to the Merchant."));
+  questListEl.append(el("qt-note", "Hand bounties in at the board in the town square, next to Captain Bryn."));
 }
 
 const dialogName = document.getElementById("dialog-name")!;

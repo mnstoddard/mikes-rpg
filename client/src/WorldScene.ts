@@ -22,10 +22,13 @@ import { setTreeActions } from "./tree";
 import { renderTreeRanks } from "./ui";
 import type { TreeRanks } from "../../shared/skilltree";
 import type { QuestView } from "../../shared/quests";
+import type { ShopId } from "../../shared/shops";
+import { NIGHT_DARKNESS, darkness, isNight, minutesUntilChange } from "../../shared/daynight";
 
 const TILE_COLORS: Record<Tile, number> = {
   grass: 0x4a8f3c, path: 0xb89b6a, water: 0x2d6fa3, tree: 0x2e5e22, rock: 0x7d7d7d, bridge: 0x8b5a2b,
   fence: 0x4a8f3c, gate: 0x9a8058, sign: 0x4a8f3c, wall: 0x4b3a6b, floor: 0x6d5a8e,
+  house: 0x7a4f2a, boards: 0xa47a4c,
 };
 /** The Dark Forest's ground is darker and bluer, so you can see where danger starts. */
 const DARK_COLORS: Partial<Record<Tile, number>> = { grass: 0x23432a, path: 0x6b5a42, fence: 0x23432a, gate: 0x6b5a42 };
@@ -70,14 +73,25 @@ export class WorldScene extends Phaser.Scene {
   private lastDisciplines?: DisciplineView;
   private skillXpSeen = false; // the first skill XP after logging in isn't "gained"
   private skillXp: SkillXp = emptySkills();
-  /** The ❗ over Old Maren when she has something to say. */
-  private guideAlert?: Phaser.GameObjects.Text;
+  /** The ❗ over each person who has a lesson for you (the server says who, with the quest tracker). */
+  private alerts = new Map<string, Phaser.GameObjects.Text>();
+  /** Night: a dark blue layer over the world. */
+  private nightShade!: Phaser.GameObjects.Rectangle;
+  /** Server clock minus ours, so everyone's day and night match. */
+  private clockOffset = 0;
+  private wasNight: boolean | null = null;
 
   constructor() { super("world"); }
 
   async create() {
     this.drawMap();
     this.drawNpcs();
+    this.nightShade = this.add.rectangle(MAP_WIDTH * TILE_SIZE / 2, MAP_HEIGHT * TILE_SIZE / 2, MAP_WIDTH * TILE_SIZE + 8000, MAP_HEIGHT * TILE_SIZE + 8000, 0x0a1238, 1)
+      .setDepth(450);
+    this.time.addEvent({ delay: 1000, loop: true, callback: () => this.updateDaylight() });
+    const clock = document.getElementById("clock");
+    if (clock) clock.onclick = () => showMessage(clock.title);
+    this.updateDaylight();
     this.marker = this.add.text(0, 0, "✕", { fontSize: "20px", color: "#ffeb3b" })
       .setOrigin(0.5).setDepth(500).setVisible(false);
     // No camera bounds: the camera stays centred on you, and past the map edge
@@ -163,8 +177,13 @@ export class WorldScene extends Phaser.Scene {
       showBounties(msg.bounties, msg.open);
     });
     room.onMessage("quest", (q: QuestView) => {
-      this.guideAlert?.setVisible(q.talk);
+      this.alerts.forEach((a, id) => a.setVisible(q.marks.includes(id as never)));
       renderQuest(q);
+    });
+    room.onMessage("clock", (msg: { now: number }) => {
+      this.clockOffset = msg.now - Date.now();
+      this.wasNight = null;
+      this.updateDaylight();
     });
     room.onMessage("questDone", () => this.floatText("Quest complete!", "#ffd84a", true));
     room.onMessage("vitals", (v: { hp: number; maxHp: number; mana: number; maxMana: number }) => renderVitals(v.hp, v.maxHp, v.mana, v.maxMana));
@@ -204,9 +223,9 @@ export class WorldScene extends Phaser.Scene {
     room.onMessage("guildRank", (msg: { rank: string }) => this.floatText(`Guild ${msg.rank}!`, "#c9a2ff", true));
     room.onMessage("bag", (bag: Bag) => renderBag(bag));
     room.onMessage("coins", (coins: number) => renderCoins(coins));
-    room.onMessage("shop", () => {
+    room.onMessage("shop", (msg: { npc: ShopId }) => {
       this.marker.setVisible(false);
-      openShop();
+      openShop(msg.npc);
     });
     this.listenToState(room);
     room.send("ready", { reconnected });
@@ -322,6 +341,13 @@ export class WorldScene extends Phaser.Scene {
           // Purple stone blocks, with a darker line between rows.
           g.fillStyle(0x3a2c55).fillRect(px, py + 15, TILE_SIZE, 2).fillRect(px + 15, py, 2, 15).fillRect(px + 6, py + 17, 2, 15);
           g.fillStyle(0x7b67a6, 0.6).fillRect(px, py, TILE_SIZE, 2);
+        } else if (t === "house") {
+          // Wooden walls: planks with a dark beam along the top.
+          g.fillStyle(0x5a3a1e).fillRect(px, py + 10, TILE_SIZE, 2).fillRect(px, py + 21, TILE_SIZE, 2);
+          g.fillStyle(0x3e2712).fillRect(px, py, TILE_SIZE, 4);
+        } else if (t === "boards") {
+          // Floorboards.
+          g.lineStyle(1, 0x7d5a35, 0.8).lineBetween(px, py + 8, px + TILE_SIZE, py + 8).lineBetween(px, py + 16, px + TILE_SIZE, py + 16).lineBetween(px, py + 24, px + TILE_SIZE, py + 24);
         } else if (t === "floor") {
           // Rug pattern: a little star in the middle of each tile.
           g.fillStyle(0x8f78b8, 0.5).fillCircle(px + 16, py + 16, 3);
@@ -339,6 +365,13 @@ export class WorldScene extends Phaser.Scene {
     if (mage) {
       const [gx, gy] = this.tileCenter(mage.x, mage.y - 2);
       this.add.text(gx, gy - 22, "🔮 Mages' Guild", { fontSize: "13px", color: "#e3ccff", stroke: "#000", strokeThickness: 3 }).setOrigin(0.5).setDepth(40);
+    }
+    // Signs over the trainers' doors (on the door tile, so they don't hide the room).
+    for (const npc of NPCS) {
+      if (!npc.sign) continue;
+      const [sx, sy] = this.tileCenter(npc.sign.x, npc.sign.y);
+      this.add.text(sx, sy, npc.sign.text, { fontSize: "11px", color: "#ffe9b8", stroke: "#000", strokeThickness: 3, backgroundColor: "#4a2e14cc", padding: { x: 3, y: 1 } })
+        .setOrigin(0.5).setDepth(40);
     }
     for (const npc of NPCS) {
       if (npc.kind === "station") { this.drawStation(npc.id, npc.x, npc.y, npc.name); continue; }
@@ -366,16 +399,15 @@ export class WorldScene extends Phaser.Scene {
       c.add([shadow, body, hat, badge, label]);
       // A little idle bob so they look alive.
       this.tweens.add({ targets: [body, hat], y: "-=2", duration: 900, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
-      if (npc.id === "maren") {
-        // ❗ when she has something for you (the server says when, with the quest tracker).
-        this.guideAlert = this.add.text(0, -46, "❗", { fontSize: "18px" }).setOrigin(0.5).setVisible(false);
-        c.add(this.guideAlert);
-        this.tweens.add({ targets: this.guideAlert, y: -50, duration: 500, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
-      }
+      // ❗ when they have a lesson for you (the server says who, with the quest tracker).
+      const alert = this.add.text(0, -46, "❗", { fontSize: "18px" }).setOrigin(0.5).setVisible(false);
+      c.add(alert);
+      this.alerts.set(npc.id, alert);
+      this.tweens.add({ targets: alert, y: -50, duration: 500, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
     }
   }
 
-  /** The furnace (glowing fire), the anvil and the stove (pot on top), next to the Merchant. */
+  /** The furnace (glowing fire) and the anvil in Brann's smithy, the stove (pot on top) by Maren, and the other stations. */
   private drawStation(id: string, x: number, y: number, name: string) {
     const [cx, cy] = this.tileCenter(x, y);
     const c = this.add.container(cx, cy).setDepth(10 + y + 0.5);
@@ -437,7 +469,7 @@ export class WorldScene extends Phaser.Scene {
       c.add(g);
     }
     // In the guild hall the stations stand close to the Archmage, so their names go underneath.
-    const below = id === "chest" || id === "guildboard";
+    const below = id === "chest" || id === "guildboard" || id === "furnace" || id === "anvil" || id === "workbench";
     const label = this.add.text(0, below ? 22 : id === "board" ? -32 : -28, name, { fontSize: "12px", color: "#ffd84a", stroke: "#000", strokeThickness: 3 }).setOrigin(0.5);
     c.add(label);
   }
@@ -641,6 +673,23 @@ export class WorldScene extends Phaser.Scene {
   }
 
   /** Text that floats up from your character and fades, e.g. "+1 Foraging XP". */
+  /** Darken the world at night (a gentle dark for now), and say when night falls or the sun comes up. */
+  private updateDaylight() {
+    const now = Date.now() + this.clockOffset;
+    this.nightShade.setAlpha(darkness(now) * NIGHT_DARKNESS);
+    const night = isNight(now);
+    if (this.wasNight !== null && night !== this.wasNight && this.room) {
+      showMessage(night ? "🌙 Night falls over the town." : "☀️ The sun comes up.");
+    }
+    this.wasNight = night;
+    const clock = document.getElementById("clock");
+    if (clock) {
+      const mins = minutesUntilChange(now);
+      clock.textContent = night ? "🌙" : "☀️";
+      clock.title = night ? `Night. The sun comes up in about ${mins} minute${mins === 1 ? "" : "s"}.` : `Day. Night falls in about ${mins} minute${mins === 1 ? "" : "s"}.`;
+    }
+  }
+
   private floatText(text: string, color: string, big = false) {
     const me = this.room && this.players.get(this.room.sessionId);
     if (!me) return;

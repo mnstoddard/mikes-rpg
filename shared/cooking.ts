@@ -90,8 +90,8 @@ export const INGREDIENTS: Record<IngredientId, IngredientDef> = {
   }])) as Record<FishId, IngredientDef>,
   raw_chicken: { kind: "poultry", stamina: 4, level: 1, xp: 3, from: "Chickens drop it" },
   raw_beef:    { kind: "meat",    stamina: 6, level: 5, xp: 5, from: "Cows drop it" },
-  potato:      { kind: "veg",     stamina: 2, level: 1, xp: 1, from: "The Merchant sells them" },
-  carrot:      { kind: "veg",     stamina: 2, level: 1, xp: 1, from: "The Merchant sells them" },
+  potato:      { kind: "veg",     stamina: 2, level: 1, xp: 1, from: "The General Store sells them" },
+  carrot:      { kind: "veg",     stamina: 2, level: 1, xp: 1, from: "The General Store sells them" },
   mushroom:    { kind: "veg",     stamina: 3, level: 3, xp: 2, from: "Found now and then while chopping trees" },
 };
 export const INGREDIENT_IDS = Object.keys(INGREDIENTS) as IngredientId[];
@@ -205,7 +205,7 @@ export function mealTitle(m: Meal, names: (i: IngredientId) => string): string {
   return n * 2 >= m.ingredients.length ? `${names(top)} ${dish}` : `Mixed ${dish}`;
 }
 
-/** The Merchant's stew (and Old Maren's spare): 3 minnows over a pine fire. */
+/** The General Store's stew (and Old Maren's spare): 3 minnows over a pine fire. */
 export const SHOP_STEW: MealId = mealId("stew", "pine", ["minnow", "minnow", "minnow"]);
 /** The tutorial's first stew: 1 minnow over a pine fire. */
 export const FIRST_STEW: MealId = mealId("stew", "pine", ["minnow"]);

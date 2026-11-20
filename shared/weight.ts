@@ -2,7 +2,7 @@
 //
 // Everything has a weight, in kilograms. What's in your bag counts, and so do
 // the tools on your belt and the weapon and armor you're wearing. When you're
-// at your limit you can't pick anything else up (gathering stops, the Merchant
+// at your limit you can't pick anything else up (gathering stops, a shop
 // won't hand you more) until you sell, drop, eat or store something.
 //
 // A new player can carry about 20 ore or logs (2 kg each) on top of their

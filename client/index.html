@@ -52,7 +52,7 @@
     .coin.gold { background: #f5c542; }
     .coin.silver { background: #c9d1d9; }
     .coin.bronze { background: #c07a3c; }
-    #shop { display: none; left: 50%; top: 22%; transform: translateX(-50%); /* above your character, so you can still see the Merchant */ width: min(300px, calc(100vw - 32px)); padding: 12px 14px; z-index: 5; text-align: center; }
+    #shop { display: none; left: 50%; top: 22%; transform: translateX(-50%); /* above your character, so you can still see the shopkeeper */ width: min(300px, calc(100vw - 32px)); padding: 12px 14px; z-index: 5; text-align: center; }
     body.shop-open #shop { display: block; }
     #shop h3 { margin: 0 0 8px; font-size: 16px; color: #ffd84a; font-weight: normal; }
     #shop-body { font-size: 14px; line-height: 1.5; color: #f2e6c9; margin-bottom: 10px; }
@@ -140,6 +140,7 @@
     .slot.locked { background: rgba(255, 216, 74, .12); }
     body.shop-open .slot.locked { outline-color: #6b5a3e; }
     body.shop-open .slot.locked span:first-child { opacity: .55; }
+    body.shop-open .slot.no-buy { opacity: .4; }
     #shop-prices .price { font-size: 13px; color: #fff; background: rgba(0,0,0,.25); border-radius: 3px; padding: 3px 6px; }
     #shop-sell-all.armed { background: #8a5a1f; border-color: #ffd84a; }
     /* Tool belt: one slot per kind of tool, above the bag */
@@ -299,6 +300,9 @@
     .qt-sub { font-size: 11.5px; color: #f2e6c9; }
     .qt-state { font-size: 11px; color: #9be28a; }
     .qt-row.tracked .qt-state { color: #ffd84a; }
+    .qt-chapter { cursor: default; padding: 4px 7px; }
+    .qt-chapter:hover { background: rgba(0,0,0,.25); }
+    .qt-chapter.done { opacity: .6; }
     .qt-note { font-size: 12px; color: #c9bc9c; padding: 4px 2px; }
     /* Full message history: tap the message box */
     #history { display: none; left: 50%; top: 10%; transform: translateX(-50%); width: min(460px, calc(100vw - 32px)); padding: 12px 14px; z-index: 8; }
@@ -371,7 +375,7 @@
     <div id="dialog-text"></div>
     <div class="buttons"><span id="dialog-page"></span><button id="dialog-next" class="shop-btn">Next</button></div>
   </div>
-  <div id="zoom"><button id="zoom-in" class="panel btn" aria-label="Zoom in">+</button><button id="zoom-out" class="panel btn" aria-label="Zoom out">−</button><button id="settings-btn" class="panel btn" aria-label="Settings" title="Settings: name, password, colour, sign out">⚙️</button></div>
+  <div id="zoom"><button id="clock" class="panel btn" aria-label="Time of day" title="Day">☀️</button><button id="zoom-in" class="panel btn" aria-label="Zoom in">+</button><button id="zoom-out" class="panel btn" aria-label="Zoom out">−</button><button id="settings-btn" class="panel btn" aria-label="Settings" title="Settings: name, password, colour, sign out">⚙️</button></div>
   <div id="tabs">
     <button class="panel btn tab" data-tab="quests" aria-label="Quests and bounties" title="Quests and bounties">📜</button>
     <button class="panel btn tab" data-tab="skills" aria-label="Disciplines and Mastery" title="Disciplines and Mastery">📊</button>
@@ -381,7 +385,7 @@
   <div id="messages" class="panel" title="Tap to see every message"></div>
   <div id="inventory" class="panel sidepanel"><h3><button id="sort-bag" aria-label="Sort bag" title="Sort your bag. You can also drag items to move them.">⇅</button><span id="inv-title">Inventory</span><button id="lock-mode" aria-label="Lock items" title="Lock items so they can't be sold or dropped">🔒</button></h3><div class="strip-label">Tool belt</div><div id="belt"></div><div class="strip-label">Gear</div><div id="gear"></div><div id="spells"></div><div id="slots"></div><div id="weight"></div><div id="money"></div></div>
   <div id="shop" class="panel">
-    <h3 id="shop-title">Merchant</h3>
+    <h3 id="shop-title">Shop</h3>
     <div id="shop-tabs"><button class="shop-tab active" data-mode="sell">Sell</button><button class="shop-tab" data-mode="buy">Buy</button></div>
     <div id="shop-body"></div>
     <div class="buttons">
@@ -400,7 +404,7 @@
   </div>
   <div id="bounty" class="panel">
     <h3>📋 Bounty board</h3>
-    <div class="bounty-note">Bring the full amount from your bag. They pay double what the Merchant would, plus XP. Locked items don't count.</div>
+    <div class="bounty-note">Bring the full amount from your bag. They pay double what a shop would, plus XP. Locked items don't count.</div>
     <div id="bounty-list"></div>
     <div class="buttons">
       <button id="bounty-refresh" class="shop-btn" title="Swap all 5 for new bounties (free)">🔄 Refresh</button>

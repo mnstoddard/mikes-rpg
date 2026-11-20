@@ -61,17 +61,17 @@ export const DISCIPLINES: Record<DisciplineId, DisciplineDef> = {
     name: "Dexterity", icon: "🤲",
     description: "Making things. Raises how much you can carry and how fast you walk.",
     skills: [
-      { id: "cooking", name: "Cooking", icon: "🍲", description: "Use the stove by the furnace to cook meals (stew, stir fry, curry, roast) from fish, meat and vegetables. Meals give back lots of stamina." },
-      { id: "handicraft", name: "Handicraft", icon: "🧵", description: "Use the workbench just east of the anvil to make fishing bait from worms, food scraps and feathers." },
-      { id: "smithing", name: "Smithing", icon: "🔨", description: "Use the anvil by the Merchant to make tools from stone or a metal bar, plus a log." },
-      { id: "smelting", name: "Smelting", icon: "🔥", description: "Use the furnace by the Merchant to turn ore into bars." },
+      { id: "cooking", name: "Cooking", icon: "🍲", description: "Use the stove in the town square, by Old Maren, to cook meals (stew, stir fry, curry, roast) from fish, meat and vegetables. Meals give back lots of stamina." },
+      { id: "handicraft", name: "Handicraft", icon: "🧵", description: "Use the workbench in Woodworker Rook's workshop to make fishing bait from worms, food scraps and feathers." },
+      { id: "smithing", name: "Smithing", icon: "🔨", description: "Use the anvil in Smith Brann's smithy to make tools from stone or a metal bar, plus a log." },
+      { id: "smelting", name: "Smelting", icon: "🔥", description: "Use the furnace in Smith Brann's smithy to turn ore into bars." },
     ],
   },
   charisma: {
     name: "Charisma", icon: "🤝",
     description: "Dealing with people. Better shop prices.",
     skills: [
-      { id: "trading", name: "Trading", icon: "💰", description: "Trained by selling things to the Merchant. The more it's worth, the more XP." },
+      { id: "trading", name: "Trading", icon: "💰", description: "Trained by selling things to any shop. The more it's worth, the more XP." },
       { id: "renown", name: "Renown", icon: "📋", description: "Trained by finishing bounties, on the bounty board and the Mages' Guild board." },
     ],
   },
