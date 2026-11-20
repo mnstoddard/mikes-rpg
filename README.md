@@ -98,7 +98,7 @@ Click an item to drop it. Moving stops what you're doing.
 There are three layers:
 
 1. **Foraging level** (up to 99) unlocks skills: Fishing 1, Woodcutting 3, Mining 5.
-   **Crafting level** unlocks Cooking 1, Smithing 3, Smelting 5.
+   **Crafting level** unlocks Cooking 1, Handicraft 2, Smithing 3, Smelting 5.
 2. **Skill level** (Woodcutting, Fishing, Mining; up to 99, same curve as Foraging)
    unlocks better types, which are slower but give more XP and sell for more:
    - Woodcutting: Pine 1, Oak 5, Birch 10, Maple 20, Yew 35, Ironwood 50, Elderwood 70
@@ -198,11 +198,11 @@ The same 5 show in the 📜 Quests tab: tap one to **track** it, and the tracker
 many you have (the tracker goes back to Maren's quest once it's handed in):
 
 - **Only things you could get yourself right now:** types you can chop, mine or
-  catch; bars you can smelt, tools, weapons and armor you can smith, and stews you
+  catch; bars you can smelt, tools, weapons and armor you can smith, and dishes of one fish you
   can cook, all from materials you can gather; and drops from monsters you've
   defeated before (not health potions). The board picks a kind at random (Oak logs,
   Bronze bars, Iron tools, Trout stew, Wolf pelts...), then one exact item of that kind.
-- **Amounts:** 3-8 logs, ore or fish, 2-6 monster drops, 2-5 bars, 1-3 stews, 1-2 tools, weapons or armor.
+- **Amounts:** 3-8 logs, ore or fish, 2-6 monster drops, 2-5 bars, 1-3 meals, 1-2 tools, weapons or armor.
 - **Hand in** the full amount from your bag (no part hand-ins). Locked items don't
   count, and tools, weapons and armor must be unused.
 - **Reward:** double what the Merchant would pay you for them, with your Mastery,
@@ -218,7 +218,7 @@ Rules live in `shared/bounties.ts`; the board is in `shared/npcs.ts`.
 
 Your bag has 28 slots. Most things stack in one slot: up to 50 logs, ore,
 stone or fish, 100 feathers, 10 health potions, and 25 of everything else
-(bars, stews, monster drops). Tools, weapons and armor don't stack, since each
+(bars, meals, monster drops). Tools, weapons, armor and bait don't stack, since each
 one wears down on its own. A small number in the corner of a slot shows how
 many are in it. Tapping a stack at the Merchant sells the whole stack, and
 Drop drops the whole stack. Sorting the bag also joins split stacks. The
@@ -387,15 +387,65 @@ Every action costs **stamina** (the ⚡ bar, top left). You start with 100.
 Costs (in `shared/cooking.ts`): Woodcutting 10 and Mining 10 per log or ore,
 Smelting 5 and Smithing 5 per try, Cooking 2 per try, Fishing 1 per fish. At too
 little stamina you can't do that action. Stamina comes back 1 every 30 seconds,
-also while logged out, and from **eating** (click a fish or stew, then Eat).
+also while logged out, and from **eating** (click a fish or a meal, then Eat).
 
 - **Raw fish:** Minnow 2, Trout 3, Perch 4, Salmon 5, Pike 7, Tuna 10, Swordfish 14, Eel 20.
-- **Fish stew** (🍲 **Cooking**, a Crafting skill open from the start): at the
-  stove next to the furnace, cook 1 to 5 of one kind of fish plus 1 log as fuel.
-  Stew stamina = 3 × the fish eaten raw + the fire (Pine 12, Oak 15, Birch 18,
-  Maple 22, Yew 28, Ironwood 35, Elderwood 45), then +2% per Fish stew Mastery level.
-  You can cook a fish once your Cooking level reaches its Fishing level.
-  Success starts at 50% (a failed try burns the fish and the log) and climbs
-  with Mastery; a **pot** on the tool belt removes failures, no pot halves the chance.
+- **Cooking** (🍲, a Crafting skill open from the start): at the stove next
+  to the furnace, pick a **dish**, tap ingredients from your bag to put them
+  in the pot (up to 3; more with the skill tree), and pick a log to burn.
+  Things a dish can't use (rat tails, or fish in a stir fry) are grayed out.
+  Rules live in `shared/cooking.ts`.
+  - Dishes (Cooking level, stamina multiplier per ingredient, fire multiplier):
+    **Stew** 1 (everything ×3, fire ×1.5), **Stir fry** 3 (chicken and beef ×4,
+    vegetables ×3.5, no fish), **Curry** 5 (fish ×4.5, chicken ×3.5, beef and
+    vegetables ×3), **Roast** 7 (beef ×5, chicken ×4.5, vegetables ×2.5, no fish).
+  - Ingredients (stamina before the multiplier): fish as eaten raw; **raw
+    chicken** 4 (chickens drop it), **raw beef** 6 (cows, Cooking 5),
+    **potato** 2 and **carrot** 2 (the Merchant sells them), **mushroom** 3
+    (found now and then while chopping, Cooking 3). You can cook a fish once your
+    Cooking level reaches its Fishing level.
+  - Meal stamina = each ingredient × the dish's multiplier + the fire (Pine 12,
+    Oak 15, Birch 18, Maple 22, Yew 28, Ironwood 35, Elderwood 45, times the
+    dish's fire multiplier), then +2% per Mastery level in that dish. Each dish
+    has its own Mastery. Success starts at 50% for stew (lower for the fancier
+    dishes) and climbs with Mastery; a **pot** on the tool belt removes failures,
+    no pot halves the chance. A cooked meal sometimes leaves **food scraps**.
+  - A meal's item id lists what's in it (`meal_curry_oak_potato-trout-trout`),
+    so every mix is its own item. Old fish stews became the same stew.
 - **Pot and tongs** take 3 bars (or 3 stone) and no wood.
-- The Merchant sells a stone pot and a Minnow stew ×3 (pine) at his usual 3× price.
+- The Merchant sells a stone pot, a stew of 3 minnows (pine), potatoes, carrots and worms at his usual 3× price.
+
+## Handicraft and fishing bait
+
+🧵 **Handicraft** is a Crafting skill (opens at Crafting 2), done at the
+**workbench** just east of the anvil. No tool needed. For now it makes bait
+(`shared/handicraft.ts`):
+
+- **Worm bait** (Handicraft 1, 2 worms): 30% faster fishing.
+- **Chum bait** (Handicraft 3, 2 food scraps + 1 worm): +50% Fishing XP per catch.
+- **Glow bait** (Handicraft 6, 2 worms + 1 feather): 15% chance to catch two fish.
+
+Each bait lasts 25 catches and takes a bag slot of its own. Fishing uses the
+first **unlocked** bait in your bag, so lock one to save it for later. Worms
+turn up 12% of the time while chopping or mining (the Merchant sells them too),
+and cooking leaves food scraps 35% of the time.
+
+## Mastery skill trees
+
+Every time any Mastery goes up a level (Oak, Trout, Axe, Stew, Dagger,
+Chicken...), you earn a **Mastery point**. Spend points in any skill's tree:
+the 🌳 button at the top of the 📊 panel (it shows points to spend), or the
+"Skill tree" button under any skill. Each skill has 3 upgrades with 3 ranks;
+rank 1 costs 1 point, rank 2 costs 2, rank 3 costs 3. Resetting a tree (or all
+of them) is free for now. Points aren't saved, only ranks: what you've earned is
+worked out from your Mastery levels. Trees live in `shared/skilltree.ts`.
+
+- Woodcutting, Mining: faster, chance of an extra log or ore, chance of no stamina cost.
+- Fishing: faster, chance of an extra fish, more Fishing XP.
+- Cooking: **Bigger pot** (+1 ingredient per rank, up to 6), fewer burns, meals give more stamina.
+- Smelting: fewer failures, chance of an extra bar, chance of no stamina cost.
+- Smithing: fewer failures, chance tools, weapons and armor don't wear, more XP.
+- Handicraft: fewer failures, chance of an extra bait, more XP.
+- Melee, Ranged: hit more often, hit harder, chance an attack costs no stamina.
+- Magic: hit more often, hit harder, chance a spell costs no mana.
+- Defense: +5 max health per rank, monsters hit you less, more Defense XP.
