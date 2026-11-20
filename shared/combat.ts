@@ -83,9 +83,9 @@ export interface MonsterDef {
 
 export const MONSTERS: Record<MonsterId, MonsterDef> = {
   // Near town: chickens and cows never fight back; rats bite back.
-  chicken: { name: "Chicken",      icon: "🐔", level: 1,  hp: 4,  maxHit: 0, speed: 4, aggressive: false, xp: 1,  respawnTicks: 50,  drops: [{ item: "feather", chance: 0.6 }], coins: [0, 0] },
+  chicken: { name: "Chicken",      icon: "🐔", level: 1,  hp: 4,  maxHit: 0, speed: 4, aggressive: false, xp: 1,  respawnTicks: 50,  drops: [{ item: "feather", chance: 0.6 }, { item: "raw_chicken", chance: 0.7 }], coins: [0, 0] },
   rat:     { name: "Rat",          icon: "🐀", level: 2,  hp: 6,  maxHit: 1, speed: 4, aggressive: false, xp: 2,  respawnTicks: 50,  drops: [{ item: "rat_tail", chance: 0.5 }], coins: [0, 2] },
-  cow:     { name: "Cow",          icon: "🐄", level: 3,  hp: 12, maxHit: 0, speed: 4, aggressive: false, xp: 4,  respawnTicks: 70,  drops: [{ item: "cowhide", chance: 0.6 }], coins: [0, 0] },
+  cow:     { name: "Cow",          icon: "🐄", level: 3,  hp: 12, maxHit: 0, speed: 4, aggressive: false, xp: 4,  respawnTicks: 70,  drops: [{ item: "cowhide", chance: 0.6 }, { item: "raw_beef", chance: 0.7 }], coins: [0, 0] },
   // The Dark Forest: they attack on sight.
   wolf:    { name: "Wolf",         icon: "🐺", level: 8,  hp: 20, maxHit: 3, speed: 4, aggressive: true,  xp: 8,  respawnTicks: 100, drops: [{ item: "wolf_pelt", chance: 0.5 }], coins: [1, 5] },
   goblin:  { name: "Goblin",       icon: "👺", level: 12, hp: 30, maxHit: 4, speed: 4, aggressive: true,  xp: 12, respawnTicks: 100, drops: [{ item: "goblin_charm", chance: 0.35 }, { item: POTION_ID, chance: 0.1 }], coins: [3, 12] },
@@ -176,8 +176,8 @@ export const maxHitWith = (a: Attack, masteryLevel: number) => a.maxHit ? Math.m
  * monster's (−2% below), plus your weapon's wood, your weapon (or spell) Mastery
  * and your Mastery of that monster. Between 5% and 95%.
  */
-export function hitChance(skillLevel: number, monster: MonsterId, a: Attack, weaponMastery: number, monsterMastery: number): number {
-  const c = 0.55 + 0.02 * (skillLevel - MONSTERS[monster].level) + a.accuracy + masteryAccuracy(weaponMastery) + masteryAccuracy(monsterMastery);
+export function hitChance(skillLevel: number, monster: MonsterId, a: Attack, weaponMastery: number, monsterMastery: number, treeAccuracy = 0): number {
+  const c = 0.55 + 0.02 * (skillLevel - MONSTERS[monster].level) + a.accuracy + masteryAccuracy(weaponMastery) + masteryAccuracy(monsterMastery) + treeAccuracy;
   return Math.max(0.05, Math.min(0.95, c));
 }
 
@@ -197,8 +197,8 @@ export function armorPoints(gear: Gear): number {
 }
 
 /** Chance a monster's attack lands on you: 50%, +2% per level it's above your Defense, −1% per armor point. 5% to 90%. */
-export function monsterHitChance(monster: MonsterId, defenseLevel: number, armor: number): number {
-  const c = 0.5 + 0.02 * (MONSTERS[monster].level - defenseLevel) - armor / 100;
+export function monsterHitChance(monster: MonsterId, defenseLevel: number, armor: number, treeDodge = 0): number {
+  const c = 0.5 + 0.02 * (MONSTERS[monster].level - defenseLevel) - armor / 100 - treeDodge;
   return Math.max(0.05, Math.min(0.9, c));
 }
 

@@ -23,6 +23,7 @@ import type { ItemId } from "./items";
 import type { ResourceId } from "./foraging";
 import type { ToolType } from "./tools";
 import type { MonsterId } from "./combat";
+import { FIRST_STEW, SHOP_STEW } from "./cooking";
 import type { CombatStyle } from "./gear";
 
 export const GUIDE_NAME = "Old Maren";
@@ -39,9 +40,9 @@ export type Goal =
   | { kind: "gather"; skill: GatherSkill; resource?: ResourceId; count: number; withTool?: boolean; byHand?: boolean }
   /** Wear a tool on your belt down until it breaks. */
   | { kind: "toolBreaks"; tool: ToolType }
-  /** Make something whose item id starts with `prefix` ("stew_", "axe_stone_"). tries: any attempt counts, even a failure. */
+  /** Make something whose item id starts with `prefix` ("meal_stew_", "axe_stone_"). tries: any attempt counts, even a failure. */
   | { kind: "craft"; skill: CraftSkill; prefix: string; count: number; tries?: boolean }
-  /** Eat a stew. */
+  /** Eat a meal. */
   | { kind: "eat" }
   /** Sell a fish or a log to the Merchant. */
   | { kind: "sell"; what: GatherSkill; count: number }
@@ -137,14 +138,14 @@ export const STEPS: QuestStep[] = [
     lines: [
       "Snapped, did it? Every tool wears down a little each time you use it, and when it runs out, it breaks.",
       "Better tools last longer. Stone wears out fastest, bronze lasts more than twice as long, and the finer metals longer still. A better wooden handle helps too.",
-      "Now, raw minnows won't keep you going for long. Take this pine log to the stove and cook your fish into a stew.",
+      "Now, raw minnows won't keep you going for long. Take this pine log to the stove and cook your fish into a stew. Pick Stew, tap your minnow to put it in the pot, and pick the Pine log to burn.",
     ],
     give: [LOG],
   },
   {
     // The first stew always burns (see BURN_UNTIL).
-    quest: 0, task: "Cook a stew at the stove (pick Minnow, 1 fish, Pine)", goal: { kind: "craft", skill: "cooking", prefix: "stew_", count: 1, tries: true },
-    hint: "Click the stove (the black one with the pot, west of the furnace). Pick Minnow, how many fish, and the Pine log, then press Make 1.",
+    quest: 0, task: "Cook a stew at the stove (Stew, put in your minnow, Pine log)", goal: { kind: "craft", skill: "cooking", prefix: "meal_stew_", count: 1, tries: true },
+    hint: "Click the stove (the black one with the pot, west of the furnace). Pick Stew, tap your minnow to put it in the pot, pick the Pine log, then press Make 1.",
     ensure: [LOG, MINNOW], protect: ["minnow", "pine_logs"],
   },
   {
@@ -162,14 +163,14 @@ export const STEPS: QuestStep[] = [
     ensure: [POT, LOG, MINNOW], protect: ["pot_", "minnow", "pine_logs"],
   },
   {
-    quest: 0, task: "Cook a stew with the pot on your belt", goal: { kind: "craft", skill: "cooking", prefix: "stew_", count: 1 },
+    quest: 0, task: "Cook a stew with the pot on your belt", goal: { kind: "craft", skill: "cooking", prefix: "meal_stew_", count: 1 },
     hint: "Cook a stew at the stove with the pot on your belt. I'll keep an eye on it this time.",
     ensure: [POT, LOG, MINNOW], guaranteed: true, protect: ["pot_", "minnow", "pine_logs"], needsTool: "pot",
   },
   {
     quest: 0, task: `Show ${GUIDE_NAME} your stew (don't eat it yet!)`, goal: { kind: "talk" },
-    need: { prefix: "stew_", line: "Where's your stew? Cook one at the stove and bring it to me." },
-    protect: ["stew_"],
+    need: { prefix: "meal_", line: "Where's your stew? Cook one at the stove and bring it to me." },
+    protect: ["meal_"],
     lines: [
       "Now that's a stew! Smells like my mother's kitchen.",
       "See the ⚡ bar at the top left? That's your stamina. Everything you do costs some: a fish costs 1, cooking 2, and chopping or mining 10.",
@@ -179,7 +180,7 @@ export const STEPS: QuestStep[] = [
   {
     quest: 0, task: "Eat your stew (click it in your bag, then Eat)", goal: { kind: "eat" },
     hint: "Click the stew in your bag and press Eat.",
-    ensure: [{ item: "stew_minnow_1_pine" }],
+    ensure: [{ item: FIRST_STEW }],
   },
   {
     quest: 0, task: "Sell a fish to the Merchant (catch one if you have none)", goal: { kind: "sell", what: "fishing", count: 1 },
@@ -192,7 +193,7 @@ export const STEPS: QuestStep[] = [
       "Here's your reward: a bronze rod and a bronze pot. Faster fishing, fewer burned stews, and they last much longer. And some coins and a couple of stews for the road.",
       "Put them both on your belt. Your old stone pot goes back in your bag when you do.",
     ],
-    give: [{ item: "rod_bronze_pine" }, { item: "pot_bronze" }, { item: "stew_minnow_3_pine", count: 2 }],
+    give: [{ item: "rod_bronze_pine" }, { item: "pot_bronze" }, { item: SHOP_STEW, count: 2 }],
     coins: 50,
   },
 
@@ -210,9 +211,10 @@ export const STEPS: QuestStep[] = [
   {
     quest: 1, task: `Talk to ${GUIDE_NAME} about Woodcutting`, goal: { kind: "talk" },
     lines: [
-      "Foraging 3! Each Discipline opens new skills as it levels up. Foraging gives you Woodcutting at 3 and Mining at 5. Crafting gives you Smithing at 3 and Smelting at 5.",
+      "Foraging 3! Each Discipline opens new skills as it levels up. Foraging gives you Woodcutting at 3 and Mining at 5. Crafting gives you Handicraft at 2, Smithing at 3 and Smelting at 5.",
       "While we're at it, open the 📊 panel (bottom right), then Foraging, then Fishing. See the Minnow row and its Mastery level? Every kind of fish, log and ore has its own Mastery, and so does everything you make.",
       "Mastery goes up each time you catch or make that thing. The higher it is, the faster you gather it, the more often your crafting works, and the more the Merchant pays for it. It never stops growing.",
+      "And every Mastery level earns you a Mastery point. Spend them in any skill's tree (the 🌳 button in the 📊 panel) on upgrades like faster chopping or a bigger cooking pot. Changed your mind? Resetting is free.",
       "Now, you've no axe yet, so chop 3 logs by hand. Slow going, like your first fish. Pine trees are the pointy ones.",
     ],
   },
@@ -225,13 +227,13 @@ export const STEPS: QuestStep[] = [
     lines: [
       "Sore hands? Good. Now you know why folks make their own tools.",
       "Tools are made at the anvil, with Smithing. But Smithing needs Crafting level 3, so you've more cooking to do.",
-      "Cook stews at the stove until you reach Crafting 3. A stew with more fish in it gives more XP. Here's some firewood to get you going.",
+      "Cook stews at the stove until you reach Crafting 3. You can put up to 3 ingredients in the pot, and more ingredients give more XP. Here's some firewood to get you going.",
     ],
     give: [{ item: "pine_logs", count: 5 }],
   },
   {
     quest: 1, task: "Reach Crafting level 3 (cook stews)", goal: { kind: "level", discipline: "crafting", level: 3 },
-    hint: "Cook stews at the stove with your pot on your belt. More fish in a stew gives more XP. If you run low on stamina, eat one!",
+    hint: "Cook stews at the stove with your pot on your belt. More ingredients in the pot give more XP. If you run low on stamina, eat one!",
     needsTool: "pot", protect: ["pot_bronze"],
   },
   {

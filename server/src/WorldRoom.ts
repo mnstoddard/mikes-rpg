@@ -36,7 +36,11 @@ import { INVENTORY_SIZE, ITEMS, ItemId, LEGACY_ITEMS } from "../../shared/items"
 import { NPCS, NpcDef, npcById } from "../../shared/npcs";
 import { findSkill as skillInfo } from "../../shared/disciplines";
 import { formatMoney } from "../../shared/money";
-import { MAX_STAMINA, STAMINA_COST, STAMINA_REGEN_MS, FISH_IDS, foodStamina, isFood, isStew } from "../../shared/cooking";
+import {
+  BASE_INGREDIENTS, DISHES, DISH_IDS, MAX_STAMINA, SHOP_STEW, STAMINA_COST, STAMINA_REGEN_MS, foodStamina, isFood, isMeal, legacyStew, parseMeal,
+} from "../../shared/cooking";
+import { BAITS, BaitId, MUSHROOM_CHANCE, SCRAPS_CHANCE, WORM_CHANCE, isBait } from "../../shared/handicraft";
+import { TREES, TreeEffect, TreeRanks, cleanRanks, earnedPoints, rankCost, spentPoints, treeBonus, treeNode, treeRoll } from "../../shared/skilltree";
 import {
   BURN_UNTIL, GUIDE_NAME, Gift, QUESTS, isProtected, QuestProgress, QuestStep, QuestView, STEPS, gateOpen, giftItems, newQuestProgress, tutorialDone,
 } from "../../shared/quests";
@@ -102,6 +106,7 @@ export class Player extends Schema {
   healthTicks = 0; // ticks since health last came back on its own
   manaTicks = 0;
   bounties: Bounty[] = []; // the 5 jobs on this player's bounty board (filled the first time they look)
+  tree: TreeRanks = {}; // Mastery skill tree ranks bought, e.g. { "cooking.slots": 2 } (shared/skilltree.ts)
   dirty = false; // something changed since the last save
   lastSavedAt = 0;
 }
@@ -148,7 +153,7 @@ type QuestEvent =
   | { kind: "drink" };
 
 /** Where each crafting skill is done. */
-const STATION_FOR = { smelting: "furnace", smithing: "anvil", cooking: "stove" } as const;
+const STATION_FOR = { smelting: "furnace", smithing: "anvil", cooking: "stove", handicraft: "workbench" } as const;
 
 const isRock = (x: number, y: number) =>
   y >= 0 && y < MAP_HEIGHT && x >= 0 && x < MAP_WIDTH && MAP[y][x] === "rock";
@@ -354,9 +359,9 @@ export class WorldRoom extends Room<WorldState> {
       const item = p.inventory[msg.slot];
       if (!item || !isFood(item)) return;
       if (isProtected(p.quest, item)) return this.say(client, this.keepIt(item, "eat"));
-      const questEat = this.step(p)?.goal.kind === "eat" && isStew(item); // Maren asked you to eat it, so you can even when full
+      const questEat = this.step(p)?.goal.kind === "eat" && isMeal(item); // Maren asked you to eat it, so you can even when full
       if (p.stamina >= MAX_STAMINA && !questEat) return this.say(client, `You're not hungry. Your stamina is full (${MAX_STAMINA}).`);
-      const gain = foodStamina(item, p.mastery);
+      const gain = foodStamina(item, p.mastery, this.tree(p, "cooking", "mealStamina"));
       p.inventory[msg.slot] = null;
       p.locked[msg.slot] = false;
       const before = p.stamina;
@@ -388,6 +393,15 @@ export class WorldRoom extends Room<WorldState> {
       if (level < recipe.level) {
         return this.say(client, `You need ${def.name} level ${recipe.level} to make ${aOr(ITEMS[recipe.output].single)}. (You're level ${level}.)`);
       }
+      const meal = parseMeal(recipe.output);
+      if (meal) {
+        const dish = DISHES[meal.dish];
+        if (level < dish.level) return this.say(client, `You need Cooking level ${dish.level} to cook ${dish.name.toLowerCase()}. (You're level ${level}.)`);
+        const slots = this.potSize(p);
+        if (meal.ingredients.length > slots) {
+          return this.say(client, `Your pot only holds ${slots} ingredients. Spend Mastery points on "Bigger pot" in the Cooking skill tree for more.`);
+        }
+      }
       const missing = this.missingInputs(p, recipe);
       if (missing) return this.say(client, `You need ${missing} to make ${aOr(ITEMS[recipe.output].single)}.`);
       this.stopActions(p);
@@ -398,12 +412,12 @@ export class WorldRoom extends Room<WorldState> {
       p.action = recipe.skill;
       p.faceX = station.x;
       p.faceY = station.y;
-      const chance = successFor(recipe, p.mastery, p.belt);
-      const tool = toolForSkill(recipe.skill)!;
-      const verb = { smelting: "smelting", smithing: "making", cooking: "cooking" }[recipe.skill];
+      const chance = this.craftChance(p, recipe);
+      const tool = toolForSkill(recipe.skill);
+      const verb = { smelting: "smelting", smithing: "making", cooking: "cooking", handicraft: "making" }[recipe.skill];
       this.say(client, `You start ${verb} ${msg.all ? ITEMS[recipe.output].name.toLowerCase() : aOr(ITEMS[recipe.output].single)}. ` +
         (this.forcedCraft(p, recipe) === "success" ? `${GUIDE_NAME} is guiding your hand, so this one will work.`
-          : `${percent(chance)} chance each.` + (p.belt[tool] || !recipe.needsTool ? "" : ` (No ${TOOL_TYPES[tool].name.toLowerCase()} on your belt: half the chance.)`)));
+          : `${percent(chance)} chance each.` + (!tool || p.belt[tool] || !recipe.needsTool ? "" : ` (No ${TOOL_TYPES[tool].name.toLowerCase()} on your belt: half the chance.)`)));
     });
 
     // Bounty board: hand in the full amount for one bounty (never locked or worn items).
@@ -456,6 +470,34 @@ export class WorldRoom extends Room<WorldState> {
       this.saveSoon(p);
     });
 
+    // Mastery skill trees: buy the next rank of an upgrade with Mastery points.
+    this.onMessage("treeBuy", (client, msg: { node: string }) => {
+      const p = this.state.players.get(client.sessionId);
+      const node = treeNode(String(msg?.node));
+      if (!p || !node) return;
+      const rank = p.tree[node.id] ?? 0;
+      if (rank >= node.maxRank) return this.say(client, `${node.name} is already at its top rank.`);
+      const free = this.freePoints(p);
+      const cost = rankCost(rank + 1);
+      if (free < cost) return this.say(client, `Rank ${rank + 1} of ${node.name} costs ${cost} Mastery point${cost === 1 ? "" : "s"}, and you have ${free}. Every Mastery level you gain earns one.`);
+      p.tree[node.id] = rank + 1;
+      this.say(client, `🌳 ${findSkill(node.skill).def.name}: ${node.name} rank ${rank + 1}!`);
+      this.treeChanged(client, p);
+    });
+
+    // Reset one skill's tree (or every tree): free for now, all the points come back.
+    this.onMessage("treeReset", (client, msg: { skill?: string }) => {
+      const p = this.state.players.get(client.sessionId);
+      if (!p) return;
+      const skill = msg?.skill && msg.skill in TREES ? (msg.skill as SkillId) : null;
+      const before = spentPoints(p.tree);
+      for (const id of Object.keys(p.tree)) if (!skill || treeNode(id)?.skill === skill) delete p.tree[id];
+      const back = before - spentPoints(p.tree);
+      if (!back) return;
+      this.say(client, `🌳 You reset ${skill ? `your ${findSkill(skill).def.name} tree` : "all your skill trees"}. ${back} Mastery point${back === 1 ? "" : "s"} back to spend.`);
+      this.treeChanged(client, p);
+    });
+
     // The client says it's ready once its message handlers are set up.
     this.onMessage("ready", (client, msg?: { reconnected?: boolean }) => {
       const p = this.state.players.get(client.sessionId);
@@ -466,6 +508,7 @@ export class WorldRoom extends Room<WorldState> {
       this.sendStamina(client, p);
       this.sendVitals(client, p);
       client.send("combatmastery", p.combatMastery);
+      client.send("tree", p.tree);
       if (msg?.reconnected) return;
       const step = this.step(p);
       if (!step) this.say(client, "Welcome back!");
@@ -712,7 +755,12 @@ export class WorldRoom extends Room<WorldState> {
       return this.stopActions(p);
     }
     const mastery = masteryIn(p.mastery, resource);
-    if (!FAST_GATHER_FOR_TESTS && Math.random() >= gatherChancePerTick(resource, mastery, belt ? toolBonus(belt.item) : null)) return;
+    // Fishing uses the first unlocked bait in your bag (see shared/handicraft.ts).
+    const baitSlot = skill === "fishing" ? p.inventory.findIndex((it, i) => isBait(it) && !p.locked[i]) : -1;
+    const bait = baitSlot >= 0 ? BAITS[p.inventory[baitSlot] as BaitId] : null;
+    // Faster with the skill tree's "Quick hands", and with speed bait.
+    const boost = 1 + this.tree(p, skill, "speed") + (bait?.effect === "speed" ? bait.amount : 0);
+    if (!FAST_GATHER_FOR_TESTS && Math.random() >= gatherChancePerTick(resource, mastery, belt ? toolBonus(belt.item) : null) * boost) return;
     if (Math.random() >= gatherSuccessChance(resource, mastery)) {
       // Never happens yet (success is always 100%); here for harder types later.
       if (client) this.say(client, skill === "fishing" ? "Something bites, but it gets away." : "You don't manage to get anything.");
@@ -720,9 +768,17 @@ export class WorldRoom extends Room<WorldState> {
     }
 
     this.place(p, free, res.item);
-    this.useStamina(p, skill);
+    if (!treeRoll(p.tree, skill, "staminaSave")) this.useStamina(p, skill);
     this.questEvent(p, client, { kind: "gather", skill: gather, resource, withTool: !!belt });
     this.wearTool(p, client, tool, wearFor(res.level));
+    const extras: string[] = [];
+    // A second one: the skill tree's "Lucky find", or glow bait.
+    const luck = this.tree(p, skill, "double") + (bait?.effect === "double" ? bait.amount : 0);
+    if (Math.random() < luck && this.give(p, res.item)) extras.push(`a second ${item.single}`);
+    // Now and then you dig up a worm (for bait) or find a mushroom (for cooking).
+    if (skill !== "fishing" && Math.random() < WORM_CHANCE && this.give(p, "worm")) extras.push("a worm");
+    if (skill === "woodcutting" && Math.random() < MUSHROOM_CHANCE && this.give(p, "mushroom")) extras.push("a mushroom");
+    if (bait) this.useBait(p, client, baitSlot);
     if (client) {
       this.sendInventory(client, p);
       this.sendStamina(client, p);
@@ -731,11 +787,13 @@ export class WorldRoom extends Room<WorldState> {
         mining: `You mine some ${item.name.toLowerCase()}.`,
         fishing: `You catch ${aOr(item.single)}!`,
       };
-      this.say(client, GOT[gather]);
+      this.say(client, GOT[gather] + (extras.length ? ` You also get ${extras.join(" and ")}!` : ""));
     }
+    // Chum bait: more Fishing XP (the skill only, like the tree's "Quick learner").
+    const skillXp = bait?.effect === "xp" ? Math.round(res.xp * (1 + bait.amount)) : res.xp;
     this.addXp(p, client, "foraging", forageXp(resource));
     this.addMasteryXp(p, client, resource, res.xp);
-    this.addSkillXp(p, client, skill, res.xp); // sends both skill levels and Mastery
+    this.addSkillXp(p, client, skill, skillXp); // sends both skill levels and Mastery
     this.saveSoon(p);
 
     if (skill === "fishing") return; // fishing spots never run out
@@ -768,7 +826,7 @@ export class WorldRoom extends Room<WorldState> {
       if (client) this.hasStamina(client, p, recipe.skill);
       return this.stopActions(p);
     }
-    this.useStamina(p, recipe.skill);
+    if (!treeRoll(p.tree, recipe.skill, "staminaSave")) this.useStamina(p, recipe.skill);
     // Use the inputs (never locked ones).
     let freed = -1;
     for (const input of recipe.inputs) {
@@ -777,27 +835,34 @@ export class WorldRoom extends Room<WorldState> {
       if (freed === -1) freed = slot;
     }
     const output = ITEMS[recipe.output];
-    const chance = successFor(recipe, p.mastery, p.belt);
+    const chance = this.craftChance(p, recipe);
     const forced = this.forcedCraft(p, recipe); // the tutorial's first stew always burns; some tries always work
     const worked = forced ? forced === "success" : Math.random() < chance;
     const xp = worked ? recipe.xp : failXp(recipe.xp);
     if (worked) this.place(p, freed, recipe.output);
-    const tool = toolForSkill(recipe.skill)!;
-    this.wearTool(p, client, tool, recipeWear(recipe));
+    const tool = toolForSkill(recipe.skill);
+    if (tool) this.wearTool(p, client, tool, recipeWear(recipe));
+    const extras: string[] = [];
+    // The skill tree's "Extra bar" / "Bait bundle": sometimes you make two.
+    if (worked && treeRoll(p.tree, recipe.skill, "extra") && this.give(p, recipe.output)) extras.push(`a second ${output.single}`);
+    // Cooking leaves food scraps behind now and then (for chum bait).
+    if (worked && recipe.skill === "cooking" && Math.random() < SCRAPS_CHANCE && this.give(p, "food_scraps")) extras.push("some food scraps");
     if (client) {
       this.sendInventory(client, p);
       this.sendStamina(client, p);
       const WORKED = {
         smelting: `You smelt ${aOr(output.single)}.`,
         smithing: `You make ${aOr(output.single)}!`,
-        cooking: `You cook ${aOr(output.single)}! Eat it for ${foodStamina(recipe.output, p.mastery)} stamina.`,
+        cooking: `You cook ${aOr(output.single)}! Eat it for ${foodStamina(recipe.output, p.mastery, this.tree(p, "cooking", "mealStamina"))} stamina.`,
+        handicraft: `You make ${aOr(output.single)}.`,
       };
       const FAILED = {
         smelting: `The ore burns away. You fail to smelt ${aOr(output.single)}.`,
         smithing: `You ruin the metal. You fail to make ${aOr(output.single)}.`,
-        cooking: `You burn the stew. The fish and the log are gone.`,
+        cooking: `You burn the ${output.single}. The ingredients and the log are gone.`,
+        handicraft: `It falls apart in your hands. You fail to make ${aOr(output.single)}.`,
       };
-      this.say(client, (worked ? WORKED : FAILED)[recipe.skill]);
+      this.say(client, (worked ? WORKED : FAILED)[recipe.skill] + (extras.length ? ` You also get ${extras.join(" and ")}!` : ""));
     }
     this.addXp(p, client, "crafting", xp);
     this.addMasteryXp(p, client, recipe.mastery, xp);
@@ -818,7 +883,7 @@ export class WorldRoom extends Room<WorldState> {
     const cost = STAMINA_COST[skill];
     if (p.stamina >= cost) return true;
     if (client) {
-      const eat = p.inventory.some((it) => isFood(it)) ? "Eat something from your bag" : "Eat a fish or a stew (the Merchant sells stew)";
+      const eat = p.inventory.some((it) => isFood(it)) ? "Eat something from your bag" : "Eat a fish or a meal (the Merchant sells stew)";
       this.say(client, `You're too tired: ${findSkill(skill).def.name} needs ${cost} stamina and you have ${p.stamina}. ${eat}, or rest (1 stamina every 30 seconds).`);
     }
     return false;
@@ -848,13 +913,72 @@ export class WorldRoom extends Room<WorldState> {
   private place(p: Player, slot: number, item: ItemId, durability?: number) {
     p.inventory[slot] = item;
     p.locked[slot] = false; // new items start unlocked
-    p.durability[slot] = isTool(item) ? durability ?? maxDurability(item) : isGear(item) ? durability ?? gearDurability(item) : null;
+    p.durability[slot] = isTool(item) ? durability ?? maxDurability(item) : isGear(item) ? durability ?? gearDurability(item)
+      : isBait(item) ? durability ?? BAITS[item].uses : null;
+  }
+
+  /** Put an item in the first free bag slot. False if the bag is full. */
+  private give(p: Player, item: ItemId): boolean {
+    const free = p.inventory.indexOf(null);
+    if (free === -1) return false;
+    this.place(p, free, item);
+    return true;
+  }
+
+  /** One catch uses up a little of the bait. When it runs out, it's gone. */
+  private useBait(p: Player, client: Client | undefined, slot: number) {
+    const left = (p.durability[slot] ?? 1) - 1;
+    if (left > 0) { p.durability[slot] = left; return; }
+    const name = ITEMS[p.inventory[slot]!].single;
+    p.inventory[slot] = null;
+    p.durability[slot] = null;
+    p.locked[slot] = false;
+    if (client) this.say(client, `You've used up your ${name}.`);
+  }
+
+  // ---- Mastery skill trees (shared/skilltree.ts) ----
+
+  /** What a skill's tree gives this player for one effect (0.1 = 10%). */
+  private tree(p: Player, skill: SkillId, effect: TreeEffect) {
+    return treeBonus(p.tree, skill, effect);
+  }
+
+  /** Mastery points earned (1 per Mastery level, everywhere) minus those spent. */
+  private freePoints(p: Player) {
+    return earnedPoints(p.mastery, p.combatMastery) - spentPoints(p.tree);
+  }
+
+  /** How many ingredients fit in your pot: 3, plus the Cooking tree's "Bigger pot". */
+  private potSize(p: Player) {
+    return BASE_INGREDIENTS + this.tree(p, "cooking", "slots");
+  }
+
+  /** Max health: from your Defense level, plus the Defense tree's "Toughness". */
+  private maxHpOf(p: Player) {
+    return maxHealth(levelForXp(p.skillXp.defense)) + this.tree(p, "defense", "health");
+  }
+
+  /** Your chance at one crafting try: Mastery, belt tool, and the skill tree's "Steady hands". */
+  private craftChance(p: Player, recipe: Recipe) {
+    return successFor(recipe, p.mastery, p.belt, this.tree(p, recipe.skill, "success"));
+  }
+
+  /** After buying or resetting: max health may change, and the client redraws the trees. */
+  private treeChanged(client: Client, p: Player) {
+    const max = this.maxHpOf(p);
+    if (max !== p.maxHp) {
+      p.hp = Math.max(1, Math.min(max, p.hp + Math.max(0, max - p.maxHp)));
+      p.maxHp = max;
+      this.sendVitals(client, p);
+    }
+    client.send("tree", p.tree);
+    this.saveSoon(p);
   }
 
   /** Each use wears the belt tool down. Warn at 10%; at 0 it breaks and is gone. */
   private wearTool(p: Player, client: Client | undefined, type: ToolType, amount: number) {
     const t = p.belt[type];
-    if (!t) return;
+    if (!t || treeRoll(p.tree, "smithing", "toolCare")) return;
     const max = maxDurability(t.item);
     const before = t.durability;
     t.durability = Math.max(0, t.durability - amount);
@@ -1001,22 +1125,24 @@ export class WorldRoom extends Room<WorldState> {
         if (client) this.say(client, `You're out of mana: ${spell.name} needs ${spell.mana} and you have ${p.mana}. It comes back 1 every 6 seconds.`);
         return this.stopActions(p);
       }
-      p.mana -= spell.mana;
+      if (!treeRoll(p.tree, "magic", "manaSave")) p.mana -= spell.mana;
     } else {
       if (p.stamina < ATTACK_STAMINA) {
         if (client) this.say(client, "You're too tired to fight. Eat something, or rest (1 stamina every 30 seconds).");
         return this.stopActions(p);
       }
-      p.stamina -= ATTACK_STAMINA;
+      if (!treeRoll(p.tree, a.style, "staminaSave")) p.stamina -= ATTACK_STAMINA;
     }
     p.attackTimer = 0;
     const style = a.style;
     const weaponM = combatMasteryIn(p.combatMastery, a.mastery);
     const monsterM = combatMasteryIn(p.combatMastery, m.kind);
-    const chance = hitChance(levelForXp(p.skillXp[style]), m.kind, a, weaponM, monsterM);
+    const chance = hitChance(levelForXp(p.skillXp[style]), m.kind, a, weaponM, monsterM, this.tree(p, style, "accuracy"));
     const hit = Math.random() < chance;
     const max = maxHitWith(a, weaponM);
-    const damage = hit && max ? 1 + Math.floor(Math.random() * max) : 0;
+    // The skill tree's damage bonus: +5% is a 5% chance of +1 on a hit of 1, and so on.
+    const roll = hit && max ? (1 + Math.floor(Math.random() * max)) * (1 + this.tree(p, style, "damage")) : 0;
+    const damage = Math.floor(roll) + (Math.random() < roll % 1 ? 1 : 0);
     const spell = a.spell ? SPELLS[a.spell] : null;
     if (damage) m.hp = Math.max(0, m.hp - damage);
     if (hit && spell?.freeze) m.frozenUntil = this.state.tick + spell.freeze;
@@ -1153,7 +1279,7 @@ export class WorldRoom extends Room<WorldState> {
   private monsterAttack(m: Monster, monsterId: string, p: Player, sessionId: string) {
     const def = MONSTERS[m.kind];
     const client = this.clients.getById(sessionId);
-    const chance = monsterHitChance(m.kind, levelForXp(p.skillXp.defense), armorPoints(p.gear));
+    const chance = monsterHitChance(m.kind, levelForXp(p.skillXp.defense), armorPoints(p.gear), this.tree(p, "defense", "dodge"));
     const hit = Math.random() < chance;
     const damage = hit ? 1 + Math.floor(Math.random() * def.maxHit) : 0;
     p.hp = Math.max(0, p.hp - damage);
@@ -1202,7 +1328,7 @@ export class WorldRoom extends Room<WorldState> {
   /** Weapons wear with each attack, armor with each attack on you. At 0 they break. */
   private wearGear(p: Player, client: Client | undefined, slot: GearSlot, amount: number) {
     const g = p.gear[slot];
-    if (!g) return;
+    if (!g || treeRoll(p.tree, "smithing", "toolCare")) return;
     const max = gearDurability(g.item);
     const before = g.durability;
     g.durability = Math.max(0, g.durability - amount);
@@ -1256,7 +1382,7 @@ export class WorldRoom extends Room<WorldState> {
     } else if (g.kind === "craft" && ev.kind === "craft") {
       if (ev.item.startsWith(g.prefix) && (ev.worked || g.tries)) counts = 1;
     } else if (g.kind === "eat" && ev.kind === "eat") {
-      if (isStew(ev.item)) counts = 1;
+      if (isMeal(ev.item)) counts = 1;
     } else if (g.kind === "sell" && ev.kind === "sell") {
       const r = RESOURCE_FOR_ITEM[ev.item];
       if (r && RESOURCES[r].skill === g.what) counts = 1;
@@ -1351,7 +1477,7 @@ export class WorldRoom extends Room<WorldState> {
     }
     // Worn out with nothing to eat? She won't let you get stuck.
     if (p.stamina < 20 && !p.inventory.some((it) => isFood(it)) && p.inventory.includes(null)) {
-      this.place(p, p.inventory.indexOf(null), "stew_minnow_3_pine");
+      this.place(p, p.inventory.indexOf(null), SHOP_STEW);
       this.say(client, `${GUIDE_NAME}: You look worn out! Here, eat this stew. Next time, cook some of your own.`);
       this.sendInventory(client, p);
     }
@@ -1405,7 +1531,7 @@ export class WorldRoom extends Room<WorldState> {
   private giveMissing(p: Player, gifts?: Gift[]): string {
     const given: string[] = [];
     for (const g of gifts ?? []) {
-      // A tool counts if you have any of that kind (in your bag or on your belt); a stew counts if you have any stew.
+      // A tool counts if you have any of that kind (in your bag or on your belt); a meal counts if you have any meal.
       let have: number;
       if (isTool(g.item)) {
         const type = parseTool(g.item).type;
@@ -1413,8 +1539,8 @@ export class WorldRoom extends Room<WorldState> {
       } else if (isGear(g.item)) {
         const kind = g.item.split("_")[0];
         have = (GEAR_SLOTS.some((s) => p.gear[s]?.item.startsWith(`${kind}_`)) ? 1 : 0) + p.inventory.filter((it) => it?.startsWith(`${kind}_`)).length;
-      } else if (isStew(g.item)) {
-        have = p.inventory.filter((it) => isStew(it)).length;
+      } else if (isMeal(g.item)) {
+        have = p.inventory.filter((it) => isMeal(it)).length;
       } else {
         have = this.countOf(p, g.item);
       }
@@ -1520,7 +1646,9 @@ export class WorldRoom extends Room<WorldState> {
   /** Skill level (up to 99): unlocks better types. */
   private addSkillXp(p: Player, client: Client | undefined, skill: SkillId, xp: number) {
     const before = levelForXp(p.skillXp[skill]);
-    p.skillXp[skill] += xp;
+    // The skill tree's "Quick learner": more skill XP (rounded at random, so small amounts still count).
+    const boosted = xp * (1 + this.tree(p, skill, "xp"));
+    p.skillXp[skill] += Math.floor(boosted) + (Math.random() < boosted % 1 ? 1 : 0);
     const after = levelForXp(p.skillXp[skill]);
     if (!client) return;
     this.sendMastery(client, p);
@@ -1528,12 +1656,18 @@ export class WorldRoom extends Room<WorldState> {
       const { def } = findSkill(skill);
       this.say(client, `Your ${def.name} level is now ${after}!`);
       if (skill === "cooking") {
-        for (const fish of FISH_IDS) {
-          const lv = RESOURCES[fish].level;
-          if (lv > before && lv <= after) this.say(client, `You can now cook ${ITEMS[fish].name.toLowerCase()} stew!`);
+        for (const dish of DISH_IDS) {
+          const lv = DISHES[dish].level;
+          if (lv > before && lv <= after) this.say(client, `You can now cook ${DISHES[dish].icon} ${DISHES[dish].name.toLowerCase()}! ${DISHES[dish].note}.`);
         }
+        for (const fish of resourcesFor("fishing")) {
+          const lv = RESOURCES[fish].level;
+          if (lv > 1 && lv > before && lv <= after) this.say(client, `You can now cook ${ITEMS[RESOURCES[fish].item].name.toLowerCase()}!`);
+        }
+      } else if (skill === "handicraft") {
+        for (const b of Object.values(BAITS)) if (b.level > before && b.level <= after) this.say(client, `You can now make ${b.name.toLowerCase()} at the workbench!`);
       } else if (skill === "defense") {
-        p.maxHp = maxHealth(after);
+        p.maxHp = this.maxHpOf(p);
         p.hp = Math.min(p.maxHp, p.hp + 2 * (after - before)); // the new health comes filled
         this.say(client, `Your health goes up to ${p.maxHp}.`);
         for (const m of Object.values(METALS)) if (m.level > before && m.level <= after) this.say(client, `You can now wear ${m.name.toLowerCase()} armor!`);
@@ -1717,10 +1851,11 @@ export class WorldRoom extends Room<WorldState> {
       for (let i = 0; i < INVENTORY_SIZE; i++) {
         let item = save.inventory[i];
         if (typeof item === "string" && item in LEGACY_ITEMS) item = LEGACY_ITEMS[item]; // logs -> pine logs, etc.
+        if (typeof item === "string") item = legacyStew(item) ?? item; // old fish stews -> stews
         p.inventory[i] = typeof item === "string" && item in ITEMS ? (item as ItemId) : null;
         const it = p.inventory[i];
-        if (isTool(it) || isGear(it)) {
-          const max = isTool(it) ? maxDurability(it) : gearDurability(it);
+        if (isTool(it) || isGear(it) || isBait(it)) {
+          const max = isTool(it) ? maxDurability(it) : isGear(it) ? gearDurability(it) : BAITS[it].uses;
           const d = save.durability?.[i];
           p.durability[i] = typeof d === "number" && d > 0 ? Math.min(Math.floor(d), max) : max;
         }
@@ -1760,6 +1895,8 @@ export class WorldRoom extends Room<WorldState> {
     }
     if (save.skillXp) {
       for (const id of ALL_MASTERY_IDS) if (ok(save.mastery?.[id])) p.mastery[id] = Math.floor(save.mastery![id]);
+      // Before dishes there was one "Fish stew" Mastery: it's now your Stew Mastery.
+      if (ok(save.mastery?.fish_stew)) p.mastery.stew = (p.mastery.stew ?? 0) + Math.floor(save.mastery!.fish_stew);
     }
     // Combat: gear, Mastery, health (it came back 1 a minute while you were away) and mana (full).
     for (const slot of GEAR_SLOTS) {
@@ -1770,7 +1907,8 @@ export class WorldRoom extends Room<WorldState> {
     }
     for (const id of ALL_COMBAT_MASTERY_IDS) if (ok(save.combatMastery?.[id])) p.combatMastery[id] = Math.floor(save.combatMastery![id]);
     if (SPELL_IDS.includes(save.spell as SpellId) && levelForXp(p.skillXp.magic) >= SPELLS[save.spell as SpellId].level) p.spell = save.spell as SpellId;
-    p.maxHp = maxHealth(levelForXp(p.skillXp.defense));
+    p.tree = cleanRanks(save.tree);
+    p.maxHp = this.maxHpOf(p);
     p.hp = p.maxHp;
     if (typeof save.hp === "number" && Number.isFinite(save.hp)) {
       const away = typeof save.hpAt === "number" ? Math.max(0, Date.now() - save.hpAt) : 0;
@@ -1783,7 +1921,7 @@ export class WorldRoom extends Room<WorldState> {
   private snapshot(p: Player): SaveData {
     // Save where the player is heading, so walking off mid-path doesn't lose the move.
     const dest = p.path.length ? p.path[p.path.length - 1] : p;
-    return { saveVersion: SAVE_VERSION, quest: { ...p.quest }, x: dest.x, y: dest.y, inventory: [...p.inventory], coins: p.coins, skills: { ...p.disciplines }, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: [...p.durability], belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), hp: p.hp, hpAt: Date.now(), gear: { ...p.gear }, spell: p.spell, combatMastery: { ...p.combatMastery }, lockedSlots: p.locked.flatMap((on, i) => (on && p.inventory[i] ? [i] : [])), bounties: p.bounties.map((b) => ({ ...b })) };
+    return { saveVersion: SAVE_VERSION, quest: { ...p.quest }, x: dest.x, y: dest.y, inventory: [...p.inventory], coins: p.coins, skills: { ...p.disciplines }, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: [...p.durability], belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), hp: p.hp, hpAt: Date.now(), gear: { ...p.gear }, spell: p.spell, combatMastery: { ...p.combatMastery }, tree: { ...p.tree }, lockedSlots: p.locked.flatMap((on, i) => (on && p.inventory[i] ? [i] : [])), bounties: p.bounties.map((b) => ({ ...b })) };
   }
 
   private async save(p: Player) {

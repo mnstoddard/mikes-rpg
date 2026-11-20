@@ -2,7 +2,8 @@
 import {
   ALL_TOOL_IDS, BAR_IDS, BarId, MATERIALS, METALS, TOOL_TYPES, ToolItemId, WOODS, barId, headCount, metalOfBar, parseTool,
 } from "./tools";
-import { ALL_STEW_IDS, StewId, parseStew } from "./cooking";
+import { DISHES, INGREDIENTS, IngredientId, MealId, OtherIngredient, mealTitle, parseMeal } from "./cooking";
+import { BAITS, BAIT_IDS, BaitId, HandicraftMaterial } from "./handicraft";
 import {
   ARMOR, ARMOR_TYPES, GearItemId, METAL_DAMAGE, WEAPONS, WEAPON_TYPES, armorId, parseArmor, parseWeapon, weaponId,
 } from "./gear";
@@ -32,8 +33,12 @@ export interface ItemDef {
 /** Things monsters drop (the Merchant buys them), and the health potion. */
 export type LootId = "feather" | "rat_tail" | "cowhide" | "wolf_pelt" | "goblin_charm" | "spider_silk" | "stolen_ring" | "health_potion";
 
-/** Bars (smelted from ore), tools (smithed from a bar and a log), stews (cooked from fish and a log), weapons and armor, and loot. */
-export type ItemId = BaseItemId | BarId | ToolItemId | StewId | GearItemId | LootId;
+/**
+ * Bars (smelted from ore), tools (smithed from a bar and a log), meals (cooked
+ * from ingredients and a log), weapons and armor, loot, cooking ingredients
+ * (raw chicken, vegetables...), Handicraft materials (worms, food scraps) and bait.
+ */
+export type ItemId = BaseItemId | BarId | ToolItemId | MealId | GearItemId | LootId | OtherIngredient | HandicraftMaterial | BaitId;
 
 /** A crafted item is worth what goes into it, plus 25%. */
 export const CRAFT_MARKUP = 1.25;
@@ -78,7 +83,35 @@ const LOOT: Record<LootId, ItemDef> = {
   health_potion: { name: "Health potion", single: "health potion", icon: "🧪", tint: "hue-rotate(230deg) saturate(2.5)", sellPrice: 10 },
 };
 
-export const ITEMS = { ...BASE_ITEMS, ...LOOT } as Record<ItemId, ItemDef>;
+/** Cooking ingredients that aren't fish, and Handicraft materials. */
+const FOOD_AND_MATERIALS: Record<OtherIngredient | HandicraftMaterial, ItemDef> = {
+  raw_chicken: { name: "Raw chicken", single: "raw chicken", icon: "🍗", tint: "saturate(.4) brightness(1.25)", sellPrice: 2 },
+  raw_beef: { name: "Raw beef", single: "raw beef", icon: "🥩", sellPrice: 4 },
+  potato: { name: "Potatoes", single: "potato", icon: "🥔", sellPrice: 1 },
+  carrot: { name: "Carrots", single: "carrot", icon: "🥕", sellPrice: 1 },
+  mushroom: { name: "Mushrooms", single: "mushroom", icon: "🍄", sellPrice: 3 },
+  worm: { name: "Worms", single: "worm", icon: "🪱", sellPrice: 1 },
+  food_scraps: { name: "Food scraps", single: "food scraps", icon: "🦴", tint: "sepia(.6)", sellPrice: 1 },
+};
+
+const TABLE = { ...BASE_ITEMS, ...LOOT, ...FOOD_AND_MATERIALS } as Record<ItemId, ItemDef>;
+
+/**
+ * Every item's definition. Meals ("meal_curry_oak_potato-trout") are built the
+ * first time something asks for one, since every mix of ingredients is its own
+ * item and there are far too many to list.
+ */
+export const ITEMS: Record<ItemId, ItemDef> = new Proxy(TABLE, {
+  get(table, key) {
+    if (typeof key !== "string" || key in table) return Reflect.get(table, key);
+    const def = mealDef(key);
+    if (def) table[key as ItemId] = def;
+    return def;
+  },
+  has(table, key) {
+    return key in table || (typeof key === "string" && !!parseMeal(key));
+  },
+});
 
 /** Value before rounding, so a tool's price isn't rounded twice. */
 function exactBase(item: ItemId): number {
@@ -131,16 +164,29 @@ for (const type of ARMOR_TYPES) {
     ITEMS[id].sellPrice = Math.floor(exactBase(id));
   }
 }
-for (const stew of ALL_STEW_IDS) {
-  const { fish, count, wood } = parseStew(stew);
-  const fishName = ITEMS[fish].name;
-  ITEMS[stew] = {
-    name: `${fishName} stew ×${count} (${WOODS[wood].name.toLowerCase()})`,
-    single: `${fishName.toLowerCase()} stew`,
-    icon: "🍲", sellPrice: 0,
-    inputs: [...Array<ItemId>(count).fill(fish), `${wood}_logs` as BaseItemId],
+// Bait (Handicraft).
+for (const bait of BAIT_IDS) {
+  const b = BAITS[bait];
+  ITEMS[bait] = { name: b.name, single: b.single, icon: b.icon, tint: b.tint, sellPrice: 0, inputs: b.inputs };
+  ITEMS[bait].sellPrice = Math.floor(exactBase(bait));
+}
+
+/** A meal's name and price: "Trout curry (2 trout, potato · oak)". */
+function mealDef(id: string): ItemDef | undefined {
+  const meal = parseMeal(id);
+  if (!meal) return undefined;
+  const counts = new Map<IngredientId, number>();
+  for (const i of meal.ingredients) counts.set(i, (counts.get(i) ?? 0) + 1);
+  const list = [...counts].map(([i, n]) => (n === 1 ? TABLE[i].single : `${n} ${TABLE[i].name.toLowerCase()}`)).join(", ");
+  const title = mealTitle(meal, (i) => (INGREDIENTS[i].kind === "fish" ? TABLE[i].name : TABLE[i].single.replace(/^raw /, "").replace(/^./, (c) => c.toUpperCase())));
+  const def: ItemDef = {
+    name: `${title} (${list} · ${WOODS[meal.wood].name.toLowerCase()})`,
+    single: title.toLowerCase(),
+    icon: DISHES[meal.dish].icon, sellPrice: 0,
+    inputs: [...meal.ingredients, `${meal.wood}_logs` as BaseItemId],
   };
-  ITEMS[stew].sellPrice = Math.floor(exactBase(stew));
+  def.sellPrice = Math.floor(def.inputs!.reduce((sum, i) => sum + TABLE[i].sellPrice, 0) * CRAFT_MARKUP);
+  return def;
 }
 
 /**
@@ -148,5 +194,6 @@ for (const stew of ALL_STEW_IDS) {
  * the starting type, which sells for the same price, so nobody loses money.
  */
 export const LEGACY_ITEMS: Record<string, ItemId> = { logs: "pine_logs", ore: "stone", fish: "minnow" };
+// (Old fish stews, "stew_trout_3_oak", become new stews: see legacyStew in cooking.ts.)
 
 export const INVENTORY_SIZE = 28;

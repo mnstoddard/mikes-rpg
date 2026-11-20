@@ -7,7 +7,7 @@
 
 export type DisciplineId = "foraging" | "crafting" | "combat";
 export type GatherSkill = "woodcutting" | "fishing" | "mining";
-export type CraftSkill = "smelting" | "smithing" | "cooking";
+export type CraftSkill = "smelting" | "smithing" | "cooking" | "handicraft";
 export type CombatSkill = "melee" | "ranged" | "magic" | "defense";
 export type SkillId = GatherSkill | CraftSkill | CombatSkill;
 
@@ -41,7 +41,8 @@ export const DISCIPLINES: Record<DisciplineId, DisciplineDef> = {
     name: "Crafting", icon: "⚒️",
     description: "Making things from what you gather.",
     skills: [
-      { id: "cooking", name: "Cooking", icon: "🍲", unlockLevel: 1, description: "Use the stove by the furnace to cook fish into stew, which gives back lots of stamina." },
+      { id: "cooking", name: "Cooking", icon: "🍲", unlockLevel: 1, description: "Use the stove by the furnace to cook meals (stew, stir fry, curry, roast) from fish, meat and vegetables. Meals give back lots of stamina." },
+      { id: "handicraft", name: "Handicraft", icon: "🧵", unlockLevel: 2, description: "Use the workbench just east of the anvil to make fishing bait from worms, food scraps and feathers." },
       { id: "smithing", name: "Smithing", icon: "🔨", unlockLevel: 3, description: "Use the anvil by the Merchant to make tools from stone or a metal bar, plus a log." },
       { id: "smelting", name: "Smelting", icon: "🔥", unlockLevel: 5, description: "Use the furnace by the Merchant to turn ore into bars." },
     ],
@@ -90,7 +91,7 @@ export type DisciplineXp = Record<DisciplineId, number>;
 
 /** Each skill also has its own level (same curve, up to 99). It unlocks better types. */
 export type SkillXp = Record<SkillId, number>;
-export const emptySkills = (): SkillXp => ({ woodcutting: 0, fishing: 0, mining: 0, smelting: 0, smithing: 0, cooking: 0, melee: 0, ranged: 0, magic: 0, defense: 0 });
+export const emptySkills = (): SkillXp => ({ woodcutting: 0, fishing: 0, mining: 0, smelting: 0, smithing: 0, cooking: 0, handicraft: 0, melee: 0, ranged: 0, magic: 0, defense: 0 });
 export const emptyDisciplines = (): DisciplineXp => ({ foraging: 0, crafting: 0, combat: 0 });
 export const isCombatSkill = (skill: SkillId): skill is CombatSkill => skill === "melee" || skill === "ranged" || skill === "magic" || skill === "defense";
-export const isCraftSkill = (skill: SkillId): skill is CraftSkill => skill === "smelting" || skill === "smithing" || skill === "cooking";
+export const isCraftSkill = (skill: SkillId): skill is CraftSkill => skill === "smelting" || skill === "smithing" || skill === "cooking" || skill === "handicraft";

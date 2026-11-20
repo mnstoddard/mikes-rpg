@@ -16,7 +16,7 @@ import { RESOURCES, RESOURCE_FOR_ITEM, RESOURCE_IDS, ResourceId } from "./foragi
 import { DISCIPLINES, DisciplineId, DisciplineXp, SkillId, SkillXp, findSkill, levelForXp } from "./disciplines";
 import { BAR_IDS, BarId, MATERIALS, MATERIAL_IDS, Material, METAL_IDS, TOOL_TYPE_IDS, WOOD_IDS, Wood, barId, hasHandle, isTool, maxDurability, toolId } from "./tools";
 import { ARMOR_TYPES, WEAPON_TYPES, armorId, isGear, weaponId } from "./gear";
-import { FISH_IDS, StewCount, stewId } from "./cooking";
+import { DISHES, DISH_IDS, INGREDIENTS, INGREDIENT_IDS, fitsDish, mealId } from "./cooking";
 import { CombatMasteryXp, MONSTERS, MONSTER_IDS, MonsterId, POTION_ID } from "./combat";
 import { ItemMasteryXp } from "./mastery";
 import { gearDurability, recipeFor, sellPriceFor } from "./crafting";
@@ -76,10 +76,14 @@ export function bountyChoices(p: BountyPlayer): ItemId[][] {
     if (woods.length) groups.push(WEAPON_TYPES.flatMap((type) => woods.map((w) => weaponId(type, m, w))));
   }
   for (const m of METAL_IDS) if (smithAt(p, m)) groups.push(ARMOR_TYPES.map((type) => armorId(type, m)));
-  // Cooking: a stew of 1 to 3 fish you can catch and cook, over a log you can chop.
-  for (const fish of FISH_IDS) {
-    if (!woods.length || !canGather(p, fish) || !skillAt(p, "cooking", RESOURCES[fish].level)) continue;
-    groups.push(([1, 2, 3] as StewCount[]).flatMap((n) => woods.map((w: Wood) => stewId(fish, n, w))));
+  // Cooking: a dish you can cook of 1 to 3 of one fish you can catch, over a
+  // log you can chop. (Fish only, so you can always get what it asks for.)
+  for (const dish of DISH_IDS) {
+    if (!woods.length || !skillAt(p, "cooking", DISHES[dish].level)) continue;
+    for (const fish of INGREDIENT_IDS) {
+      if (INGREDIENTS[fish].kind !== "fish" || !fitsDish(dish, fish) || !canGather(p, fish as ResourceId) || !skillAt(p, "cooking", INGREDIENTS[fish].level)) continue;
+      groups.push([1, 2, 3].flatMap((n) => woods.map((w: Wood) => mealId(dish, w, Array(n).fill(fish)))));
+    }
   }
   // Monster drops, from monsters you've defeated before (not potions: the Merchant sells those).
   for (const m of MONSTER_IDS) {
