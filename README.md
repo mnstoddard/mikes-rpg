@@ -214,15 +214,29 @@ many you have (the tracker goes back to Maren's quest once it's handed in):
 
 Rules live in `shared/bounties.ts`; the board is in `shared/npcs.ts`.
 
-## Bag space and stacks
+## Bag space, stacks and weight
 
-Your bag has 28 slots. Most things stack in one slot: up to 50 logs, ore,
-stone or fish, 100 feathers, 10 health potions, and 25 of everything else
-(bars, meals, monster drops). Tools, weapons, armor and bait don't stack, since each
-one wears down on its own. A small number in the corner of a slot shows how
-many are in it. Tapping a stack at the Merchant sells the whole stack, and
-Drop drops the whole stack. Sorting the bag also joins split stacks. The
-limits live in `shared/bag.ts` (`STACK_LIMITS`), so they're easy to change.
+Your bag has 12 slots. Most things stack in one slot: up to 50 logs, ore,
+stone or fish, 100 feathers, 10 health potions, and 25 of everything else.
+Tools, weapons, armor and bait don't stack. A small number in the corner of a
+slot shows how many are in it. Tapping a stack at the Merchant sells the whole
+stack, and Drop drops the whole stack. Sorting the bag also joins split stacks.
+
+You can also only carry so much **weight**: 45 kg to start. The ⚖️ bar under
+your bag shows it. Your bag counts, and so do the tools on your belt and the
+weapon and armor you wear. Logs, stone, ore and bars weigh 2 kg, most fish
+1 kg, feathers 0.1 kg, a cowhide 3 kg, tools 1 to 2 kg, armor 1.5 kg per bar
+(mithril is lighter). With a starting axe, pickaxe, rod and pot you can carry
+about 19 ore or logs. When you're full, gathering stops and the Merchant won't
+sell you more until you sell, drop, eat or store something. Old Maren's gifts
+always fit, so the tutorial can't get stuck.
+
+Characters from when bags had 28 slots keep everything: on login, stacks are
+joined, and whatever doesn't fit in 12 slots goes into their enchanted chest
+(if they have space) or is sold to the Merchant for its full price.
+
+The numbers live in `shared/bag.ts` (stack sizes), `shared/weight.ts`
+(weights and the 45 kg limit) and `shared/items.ts` (`INVENTORY_SIZE`).
 
 ## The Mages' Guild
 

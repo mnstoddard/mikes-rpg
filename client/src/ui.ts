@@ -23,6 +23,7 @@ import {
 import { gearDurability } from "../../shared/crafting";
 import { Bounty, bountyReward, slotCounts } from "../../shared/bounties";
 import { stackLimit } from "../../shared/bag";
+import { carriedWeight, carryCapacity, kg, weightOf } from "../../shared/weight";
 import {
   CHEST_RENT, CHEST_START, CHEST_STEP, GuildBounty, GuildView, RANKS, expandCost, guildBountyName, guildReward, rankFor,
 } from "../../shared/guild";
@@ -668,6 +669,7 @@ const beltEl = document.getElementById("belt")!;
 
 export function renderBelt(belt: Belt) {
   lastBelt = belt;
+  renderWeight();
   renderInfo();
   beltEl.replaceChildren();
   for (const type of TOOL_TYPE_IDS) {
@@ -700,6 +702,7 @@ const spellsEl = document.getElementById("spells")!;
 export function renderGear(gear: Gear, spell: SpellId) {
   lastGear = gear;
   lastSpell = spell;
+  renderWeight();
   renderInfo();
   gearEl.replaceChildren();
   for (const slot of GEAR_SLOTS) {
@@ -830,7 +833,8 @@ export function renderInventory(items: (ItemId | null)[]) {
   const used = items.filter(Boolean).length; // slots in use (each stack takes one)
   bagCountEl.textContent = used ? String(used) : "";
   const selling = shopIsOpen();
-  for (let i = 0; i < INVENTORY_SIZE; i++) {
+  renderWeight();
+  for (let i = 0; i < items.length; i++) {
     const slot = document.createElement("div");
     slot.className = "slot" + (drag?.ghost && drag.from === i ? " drag-from" : "");
     slot.dataset.slot = String(i);
@@ -882,6 +886,25 @@ export function renderInventory(items: (ItemId | null)[]) {
   renderCraft();
   renderInfo();
   renderTracker();
+}
+
+// ---- Weight: under the bag. Bag, tool belt and worn gear all count (shared/weight.ts) ----
+
+function renderWeight() {
+  const weightEl = document.getElementById("weight")!; // looked up here: this runs before the rest of this file has loaded
+  const carried = carriedWeight({ inventory: invItems, counts }, lastBelt, lastGear);
+  const max = carryCapacity();
+  const pct = Math.min(1, carried / max);
+  weightEl.replaceChildren();
+  const bar = el("weight-bar");
+  const fill = document.createElement("div");
+  fill.style.width = `${Math.floor(pct * 100)}%`;
+  fill.style.background = carried >= max ? "#e74c3c" : pct >= 0.8 ? "#f1c40f" : "#8fb3d9";
+  bar.appendChild(fill);
+  weightEl.append(el("weight-label", `⚖️ ${kg(carried)} / ${kg(max)}`), bar);
+  weightEl.title = `You're carrying ${kg(carried)} of the ${kg(max)} you can carry. Your bag, the tools on your belt and the gear you wear all count. ` +
+    "When you're full you can't pick up more: sell, drop or eat something, or put it in your enchanted chest.";
+  weightEl.classList.toggle("full", carried >= max);
 }
 
 // ---- Money: shown under the inventory, doesn't use a slot ----
@@ -1564,6 +1587,8 @@ function renderInfo() {
   // Value: base price, your Mastery multiplier, and what the Merchant pays and charges.
   const mid = masteryIdFor(id);
   const m = masteryIn(lastMastery, mid);
+  infoBody.append(infoLine("Weight", kg(weightOf(id)) + (stack > 1 ? ` each, ${kg(weightOf(id) * stack)} for the stack` : ""),
+    target.kind === "slot" ? "" : "tools and gear you wear still count"));
   infoBody.append(infoLine("Base value", formatMoney(item.sellPrice), item.inputs ? "its materials + 25%" : ""));
   infoBody.append(infoLine("Mastery", `${masteryName(mid)} ${m}`, `×${masteryValue(m).toFixed(2)} value`));
   if (item.inputs) {

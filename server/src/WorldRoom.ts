@@ -37,6 +37,7 @@ import { NPCS, NpcDef, isChest, npcById } from "../../shared/npcs";
 import {
   Bag, addItem, stackLimit, clearSlot, cloneBag, countIn, countItem, emptyBag, mergeStacks, putInSlot, roomFor, roomForAll, stackName, takeFromSlot, takeItem,
 } from "../../shared/bag";
+import { carriedWeight, carryCapacity, kg, weightOf } from "../../shared/weight";
 import {
   CHEST_MAX, CHEST_RENT, CHEST_START, CHEST_STEP, GUILD_BOUNTY_COUNT, GuildBounty, GuildView, RANKS, REAGENTS, expandCost, guildBountyName,
   guildReward, newGuildBoard, newGuildBounty, rankFor, validGuildBounty,
@@ -121,6 +122,7 @@ export class Player extends Schema {
   guildPoints = 0; // from the guild's bounties; decides your rank
   guildBounties: GuildBounty[] = []; // the guild board's 3 magic jobs (filled the first time they look)
   chest: Bag = emptyBag(0); // the enchanted chest; 0 spaces until you rent it
+  loginNotes: string[] = []; // things to tell the player when they arrive (e.g. what happened to an old, bigger bag)
   dirty = false; // something changed since the last save
   lastSavedAt = 0;
 }
@@ -306,7 +308,7 @@ export class WorldRoom extends Room<WorldState> {
       let total = 0;
       const sold: ItemId[] = [];
       const kept = new Set<ItemId>();
-      for (let i = 0; i < INVENTORY_SIZE; i++) {
+      for (let i = 0; i < p.inventory.length; i++) {
         const item = p.inventory[i];
         if (!item || p.locked[i]) continue;
         if (isProtected(p.quest, item)) { kept.add(item); continue; }
@@ -335,14 +337,14 @@ export class WorldRoom extends Room<WorldState> {
       const price = buyPriceFor(item);
       let bought = 0;
       while (bought < want) {
-        if (roomFor(p, item) < 1 || p.coins < price) break;
+        if (!this.fits(p, item) || p.coins < price) break;
         p.coins -= price;
         this.give(p, item);
         bought++;
       }
       if (!bought) {
-        return this.say(client, roomFor(p, item) > 0
-          ? `You need ${formatMoney(price)} for ${aOr(ITEMS[item].single)}.` : "Your inventory is full.");
+        return this.say(client, this.fits(p, item)
+          ? `You need ${formatMoney(price)} for ${aOr(ITEMS[item].single)}.` : this.fullReason(p, item));
       }
       this.sendInventory(client, p);
       this.say(client, `You buy ${bought} ${bought === 1 ? ITEMS[item].single : ITEMS[item].name.toLowerCase()} for ${formatMoney(price * bought)}.`);
@@ -638,6 +640,7 @@ export class WorldRoom extends Room<WorldState> {
       if (!step) this.say(client, "Welcome back!");
       else if (p.quest.step === 0) this.say(client, `Welcome! Go and talk to ${GUIDE_NAME} (the ❗ just south of the furnace). She'll show you how to get started.`);
       else this.say(client, `Welcome back! Your task: ${step.task}.`);
+      for (const note of p.loginNotes.splice(0)) this.say(client, note);
     });
 
     this.onMessage("drop", (client, msg: { slot: number }) => {
@@ -781,9 +784,9 @@ export class WorldRoom extends Room<WorldState> {
       if (!this.nearChest(p)) return this.say(client, "You need to be next to an enchanted chest.");
       const n = countIn(p.chest, msg.slot);
       const got = this.give(p, item, n, p.chest.durability[msg.slot]);
-      if (!got) return this.say(client, "Your inventory is full.");
+      if (!got) return this.say(client, this.fullReason(p, item));
       takeFromSlot(p.chest, msg.slot, got);
-      if (got < n) this.say(client, `Only ${got} fit in your bag.`);
+      if (got < n) this.say(client, `You can only take ${got} (bag space or weight).`);
       this.sendInventory(client, p);
       this.sendChest(client, p);
       this.saveSoon(p);
@@ -928,8 +931,8 @@ export class WorldRoom extends Room<WorldState> {
     if (skill !== "fishing" && this.state.depleted.has(treeKey(t.x, t.y))) return this.stopActions(p);
 
     const res = RESOURCES[resource];
-    if (roomFor(p, res.item) < 1) {
-      if (client) this.say(client, "Your inventory is full. Sell or drop something first, or put things in your enchanted chest.");
+    if (!this.fits(p, res.item)) {
+      if (client) this.say(client, this.fullReason(p, res.item));
       return this.stopActions(p);
     }
 
@@ -1038,8 +1041,9 @@ export class WorldRoom extends Room<WorldState> {
     // Will what you make fit, once the inputs are used up?
     const after = cloneBag(p);
     for (const input of recipe.inputs) takeItem(after, input, 1, (i) => !after.locked[i]);
-    if (roomFor(after, recipe.output) < 1) {
-      if (client) this.say(client, "Your inventory is full. Make room first.");
+    const inputsWeight = recipe.inputs.reduce((sum, i) => sum + weightOf(i), 0);
+    if (roomFor(after, recipe.output) < 1 || this.carried(p) - inputsWeight + weightOf(recipe.output) > carryCapacity()) {
+      if (client) this.say(client, roomFor(after, recipe.output) < 1 ? "Your bag is full. Make room first." : this.fullReason(p, recipe.output));
       return this.stopActions(p);
     }
     if (!treeRoll(p.tree, recipe.skill, "staminaSave")) this.useStamina(p, recipe.skill);
@@ -1131,9 +1135,37 @@ export class WorldRoom extends Room<WorldState> {
     putInSlot(p, slot, item, 1, this.usesFor(item, durability));
   }
 
-  /** Put items in the bag, on top of a stack if there's room (shared/bag.ts). Returns how many fit. */
-  private give(p: Player, item: ItemId, n = 1, durability?: number | null): number {
-    return addItem(p, item, n, this.usesFor(item, durability));
+  /**
+   * Put items in the bag, on top of a stack if there's room (shared/bag.ts),
+   * and only as many as you can carry (shared/weight.ts). Returns how many went in.
+   * `force`: ignore weight (Old Maren's gifts, so the tutorial can never get stuck).
+   */
+  private give(p: Player, item: ItemId, n = 1, durability?: number | null, force = false): number {
+    const want = force ? n : Math.min(n, this.canLift(p, item));
+    return want > 0 ? addItem(p, item, want, this.usesFor(item, durability)) : 0;
+  }
+
+  /** Total weight carried (bag, tool belt and worn gear), in tenths of a kg. */
+  private carried(p: Player) {
+    return carriedWeight(p, p.belt, p.gear);
+  }
+
+  /** How many more of this item you could carry, by weight. */
+  private canLift(p: Player, item: ItemId): number {
+    const w = weightOf(item);
+    const spare = carryCapacity() - this.carried(p);
+    return w <= 0 ? Infinity : Math.max(0, Math.floor(spare / w));
+  }
+
+  /** Room in the bag (a slot or stack) and strength to carry one more? */
+  private fits(p: Player, item: ItemId) {
+    return roomFor(p, item) >= 1 && this.canLift(p, item) >= 1;
+  }
+
+  /** Why you can't take one more of this: bag full, or too heavy. */
+  private fullReason(p: Player, item: ItemId) {
+    if (roomFor(p, item) < 1) return "Your bag is full. Sell or drop something first, or put things in your enchanted chest.";
+    return `That's too heavy: you're carrying ${kg(this.carried(p))} of ${kg(carryCapacity())}. Sell, drop or eat something, or put things in your enchanted chest.`;
   }
 
   /** One catch uses up a little of the bait. When it runs out, it's gone. */
@@ -1372,6 +1404,40 @@ export class WorldRoom extends Room<WorldState> {
     });
   }
 
+  /**
+   * Move a saved bag into this player's bag. Stacks are joined first (saves from
+   * before stacks had one item per slot). If it still doesn't fit (bags used to
+   * have 28 slots, now 12), the rest goes into the enchanted chest if there's
+   * space, and the Merchant buys whatever is left, so nobody loses anything.
+   */
+  private fitOldBag(p: Player, old: Bag) {
+    mergeStacks(old);
+    let slot = 0;
+    const extra: number[] = [];
+    old.inventory.forEach((item, i) => {
+      if (!item) return;
+      if (slot >= p.inventory.length) return extra.push(i);
+      putInSlot(p, slot, item, countIn(old, i), old.durability[i]);
+      p.locked[slot] = old.locked[i];
+      slot++;
+    });
+    if (!extra.length) return;
+    const stored: string[] = [];
+    let sold = 0;
+    for (const i of extra) {
+      const item = old.inventory[i]!;
+      const n = countIn(old, i);
+      const put = addItem(p.chest, item, n, old.durability[i]);
+      if (put) stored.push(stackName(item, put));
+      if (n > put) sold += sellPriceFor(item, p.mastery, old.durability[i]) * (n - put);
+    }
+    p.coins += sold;
+    p.dirty = true;
+    p.loginNotes.push(`🎒 Bags now hold ${p.inventory.length} stacks.` +
+      (stored.length ? ` What didn't fit went into your enchanted chest: ${stored.join(", ")}.` : "") +
+      (sold ? ` The Merchant bought the rest for ${formatMoney(sold)}.` : ""));
+  }
+
   private restoreGuild(p: Player, g: SaveData["guild"]) {
     if (!g) return;
     if (typeof g.points === "number" && Number.isFinite(g.points) && g.points >= 0) p.guildPoints = Math.floor(g.points);
@@ -1546,7 +1612,7 @@ export class WorldRoom extends Room<WorldState> {
     this.state.players.forEach((other) => { if (other.fighting && this.state.monsters.get(other.fighting) === m) this.stopActions(other); });
     if (client) {
       this.say(client, `You defeat the ${def.name.toLowerCase()}!` + (got.length ? ` It drops ${got.join(" and ")}.` : "") +
-        (lost ? " Your bag is full, so you leave something behind." : ""));
+        (lost ? " Your bag is full or too heavy, so you leave something behind." : ""));
       this.sendInventory(client, p);
     }
     this.questEvent(p, client, { kind: "kill", monster: m.kind, style });
@@ -1835,13 +1901,13 @@ export class WorldRoom extends Room<WorldState> {
     }
     // Worn out with nothing to eat? She won't let you get stuck.
     if (p.stamina < 20 && !p.inventory.some((it) => isFood(it)) && roomFor(p, SHOP_STEW) > 0) {
-      this.give(p, SHOP_STEW);
+      this.give(p, SHOP_STEW, 1, null, true);
       this.say(client, `${GUIDE_NAME}: You look worn out! Here, eat this stew. Next time, cook some of your own.`);
       this.sendInventory(client, p);
     }
     // Badly hurt during the combat lesson with no potion? She hands you one.
     if (step.quest === 3 && p.hp < p.maxHp / 3 && !p.inventory.includes(POTION_ID) && roomFor(p, POTION_ID) > 0) {
-      this.give(p, POTION_ID);
+      this.give(p, POTION_ID, 1, null, true);
       this.say(client, `${GUIDE_NAME}: You're hurt! Here, drink this health potion.`);
       this.sendInventory(client, p);
     }
@@ -1857,7 +1923,7 @@ export class WorldRoom extends Room<WorldState> {
     if (!roomForAll(p, gifts.map((g) => g.item))) {
       return this.dialog(client, [`I've got ${gifts.length} things for you, but your bag is too full. Make some room and come back.`]);
     }
-    for (const g of gifts) this.give(p, g.item, 1, g.durability);
+    for (const g of gifts) this.give(p, g.item, 1, g.durability, true); // gifts never count against weight, so the tutorial can't get stuck
     if (step.coins) p.coins += step.coins;
     const finished = STEPS[p.quest.step + 1]?.quest !== step.quest;
     this.dialog(client, step.lines ?? []);
@@ -1903,7 +1969,7 @@ export class WorldRoom extends Room<WorldState> {
         have = this.countOf(p, g.item);
       }
       for (let n = have; n < (g.count ?? 1); n++) {
-        if (!this.give(p, g.item, 1, g.durability)) break;
+        if (!this.give(p, g.item, 1, g.durability, true)) break;
         given.push(aOr(ITEMS[g.item].single));
       }
     }
@@ -2204,21 +2270,23 @@ export class WorldRoom extends Room<WorldState> {
       p.x = spawn.x;
       p.y = spawn.y;
     }
+    // Load the saved bag as it was (older saves had 28 slots), then fit it into today's bag below.
+    const old = emptyBag(Array.isArray(save.inventory) ? Math.min(save.inventory.length, 28) : 0);
     if (Array.isArray(save.inventory)) {
-      for (let i = 0; i < INVENTORY_SIZE; i++) {
+      for (let i = 0; i < old.inventory.length; i++) {
         let item = save.inventory[i];
         if (typeof item === "string" && item in LEGACY_ITEMS) item = LEGACY_ITEMS[item]; // logs -> pine logs, etc.
         if (typeof item === "string") item = legacyTool(item) ?? item; // metal-headed rods -> wooden rods
         if (typeof item === "string") item = legacyStew(item) ?? item; // old fish stews -> stews
-        p.inventory[i] = typeof item === "string" && item in ITEMS ? (item as ItemId) : null;
-        const it = p.inventory[i];
+        old.inventory[i] = typeof item === "string" && item in ITEMS ? (item as ItemId) : null;
+        const it = old.inventory[i];
         // How many in the stack (saves from before stacks had one per slot).
         const n = save.counts?.[i];
-        p.counts[i] = it ? (Number.isInteger(n) && n! >= 1 ? Math.min(n!, stackLimit(it)) : 1) : 0;
+        old.counts[i] = it ? (Number.isInteger(n) && n! >= 1 ? Math.min(n!, stackLimit(it)) : 1) : 0;
         if (isTool(it) || isGear(it) || isBait(it)) {
           const max = isTool(it) ? maxDurability(it) : isGear(it) ? gearDurability(it) : BAITS[it].uses;
           const d = save.durability?.[i];
-          p.durability[i] = typeof d === "number" && d > 0 ? Math.min(Math.floor(d), max) : max;
+          old.durability[i] = typeof d === "number" && d > 0 ? Math.min(Math.floor(d), max) : max;
         }
       }
     }
@@ -2236,13 +2304,13 @@ export class WorldRoom extends Room<WorldState> {
       p.stamina = Math.max(0, Math.min(MAX_STAMINA, Math.floor(save.stamina) + Math.floor(away / STAMINA_REGEN_MS)));
     }
     if (Array.isArray(save.lockedSlots)) {
-      for (const i of save.lockedSlots) if (Number.isInteger(i) && i >= 0 && i < INVENTORY_SIZE && p.inventory[i]) p.locked[i] = true;
+      for (const i of save.lockedSlots) if (Number.isInteger(i) && i >= 0 && i < old.inventory.length && old.inventory[i]) old.locked[i] = true;
     } else if (Array.isArray(save.locked)) {
       // Briefly, locks were per item type: lock every item of those types that's in the bag.
-      p.inventory.forEach((item, i) => { if (item && save.locked!.includes(item)) p.locked[i] = true; });
+      old.inventory.forEach((item, i) => { if (item && save.locked!.includes(item)) old.locked[i] = true; });
     }
-    mergeStacks(p); // old saves: one item per slot, so join them into stacks
     this.restoreGuild(p, save.guild);
+    this.fitOldBag(p, old);
     // Saved under "skills" (its name before Disciplines existed), so old saves keep working.
     for (const id of DISCIPLINE_IDS) {
       const xp = save.skills?.[id];
