@@ -23,8 +23,11 @@ Quick words used in this doc:
 ## 1. Disciplines and skills
 
 Today the game has three disciplines: Foraging, Crafting and Combat. They
-become five. Every skill you already have keeps its XP; it just moves to its
-new home.
+become five, and existing skills move to their new homes.
+
+**Everyone starts fresh.** When the five disciplines go in (stage 2), every
+character is reset to level 1, the same way characters were reset when Old
+Maren's quests arrived. Nobody's old XP, items or coins carry over.
 
 | Discipline | What it raises | Skills in it |
 |---|---|---|
@@ -48,7 +51,7 @@ Mining and Endurance.
 - **Melee, Ranged, Defense** go to Strength. Defense no longer raises health by
   itself; Strength does. Defense still makes monsters miss more and lets you wear
   better armor.
-- **Magic** becomes **Spellcasting** under Wisdom. Its XP carries over.
+- **Magic** becomes **Spellcasting** under Wisdom.
 - **Mages' Guild rank** (from the guild's magic bounties) folds into **Renown**.
   See section 8.
 
@@ -477,7 +480,7 @@ quest chapter as it goes, so the main quest grows with the game.
 | Stage | What gets built | Why this order |
 |---|---|---|
 | **1. Small fixes** | Phone layout, sell slider, bag weight and slots, Mastery point quest step | Quick wins, nothing depends on them |
-| **2. The five disciplines** | Strength, Endurance, Wisdom, Dexterity, Charisma; skills move; health, stamina, mana, speed and price bonuses; old XP carried over | Everything else plugs into this |
+| **2. The five disciplines** | Strength, Endurance, Wisdom, Dexterity, Charisma; skills move; health, stamina, mana, speed and price bonuses; every character reset to start fresh | Everything else plugs into this |
 | **3. Bigger town and trainers** | Trainer Row buildings, Merchant split into trainer shops plus General Store, Maren's hub quest for existing skills, day and night cycle | Gives new skills a place to live |
 | **4. Wear and repair** | Worn-out gear becomes Broken instead of vanishing, armor wears from damage, the paid Repairer | Needed before enchanting |
 | **5. Foraging, Hunting and new monsters** | Shovel, forage spots, ingredients, night herbs; slimes, bats, boars, beetles, spiders and night monsters; kill XP split by damage share; Hunting drop bonus | Ingredients for potions and crafting |
@@ -498,9 +501,8 @@ Stages 10, 11 and 12 can be done in any order once stage 3 is in.
 
 1. **Cooking**: under Dexterity (with the other making skills) or Endurance (next
    to Farming, since meals give stamina)? This doc puts it in Dexterity.
-2. **Keep or reset characters?** The plan carries old XP into the new skills
-   (Magic becomes Spellcasting, Combat XP splits into Strength). A fresh reset is
-   simpler to build. Which do you want?
+2. ~~Keep or reset characters?~~ **Decided: everyone starts fresh** when stage 2
+   goes in.
 3. **Maren's first lesson** has you fish until the rod breaks. With gear now
    going to Broken instead of vanishing, should that lesson end with Maren
    sending you to the Repairer, or just giving you a new rod as now?
