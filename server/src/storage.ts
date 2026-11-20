@@ -47,8 +47,17 @@ export interface SaveData {
   tracked?: string; // the bounty on the quest tracker (its item), if one is picked over Maren's quest
   color?: number; // character colour, picked in Settings (one of shared/colors.ts)
   locked?: string[]; // old: item types that were locked; turned into lockedSlots when loaded
+  counts?: number[]; // per inventory slot: how many are in the stack (missing in older saves: 1 each)
+  guild?: GuildSave; // the Mages' Guild: rank points, magic bounties and the enchanted chest
   // Add more here later (skills, bank, quests...). Stored as JSON, so no
   // database migration is needed for new fields.
+}
+
+/** The Mages' Guild part of a save (shared/guild.ts). */
+export interface GuildSave {
+  points?: number;
+  bounties?: unknown[]; // the guild board's 3 jobs
+  chest?: { item: string; count: number; durability?: number | null }[]; // one per chest space; empty spaces are { item: "", count: 0 }
 }
 
 export interface Account {

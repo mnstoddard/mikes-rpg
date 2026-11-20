@@ -7,7 +7,8 @@ import { RESOURCES, ResourceId, fishAt, isFishingSpot, nodeAt, treeKey } from ".
 
 import { ITEMS, ItemId } from "../../shared/items";
 import { joinWorld, rejoinWorld } from "./network";
-import { accountResult, closeBounties, renderMe, renderTracked, resetForSignOut, setAccountActions, setBountyActions, setQuestActions, showBounties } from "./ui";
+import { accountResult, closeBounties, renderMe, renderTracked, resetForSignOut, setAccountActions, setBountyActions, setQuestActions, showBounties, closeGuild, closeChest, renderCounts, setGuildActions, showChest, showGuild } from "./ui";
+import type { GuildView } from "../../shared/guild";
 import type { Bounty } from "../../shared/bounties";
 import { closeDialog, openDialog, renderQuest, renderStamina, renderVitals, renderGear, renderCombatMastery, flashCombatMastery, closeCraft, closeInfo, closeShop, flashDiscipline, flashMastery, flashSkillRow, openCraft, renderBelt, renderDurability, renderMastery, renderSkillXp, openShop, renderCoins, renderDisciplines, renderInventory, renderLocks, setHoverText, setInventoryActions, showMessage } from "./ui";
 import { masteryName } from "../../shared/crafting";
@@ -20,7 +21,7 @@ import type { QuestView } from "../../shared/quests";
 
 const TILE_COLORS: Record<Tile, number> = {
   grass: 0x4a8f3c, path: 0xb89b6a, water: 0x2d6fa3, tree: 0x2e5e22, rock: 0x7d7d7d, bridge: 0x8b5a2b,
-  fence: 0x4a8f3c, gate: 0x9a8058, sign: 0x4a8f3c,
+  fence: 0x4a8f3c, gate: 0x9a8058, sign: 0x4a8f3c, wall: 0x4b3a6b, floor: 0x6d5a8e,
 };
 /** The Dark Forest's ground is darker and bluer, so you can see where danger starts. */
 const DARK_COLORS: Partial<Record<Tile, number>> = { grass: 0x23432a, path: 0x6b5a42, fence: 0x23432a, gate: 0x6b5a42 };
@@ -176,6 +177,23 @@ export class WorldScene extends Phaser.Scene {
       openCraft(msg.npc);
     });
     room.onMessage("locks", (slots: boolean[]) => renderLocks(slots));
+    room.onMessage("counts", (counts: number[]) => renderCounts(counts));
+    setGuildActions({
+      buySpace: () => room.send("buyChestSpace"),
+      deposit: (slot) => room.send("deposit", { slot }),
+      withdraw: (slot) => room.send("withdraw", { slot }),
+      handIn: (index) => room.send("guildHandIn", { index }),
+      refresh: () => room.send("refreshGuild"),
+    });
+    room.onMessage("guild", (g: GuildView & { open: boolean }) => {
+      if (g.open) this.marker.setVisible(false);
+      showGuild(g, g.open);
+    });
+    room.onMessage("chest", (c: { items: (ItemId | null)[]; counts: number[]; durability: (number | null)[]; open: boolean }) => {
+      if (c.open) this.marker.setVisible(false);
+      showChest(c, c.open);
+    });
+    room.onMessage("guildRank", (msg: { rank: string }) => this.floatText(`Guild ${msg.rank}!`, "#c9a2ff", true));
     room.onMessage("inventory", (items: (ItemId | null)[]) => renderInventory(items));
     room.onMessage("coins", (coins: number) => renderCoins(coins));
     room.onMessage("shop", () => {
@@ -291,6 +309,13 @@ export class WorldScene extends Phaser.Scene {
         } else if (t === "sign") {
           this.add.text(px + 16, py + 14, "⚠️", { fontSize: "20px" }).setOrigin(0.5).setDepth(10 + y);
           g.fillStyle(0x5c3a1a).fillRect(px + 14, py + 22, 4, 9);
+        } else if (t === "wall") {
+          // Purple stone blocks, with a darker line between rows.
+          g.fillStyle(0x3a2c55).fillRect(px, py + 15, TILE_SIZE, 2).fillRect(px + 15, py, 2, 15).fillRect(px + 6, py + 17, 2, 15);
+          g.fillStyle(0x7b67a6, 0.6).fillRect(px, py, TILE_SIZE, 2);
+        } else if (t === "floor") {
+          // Rug pattern: a little star in the middle of each tile.
+          g.fillStyle(0x8f78b8, 0.5).fillCircle(px + 16, py + 16, 3);
         } else if (t === "bridge") {
           g.lineStyle(2, 0x5c3a1a).lineBetween(px, py + 10, px + TILE_SIZE, py + 10)
             .lineBetween(px, py + 22, px + TILE_SIZE, py + 22);
@@ -300,6 +325,12 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private drawNpcs() {
+    // A sign over the Mages' Guild hall's door.
+    const mage = NPCS.find((n) => n.id === "archmage");
+    if (mage) {
+      const [gx, gy] = this.tileCenter(mage.x, mage.y - 2);
+      this.add.text(gx, gy - 22, "🔮 Mages' Guild", { fontSize: "13px", color: "#e3ccff", stroke: "#000", strokeThickness: 3 }).setOrigin(0.5).setDepth(40);
+    }
     for (const npc of NPCS) {
       if (npc.kind === "station") { this.drawStation(npc.id, npc.x, npc.y, npc.name); continue; }
       const [cx, cy] = this.tileCenter(npc.x, npc.y);
@@ -312,6 +343,10 @@ export class WorldScene extends Phaser.Scene {
         hat.fillStyle(0xd9d4c7).fillCircle(0, -9, 5);
         hat.fillStyle(0xe8c56a).fillEllipse(0, -11, 24, 5).fillRect(-6, -17, 12, 6);
         hat.fillStyle(0x2e86c1).fillRect(-6, -13, 12, 2);
+      } else if (npc.id === "archmage") {
+        // A tall pointed wizard's hat with a star on it.
+        hat.fillStyle(0x2d1b5e).fillEllipse(0, -10, 24, 5).fillTriangle(-8, -10, 8, -10, 2, -30);
+        hat.fillStyle(0xffd84a).fillCircle(0, -17, 1.8);
       } else {
         hat.fillStyle(0x3b2410).fillRect(-9, -12, 18, 3).fillRect(-6, -18, 12, 7);
       }
@@ -358,10 +393,18 @@ export class WorldScene extends Phaser.Scene {
       c.add([g, fire, steam]);
       this.tweens.add({ targets: fire, alpha: 0.5, duration: 350, yoyo: true, repeat: -1 });
       this.tweens.add({ targets: steam, y: -30, alpha: 0, scaleX: 1.8, duration: 1400, repeat: -1 });
-    } else if (id === "board") {
+    } else if (id.startsWith("chest")) {
+      // A purple chest with gold bands and a glowing keyhole.
+      g.fillStyle(0x4a2a7a).fillRoundedRect(-12, -10, 24, 18, 3);
+      g.fillStyle(0x6a3fb5).fillRoundedRect(-12, -14, 24, 7, 3);
+      g.fillStyle(0xd4a640).fillRect(-12, -7, 24, 2).fillRect(-8, -14, 2, 22).fillRect(6, -14, 2, 22);
+      const glow = this.add.circle(0, -3, 2.5, 0xb9f2ff);
+      c.add([g, glow]);
+      this.tweens.add({ targets: glow, alpha: 0.3, scale: 1.6, duration: 900, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+    } else if (id === "board" || id === "guildboard") {
       // A wooden notice board on two posts, with papers pinned to it.
       g.fillStyle(0x5c3a1a).fillRect(-11, -4, 3, 15).fillRect(8, -4, 3, 15); // posts
-      g.fillStyle(0x8b5a2b).fillRect(-14, -18, 28, 16); // board
+      g.fillStyle(id === "guildboard" ? 0x5b2c9f : 0x8b5a2b).fillRect(-14, -18, 28, 16); // board (purple for the guild)
       g.lineStyle(2, 0x5c3a1a).strokeRect(-14, -18, 28, 16);
       g.fillStyle(0x4a2e14).fillTriangle(-16, -18, 16, -18, 0, -24); // little roof
       g.fillStyle(0xf2e6c9).fillRect(-11, -16, 7, 9).fillRect(-2, -15, 6, 8).fillRect(6, -16, 6, 10); // notices
@@ -374,7 +417,9 @@ export class WorldScene extends Phaser.Scene {
       g.fillStyle(0x9aa3ab).fillRect(-12, -12, 22, 2);
       c.add(g);
     }
-    const label = this.add.text(0, id === "board" ? -32 : -28, name, { fontSize: "12px", color: "#ffd84a", stroke: "#000", strokeThickness: 3 }).setOrigin(0.5);
+    // In the guild hall the stations stand close to the Archmage, so their names go underneath.
+    const below = id === "chest" || id === "guildboard";
+    const label = this.add.text(0, below ? 22 : id === "board" ? -32 : -28, name, { fontSize: "12px", color: "#ffd84a", stroke: "#000", strokeThickness: 3 }).setOrigin(0.5);
     c.add(label);
   }
 
@@ -633,6 +678,8 @@ export class WorldScene extends Phaser.Scene {
     closeShop(); // clicking the map walks away from the shop
     closeCraft();
     closeBounties();
+    closeGuild();
+    closeChest();
     closeInfo();
     closeDialog();
     const npc = npcAt(x, y);
@@ -666,7 +713,7 @@ export class WorldScene extends Phaser.Scene {
       const def = MONSTERS[m.kind as MonsterId];
       setHoverText("Attack", `${def.name} (level ${def.level})${def.aggressive ? " ⚠" : ""}`, pointer.x, pointer.y);
     } else if (npc) {
-      setHoverText(npc.id === "board" ? "Read" : npc.kind === "station" ? "Use" : "Talk-to", npc.name, pointer.x, pointer.y);
+      setHoverText(npc.id === "board" || npc.id === "guildboard" ? "Read" : npc.name === "Enchanted chest" ? "Open" : npc.kind === "station" ? "Use" : "Talk-to", npc.name, pointer.x, pointer.y);
     } else if (this.isStandingTree(x, y)) {
       const type = nodeAt(x, y)!;
       setHoverText("Chop down", RESOURCES[type].node + this.lockNote(type), pointer.x, pointer.y);
