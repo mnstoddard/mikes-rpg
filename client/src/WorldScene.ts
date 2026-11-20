@@ -7,10 +7,11 @@ import { RESOURCES, ResourceId, fishAt, isFishingSpot, nodeAt, treeKey } from ".
 
 import { ITEMS, ItemId } from "../../shared/items";
 import { joinWorld, rejoinWorld } from "./network";
-import { accountResult, closeBounties, renderMe, renderTracked, resetForSignOut, setAccountActions, setBountyActions, setQuestActions, showBounties, closeGuild, closeChest, renderCounts, setGuildActions, showChest, showGuild } from "./ui";
+import { Bag, emptyBag } from "../../shared/bag";
+import { accountResult, closeBounties, renderMe, renderTracked, resetForSignOut, setAccountActions, setBountyActions, setQuestActions, showBounties, closeGuild, closeChest, setGuildActions, showChest, showGuild } from "./ui";
 import type { GuildView } from "../../shared/guild";
 import type { Bounty } from "../../shared/bounties";
-import { closeDialog, openDialog, renderQuest, renderStamina, renderVitals, renderGear, renderCombatMastery, flashCombatMastery, closeCraft, closeInfo, closeShop, flashDiscipline, flashMastery, flashSkillRow, openCraft, renderBelt, renderDurability, renderMastery, renderSkillXp, openShop, renderCoins, renderDisciplines, renderInventory, renderLocks, setHoverText, setInventoryActions, showMessage } from "./ui";
+import { closeDialog, openDialog, renderQuest, renderStamina, renderVitals, renderGear, renderCombatMastery, flashCombatMastery, closeCraft, closeInfo, closeShop, flashDiscipline, flashMastery, flashSkillRow, openCraft, renderBelt, renderMastery, renderSkillXp, openShop, renderBag, renderCoins, renderDisciplines, setHoverText, setInventoryActions, showMessage } from "./ui";
 import { masteryName } from "../../shared/crafting";
 import type { Belt, ToolType } from "../../shared/tools";
 import { NPCS, npcAt } from "../../shared/npcs";
@@ -82,7 +83,7 @@ export class WorldScene extends Phaser.Scene {
     // the background is the same colour as the sea, so the island just floats.
     this.cameras.main.centerOn(MAP_WIDTH * TILE_SIZE / 2, MAP_HEIGHT * TILE_SIZE / 2);
     this.setupZoom();
-    renderInventory([]);
+    renderBag(emptyBag(0));
 
     // A mouse click acts the moment you press. A finger acts on release, so a
     // pinch or a wobbly finger isn't read as a tap.
@@ -178,14 +179,11 @@ export class WorldScene extends Phaser.Scene {
       openDialog(msg.name, msg.lines);
     });
     room.onMessage("stamina", (msg: { stamina: number; max: number }) => renderStamina(msg.stamina, msg.max));
-    room.onMessage("durability", (slots: (number | null)[]) => renderDurability(slots));
     room.onMessage("belt", (belt: Belt) => renderBelt(belt));
     room.onMessage("station", (msg: { npc: string }) => {
       this.marker.setVisible(false);
       openCraft(msg.npc);
     });
-    room.onMessage("locks", (slots: boolean[]) => renderLocks(slots));
-    room.onMessage("counts", (counts: number[]) => renderCounts(counts));
     setGuildActions({
       buySpace: () => room.send("buyChestSpace"),
       deposit: (slot) => room.send("deposit", { slot }),
@@ -197,12 +195,12 @@ export class WorldScene extends Phaser.Scene {
       if (g.open) this.marker.setVisible(false);
       showGuild(g, g.open);
     });
-    room.onMessage("chest", (c: { items: (ItemId | null)[]; counts: number[]; durability: (number | null)[]; open: boolean }) => {
+    room.onMessage("chest", (c: Bag & { open: boolean }) => {
       if (c.open) this.marker.setVisible(false);
       showChest(c, c.open);
     });
     room.onMessage("guildRank", (msg: { rank: string }) => this.floatText(`Guild ${msg.rank}!`, "#c9a2ff", true));
-    room.onMessage("inventory", (items: (ItemId | null)[]) => renderInventory(items));
+    room.onMessage("bag", (bag: Bag) => renderBag(bag));
     room.onMessage("coins", (coins: number) => renderCoins(coins));
     room.onMessage("shop", () => {
       this.marker.setVisible(false);
