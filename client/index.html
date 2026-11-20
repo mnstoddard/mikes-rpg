@@ -198,6 +198,27 @@
     @media (max-width: 640px), (max-height: 500px) {
       #bounty { top: calc(56px + env(safe-area-inset-top)); padding: 8px 10px; max-height: 55vh; }
     }
+    /* Stacks: how many are in a slot */
+    .slot .count-badge { position: absolute; left: 2px; bottom: 0; font-size: 11px; line-height: 1.1; color: #fff; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000; pointer-events: none; }
+    body.shop-open .slot .count-badge { bottom: auto; top: 0; left: auto; right: 2px; }
+    /* Mages' Guild window and the enchanted chest */
+    #guild, #chest { display: none; left: 50%; top: 14%; transform: translateX(-50%); width: min(340px, calc(100vw - 32px)); padding: 12px 14px; z-index: 5; text-align: center; max-height: calc(100vh - 120px); overflow-y: auto; border-color: #6a4fa0; }
+    body.guild-open #guild, body.chest-open #chest { display: block; }
+    #guild h3, #chest h3 { margin: 0 0 6px; font-size: 16px; color: #d9b8ff; font-weight: normal; }
+    #guild .buttons, #chest .buttons { display: flex; gap: 6px; margin-top: 8px; }
+    .guild-rank { padding: 6px 8px; background: rgba(0,0,0,.25); border-radius: 3px; text-align: left; }
+    .guild-rank-name { font-size: 15px; color: #fff; }
+    .guild-rank .q-bar { height: 6px; background: #1d170f; border: 1px solid #6b5a3e; border-radius: 3px; overflow: hidden; }
+    .guild-rank .q-bar div { height: 100%; background: #b48cff; }
+    .guild-section { margin-top: 8px; padding: 6px 8px; background: rgba(0,0,0,.2); border-radius: 3px; text-align: left; }
+    .guild-section > .shop-btn { width: 100%; margin-top: 4px; }
+    .guild-head { font-size: 14px; color: #ffd84a; margin-bottom: 3px; }
+    #chest-slots { display: grid; grid-template-columns: repeat(4, 40px); grid-auto-rows: 36px; gap: 3px; justify-content: center; margin: 6px 0; }
+    body.chest-open #inventory .slot.filled { outline: 1px solid #b48cff; }
+    @media (max-width: 640px), (max-height: 500px) {
+      #guild, #chest { top: calc(56px + env(safe-area-inset-top)); padding: 8px 10px; max-height: 50vh; }
+      #chest-slots { grid-template-columns: repeat(7, 34px); grid-auto-rows: 30px; }
+    }
     /* Item info card */
     #info { display: none; left: 50%; top: 18%; transform: translateX(-50%); width: min(320px, calc(100vw - 32px)); padding: 12px 14px; z-index: 6; }
     body.info-open #info { display: block; }
@@ -349,6 +370,20 @@
       <button id="bounty-refresh" class="shop-btn" title="Swap all 5 for new bounties (free)">🔄 Refresh</button>
       <button id="bounty-close" class="shop-btn">Close</button>
     </div>
+  </div>
+  <div id="guild" class="panel">
+    <h3>🔮 Mages' Guild</h3>
+    <div id="guild-body"></div>
+    <div class="buttons">
+      <button id="guild-refresh" class="shop-btn" title="Swap the guild's bounties for new ones (free). Spell progress is lost.">🔄 New bounties</button>
+      <button id="guild-close" class="shop-btn">Close</button>
+    </div>
+  </div>
+  <div id="chest" class="panel">
+    <h3 id="chest-title">📦 Enchanted chest</h3>
+    <div class="bounty-note">Tap a stack in your bag to put it in. Tap one here to take it out.</div>
+    <div id="chest-slots"></div>
+    <div class="buttons"><button id="chest-close" class="shop-btn">Close</button></div>
   </div>
   <div id="info" class="panel">
     <div id="info-body"></div>

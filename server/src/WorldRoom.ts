@@ -33,14 +33,21 @@ import {
   toolBonus, toolForSkill, wearFor,
 } from "../../shared/tools";
 import { INVENTORY_SIZE, ITEMS, ItemId, LEGACY_ITEMS } from "../../shared/items";
-import { NPCS, NpcDef, npcById } from "../../shared/npcs";
+import { NPCS, NpcDef, isChest, npcById } from "../../shared/npcs";
+import {
+  Bag, addItem, stackLimit, clearSlot, cloneBag, countIn, countItem, emptyBag, mergeStacks, putInSlot, roomFor, roomForAll, stackName, takeFromSlot, takeItem,
+} from "../../shared/bag";
+import {
+  CHEST_MAX, CHEST_RENT, CHEST_START, CHEST_STEP, GUILD_BOUNTY_COUNT, GuildBounty, GuildView, RANKS, REAGENTS, expandCost, guildBountyName,
+  guildReward, newGuildBoard, newGuildBounty, rankFor, validGuildBounty,
+} from "../../shared/guild";
 import { findSkill as skillInfo } from "../../shared/disciplines";
 import { formatMoney } from "../../shared/money";
 import { MAX_STAMINA, STAMINA_COST, STAMINA_REGEN_MS, FISH_IDS, foodStamina, isFood, isStew } from "../../shared/cooking";
 import {
   BURN_UNTIL, GUIDE_NAME, Gift, QUESTS, boardOpen, isProtected, QuestProgress, QuestStep, QuestView, STEPS, gateOpen, giftItems, newQuestProgress, tutorialDone,
 } from "../../shared/quests";
-import { BOUNTY_COUNT, Bounty, bountyName, bountyReward, newBoard, newBounty, slotCounts, validBounty } from "../../shared/bounties";
+import { BOUNTY_COUNT, Bounty, bountyChoices, bountyName, bountyReward, newBoard, newBounty, slotCounts, validBounty } from "../../shared/bounties";
 import { Account, SAVE_VERSION, SaveData, checkPassword, hashPassword, store, usernameKey } from "./storage";
 import { PLAYER_COLORS, isPlayerColor } from "../../shared/colors";
 
@@ -80,6 +87,7 @@ export class Player extends Schema {
   activity: SkillId | null = null; // what they'll do when they get there
   resource: ResourceId | null = null; // which type of tree / rock / fish
   inventory: (ItemId | null)[] = new Array(INVENTORY_SIZE).fill(null);
+  counts: number[] = new Array(INVENTORY_SIZE).fill(0); // per slot: how many are in the stack (shared/bag.ts)
   durability: (number | null)[] = new Array(INVENTORY_SIZE).fill(null); // per slot: uses left, for tools
   belt: Belt = emptyBelt(); // equipped tools (don't use bag space)
   crafting: { recipe: Recipe; remaining: number; station: NpcDef } | null = null; // smelting / smithing in progress
@@ -104,6 +112,10 @@ export class Player extends Schema {
   manaTicks = 0;
   bounties: Bounty[] = []; // the 5 jobs on this player's bounty board (filled the first time they look)
   tracked: ItemId | null = null; // the bounty shown on the quest tracker (by its item), or null for Maren's quest
+  // The Mages' Guild (shared/guild.ts):
+  guildPoints = 0; // from the guild's bounties; decides your rank
+  guildBounties: GuildBounty[] = []; // the guild board's 3 magic jobs (filled the first time they look)
+  chest: Bag = emptyBag(0); // the enchanted chest; 0 spaces until you rent it
   dirty = false; // something changed since the last save
   lastSavedAt = 0;
 }
@@ -269,11 +281,13 @@ export class WorldRoom extends Room<WorldState> {
       if (p.locked[msg.slot]) return this.say(client, `That ${ITEMS[item].single} is locked. Unlock it to sell it.`);
       if (isProtected(p.quest, item)) return this.say(client, this.keepIt(item, "sell"));
       if (!this.nearNpc(p, "merchant")) return this.say(client, "You need to be next to the Merchant to sell.");
-      const price = sellPriceFor(item, p.mastery, p.durability[msg.slot]);
-      p.inventory[msg.slot] = null;
+      // Tapping a stack sells all of it.
+      const n = countIn(p, msg.slot);
+      const price = sellPriceFor(item, p.mastery, p.durability[msg.slot]) * n;
+      clearSlot(p, msg.slot);
       p.coins += price;
-      this.say(client, `You sell 1 ${ITEMS[item].single} for ${formatMoney(price)}.`);
-      this.questEvent(p, client, { kind: "sell", item });
+      this.say(client, `You sell ${stackName(item, n)} for ${formatMoney(price)}.`);
+      for (let k = 0; k < n; k++) this.questEvent(p, client, { kind: "sell", item });
       this.sendInventory(client, p);
       this.saveSoon(p);
     });
@@ -291,10 +305,11 @@ export class WorldRoom extends Room<WorldState> {
         const item = p.inventory[i];
         if (!item || p.locked[i]) continue;
         if (isProtected(p.quest, item)) { kept.add(item); continue; }
-        total += sellPriceFor(item, p.mastery, p.durability[i]);
-        p.inventory[i] = null;
-        sold.push(item);
-        count++;
+        const n = countIn(p, i);
+        total += sellPriceFor(item, p.mastery, p.durability[i]) * n;
+        clearSlot(p, i);
+        for (let k = 0; k < n; k++) sold.push(item);
+        count += n;
       }
       if (kept.size) this.say(client, `Merchant: I'll leave your ${[...kept].map((i) => ITEMS[i].name.toLowerCase()).join(" and ")} alone. ${GUIDE_NAME} needs you to use those first.`);
       if (!count) return this.say(client, kept.size ? "You have nothing else to sell." : "You have nothing to sell that isn't locked.");
@@ -315,14 +330,13 @@ export class WorldRoom extends Room<WorldState> {
       const price = buyPriceFor(item);
       let bought = 0;
       while (bought < want) {
-        const free = p.inventory.indexOf(null);
-        if (free === -1 || p.coins < price) break;
+        if (roomFor(p, item) < 1 || p.coins < price) break;
         p.coins -= price;
-        this.place(p, free, item);
+        this.give(p, item);
         bought++;
       }
       if (!bought) {
-        return this.say(client, p.inventory.includes(null)
+        return this.say(client, roomFor(p, item) > 0
           ? `You need ${formatMoney(price)} for ${aOr(ITEMS[item].single)}.` : "Your inventory is full.");
       }
       this.sendInventory(client, p);
@@ -339,7 +353,7 @@ export class WorldRoom extends Room<WorldState> {
       const type = parseTool(item).type;
       const old = p.belt[type];
       p.belt[type] = { item, durability: p.durability[msg.slot] ?? maxDurability(item) };
-      p.inventory[msg.slot] = null;
+      clearSlot(p, msg.slot);
       if (old) this.place(p, msg.slot, old.item, old.durability);
       this.sendInventory(client, p);
       this.say(client, `You put the ${ITEMS[item].single} on your belt: ${this.toolEffect(item)}.` +
@@ -373,8 +387,7 @@ export class WorldRoom extends Room<WorldState> {
       const questEat = this.step(p)?.goal.kind === "eat" && isStew(item); // Maren asked you to eat it, so you can even when full
       if (p.stamina >= MAX_STAMINA && !questEat) return this.say(client, `You're not hungry. Your stamina is full (${MAX_STAMINA}).`);
       const gain = foodStamina(item, p.mastery);
-      p.inventory[msg.slot] = null;
-      p.locked[msg.slot] = false;
+      takeFromSlot(p, msg.slot, 1);
       const before = p.stamina;
       p.stamina = Math.min(MAX_STAMINA, p.stamina + gain);
       this.sendInventory(client, p);
@@ -428,17 +441,14 @@ export class WorldRoom extends Room<WorldState> {
       if (!p || !Number.isInteger(msg?.index)) return;
       const b = p.bounties[msg.index];
       if (!b || !this.boardReady(client, p)) return;
-      const slots = p.inventory.flatMap((it, i) => slotCounts(b.item, it, p.locked[i], p.durability[i]) && !isProtected(p.quest, b.item) ? [i] : []);
-      if (slots.length < b.count) {
+      const ok = (i: number) => slotCounts(b.item, p.inventory[i], p.locked[i], p.durability[i]) && !isProtected(p.quest, b.item);
+      const have = countItem(p, b.item, ok);
+      if (have < b.count) {
         const unused = isTool(b.item) || isGear(b.item) ? " unused" : "";
-        return this.say(client, `You need ${b.count}${unused} ${b.count === 1 ? ITEMS[b.item].single : ITEMS[b.item].name.toLowerCase()} for that bounty (you have ${slots.length}). Locked items don't count.`);
+        return this.say(client, `You need ${b.count}${unused} ${b.count === 1 ? ITEMS[b.item].single : ITEMS[b.item].name.toLowerCase()} for that bounty (you have ${have}). Locked items don't count.`);
       }
       const reward = bountyReward(b, p.mastery);
-      for (const i of slots.slice(0, b.count)) {
-        p.inventory[i] = null;
-        p.locked[i] = false;
-        p.durability[i] = null;
-      }
+      takeItem(p, b.item, b.count, ok);
       p.coins += reward.coins;
       this.say(client, `📋 Bounty done: ${bountyName(b).toLowerCase()}! You get ${formatMoney(reward.coins)} and ${reward.xp} ${reward.label} XP.`);
       this.addXp(p, client, reward.discipline, reward.xp);
@@ -490,6 +500,7 @@ export class WorldRoom extends Room<WorldState> {
           || (p.durability[b] ?? 0) - (p.durability[a] ?? 0) || a - b;
       });
       this.reorderSlots(p, order);
+      mergeStacks(p); // join split stacks of the same thing
       this.sendInventory(client, p);
       this.say(client, "🎒 Bag sorted.");
       p.dirty = true;
@@ -592,7 +603,7 @@ export class WorldRoom extends Room<WorldState> {
       const item = p.inventory[msg.slot]!;
       if (p.locked[msg.slot]) return this.say(client, `That ${ITEMS[item].single} is locked. Unlock it to drop it.`);
       if (isProtected(p.quest, item)) return this.say(client, this.keepIt(item, "drop"));
-      p.inventory[msg.slot] = null;
+      clearSlot(p, msg.slot); // the whole stack
       this.sendInventory(client, p);
       this.saveSoon(p);
     });
@@ -627,8 +638,7 @@ export class WorldRoom extends Room<WorldState> {
       const old = p.gear[slot];
       if (clash && old && !p.inventory.some((it, i) => !it && i !== msg.slot)) return this.say(client, "Your bag is too full to swap those. Make room for one more item.");
       p.gear[slot] = { item, durability: p.durability[msg.slot] ?? gearDurability(item) };
-      p.inventory[msg.slot] = null;
-      p.durability[msg.slot] = null;
+      clearSlot(p, msg.slot);
       if (old) this.place(p, msg.slot, old.item, old.durability);
       let moved = "";
       if (clash) {
@@ -673,14 +683,101 @@ export class WorldRoom extends Room<WorldState> {
       p.dirty = true;
     });
 
+    // ---- Mages' Guild ----
+
+    // Rent the enchanted chest (first 4 spaces), or pay to add 4 more.
+    this.onMessage("buyChestSpace", (client) => {
+      const p = this.state.players.get(client.sessionId);
+      if (!p || !this.nearGuild(client, p)) return;
+      const size = p.chest.inventory.length;
+      const cost = size ? expandCost(size) : CHEST_RENT;
+      if (cost == null) return this.say(client, "Your chest is as big as the guild makes them.");
+      const rank = rankFor(p.guildPoints);
+      const next = size ? size + CHEST_STEP : CHEST_START;
+      if (next > RANKS[rank].maxChest) {
+        const need = RANKS.find((r) => r.maxChest >= next)!;
+        return this.say(client, `${/^[AEIOU]/.test(RANKS[rank].name) ? "An" : "A"} ${RANKS[rank].name} may only rent ${RANKS[rank].maxChest} spaces. Reach ${need.name} (${need.points} guild points) for more: do the guild's magic bounties.`);
+      }
+      if (p.coins < cost) return this.say(client, `That costs ${formatMoney(cost)}. You have ${formatMoney(p.coins)}.`);
+      p.coins -= cost;
+      const old = p.chest;
+      p.chest = emptyBag(next);
+      old.inventory.forEach((item, i) => { if (item) putInSlot(p.chest, i, item, countIn(old, i), old.durability[i]); });
+      this.say(client, size
+        ? `🔮 Archmage Ysolde widens your chest's enchantment: ${next} spaces now, for ${formatMoney(cost)}.`
+        : `🔮 You rent space in the enchanted chest for ${formatMoney(cost)}: ${next} spaces. Open it here, on the east island or in the Dark Forest.`);
+      client.send("coins", p.coins);
+      this.sendGuild(client, p);
+      this.saveSoon(p);
+    });
+
+    // Put a whole stack from your bag into the chest.
+    this.onMessage("deposit", (client, msg: { slot: number }) => {
+      const p = this.state.players.get(client.sessionId);
+      if (!p || !Number.isInteger(msg?.slot)) return;
+      const item = p.inventory[msg.slot];
+      if (!item) return;
+      if (!this.nearChest(p)) return this.say(client, "You need to be next to an enchanted chest.");
+      if (isProtected(p.quest, item)) return this.say(client, this.keepIt(item, "store"));
+      const n = countIn(p, msg.slot);
+      const put = addItem(p.chest, item, n, p.durability[msg.slot]);
+      if (!put) return this.say(client, "Your chest is full. Buy more space from Archmage Ysolde at the Mages' Guild.");
+      takeFromSlot(p, msg.slot, put);
+      if (put < n) this.say(client, `Only ${put} fit in your chest.`);
+      this.sendInventory(client, p);
+      this.sendChest(client, p);
+      this.saveSoon(p);
+    });
+
+    // Take a whole stack out of the chest into your bag.
+    this.onMessage("withdraw", (client, msg: { slot: number }) => {
+      const p = this.state.players.get(client.sessionId);
+      if (!p || !Number.isInteger(msg?.slot)) return;
+      const item = p.chest.inventory[msg.slot];
+      if (!item) return;
+      if (!this.nearChest(p)) return this.say(client, "You need to be next to an enchanted chest.");
+      const n = countIn(p.chest, msg.slot);
+      const got = this.give(p, item, n, p.chest.durability[msg.slot]);
+      if (!got) return this.say(client, "Your inventory is full.");
+      takeFromSlot(p.chest, msg.slot, got);
+      if (got < n) this.say(client, `Only ${got} fit in your bag.`);
+      this.sendInventory(client, p);
+      this.sendChest(client, p);
+      this.saveSoon(p);
+    });
+
+    // Guild board: hand in reagents for a "bring" bounty.
+    this.onMessage("guildHandIn", (client, msg: { index: number }) => {
+      const p = this.state.players.get(client.sessionId);
+      if (!p || !Number.isInteger(msg?.index) || !this.nearGuild(client, p)) return;
+      const b = p.guildBounties[msg.index];
+      if (!b || b.kind !== "reagent") return;
+      const ok = (i: number) => !p.locked[i];
+      const have = countItem(p, b.item, ok);
+      if (have < b.count) return this.say(client, `You need ${stackName(b.item, b.count)} for that (you have ${have}). Locked items don't count.`);
+      takeItem(p, b.item, b.count, ok);
+      this.finishGuildBounty(client, p, msg.index);
+      this.sendInventory(client, p);
+      this.saveSoon(p);
+    });
+
+    // Guild board: swap all 3 for new ones (free). Progress on spell bounties is lost.
+    this.onMessage("refreshGuild", (client) => {
+      const p = this.state.players.get(client.sessionId);
+      if (!p || !this.nearGuild(client, p)) return;
+      p.guildBounties = newGuildBoard(this.guildPlayer(p));
+      this.say(client, "🔮 The guild board shimmers, and new jobs appear.");
+      this.sendGuild(client, p);
+      p.dirty = true;
+    });
+
     // Drink a health potion.
     this.onMessage("drink", (client, msg: { slot: number }) => {
       const p = this.state.players.get(client.sessionId);
       if (!p || !Number.isInteger(msg?.slot) || p.inventory[msg.slot] !== POTION_ID) return;
       const questDrink = this.step(p)?.goal.kind === "drink"; // Maren asked you to, so you can even at full health
       if (p.hp >= p.maxHp && !questDrink) return this.say(client, `You're already at full health (${p.maxHp}).`);
-      p.inventory[msg.slot] = null;
-      p.locked[msg.slot] = false;
+      takeFromSlot(p, msg.slot, 1);
       const before = p.hp;
       p.hp = Math.min(p.maxHp, p.hp + POTION_HEAL);
       this.say(client, `You drink the health potion. +${p.hp - before} health (${p.hp}/${p.maxHp}).`);
@@ -787,13 +884,12 @@ export class WorldRoom extends Room<WorldState> {
     // Someone else felled the tree or emptied the rock.
     if (skill !== "fishing" && this.state.depleted.has(treeKey(t.x, t.y))) return this.stopActions(p);
 
-    const free = p.inventory.indexOf(null);
-    if (free === -1) {
-      if (client) this.say(client, "Your inventory is full. Sell or drop something first.");
+    const res = RESOURCES[resource];
+    if (roomFor(p, res.item) < 1) {
+      if (client) this.say(client, "Your inventory is full. Sell or drop something first, or put things in your enchanted chest.");
       return this.stopActions(p);
     }
 
-    const res = RESOURCES[resource];
     const item = ITEMS[res.item];
     const gather = skill as GatherSkill;
     const tool = toolForSkill(skill)!;
@@ -832,7 +928,7 @@ export class WorldRoom extends Room<WorldState> {
       return;
     }
 
-    this.place(p, free, res.item);
+    this.give(p, res.item);
     this.useStamina(p, skill);
     this.questEvent(p, client, { kind: "gather", skill: gather, resource, withTool: !!belt });
     this.wearTool(p, client, tool, wearFor(res.level));
@@ -881,20 +977,22 @@ export class WorldRoom extends Room<WorldState> {
       if (client) this.hasStamina(client, p, recipe.skill);
       return this.stopActions(p);
     }
+    // Will what you make fit, once the inputs are used up?
+    const after = cloneBag(p);
+    for (const input of recipe.inputs) takeItem(after, input, 1, (i) => !after.locked[i]);
+    if (roomFor(after, recipe.output) < 1) {
+      if (client) this.say(client, "Your inventory is full. Make room first.");
+      return this.stopActions(p);
+    }
     this.useStamina(p, recipe.skill);
     // Use the inputs (never locked ones).
-    let freed = -1;
-    for (const input of recipe.inputs) {
-      const slot = p.inventory.findIndex((it, i) => it === input && !p.locked[i]);
-      p.inventory[slot] = null;
-      if (freed === -1) freed = slot;
-    }
+    for (const input of recipe.inputs) takeItem(p, input, 1, (i) => !p.locked[i]);
     const output = ITEMS[recipe.output];
     const chance = successFor(recipe, p.mastery, p.belt);
     const forced = this.forcedCraft(p, recipe); // the tutorial's first stew always burns; some tries always work
     const worked = forced ? forced === "success" : Math.random() < chance;
     const xp = worked ? recipe.xp : failXp(recipe.xp);
-    if (worked) this.place(p, freed, recipe.output);
+    if (worked) this.give(p, recipe.output);
     const tool = toolForSkill(recipe.skill)!;
     this.wearTool(p, client, tool, recipeWear(recipe));
     if (client) {
@@ -951,17 +1049,25 @@ export class WorldRoom extends Room<WorldState> {
     for (const i of recipe.inputs) need.set(i, (need.get(i) ?? 0) + 1);
     const short: string[] = [];
     for (const [item, n] of need) {
-      const have = p.inventory.filter((it, i) => it === item && !p.locked[i]).length;
+      const have = countItem(p, item, (i) => !p.locked[i]);
       if (have < n) short.push(`${n - have} ${n - have === 1 ? ITEMS[item].single : ITEMS[item].name.toLowerCase()}`);
     }
     return short.length ? short.join(" and ") : null;
   }
 
-  /** Put an item in a bag slot. Tools keep the uses they have left (new ones are full). */
+  /** Uses left on a tool, weapon or armor (new ones are full); null for everything else. */
+  private usesFor(item: ItemId, durability?: number | null): number | null {
+    return isTool(item) ? durability ?? maxDurability(item) : isGear(item) ? durability ?? gearDurability(item) : null;
+  }
+
+  /** Put one item into this (empty) bag slot. Tools keep the uses they have left. */
   private place(p: Player, slot: number, item: ItemId, durability?: number) {
-    p.inventory[slot] = item;
-    p.locked[slot] = false; // new items start unlocked
-    p.durability[slot] = isTool(item) ? durability ?? maxDurability(item) : isGear(item) ? durability ?? gearDurability(item) : null;
+    putInSlot(p, slot, item, 1, this.usesFor(item, durability));
+  }
+
+  /** Put items in the bag, on top of a stack if there's room (shared/bag.ts). Returns how many fit. */
+  private give(p: Player, item: ItemId, n = 1, durability?: number | null): number {
+    return addItem(p, item, n, this.usesFor(item, durability));
   }
 
   /** Each use wears the belt tool down. Warn at 10%; at 0 it breaks and is gone. */
@@ -997,6 +1103,8 @@ export class WorldRoom extends Room<WorldState> {
     p.faceY = npc.y;
     if (npc.id === "maren") return this.talkToGuide(client, p);
     if (npc.id === "board") return this.openBoard(client, p);
+    if (npc.id === "archmage" || npc.id === "guildboard") return this.openGuild(client, p, npc);
+    if (isChest(npc.id)) return this.openChest(client, p);
     this.say(client, `${npc.name}: ${npc.greeting}`);
     client.send(npc.kind === "station" ? "station" : "shop", { npc: npc.id });
   }
@@ -1028,7 +1136,7 @@ export class WorldRoom extends Room<WorldState> {
 
   /** Rearrange the bag: slot i gets what was in slot order[i]. Every per-slot list moves together. */
   private reorderSlots(p: Player, order: number[]) {
-    for (const list of [p.inventory, p.locked, p.durability] as unknown[][]) {
+    for (const list of [p.inventory, p.counts, p.locked, p.durability] as unknown[][]) {
       const old = [...list];
       order.forEach((from, i) => { list[i] = old[from]; });
     }
@@ -1051,6 +1159,130 @@ export class WorldRoom extends Room<WorldState> {
   private sendBounties(client: Client, p: Player, open = false) {
     client.send("bounties", { bounties: p.bounties, open });
     this.sendTracked(client, p);
+  }
+
+  // ---- The Mages' Guild (rules in shared/guild.ts) ----
+
+  private guildPlayer(p: Player) {
+    // Reagents: the ones the normal bounty board could ask you for (things you can gather, or have seen drop).
+    const reachable = new Set(bountyChoices(p).flat());
+    return { magicLevel: levelForXp(p.skillXp.magic), reagents: REAGENTS.filter((r) => reachable.has(r)) };
+  }
+
+  private guildView(p: Player): GuildView {
+    return { points: p.guildPoints, rank: rankFor(p.guildPoints), chestSize: p.chest.inventory.length, bounties: p.guildBounties };
+  }
+
+  /** Not until Old Maren's lessons are done. Says why not. */
+  private guildOpen(client: Client, p: Player): boolean {
+    if (tutorialDone(p.quest)) return true;
+    this.say(client, `🔮 The Mages' Guild only takes members who have finished ${GUIDE_NAME}'s lessons.`);
+    return false;
+  }
+
+  /** Click the Archmage or the guild board: the guild window (rank, chest, magic bounties). */
+  private openGuild(client: Client, p: Player, npc: NpcDef) {
+    if (!this.guildOpen(client, p)) return;
+    if (p.guildBounties.length < GUILD_BOUNTY_COUNT) {
+      p.guildBounties = newGuildBoard(this.guildPlayer(p));
+      p.dirty = true;
+    }
+    if (npc.id === "archmage") this.say(client, `${npc.name}: ${npc.greeting}`);
+    this.sendGuild(client, p, true);
+  }
+
+  private sendGuild(client: Client, p: Player, open = false) {
+    client.send("guild", { ...this.guildView(p), open });
+  }
+
+  private nearGuild(client: Client, p: Player): boolean {
+    if (!this.guildOpen(client, p)) return false;
+    if (this.nearNpc(p, "archmage") || this.nearNpc(p, "guildboard")) return true;
+    this.say(client, "You need to be at the Mages' Guild.");
+    return false;
+  }
+
+  /** Next to any enchanted chest? */
+  private nearChest(p: Player) {
+    return NPCS.some((n) => isChest(n.id) && this.nearNpc(p, n.id));
+  }
+
+  /** Click an enchanted chest: your storage, if you've rented it. */
+  private openChest(client: Client, p: Player) {
+    if (!this.guildOpen(client, p)) return;
+    if (!p.chest.inventory.length) {
+      return this.say(client, `🔮 The chest is sealed. Rent space in it from Archmage Ysolde at the Mages' Guild (south-west of town) for ${formatMoney(CHEST_RENT)}.`);
+    }
+    this.sendChest(client, p, true);
+  }
+
+  private sendChest(client: Client, p: Player, open = false) {
+    client.send("chest", { items: p.chest.inventory, counts: p.chest.counts, durability: p.chest.durability, open });
+  }
+
+  /** A guild bounty is done: pay out, and put a new one up in its place. */
+  private finishGuildBounty(client: Client | undefined, p: Player, index: number) {
+    const b = p.guildBounties[index];
+    const reward = guildReward(b);
+    const rankBefore = rankFor(p.guildPoints);
+    p.guildPoints += reward.points;
+    p.coins += reward.coins;
+    p.guildBounties[index] = newGuildBounty(this.guildPlayer(p), p.guildBounties.filter((_, i) => i !== index).concat(b));
+    if (client) {
+      this.say(client, `🔮 Guild bounty done: ${guildBountyName(b).toLowerCase()}! +${reward.points} guild point${reward.points === 1 ? "" : "s"}, ${formatMoney(reward.coins)} and ${reward.magicXp} Magic XP.`);
+      this.addXp(p, client, "combat", reward.magicXp);
+      this.addSkillXp(p, client, "magic", reward.magicXp);
+      const rank = rankFor(p.guildPoints);
+      if (rank > rankBefore) {
+        this.say(client, `🎉 You are now a guild ${RANKS[rank].name}! Your enchanted chest can grow to ${RANKS[rank].maxChest} spaces.`);
+        client.send("guildRank", { rank: RANKS[rank].name });
+      }
+      client.send("coins", p.coins);
+      this.sendGuild(client, p);
+    }
+    p.dirty = true;
+  }
+
+  /** A monster fell: count it toward "defeat with spells" guild bounties. */
+  private guildKill(p: Player, client: Client | undefined, monster: MonsterId, style: CombatStyle) {
+    if (style !== "magic" || !tutorialDone(p.quest)) return;
+    p.guildBounties.forEach((b, i) => {
+      if (b.kind !== "slay" || b.monster !== monster) return;
+      b.progress++;
+      p.dirty = true;
+      if (b.progress >= b.count) this.finishGuildBounty(client, p, i);
+      else if (client) {
+        this.say(client, `🔮 Guild bounty: ${b.progress}/${b.count} ${MONSTERS[monster].name.toLowerCase()}s defeated with spells.`);
+        this.sendGuild(client, p);
+      }
+    });
+  }
+
+  private restoreGuild(p: Player, g: SaveData["guild"]) {
+    if (!g) return;
+    if (typeof g.points === "number" && Number.isFinite(g.points) && g.points >= 0) p.guildPoints = Math.floor(g.points);
+    if (Array.isArray(g.bounties)) p.guildBounties = g.bounties.filter(validGuildBounty).slice(0, GUILD_BOUNTY_COUNT);
+    if (Array.isArray(g.chest)) {
+      const size = Math.min(CHEST_MAX, g.chest.length);
+      p.chest = emptyBag(size);
+      for (let i = 0; i < size; i++) {
+        const c = g.chest[i];
+        if (!c || typeof c.item !== "string" || !(c.item in ITEMS)) continue;
+        const item = c.item as ItemId;
+        const max = isTool(item) ? maxDurability(item) : isGear(item) ? gearDurability(item) : null;
+        const d = typeof c.durability === "number" && c.durability > 0 ? Math.min(Math.floor(c.durability), max ?? 0) : max;
+        const n = Number.isInteger(c.count) && c.count >= 1 ? Math.min(c.count, stackLimit(item)) : 1;
+        putInSlot(p.chest, i, item, n, d);
+      }
+    }
+  }
+
+  private guildSave(p: Player): NonNullable<SaveData["guild"]> {
+    return {
+      points: p.guildPoints,
+      bounties: p.guildBounties.map((b) => ({ ...b })),
+      chest: p.chest.inventory.map((item, i) => (item ? { item, count: countIn(p.chest, i), durability: p.chest.durability[i] } : { item: "", count: 0 })),
+    };
   }
 
   // ---- Combat (numbers in shared/combat.ts) ----
@@ -1189,9 +1421,7 @@ export class WorldRoom extends Room<WorldState> {
     let lost = 0;
     for (const d of def.drops) {
       if (Math.random() >= Math.min(1, d.chance * dropBoost)) continue;
-      const free = p.inventory.indexOf(null);
-      if (free === -1) { lost++; continue; }
-      this.place(p, free, d.item);
+      if (!this.give(p, d.item)) { lost++; continue; }
       got.push(aOr(ITEMS[d.item].single));
     }
     const [lo, hi] = def.coins;
@@ -1204,6 +1434,7 @@ export class WorldRoom extends Room<WorldState> {
       this.sendInventory(client, p);
     }
     this.questEvent(p, client, { kind: "kill", monster: m.kind, style });
+    this.guildKill(p, client, m.kind, style);
   }
 
   /** Monsters: come back after being defeated, wander near home, chase and attack. */
@@ -1426,7 +1657,7 @@ export class WorldRoom extends Room<WorldState> {
   }
 
   private countOf(p: Player, item: ItemId) {
-    return p.inventory.filter((it) => it === item).length;
+    return countItem(p, item);
   }
 
   /** On to the next step (and past any that are already done, like a level you already have). */
@@ -1472,7 +1703,7 @@ export class WorldRoom extends Room<WorldState> {
   }
 
   /** Why you can't sell, drop or eat something Maren's current task needs. */
-  private keepIt(item: ItemId, what: "sell" | "drop" | "eat"): string {
+  private keepIt(item: ItemId, what: "sell" | "drop" | "eat" | "store"): string {
     const name = ITEMS[item].single;
     if (what === "sell") return `Merchant: Hold on to that ${name}, ${GUIDE_NAME} needs you to use it. Come back once you've done what she asked.`;
     if (what === "eat") return `Not yet! ${GUIDE_NAME} wants to see that ${name} first. Go and show her.`;
@@ -1487,14 +1718,14 @@ export class WorldRoom extends Room<WorldState> {
         "If you're after work, try the bounty board next to the Merchant. Folk pay double for the things they need."]);
     }
     // Worn out with nothing to eat? She won't let you get stuck.
-    if (p.stamina < 20 && !p.inventory.some((it) => isFood(it)) && p.inventory.includes(null)) {
-      this.place(p, p.inventory.indexOf(null), "stew_minnow_3_pine");
+    if (p.stamina < 20 && !p.inventory.some((it) => isFood(it)) && roomFor(p, "stew_minnow_3_pine") > 0) {
+      this.give(p, "stew_minnow_3_pine");
       this.say(client, `${GUIDE_NAME}: You look worn out! Here, eat this stew. Next time, cook some of your own.`);
       this.sendInventory(client, p);
     }
     // Badly hurt during the combat lesson with no potion? She hands you one.
-    if (step.quest === 3 && p.hp < p.maxHp / 3 && !p.inventory.includes(POTION_ID) && p.inventory.includes(null)) {
-      this.place(p, p.inventory.indexOf(null), POTION_ID);
+    if (step.quest === 3 && p.hp < p.maxHp / 3 && !p.inventory.includes(POTION_ID) && roomFor(p, POTION_ID) > 0) {
+      this.give(p, POTION_ID);
       this.say(client, `${GUIDE_NAME}: You're hurt! Here, drink this health potion.`);
       this.sendInventory(client, p);
     }
@@ -1507,11 +1738,10 @@ export class WorldRoom extends Room<WorldState> {
     }
     if (step.need && !p.inventory.some((it) => it?.startsWith(step.need!.prefix))) return this.dialog(client, [step.need.line]);
     const gifts = giftItems(step.give);
-    const free = p.inventory.filter((it) => !it).length;
-    if (free < gifts.length) {
-      return this.dialog(client, [`I've got ${gifts.length} things for you, but your bag is too full. Make room for ${gifts.length - free} more and come back.`]);
+    if (!roomForAll(p, gifts.map((g) => g.item))) {
+      return this.dialog(client, [`I've got ${gifts.length} things for you, but your bag is too full. Make some room and come back.`]);
     }
-    for (const g of gifts) this.place(p, p.inventory.indexOf(null), g.item, g.durability);
+    for (const g of gifts) this.give(p, g.item, 1, g.durability);
     if (step.coins) p.coins += step.coins;
     const finished = STEPS[p.quest.step + 1]?.quest !== step.quest;
     this.dialog(client, step.lines ?? []);
@@ -1552,14 +1782,12 @@ export class WorldRoom extends Room<WorldState> {
         const kind = g.item.split("_")[0];
         have = (GEAR_SLOTS.some((s) => p.gear[s]?.item.startsWith(`${kind}_`)) ? 1 : 0) + p.inventory.filter((it) => it?.startsWith(`${kind}_`)).length;
       } else if (isStew(g.item)) {
-        have = p.inventory.filter((it) => isStew(it)).length;
+        have = p.inventory.reduce((n, it, i) => n + (isStew(it) ? countIn(p, i) : 0), 0);
       } else {
         have = this.countOf(p, g.item);
       }
       for (let n = have; n < (g.count ?? 1); n++) {
-        const free = p.inventory.indexOf(null);
-        if (free === -1) break;
-        this.place(p, free, g.item, g.durability);
+        if (!this.give(p, g.item, 1, g.durability)) break;
         given.push(aOr(ITEMS[g.item].single));
       }
     }
@@ -1729,6 +1957,7 @@ export class WorldRoom extends Room<WorldState> {
   private sendInventory(client: Client, p: Player) {
     client.send("locks", p.locked);
     client.send("durability", p.durability);
+    client.send("counts", p.counts);
     client.send("belt", p.belt);
     this.sendGear(client, p);
     client.send("inventory", p.inventory);
@@ -1858,6 +2087,9 @@ export class WorldRoom extends Room<WorldState> {
         if (typeof item === "string") item = legacyTool(item) ?? item; // metal-headed rods -> wooden rods
         p.inventory[i] = typeof item === "string" && item in ITEMS ? (item as ItemId) : null;
         const it = p.inventory[i];
+        // How many in the stack (saves from before stacks had one per slot).
+        const n = save.counts?.[i];
+        p.counts[i] = it ? (Number.isInteger(n) && n! >= 1 ? Math.min(n!, stackLimit(it)) : 1) : 0;
         if (isTool(it) || isGear(it)) {
           const max = isTool(it) ? maxDurability(it) : gearDurability(it);
           const d = save.durability?.[i];
@@ -1884,6 +2116,8 @@ export class WorldRoom extends Room<WorldState> {
       // Briefly, locks were per item type: lock every item of those types that's in the bag.
       p.inventory.forEach((item, i) => { if (item && save.locked!.includes(item)) p.locked[i] = true; });
     }
+    mergeStacks(p); // old saves: one item per slot, so join them into stacks
+    this.restoreGuild(p, save.guild);
     // Saved under "skills" (its name before Disciplines existed), so old saves keep working.
     for (const id of DISCIPLINE_IDS) {
       const xp = save.skills?.[id];
@@ -1924,7 +2158,7 @@ export class WorldRoom extends Room<WorldState> {
   private snapshot(p: Player): SaveData {
     // Save where the player is heading, so walking off mid-path doesn't lose the move.
     const dest = p.path.length ? p.path[p.path.length - 1] : p;
-    return { saveVersion: SAVE_VERSION, quest: { ...p.quest }, x: dest.x, y: dest.y, inventory: [...p.inventory], coins: p.coins, skills: { ...p.disciplines }, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: [...p.durability], belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), hp: p.hp, hpAt: Date.now(), gear: { ...p.gear }, spell: p.spell, combatMastery: { ...p.combatMastery }, lockedSlots: p.locked.flatMap((on, i) => (on && p.inventory[i] ? [i] : [])), bounties: p.bounties.map((b) => ({ ...b })), tracked: p.tracked ?? undefined, color: p.color };
+    return { saveVersion: SAVE_VERSION, quest: { ...p.quest }, x: dest.x, y: dest.y, inventory: [...p.inventory], coins: p.coins, skills: { ...p.disciplines }, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: [...p.durability], belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), hp: p.hp, hpAt: Date.now(), gear: { ...p.gear }, spell: p.spell, combatMastery: { ...p.combatMastery }, lockedSlots: p.locked.flatMap((on, i) => (on && p.inventory[i] ? [i] : [])), bounties: p.bounties.map((b) => ({ ...b })), tracked: p.tracked ?? undefined, color: p.color, counts: [...p.counts], guild: this.guildSave(p) };
   }
 
   private async save(p: Player) {
