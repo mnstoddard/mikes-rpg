@@ -47,11 +47,13 @@ function exactValue(item: ItemId, mastery: ItemMasteryXp): number {
 /**
  * What a shop pays you for one item: its value raised by your Mastery
  * (in it and in what it's made from), rounded down to whole bronze coins. A
- * worn tool sells for its share of uses left.
+ * worn tool or piece of gear sells for less: half price when broken, full when
+ * good as new. Bait sells for its share of uses left.
  */
 export function sellPriceFor(item: ItemId, mastery: ItemMasteryXp, durability?: number | null): number {
-  const max = isTool(item) ? maxDurability(item) : isGear(item) ? gearDurability(item) : isBait(item) ? BAITS[item].uses : 0;
-  const worn = max && durability != null ? Math.max(0, durability) / max : 1;
+  if (isBait(item)) return Math.floor(exactValue(item, mastery) * (durability != null ? Math.max(0, durability) / BAITS[item].uses : 1));
+  const max = isTool(item) ? maxDurability(item) : isGear(item) ? gearDurability(item) : 0;
+  const worn = max && durability != null ? 0.5 + 0.5 * Math.min(1, Math.max(0, durability) / max) : 1;
   return Math.floor(exactValue(item, mastery) * worn);
 }
 

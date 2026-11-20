@@ -57,6 +57,7 @@ import {
   questMarks, marenDone, stewsBurn, ChapterProgress, Chapter,
 } from "../../shared/quests";
 import { SHOPS, SHOP_IDS, ShopId, isShop } from "../../shared/shops";
+import { RepairJob, isBroken, isRepairable, maxUses, repairCost } from "../../shared/repair";
 import { BOUNTY_COUNT, Bounty, bountyChoices, bountyName, bountyReward, newBoard, newBounty, slotCounts, validBounty } from "../../shared/bounties";
 import { Account, SAVE_VERSION, SaveData, checkPassword, hashPassword, store, usernameKey } from "./storage";
 import { PLAYER_COLORS, isPlayerColor } from "../../shared/colors";
@@ -178,6 +179,7 @@ type QuestEvent =
   | { kind: "eat"; item: ItemId }
   | { kind: "sell"; item: ItemId }
   | { kind: "buy"; item: ItemId }
+  | { kind: "repair" }
   | { kind: "kill"; monster: MonsterId; style: CombatStyle }
   | { kind: "drink" }
   | { kind: "track" }
@@ -381,6 +383,7 @@ export class WorldRoom extends Room<WorldState> {
       if (!p || !Number.isInteger(msg?.slot)) return;
       const item = p.inventory[msg.slot];
       if (!isTool(item)) return;
+      if (isBroken(item, p.durability[msg.slot])) return this.say(client, `Your ${ITEMS[item].single} is broken. Take it to the Repairer at the Mages' Guild (south-west of town) to fix it.`);
       const type = parseTool(item).type;
       const old = p.belt[type];
       const slot = p.slotOf[msg.slot];
@@ -391,6 +394,18 @@ export class WorldRoom extends Room<WorldState> {
       this.say(client, `You put the ${ITEMS[item].single} on your belt: ${this.toolEffect(item)}.` +
         (old ? ` Your ${ITEMS[old.item].single} goes in your bag.` : ""));
       this.saveSoon(p);
+    });
+
+    // The Repairer: fix one thing (on your belt, in your gear, or in your bag), or everything at once.
+    this.onMessage("repair", (client, msg: { where: string; key: string | number }) => {
+      const p = this.state.players.get(client.sessionId);
+      if (!p) return;
+      const job = this.repairJobs(p).find((j) => j.where === msg?.where && j.key === msg?.key);
+      if (job) this.doRepairs(client, p, [job]);
+    });
+    this.onMessage("repairAll", (client) => {
+      const p = this.state.players.get(client.sessionId);
+      if (p) this.doRepairs(client, p, this.repairJobs(p));
     });
 
     // Click a tool on your belt to put it back in your bag.
@@ -699,6 +714,7 @@ export class WorldRoom extends Room<WorldState> {
       if (!p || !Number.isInteger(msg?.slot)) return;
       const item = p.inventory[msg.slot];
       if (!isGear(item)) return;
+      if (isBroken(item, p.durability[msg.slot])) return this.say(client, `Your ${ITEMS[item].single} is broken. Take it to the Repairer at the Mages' Guild (south-west of town) to fix it.`);
       const why = this.cantWear(p, item);
       if (why) return this.say(client, why);
       const slot = gearSlot(item);
@@ -1307,7 +1323,7 @@ export class WorldRoom extends Room<WorldState> {
     this.saveSoon(p);
   }
 
-  /** Each use wears the belt tool down. Warn at 10%; at 0 it breaks and is gone. */
+  /** Each use wears the belt tool down. Warn at 10%; at 0 it breaks: it goes back in your bag, Broken, until it's repaired. */
   private wearTool(p: Player, client: Client | undefined, type: ToolType, amount: number) {
     const t = p.belt[type];
     if (!t || treeRoll(p.tree, "smithing", "toolCare")) return;
@@ -1316,7 +1332,12 @@ export class WorldRoom extends Room<WorldState> {
     t.durability = Math.max(0, t.durability - amount);
     if (t.durability <= 0) {
       p.belt[type] = null;
-      if (client) this.say(client, `Your ${ITEMS[t.item].single} breaks!`);
+      const kept = this.give(p, t.item, 1, 0, true) > 0;
+      if (client) {
+        this.say(client, kept ? `Your ${ITEMS[t.item].single} breaks! It goes in your bag. The Repairer at the Mages' Guild can fix it.`
+          : `Your ${ITEMS[t.item].single} breaks, and with no room in your bag, it falls apart.`);
+        this.sendInventory(client, p);
+      }
       this.questEvent(p, client, { kind: "toolBreak", tool: type });
     } else if (before > max * TOOL_WARN_AT && t.durability <= max * TOOL_WARN_AT) {
       if (client) this.say(client, `Your ${ITEMS[t.item].single} is about to break (${t.durability} uses left).`);
@@ -1341,6 +1362,10 @@ export class WorldRoom extends Room<WorldState> {
     if (this.talkQuest(client, p, npc)) return;
     if (npc.id === "maren") return;
     if (npc.id === "board") return this.openBoard(client, p);
+    if (npc.id === "repairer") {
+      this.say(client, `${npc.name}: ${npc.greeting}`);
+      return this.sendRepairs(client, p, true);
+    }
     if (npc.id === "archmage" || npc.id === "guildboard") return this.openGuild(client, p, npc);
     if (isChest(npc.id)) return this.openChest(client, p);
     this.say(client, `${npc.name}: ${npc.greeting}`);
@@ -1552,7 +1577,7 @@ export class WorldRoom extends Room<WorldState> {
         if (!Number.isInteger(slot) || slot! < 0 || slot! >= size) return;
         const item = c.item as ItemId;
         const max = isTool(item) ? maxDurability(item) : isGear(item) ? gearDurability(item) : isBait(item) ? BAITS[item].uses : null;
-        const d = typeof c.durability === "number" && c.durability > 0 ? Math.min(Math.floor(c.durability), max ?? 0) : max;
+        const d = typeof c.durability === "number" && (c.durability > 0 || (c.durability === 0 && !isBait(item))) ? Math.min(Math.floor(c.durability), max ?? 0) : max;
         const n = Number.isInteger(c.count) && c.count >= 1 ? Math.min(c.count, stackLimit(item)) : 1;
         if (wearsOut(item)) for (let k = 0; k < n; k++) newEntry(old, slot!, item, 1, d);
         else newEntry(old, slot!, item, n, null);
@@ -1849,7 +1874,7 @@ export class WorldRoom extends Room<WorldState> {
     this.saveSoon(p);
   }
 
-  /** Weapons wear with each attack, armor with each attack on you. At 0 they break. */
+  /** Weapons wear with each attack, armor with each attack on you. At 0 they break (Broken, back in your bag, until repaired). */
   private wearGear(p: Player, client: Client | undefined, slot: GearSlot, amount: number) {
     const g = p.gear[slot];
     if (!g || treeRoll(p.tree, "smithing", "toolCare")) return;
@@ -1858,11 +1883,72 @@ export class WorldRoom extends Room<WorldState> {
     g.durability = Math.max(0, g.durability - amount);
     if (g.durability <= 0) {
       p.gear[slot] = null;
-      if (client) this.say(client, `Your ${ITEMS[g.item].single} breaks!`);
+      const kept = this.give(p, g.item, 1, 0, true) > 0;
+      if (client) {
+        this.say(client, kept ? `Your ${ITEMS[g.item].single} breaks! It goes in your bag. The Repairer at the Mages' Guild can fix it.`
+          : `Your ${ITEMS[g.item].single} breaks, and with no room in your bag, it falls apart.`);
+        this.sendInventory(client, p);
+      }
     } else if (before > max * TOOL_WARN_AT && g.durability <= max * TOOL_WARN_AT) {
       if (client) this.say(client, `Your ${ITEMS[g.item].single} is about to break (${g.durability} uses left).`);
     }
     if (client) this.sendGear(client, p);
+  }
+
+  // ---- The Repairer (shared/repair.ts), at the Mages' Guild ----
+
+  /** Everything worn or broken: belt tools, gear you're wearing, and tools and gear in your bag. */
+  private repairJobs(p: Player): RepairJob[] {
+    const jobs: RepairJob[] = [];
+    const add = (where: RepairJob["where"], key: string | number, item: ItemId, durability: number) => {
+      const cost = repairCost(item, durability);
+      if (cost > 0) jobs.push({ where, key, item, durability, max: maxUses(item), cost });
+    };
+    for (const type of TOOL_TYPE_IDS) { const t = p.belt[type]; if (t) add("belt", type, t.item, t.durability); }
+    for (const slot of GEAR_SLOTS) { const g = p.gear[slot]; if (g) add("gear", slot, g.item, g.durability); }
+    p.inventory.forEach((item, e) => { if (isRepairable(item)) add("bag", e, item, p.durability[e] ?? maxUses(item)); });
+    return jobs;
+  }
+
+  /** Old Maren's lesson: your first repair (her broken rod) is free. */
+  private freeRepair(p: Player) {
+    return this.step(p)?.goal.kind === "repair";
+  }
+
+  private sendRepairs(client: Client, p: Player, open = false) {
+    client.send("repair", { jobs: this.repairJobs(p), free: this.freeRepair(p), open });
+  }
+
+  /** Fix these, as many as you can pay for (cheapest first when you can't afford them all). */
+  private doRepairs(client: Client, p: Player, jobs: RepairJob[]) {
+    if (!this.nearNpc(p, "repairer")) return this.say(client, "You need to be next to the Repairer at the Mages' Guild.");
+    if (!jobs.length) return this.say(client, "Repairer Oswin: Nothing here needs fixing!");
+    const free = this.freeRepair(p);
+    const order = jobs.length > 1 ? [...jobs].sort((a, b) => a.cost - b.cost) : jobs;
+    let paid = 0;
+    const fixed: string[] = [];
+    let short = 0;
+    for (const j of order) {
+      const cost = free ? 0 : j.cost;
+      if (p.coins < cost) { short++; continue; }
+      p.coins -= cost;
+      paid += cost;
+      if (j.where === "belt") p.belt[j.key as ToolType]!.durability = j.max;
+      else if (j.where === "gear") p.gear[j.key as GearSlot]!.durability = j.max;
+      else p.durability[j.key as number] = j.max;
+      fixed.push(ITEMS[j.item].single);
+    }
+    if (fixed.length) {
+      const list = fixed.length > 3 ? `${fixed.length} things` : fixed.length > 1 ? `${fixed.slice(0, -1).join(", ")} and ${fixed[fixed.length - 1]}` : `your ${fixed[0]}`;
+      this.say(client, free ? `Repairer Oswin fixes ${list} for free. "Maren's an old friend. The next one costs, mind!"`
+        : `Repairer Oswin fixes ${list} for ${formatMoney(paid)}. Good as new!`);
+      p.dirty = true;
+      this.questEvent(p, client, { kind: "repair" });
+    }
+    if (short) this.say(client, `You don't have enough coins to fix ${fixed.length ? `the other ${short}` : short === 1 ? "that" : "those"}.`);
+    this.sendInventory(client, p);
+    this.sendRepairs(client, p);
+    this.saveSoon(p);
   }
 
   /** Mastery of a weapon type, spell or monster (no cap). */
@@ -1921,6 +2007,8 @@ export class WorldRoom extends Room<WorldState> {
       const r = RESOURCE_FOR_ITEM[ev.item];
       if (!g.what || (r && RESOURCES[r].skill === g.what)) counts = 1;
     } else if (g.kind === "buy" && ev.kind === "buy") {
+      counts = 1;
+    } else if (g.kind === "repair" && ev.kind === "repair") {
       counts = 1;
     } else if (g.kind === "kill" && ev.kind === "kill") {
       if ((!g.monster || ev.monster === g.monster) && (!g.style || ev.style === g.style)) counts = 1;
@@ -2473,7 +2561,8 @@ export class WorldRoom extends Room<WorldState> {
         if (isTool(it) || isGear(it) || isBait(it)) {
           const max = isTool(it) ? maxDurability(it) : isGear(it) ? gearDurability(it) : BAITS[it].uses;
           const d = save.durability?.[i];
-          old.durability[i] = typeof d === "number" && d > 0 ? Math.min(Math.floor(d), max) : max;
+          // Broken tools and gear (0 uses left) stay broken; bait at 0 would have been used up.
+          old.durability[i] = typeof d === "number" && (d > 0 || (d === 0 && !isBait(it))) ? Math.min(Math.floor(d), max) : max;
         }
       }
     }

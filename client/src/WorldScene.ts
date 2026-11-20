@@ -11,7 +11,7 @@ import { Bag, emptyBag } from "../../shared/bag";
 import { accountResult, closeBounties, renderMe, renderTracked, resetForSignOut, setAccountActions, setBountyActions, setQuestActions, showBounties, closeGuild, closeChest, setGuildActions, showChest, showGuild } from "./ui";
 import type { GuildView } from "../../shared/guild";
 import type { Bounty } from "../../shared/bounties";
-import { closeDialog, openDialog, renderQuest, renderStamina, renderVitals, renderGear, renderCombatMastery, flashCombatMastery, closeCraft, closeInfo, closeShop, flashDiscipline, flashMastery, flashSkillRow, openCraft, renderBelt, renderMastery, renderSkillXp, openShop, renderBag, renderCoins, renderDisciplines, setHoverText, setInventoryActions, showMessage } from "./ui";
+import { closeRepair, setRepairActions, showRepairs, closeDialog, openDialog, renderQuest, renderStamina, renderVitals, renderGear, renderCombatMastery, flashCombatMastery, closeCraft, closeInfo, closeShop, flashDiscipline, flashMastery, flashSkillRow, openCraft, renderBelt, renderMastery, renderSkillXp, openShop, renderBag, renderCoins, renderDisciplines, setHoverText, setInventoryActions, showMessage } from "./ui";
 import { masteryName } from "../../shared/crafting";
 import type { Belt, ToolType } from "../../shared/tools";
 import { NPCS, npcAt } from "../../shared/npcs";
@@ -23,6 +23,7 @@ import { renderTreeRanks } from "./ui";
 import type { TreeRanks } from "../../shared/skilltree";
 import type { QuestView } from "../../shared/quests";
 import type { ShopId } from "../../shared/shops";
+import type { RepairJob } from "../../shared/repair";
 import { NIGHT_DARKNESS, darkness, isNight, minutesUntilChange } from "../../shared/daynight";
 
 const TILE_COLORS: Record<Tile, number> = {
@@ -223,6 +224,14 @@ export class WorldScene extends Phaser.Scene {
     room.onMessage("guildRank", (msg: { rank: string }) => this.floatText(`Guild ${msg.rank}!`, "#c9a2ff", true));
     room.onMessage("bag", (bag: Bag) => renderBag(bag));
     room.onMessage("coins", (coins: number) => renderCoins(coins));
+    room.onMessage("repair", (view: { jobs: RepairJob[]; free: boolean; open: boolean }) => {
+      if (view.open) this.marker.setVisible(false);
+      showRepairs(view);
+    });
+    setRepairActions({
+      repair: (where, key) => this.room?.send("repair", { where, key }),
+      repairAll: () => this.room?.send("repairAll"),
+    });
     room.onMessage("shop", (msg: { npc: ShopId }) => {
       this.marker.setVisible(false);
       openShop(msg.npc);
@@ -244,6 +253,7 @@ export class WorldScene extends Phaser.Scene {
    */
   private async recover(token: string) {
     closeShop();
+    closeRepair();
     closeCraft();
     closeInfo();
     closeDialog();
@@ -393,7 +403,7 @@ export class WorldScene extends Phaser.Scene {
         hat.fillStyle(0x3b2410).fillRect(-9, -12, 18, 3).fillRect(-6, -18, 12, 7);
       }
       const badge = this.add.text(11, 2, npc.badge ?? "", { fontSize: "13px" }).setOrigin(0.5);
-      const label = this.add.text(0, -28, npc.name, {
+      const label = this.add.text(0, npc.id === "repairer" ? 24 : -28, npc.name, {
         fontSize: "12px", color: "#7fe0ff", stroke: "#000", strokeThickness: 3,
       }).setOrigin(0.5);
       c.add([shadow, body, hat, badge, label]);
@@ -744,6 +754,7 @@ export class WorldScene extends Phaser.Scene {
   private onClick(pointer: Phaser.Input.Pointer) {
     const { x, y } = this.tileAt(pointer);
     closeShop(); // clicking the map walks away from the shop
+    closeRepair();
     closeCraft();
     closeBounties();
     closeGuild();

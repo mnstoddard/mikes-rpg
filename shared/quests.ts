@@ -70,6 +70,8 @@ export type Goal =
   | { kind: "track" }
   /** Hand in bounties at the board. */
   | { kind: "bounty"; count: number }
+  /** Get something fixed by the Repairer. */
+  | { kind: "repair" }
   /** Spend a Mastery point in any skill's tree (done once any upgrade has a rank). */
   | { kind: "spendPoint" };
 
@@ -182,9 +184,22 @@ export const CHAPTERS: Chapter[] = [
       },
       {
         task: `Tell ${MAREN} your rod broke`, goal: { kind: "talk" },
+        protect: ["rod_"],
         lines: [
-          "Snapped, did it? Every tool wears down a little each time you use it, and when it runs out, it breaks.",
-          "Better tools last longer. Stone wears out fastest, bronze lasts more than twice as long, and the finer metals longer still. A better wooden handle helps too. Fishing rods are all wood, so for those, the better the wood, the better the rod.",
+          "Snapped, did it? Every tool wears down a little each time you use it: tools when you use them, weapons when you hit, armor when you get hit. It works just as well right up until it breaks.",
+          "A broken tool isn't gone, though. It's in your bag, and Oswin the Repairer can fix it. He works at the Mages' Guild, the purple hall south-west of town, by the coast.",
+          "Take my rod to him. He's an old friend, so this first one's free. After that he charges a few coins, more for finer things.",
+        ],
+      },
+      {
+        task: "Get your rod repaired at the Mages' Guild (south-west of town)", goal: { kind: "repair" },
+        hint: "Oswin the Repairer is in the Mages' Guild, the purple hall south-west of town. Click him, then Repair. The first one's free.",
+        ensure: [{ item: "rod_pine", durability: 0 }], protect: ["rod_"],
+      },
+      {
+        task: `Bring your mended rod back to ${MAREN}`, goal: { kind: "talk" },
+        lines: [
+          "Good as new! Better tools last longer: stone wears out fastest, bronze lasts more than twice as long, and the finer metals longer still. A better wooden handle helps too. Fishing rods are all wood, so for those, the better the wood, the better the rod.",
           "Look at you, though: all that fishing raised your Minnow Mastery. Every kind of fish, log and ore has its own Mastery, and every time one goes up a level, you earn a Mastery point.",
           "Spend your points on upgrades, like faster fishing or a bigger cooking pot. Open the 📊 panel (bottom right), tap the 🌳 next to any skill, and pick an upgrade. Go on, spend your first point now.",
         ],
@@ -816,17 +831,20 @@ export function teacherOf(skill: SkillId): Chapter | null {
  *
  * Rev 1 and 2: one long list of Maren's steps ({ step, count }). Rev 1 lacked
  * the Mastery point lesson (2 steps, added after "Tell Maren your rod broke").
+ * Rev 4: two steps added to Maren's chapter (the Repairer), from step 6 on.
  * Rev 3: chapters. Old saves keep Maren's place if they were still in her
  * first quest (the first 16 steps are the same); anyone past it has her
  * chapter done, keeps every skill they'd learned and the gate if it was open,
  * and can do the trainers' chapters for their rewards.
  */
-export const QUEST_REV = 3;
+export const QUEST_REV = 4;
+/** Rev 4 added two steps to Maren's chapter after "Tell Maren your rod broke" (the trip to the Repairer). */
+const REPAIR_LESSON_AT = 6;
 const OLD_UNLOCKS: [number, SkillId[]][] = [
   [0, ["fishing"]], [7, ["cooking"]], [12, ["trading"]], [18, ["woodcutting"]], [22, ["smithing", "handicraft"]],
   [30, ["mining"]], [37, ["smelting"]], [41, ["melee", "defense"]], [50, ["magic"]], [53, ["ranged"]], [59, ["renown"]],
 ];
-const OLD_FIRST_QUEST = 16; // steps 0-15 were "Living off the land", the same as Maren's chapter now
+const OLD_FIRST_QUEST = 16; // steps 0-15 were "Living off the land", the same as Maren's chapter (before rev 4's 2 repair steps)
 const OLD_GATE_STEP = 56;
 const OLD_STEPS = 63;
 export function migrateQuest(saved: unknown, rev: number | undefined): QuestProgress {
@@ -845,6 +863,7 @@ export function migrateQuest(saved: unknown, rev: number | undefined): QuestProg
     if (Array.isArray(s.taught)) q.taught = SKILL_IDS.filter((id) => s.taught!.includes(id));
     if (s.gate) q.gate = true;
     if (!q.ch.maren) return newQuestProgress();
+    if ((rev ?? 1) < 4 && q.ch.maren.step >= REPAIR_LESSON_AT) q.ch.maren.step = Math.min(q.ch.maren.step + 2, chapterById("maren").steps.length);
     return q;
   }
   let step = Number.isInteger(s.step) && s.step! >= 0 ? s.step! : 0;
@@ -852,7 +871,7 @@ export function migrateQuest(saved: unknown, rev: number | undefined): QuestProg
   if ((rev ?? 1) < 2 && step >= 6) step += 2; // rev 1 had no Mastery point lesson
   const done = step >= OLD_STEPS;
   const taught = done ? [...SKILL_IDS] : SKILL_IDS.filter((id) => OLD_UNLOCKS.some(([at, ids]) => at < step && ids.includes(id)));
-  if (step < OLD_FIRST_QUEST) return { active: "maren", ch: { maren: { step, count } }, taught };
+  if (step < OLD_FIRST_QUEST) return { active: "maren", ch: { maren: { step: step >= REPAIR_LESSON_AT ? step + 2 : step, count } }, taught };
   return {
     active: null, ch: { maren: { step: chapterById("maren").steps.length, count: 0 } },
     taught, ...(done || step > OLD_GATE_STEP ? { gate: true } : {}),
