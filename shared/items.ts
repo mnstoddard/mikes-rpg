@@ -204,4 +204,5 @@ function mealDef(id: string): ItemDef | undefined {
 export const LEGACY_ITEMS: Record<string, ItemId> = { logs: "pine_logs", ore: "stone", fish: "minnow" };
 // (Old fish stews, "stew_trout_3_oak", become new stews: see legacyStew in cooking.ts.)
 
-export const INVENTORY_SIZE = 28;
+/** Bag slots a player starts with. Each slot holds one stack (shared/bag.ts); weight is limited too (shared/weight.ts). */
+export const INVENTORY_SIZE = 12;

@@ -263,12 +263,12 @@ export const STEPS: QuestStep[] = [
   },
   {
     quest: 1, task: "Chop 10 logs with your axe", goal: { kind: "gather", skill: "woodcutting", count: 10, withTool: true },
-    hint: "Chop trees with the axe on your belt. Remember to eat if you get tired: chopping costs 10 stamina a log.",
+    hint: "Chop trees with the axe on your belt. Remember to eat if you get tired: chopping costs 10 stamina a log. Logs are heavy (2 kg each): the ⚖️ bar under your bag shows how much you can still carry.",
     needsTool: "axe", protect: ["axe_"],
   },
   {
     quest: 1, task: "Sell some logs to the Merchant", goal: { kind: "sell", what: "woodcutting", count: 1 },
-    hint: "Click the Merchant, then click logs in your bag to sell them.",
+    hint: "Click the Merchant, then click logs in your bag to sell them. You can only carry so much, so sell what you don't need.",
   },
   {
     quest: 1, task: `Go back to ${GUIDE_NAME} for your reward`, goal: { kind: "talk" },
@@ -289,7 +289,7 @@ export const STEPS: QuestStep[] = [
   },
   {
     quest: 2, task: "Reach Foraging level 5 (chop or fish)", goal: { kind: "level", discipline: "foraging", level: 5 },
-    hint: "Keep chopping or fishing. Chopping gives more Foraging XP per log, fishing costs much less stamina. At Foraging 5 you can mine.",
+    hint: "Keep chopping or fishing. Chopping gives more Foraging XP per log, fishing costs much less stamina. At Foraging 5 you can mine. When your bag gets too heavy, sell logs and fish to the Merchant.",
   },
   {
     quest: 2, task: `Talk to ${GUIDE_NAME} about Mining`, goal: { kind: "talk" },
