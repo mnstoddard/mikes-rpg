@@ -18,7 +18,8 @@
 // - `need` on a talk step: Maren wants to see that item first.
 // - `ensure`: talk to Maren and she hands you anything the step needs that you've lost.
 // - Talk to her while tired with no food, and she gives you a stew.
-import type { CraftSkill, DisciplineId, GatherSkill } from "./disciplines";
+import { SKILL_IDS } from "./disciplines";
+import type { CraftSkill, DisciplineId, GatherSkill, SkillId } from "./disciplines";
 import type { ItemId } from "./items";
 import type { ResourceId } from "./foraging";
 import type { ToolType } from "./tools";
@@ -46,8 +47,10 @@ export type Goal =
   | { kind: "eat" }
   /** Sell a fish or a log to the Merchant. */
   | { kind: "sell"; what: GatherSkill; count: number }
-  /** Reach a Discipline level. */
+  /** Reach a Discipline level (the average of its unlocked skills). */
   | { kind: "level"; discipline: DisciplineId; level: number }
+  /** Reach a skill level. */
+  | { kind: "skillLevel"; skill: SkillId; level: number }
   /** Have these items in your bag (mined or bought, either way). */
   | { kind: "have"; items: Partial<Record<ItemId, number>> }
   /** Wear gear whose item ids start with these ("dagger_", "helmet_"). */
@@ -92,6 +95,8 @@ export interface QuestStep {
   opensGate?: boolean;
   /** From this talk step on, the bounty board is open. */
   opensBoard?: boolean;
+  /** Finishing this talk step teaches you these skills (skills unlock through quests, not by level). */
+  unlocks?: SkillId[];
 }
 
 export const QUESTS = ["Living off the land", "The woodcutter's start", "Into the rocks", "Standing your ground", "Odd jobs"];
@@ -108,7 +113,7 @@ const POTION: Gift = { item: "health_potion" };
 export const STEPS: QuestStep[] = [
   // ---------------- Quest 1: Living off the land ----------------
   {
-    quest: 0, task: `Talk to ${GUIDE_NAME} (look for the ❗, south of the furnace)`, goal: { kind: "talk" },
+    quest: 0, task: `Talk to ${GUIDE_NAME} (look for the ❗, south of the furnace)`, goal: { kind: "talk" }, unlocks: ["fishing"],
     lines: [
       "Well now, a fresh face! I'm Maren. I fished these waters for forty years before my knees gave out.",
       "Everyone starts with empty hands, so let's begin with the oldest skill there is: fishing.",
@@ -155,7 +160,7 @@ export const STEPS: QuestStep[] = [
     hint: "Open the 📊 panel at the bottom right, tap the 🌳 next to a skill, and pick an upgrade. No points yet? Catch a few more minnows: each Mastery level gives you one.",
   },
   {
-    quest: 0, task: `Tell ${GUIDE_NAME} what you picked`, goal: { kind: "talk" },
+    quest: 0, task: `Tell ${GUIDE_NAME} what you picked`, goal: { kind: "talk" }, unlocks: ["cooking"],
     lines: [
       "Good choice! And don't fret about picking wrong: resetting a tree is free, and all your points come back. Here's a few coins for learning that.",
       "Now, raw minnows won't keep you going for long. Take this pine log to the stove and cook your fish into a stew. Pick Stew, tap your minnow to put it in the pot, and pick the Pine log to burn.",
@@ -189,13 +194,14 @@ export const STEPS: QuestStep[] = [
     ensure: [POT, LOG, MINNOW], guaranteed: true, protect: ["pot_", "minnow", "pine_logs"], needsTool: "pot",
   },
   {
-    quest: 0, task: `Show ${GUIDE_NAME} your stew (don't eat it yet!)`, goal: { kind: "talk" },
+    quest: 0, task: `Show ${GUIDE_NAME} your stew (don't eat it yet!)`, goal: { kind: "talk" }, unlocks: ["trading"],
     need: { prefix: "meal_", line: "Where's your stew? Cook one at the stove and bring it to me." },
     protect: ["meal_"],
     lines: [
       "Now that's a stew! Smells like my mother's kitchen.",
       "See the ⚡ bar at the top left? That's your stamina. Everything you do costs some: a fish costs 1, cooking 2, and chopping or mining 10.",
       "It comes back on its own, 1 every 30 seconds, but food is much faster. A raw minnow gives 2. A stew gives three times what its fish would, plus a bit from the fire. Go on, eat your stew.",
+      "Then sell a fish to the Merchant. Selling trains your Trading skill, part of Charisma, and the better your Charisma, the better prices you get.",
     ],
   },
   {
@@ -225,15 +231,15 @@ export const STEPS: QuestStep[] = [
     protect: ["rod_", "pot_bronze"],
   },
   {
-    quest: 1, task: "Reach Foraging level 3 (keep fishing)", goal: { kind: "level", discipline: "foraging", level: 3 },
-    hint: "Keep fishing. Every fish gives Foraging XP, and at level 3 you can chop trees.",
+    quest: 1, task: "Reach Fishing level 3 (keep fishing)", goal: { kind: "skillLevel", skill: "fishing", level: 3 },
+    hint: "Keep fishing. Every fish gives Fishing XP, and at Fishing 3 I'll teach you to chop trees.",
     needsTool: "rod", protect: ["rod_"],
   },
   {
-    quest: 1, task: `Talk to ${GUIDE_NAME} about Woodcutting`, goal: { kind: "talk" },
+    quest: 1, task: `Talk to ${GUIDE_NAME} about Woodcutting`, goal: { kind: "talk" }, unlocks: ["woodcutting"],
     lines: [
-      "Foraging 3! Each Discipline opens new skills as it levels up. Foraging gives you Woodcutting at 3 and Mining at 5. Crafting gives you Handicraft at 2, Smithing at 3 and Smelting at 5.",
-      "While we're at it, open the 📊 panel (bottom right), then Foraging, then Fishing. See the Minnow row and its Mastery level? Every kind of fish, log and ore has its own Mastery, and so does everything you make.",
+      "Fishing 3! Now I'll teach you Woodcutting. Every skill belongs to a Discipline: Fishing, Woodcutting and Mining are Endurance, and Endurance raises your max stamina. A Discipline's level is the average of its skills' levels.",
+      "While we're at it, open the 📊 panel (bottom right), then Endurance, then Fishing. See the Minnow row and its Mastery level? Every kind of fish, log and ore has its own Mastery, and so does everything you make.",
       "Mastery goes up each time you catch or make that thing. The higher it is, the faster you gather it, the more often your crafting works, and the more the Merchant pays for it. It never stops growing.",
       "And remember: every Mastery level earns you another Mastery point to spend in a skill's tree (the 🌳 buttons in the 📊 panel).",
       "Now, you've no axe yet, so chop 3 logs by hand. Slow going, like your first fish. Pine trees are the pointy ones.",
@@ -247,20 +253,21 @@ export const STEPS: QuestStep[] = [
     quest: 1, task: `Go back to ${GUIDE_NAME}`, goal: { kind: "talk" },
     lines: [
       "Sore hands? Good. Now you know why folks make their own tools.",
-      "Tools are made at the anvil, with Smithing. But Smithing needs Crafting level 3, so you've more cooking to do.",
-      "Cook stews at the stove until you reach Crafting 3. You can put up to 3 ingredients in the pot, and more ingredients give more XP. Here's some firewood to get you going.",
+      "Tools are made at the anvil, with Smithing. But I won't teach you Smithing until you're a better cook.",
+      "Cook stews at the stove until you reach Cooking 3. You can put up to 3 ingredients in the pot, and more ingredients give more XP. Here's some firewood to get you going.",
     ],
     give: [{ item: "pine_logs", count: 5 }],
   },
   {
-    quest: 1, task: "Reach Crafting level 3 (cook stews)", goal: { kind: "level", discipline: "crafting", level: 3 },
+    quest: 1, task: "Reach Cooking level 3 (cook stews)", goal: { kind: "skillLevel", skill: "cooking", level: 3 },
     hint: "Cook stews at the stove with your pot on your belt. More ingredients in the pot give more XP. If you run low on stamina, eat one!",
     needsTool: "pot", protect: ["pot_bronze"],
   },
   {
-    quest: 1, task: `Talk to ${GUIDE_NAME} about Smithing`, goal: { kind: "talk" },
+    quest: 1, task: `Talk to ${GUIDE_NAME} about Smithing`, goal: { kind: "talk" }, unlocks: ["smithing", "handicraft"],
     lines: [
-      "Crafting 3, and Smithing with it! The anvil is just right of the Merchant.",
+      "Cooking 3! Now I'll teach you Smithing. The anvil is just right of the Merchant. Cooking and Smithing are both Dexterity, which lets you carry more and walk faster.",
+      "And the workbench right of the anvil is for Handicraft: fishing bait from worms, food scraps and feathers. Handicraft is Dexterity too.",
       "A tool is a head and a handle: 1 stone or 1 metal bar for the head, and 1 log for the handle. A hammer on your belt helps you smith, the way the pot helps you cook.",
       "Here's a stone. Make yourself a stone axe at the anvil.",
     ],
@@ -290,7 +297,7 @@ export const STEPS: QuestStep[] = [
     lines: [
       "Look at you, a proper woodcutter!",
       "Your reward: a bronze axe and a bronze hammer. The axe chops faster and lasts longer, and the hammer means fewer failures at the anvil. And some coins.",
-      "My last lesson is mining. That opens at Foraging level 5. Put your new tools on your belt, then get some more Foraging XP. Chopping gives the most XP, but fishing is easiest on your stamina.",
+      "My last lesson is mining. I'll teach it at Endurance level 3. Put your new tools on your belt, then train Woodcutting and Fishing: Endurance is the average of the two. Chopping gives the most XP, but fishing is easiest on your stamina.",
     ],
     give: [{ item: "axe_bronze_pine" }, { item: "hammer_bronze_pine" }],
     coins: 100,
@@ -303,13 +310,13 @@ export const STEPS: QuestStep[] = [
     protect: ["axe_bronze", "hammer_bronze"],
   },
   {
-    quest: 2, task: "Reach Foraging level 5 (chop or fish)", goal: { kind: "level", discipline: "foraging", level: 5 },
-    hint: "Keep chopping or fishing. Chopping gives more Foraging XP per log, fishing costs much less stamina. At Foraging 5 you can mine. When your bag gets too heavy, sell logs and fish to the Merchant.",
+    quest: 2, task: "Reach Endurance level 3 (chop and fish)", goal: { kind: "level", discipline: "endurance", level: 3 },
+    hint: "Endurance is the average of your Fishing and Woodcutting levels, so train both. Chopping gives more XP per log, fishing costs much less stamina. At Endurance 3 I'll teach you Mining. When your bag gets too heavy, sell logs and fish to the Merchant.",
   },
   {
-    quest: 2, task: `Talk to ${GUIDE_NAME} about Mining`, goal: { kind: "talk" },
+    quest: 2, task: `Talk to ${GUIDE_NAME} about Mining`, goal: { kind: "talk" }, unlocks: ["mining"],
     lines: [
-      "Foraging 5. Time to mine! The rocks are north of the road, up past the Merchant.",
+      "Endurance 3. Time to learn Mining! The rocks are north of the road, up past the Merchant.",
       "Here's a worn stone pickaxe. Put it on your belt, then mine 5 stone from the plain grey rocks. Mining is hard work, so eat when you get tired.",
     ],
     give: [WORN_PICK],
@@ -345,15 +352,15 @@ export const STEPS: QuestStep[] = [
     protect: ["copper_ore", "tin_ore"],
   },
   {
-    quest: 2, task: "Reach Crafting level 5 (cook stews or make stone tools)", goal: { kind: "level", discipline: "crafting", level: 5 },
-    hint: "Keep cooking stews, or make stone tools at the anvil. At Crafting 5 you can smelt. Keep your copper and tin for later!",
+    quest: 2, task: "Reach Dexterity level 3 (cook, smith or make bait)", goal: { kind: "level", discipline: "dexterity", level: 3 },
+    hint: "Dexterity is the average of your Cooking, Smithing and Handicraft levels. Cook stews, make stone tools at the anvil, or make bait at the workbench. At Dexterity 3 I'll teach you Smelting. Keep your copper and tin for later!",
     protect: ["copper_ore", "tin_ore"],
   },
   {
-    quest: 2, task: `Talk to ${GUIDE_NAME} about Smelting`, goal: { kind: "talk" },
+    quest: 2, task: `Talk to ${GUIDE_NAME} about Smelting`, goal: { kind: "talk" }, unlocks: ["smelting"],
     protect: ["copper_ore", "tin_ore"],
     lines: [
-      "Crafting 5 opens Smelting. The furnace is just left of the Merchant.",
+      "Dexterity 3! Now I'll teach you Smelting. The furnace is just left of the Merchant.",
       "Every bar takes 2 ores: a bronze bar is 1 copper and 1 tin. Tongs on your belt help you smelt, the way the hammer helps you smith.",
       "You've no tongs yet, so I'll guide your hand this time. Smelt 2 bronze bars, then make a bronze pickaxe at the anvil.",
     ],
@@ -383,10 +390,10 @@ export const STEPS: QuestStep[] = [
 
   // ---------------- Quest 4: Standing your ground ----------------
   {
-    quest: 3, task: `Talk to ${GUIDE_NAME} about fighting`, goal: { kind: "talk" },
+    quest: 3, task: `Talk to ${GUIDE_NAME} about fighting`, goal: { kind: "talk" }, unlocks: ["melee", "defense"],
     lines: [
       "South of here, past the gate with the warning sign, is the Dark Forest. Wolves, goblins, giant spiders and worse. They'll attack anyone who wanders in.",
-      "See the ❤ bar at the top left? That's your health. If it runs out, you'll wake up here with me, a bit shaken but with all your things. Still, best not to make a habit of it.",
+      "See the ❤ bar at the top left? That's your health. Fighting skills are Strength, and Strength raises your max health. If it runs out, you'll wake up here with me, a bit shaken but with all your things. Still, best not to make a habit of it.",
       "Let's start small. Here's a bronze dagger. Weapons and armor go in your gear strip, under the tool belt, not on the belt itself. Click the dagger in your bag and press \"Hold\".",
     ],
     give: [DAGGER],
@@ -404,7 +411,7 @@ export const STEPS: QuestStep[] = [
   {
     quest: 3, task: `Go back to ${GUIDE_NAME}`, goal: { kind: "talk" },
     lines: [
-      "Well done. Open the 📊 panel and look at the new Combat discipline. Every hit trains Combat, and Melee too, since you used a blade.",
+      "Well done. Open the 📊 panel and look at Strength. Every hit with a blade trains Melee, and Strength is the average of your fighting skills.",
       "Your dagger has its own Mastery, and so does every kind of monster. Dagger Mastery makes you hit more often and a little harder. Chicken Mastery helps you hit chickens and makes them drop things more often.",
       "Rats are next, and they bite back! Being attacked trains your Defense, and armor makes monsters miss. Here's a bronze helmet and a bronze shield. Wear them both.",
     ],
@@ -434,14 +441,14 @@ export const STEPS: QuestStep[] = [
     ensure: [POTION],
   },
   {
-    quest: 3, task: "Reach Combat level 3 (fight chickens, rats or cows)", goal: { kind: "level", discipline: "combat", level: 3 },
-    hint: "Keep fighting the chickens, rats, or the cows in the meadow south of the road. At Combat 3 you can use Magic.",
+    quest: 3, task: "Reach Strength level 3 (fight chickens, rats or cows)", goal: { kind: "level", discipline: "strength", level: 3 },
+    hint: "Strength is the average of your Melee and Defense levels. Fight the chickens, rats, or the cows in the meadow south of the road, and let the rats bite you to train Defense. At Strength 3 I'll teach you Spellcasting.",
     fightWith: "weapon",
   },
   {
-    quest: 3, task: `Talk to ${GUIDE_NAME} about Magic`, goal: { kind: "talk" },
+    quest: 3, task: `Talk to ${GUIDE_NAME} about Spellcasting`, goal: { kind: "talk" }, unlocks: ["magic"],
     lines: [
-      "Combat 3! Now you can learn Magic. Spells need a staff in your hand, and they use mana, the blue 🔮 bar under your stamina. Mana comes back on its own, 1 every 6 seconds.",
+      "Strength 3! Now I'll teach you Spellcasting. It's part of Wisdom, which raises your max mana. Spells need a staff in your hand, and they use mana, the blue 🔮 bar under your stamina. Mana comes back on its own, 1 every 6 seconds.",
       "Here's a bronze staff. Hold it, and your dagger goes back in your bag. When you hold a staff, your spells show under your gear. Fire blast is the first.",
       "Each spell has its own Mastery too, and the staff's metal makes your spells hit harder. Go and defeat 2 chickens with Fire blast.",
     ],
@@ -458,9 +465,9 @@ export const STEPS: QuestStep[] = [
     ensure: [STAFF], protect: ["staff_"], fightWith: "magic",
   },
   {
-    quest: 3, task: `Go back to ${GUIDE_NAME}`, goal: { kind: "talk" },
+    quest: 3, task: `Go back to ${GUIDE_NAME}`, goal: { kind: "talk" }, unlocks: ["ranged"],
     lines: [
-      "You're a natural! At Combat 5 you can also use Ranged: slings, darts and bows, to hit from a distance.",
+      "You're a natural! I'll teach you Ranged too: slings, darts and bows, to hit from a distance. It's part of Strength.",
       "Weapons and armor are made at the anvil, just like tools: a weapon is a head and a handle, armor is all metal. And they wear out like tools, so keep a spare.",
       "Here are 2 bronze bars. Make yourself some bronze platelegs at the anvil, and put them on.",
     ],
@@ -504,9 +511,9 @@ export const STEPS: QuestStep[] = [
 
   // ---------------- Quest 5: Odd jobs ----------------
   {
-    quest: 4, task: `Talk to ${GUIDE_NAME} about the bounty board`, goal: { kind: "talk" }, opensBoard: true,
+    quest: 4, task: `Talk to ${GUIDE_NAME} about the bounty board`, goal: { kind: "talk" }, opensBoard: true, unlocks: ["renown"],
     lines: [
-      "See the notice board next to the Merchant? That's the bounty board. Folk pin up jobs there: bring the full amount and they pay double what the Merchant would, plus XP.",
+      "See the notice board next to the Merchant? That's the bounty board. Folk pin up jobs there: bring the full amount and they pay double what the Merchant would, plus XP. Every bounty you finish trains Renown, part of Charisma.",
       "Now, open the 📜 Quests tab, bottom right. It shows my lessons and every bounty on the board. Tap one to track it, and it shows up next to your health, so you always know how many more you need.",
       "Go on: open the 📜 tab and tap a bounty to track it. Pick one that looks easy!",
     ],
@@ -557,7 +564,7 @@ export interface QuestView {
   number: number;
   of: number;
   task: string;
-  /** "2 / 3 logs", "Foraging XP 20 / 34", "5 uses left"... */
+  /** "2 / 3 logs", "Fishing level 2 / 3", "5 uses left"... */
   progress?: string;
   /** 0 to 1, for a progress bar. */
   fraction?: number;
@@ -582,3 +589,14 @@ export function migrateStep(step: number, rev: number | undefined): number {
   if ((rev ?? 1) < 2 && step >= MASTERY_LESSON_STEP) step += 2;
   return step;
 }
+
+/** Skills taught so far: every talk step you've finished teaches its `unlocks`. Finishing Maren's lessons opens everything. */
+export function unlockedSkills(q: QuestProgress): SkillId[] {
+  if (tutorialDone(q)) return [...SKILL_IDS];
+  const out = new Set<SkillId>();
+  STEPS.forEach((s, i) => { if (i < q.step) for (const id of s.unlocks ?? []) out.add(id); });
+  return SKILL_IDS.filter((id) => out.has(id));
+}
+
+/** The step that teaches a skill (for "Old Maren will teach you this" notes). */
+export const teachStep = (skill: SkillId) => STEPS.findIndex((s) => s.unlocks?.includes(skill));

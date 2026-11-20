@@ -18,7 +18,7 @@ const scrypt = promisify(scryptCb) as (pw: string, salt: Buffer, len: number) =>
  * (their account and password are kept). Version 1 = Old Maren's tutorial: saves
  * from before it have no version, so everyone replays from the start.
  */
-export const SAVE_VERSION = 2; // 2 = tutorial steps reordered (equip steps, guards), so everyone restarts it
+export const SAVE_VERSION = 3; // 3 = the five Disciplines (Strength, Endurance, Wisdom, Dexterity, Charisma): everyone starts fresh
 
 /** Everything about a character that survives logging out. */
 export interface SaveData {

@@ -41,8 +41,10 @@ How a discipline levels (decided): **a discipline's level is the average of
 its skills' levels**, rounded down. For example, Endurance with Fishing 20,
 Woodcutting 10, Mining 6, Foraging 1, Farming 1 and Hunting 4 is
 (20 + 10 + 6 + 1 + 1 + 4) / 6 = level 7. The discipline has no XP bar of its
-own any more; it goes up as its skills go up. Every skill counts, including ones
-still at level 1, so training all of a discipline's skills raises it fastest.
+own any more; it goes up as its skills go up. Only skills you've **learned**
+count: a skill you haven't been taught yet doesn't pull the average down.
+Training all of a discipline's learned skills raises it fastest. With no skills
+learned yet, a discipline is level 1.
 
 ### Where the old skills went (my placement, easy to change)
 
@@ -82,10 +84,14 @@ after playing.
   what you pay by the same, up to about 30% at 99.
 - **Party size** = 4, rising to 5 at Charisma 50 and 6 at Charisma 90.
 
-Unlock levels: each new skill unlocks at a discipline level, the same way
-Woodcutting unlocks at Foraging 3 today. Suggested: the first skill in each
-discipline is open at level 1, the rest open between levels 2 and 10, and the
-main quest sends you to each trainer as you reach it.
+How skills unlock (decided, built in stage 2): **skills unlock through quests,
+not by level.** A skill opens when someone teaches it to you. For now that's
+Old Maren's lessons: talking to her about a skill teaches it (Fishing first,
+then Trading, Cooking, Woodcutting, Smithing and Handicraft, Mining, Smelting,
+Melee and Defense, Spellcasting, Ranged, and Renown at the bounty board).
+Characters who already finished her lessons know every skill. Later, each
+trainer's quest chapter (stage 3 onward) teaches the new skills that live in
+their building.
 
 ---
 
@@ -360,6 +366,10 @@ The health potion the Merchant sells today stays, as a weak shop version.
 ## 6. Charisma
 
 ### Trading (new)
+*Stage 2 built the Trading and Renown skills with simple XP (selling gives
+Trading XP, bounties give Renown XP). The tiers, deals and gated quests below
+come in stage 12.*
+
 You earn Trading XP **only when you sell** to a shop (buying gives none). XP
 is based on the value of what you sell. Trading level unlocks better shop deals and, later,
 special stock that shopkeepers only show to good customers.
@@ -535,7 +545,7 @@ quest chapter as it goes, so the main quest grows with the game.
 | Stage | What gets built | Why this order |
 |---|---|---|
 | **1. Small fixes** ✅ built | Phone layout, sell slider, bag weight and slots, Mastery point quest step | Quick wins, nothing depends on them |
-| **2. The five disciplines** | Strength, Endurance, Wisdom, Dexterity, Charisma; skills move; health, stamina, mana, speed and price bonuses; every character reset to start fresh | Everything else plugs into this |
+| **2. The five disciplines** ✅ built | Strength, Endurance, Wisdom, Dexterity, Charisma; skills move; health, stamina, mana, speed and price bonuses; every character reset to start fresh | Everything else plugs into this |
 | **3. Bigger town and trainers** | Trainer Row buildings, Merchant split into trainer shops plus General Store, Maren's hub quest for existing skills, day and night cycle | Gives new skills a place to live |
 | **4. Wear and repair** | Worn-out gear becomes Broken instead of vanishing, armor wears from damage, the paid Repairer | Needed before enchanting |
 | **5. Foraging, Hunting and new monsters** | Shovel, forage spots, ingredients, night herbs; slimes, bats, boars, beetles, spiders and night monsters; kill XP split by damage share; Hunting drop bonus | Ingredients for potions and crafting |
@@ -573,8 +583,6 @@ Stages 10, 11 and 12 can be done in any order once stage 3 is in.
 10. ~~Walking speed from Dexterity~~ **Decided: it has a cap** (+30% for now).
 11. ~~How a discipline's level works~~ **Decided: the average of its skills'
     levels.**
-12. **Unlocking skills with an average**: today a skill unlocks at a discipline
-    level (Woodcutting at Foraging 3). With an average, a brand-new skill at
-    level 1 pulls the discipline down a little. Should skills unlock by
-    discipline level, by a quest from their trainer, or by the level of another
-    skill (for example, Mining opens at Woodcutting 3)?
+12. ~~Unlocking skills with an average~~ **Decided: skills unlock through
+    quests** (Maren's lessons now, trainers' quests later), and only learned
+    skills count toward the average.
