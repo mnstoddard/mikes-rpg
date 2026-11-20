@@ -1,0 +1,518 @@
+# Mike's RPG: the big expansion design
+
+This is the plan for the next big round of the game: new disciplines and skills,
+magic and enchanting, potions, farming, parties, a bigger town with a trainer
+for every skill, and a day and night cycle.
+
+Nothing here is built yet. Read it, change anything you like, and say **GO**
+when you want a stage built. The last two sections are the build order
+(stages) and the questions that are still open.
+
+Quick words used in this doc:
+
+- **Discipline**: a big area you level up, like Strength. Each one raises one of
+  your stats (health, stamina, mana, speed, prices).
+- **Skill**: a thing you actually do, like Mining. Every skill sits inside one
+  discipline, and its XP also goes into that discipline.
+- **Mastery**: your experience with one type of thing (Oak, Trout, Wolf, Fire
+  bolt). Mastery levels earn Mastery points for the skill trees. This already
+  exists and stays as it is.
+
+---
+
+## 1. Disciplines and skills
+
+Today the game has three disciplines: Foraging, Crafting and Combat. They
+become five. Every skill you already have keeps its XP; it just moves to its
+new home.
+
+| Discipline | What it raises | Skills in it |
+|---|---|---|
+| 💪 **Strength** | Max **health** | Melee, Ranged, Defense |
+| 🌿 **Endurance** (was Foraging) | Max **stamina** | Fishing, Woodcutting, Mining, Foraging *(new)*, Farming *(new)*, Hunting *(new)* |
+| 🔮 **Wisdom** | Max **mana** | Spellcasting *(replaces Magic)*, Enchanting *(new)*, Alchemy *(new)* |
+| 🤲 **Dexterity** (was Crafting) | Overall **speed**: walking, gathering and crafting | Cooking, Handicraft, Smithing, Smelting, Tailoring *(new)*, Fletching *(new)*, Jewelcrafting *(new)* |
+| 🤝 **Charisma** | Better **shop prices** and bigger **party size** | Trading *(new)*, Renown *(new)*, Leadership *(new)* |
+
+How a discipline levels: every bit of XP you earn in a skill also goes into
+that skill's discipline (this is how it works today). So Mining XP raises both
+Mining and Endurance.
+
+### Where the old skills went (my placement, easy to change)
+
+- **Fishing, Woodcutting, Mining** stay together under Endurance, which is what
+  Foraging is renamed to. Gathering is hard work, so stamina fits.
+- **Cooking** goes to Dexterity with the other making skills. (It could go to
+  Endurance next to Farming instead, since meals give stamina. See open
+  questions.)
+- **Melee, Ranged, Defense** go to Strength. Defense no longer raises health by
+  itself; Strength does. Defense still makes monsters miss more and lets you wear
+  better armor.
+- **Magic** becomes **Spellcasting** under Wisdom. Its XP carries over.
+- **Mages' Guild rank** (from the guild's magic bounties) folds into **Renown**.
+  See section 8.
+
+### What each discipline gives (starting numbers)
+
+These are first guesses, picked to feel close to today's numbers at level 1.
+
+- **Health** = 48 + 2 per Strength level (50 at level 1, about 246 at 99).
+- **Stamina** = 95 + 5 per Endurance level (100 at level 1, about 590 at 99).
+- **Mana** = 48 + 2 per Wisdom level (50 at level 1).
+- **Speed** = +0.5% per Dexterity level, up to +50% at 99. It speeds up walking,
+  gathering and crafting. (Walking speed is capped so players can't zip
+  across the screen faster than the server can follow.)
+- **Prices** = Charisma raises what shops pay you by 0.3% per level and cuts
+  what you pay by the same, up to about 30% at 99.
+- **Party size** = 4, rising to 5 at Charisma 50 and 6 at Charisma 90.
+
+Unlock levels: each new skill unlocks at a discipline level, the same way
+Woodcutting unlocks at Foraging 3 today. Suggested: the first skill in each
+discipline is open at level 1, the rest open between levels 2 and 10, and the
+main quest sends you to each trainer as you reach it.
+
+---
+
+## 2. Endurance: gathering
+
+### Fishing and Woodcutting
+No changes, apart from moving to Endurance.
+
+### Mining: gems and soul stone
+New rock nodes join the ore rocks:
+
+- **Gem rocks**: ruby, sapphire, emerald, topaz and amethyst. Each rock gives
+  one type of gem.
+- **Soul stone rock**: gives raw soul stone, which becomes empty soul gems.
+
+**Gem size is a number, not a name.** Every gem you mine has a size in carats,
+for example "Ruby, 2.7 ct". There are no tiers like Small or Grand. Size can be
+anywhere from 0.1 up to about 10. Your Mining level and your Mastery of that
+rock push the odds toward bigger finds:
+
+- A beginner mostly finds 0.1 to 1 ct gems.
+- Each Mining level and each Mastery level of that rock nudges the average up.
+- There is always a small chance of a surprisingly big one.
+
+Soul stone works the same way: a bigger soul stone holds more soul energy.
+
+Gems show their size in the item name, and gems of different sizes take
+separate bag slots (you can't stack a 1 ct ruby with a 5 ct ruby).
+
+### Foraging (new, uses a shovel)
+Foraging is now its own skill, inside the Endurance discipline. You need a
+**shovel** on your tool belt (made at the anvil like other tools). You dig at
+**forage spots**: little patches of disturbed earth, mushrooms or flowers on the
+map that come back after a while.
+
+What you can find (more types unlock with Foraging level):
+
+| Find | Where | Used for |
+|---|---|---|
+| Worms | Grass near water | Bait, cooking |
+| Red cap mushroom | Forest floor | Health potion |
+| Ginseng root | Meadows | Stamina potion |
+| Blue lotus | Lake shore | Mana potion |
+| Wild honey (from a hive) | Old trees | Stamina potion, cooking |
+| Glowcap mushroom (night only) | Dark Forest | Night vision potion |
+| Moonpetal (night only) | Hills | Soul trap duration potion |
+| Truffle | Under oak trees | Cooking, sells well |
+| Old bones | Ruins, graveyard | Strength potion, bait |
+| Iron root | Rocky ground | Strength potion |
+| Fairy moss | Riverbanks | Speed potion |
+
+Mushrooms you find now and then while chopping trees still drop too.
+
+### Farming (new)
+See section 7.
+
+### Hunting (new)
+Hunting is general monster hunting. You earn Hunting XP for every monster you
+defeat, on top of the Melee, Ranged or Spellcasting XP from the hits. Higher
+Hunting means **more drops** and better odds on rare drops. The Hunting trainer
+also sells a skinning knife that gives a small extra chance of hides and pelts.
+
+---
+
+## 3. Monsters and what they drop
+
+New monsters, so every potion and crafting ingredient has a source. Existing
+monsters stay.
+
+| Monster | Level | Where | Drops |
+|---|---|---|---|
+| Slime | 2 | Wet meadow | Slime goo (health potion) |
+| Giant bat | 6 | Cave, and anywhere at night | Bat wing (mana potion) |
+| Wild boar | 7 | Forest edge | Boar hide (tailoring), raw pork, tusk |
+| Wolf *(exists)* | 8 | Dark Forest, Wolf Hollow | Wolf pelt, wolf fang |
+| Fire beetle | 10 | Quarry | Beetle shell (fire resist potion), glowing gland |
+| Cave spider | 14 | Cave | Spider silk (tailoring, bowstrings), venom sac (poison) |
+| Will-o'-wisp (night only) | 16 | Dark Forest | Wisp essence (big soul value) |
+| Dire wolf (group quest boss) | 20 | Wolf Hollow | Dire wolf pelt, big fang |
+| Grave ghoul (night only) | 22 | Graveyard | Bone dust, ghoul eye |
+
+Monster strength also sets how much **soul energy** it gives when soul trapped
+(section 5).
+
+---
+
+## 4. Dexterity: making things
+
+### Smithing, Smelting, Cooking, Handicraft
+Same as today, now under Dexterity. Smithing also makes the **shovel** and
+**plain metal for inlays** (silver and gold wire, see Enchanting).
+
+### Tailoring (new)
+Makes cloth and leather armor from hides, pelts and spider silk at a sewing
+table. Cloth and leather armor are lighter than metal, so they suit spellcasters
+and archers (and leave more weight for gathering).
+
+### Fletching (new)
+Makes bows and arrows at a fletching bench: a log for the bow, spider silk or
+sinew for the string, feathers and metal tips for arrows. Also makes the
+**plain staffs** that Enchanting turns into magic staffs. The wood type sets the
+staff's base strength (pine is weakest, elderwood is strongest).
+
+### Jewelcrafting (new)
+At a jeweller's bench you:
+
+- **Cut** raw gems. Cutting keeps the size; cut gems are worth more and are
+  needed for enchanting.
+- **Make settings**: silver and gold rings, amulets and inlays.
+- **Set gems** into rings and amulets.
+- **Shape soul gems** from raw soul stone.
+
+---
+
+## 5. Wisdom: magic
+
+### Spellcasting (replaces Magic)
+Spells are no longer tied to holding a staff. You cast them from a **spell bar**
+and they use mana. There are three kinds:
+
+- **Attack**: Fire bolt, Frost bolt (slows), Lightning (chains to a second
+  monster).
+- **Defense**: Stone skin (less damage taken), Heal, Ward (blocks the next hit).
+- **Utility**: **Invisibility** (walk through danger zones without being
+  attacked; it breaks if you attack), Light (see at night), Soul trap, Sleep,
+  Detect (shows forage spots and gem rocks nearby).
+
+How you learn spells:
+
+- Most spells unlock as your **Spellcasting level** goes up (pick them up from
+  the Spellcasting trainer for free once you reach the level).
+- Some come only from **spell books**: found as rare drops, bought from the
+  Mages' Guild, or given as **quest rewards**.
+
+Mastery of each spell lowers its mana cost and raises its duration or strength.
+For example, Invisibility might start at 10 seconds for 20 mana, and reach 40
+seconds for 10 mana at high Mastery.
+
+Mana comes back slowly over time, online and offline (it already does today),
+and mana potions top it up fast.
+
+### Soul trap
+Soul trap is a spell you cast on a monster. It lasts **60 seconds**:
+
+- The monster gets a clear **purple glow** while it's trapped.
+- In the last 10 seconds the glow **starts blinking** so you know it's wearing
+  off.
+- If the monster dies while trapped (by anyone in your party, or you), its soul
+  energy goes into the **emptiest soul gem in your bag that still has room**.
+
+A soul gem is **not one monster per gem**. Each monster gives soul energy based
+on its strength (a slime gives a little, a dire wolf a lot). A gem's capacity
+comes from its size, so a 0.5 ct soul gem fills from a few slimes, and a 6 ct
+gem needs many strong monsters. Bigger, fuller gems power stronger enchantments.
+A gem shows how full it is, like "Soul gem, 3.2 ct, 140 / 320 souls".
+
+A Moonpetal potion makes soul trap last longer.
+
+### Enchanting (new)
+Enchanting adds magic effects to gear at an **enchanting altar** in the Mages'
+Guild. Every enchantment uses:
+
+1. **The item** to enchant (a staff, a piece of armor, or a tool).
+2. **A filled soul gem**: the power. It's used up.
+3. **A cut gem**: the effect. Gem type picks the effect, and gem size sets how
+   strong it is. It's used up.
+4. **Optional silver or gold inlay**: raises the cap on how strong the
+   enchantment can be. Silver raises it some, gold raises it a lot.
+
+What each gem does:
+
+| Gem | On a staff | On armor | On a tool |
+|---|---|---|---|
+| Ruby | Fire bolts | Fire resistance | More XP |
+| Sapphire | Frost bolts (slow) | Mana regen | Lower stamina cost |
+| Emerald | Poison bolts | Health regen | Double-yield chance |
+| Topaz | Lightning bolts | +Max health | Faster gathering |
+| Amethyst | Life-steal bolts | Thorns (hurts attackers) | Rare find chance |
+
+Plus damage reduction on armor from any gem with a gold inlay (to be balanced).
+
+**Enchanted staffs**: a plain staff (from Fletching) plus a soul gem plus a gem
+makes a magic staff that fires bolts. Its strength comes from the wood type and
+the soul gem's size and fullness. Each bolt uses a **tiny bit of mana** (about 1),
+so staves are a cheap way to fight, while spells are stronger but cost more.
+
+**The skill tree**: Enchanting starts with just basic items (tools and simple
+staffs). Harder and better things unlock in the Enchanting Mastery tree:
+enchanting armor, using gold inlays, two effects on one item, and repairing
+enchanted items.
+
+### Wear and repair
+Gear already wears out today. The changes:
+
+- **Weapons** wear with each attack; **armor** wears as you take damage (the
+  piece that's hit, or all worn pieces a little); **tools** wear with each use.
+  Enchanted staves wear with each bolt.
+- When something wears out it **isn't destroyed**. It stays in your bag or slot
+  as "Broken", and you can't use it until it's repaired.
+- **Repair** is part of Enchanting. Before you learn it, pay the **Repairer at
+  the Mages' Guild**. The cost scales with how worn the item is and how strong
+  it is (a mithril sword with an enchantment costs much more than a stone axe).
+- Once you learn the **Mend** spell (Enchanting tree), you repair things
+  yourself for mana and a bit of soul energy. Mend starts with basic items;
+  repairing enchanted items is a later tree unlock.
+
+### Alchemy (new)
+Brew potions at an alchemy table from foraged herbs, farm crops and monster
+parts. A potion needs 2 or 3 ingredients plus a vial (bought from the alchemist,
+or made later by Smelting sand into glass).
+
+| Potion | Ingredients | Effect |
+|---|---|---|
+| Health | Red cap mushroom + slime goo | Restore health |
+| Stamina | Ginseng root + wild honey | Restore stamina |
+| Mana | Blue lotus + bat wing | Restore mana |
+| Strength | Iron root + old bones | Hit harder for 5 minutes |
+| Speed | Fairy moss + boar tusk | Move and work faster for 5 minutes |
+| Night vision | Glowcap + ghoul eye | See clearly at night |
+| Soul trap | Moonpetal + wisp essence | Soul trap lasts twice as long |
+| Fire resistance | Beetle shell + red cap | Take less fire damage |
+
+Alchemy level and potion Mastery make stronger potions and fewer failed brews.
+The health potion the Merchant sells today stays, as a weak shop version.
+
+---
+
+## 6. Charisma
+
+### Trading (new)
+You earn Trading XP every time you **buy from or sell to** a shop. XP is based on
+the value of the deal. Trading level unlocks better shop deals and, later,
+special stock that shopkeepers only show to good customers.
+
+### Renown (new)
+You earn Renown XP by **finishing bounties** (both the town bounty board and the
+Mages' Guild board).
+
+- **Bounties scale with Renown.** Low Renown gives simple fetch jobs. Higher
+  Renown adds harder jobs (rarer items, bigger amounts, tougher monsters) with
+  better rewards.
+- **Bounty tiers**: Townsfolk (Renown 1), Trusted (10), Notable (25), Famous
+  (50), Legendary (80). Each tier adds harder bounties and better pay.
+- **Quests unlock at higher Renown.** Some side quests only appear once you're
+  known in town.
+- The Mages' Guild board gives magic bounties. Its old "guild rank" becomes a
+  Renown requirement for chest upgrades (see open questions).
+
+### Leadership (new)
+You earn Leadership XP by **leading a party** that finishes quests or defeats
+monsters together. Higher Leadership gives the whole party a small bonus (for
+example +1% XP per 10 Leadership levels, up to +10%), and unlocks group quests.
+
+---
+
+## 7. Farming
+
+- At the **Farm** (east of town, just past the trainers) you **buy a small plot**
+  from the Farmer.
+- **Starting plot**: 2 x 2 tiles for **2 gold**.
+- **Expand** a row or column at a time, up to 6 x 6: 3 gold, then 5, 8, 12, 18,
+  25 gold (each step costs more, like the enchanted chest).
+- Seeds come from the Farmer's shop. Plant, then **come back to harvest**. No
+  watering or tending for now.
+- **Crops grow in real time, even when you're offline.** A potato takes about 10
+  minutes; better crops take longer (up to a few hours) and are worth more.
+- Crops: potato, carrot, cabbage, wheat (for bread later), onion, pumpkin, and
+  herbs like ginseng and fairy moss (a farmed source for potions).
+- Your plot is **just yours**. Nobody else can harvest it.
+
+Offline rules: health, stamina and mana all come back while you're offline, and
+crops keep growing. Nothing can hurt you or touch your stuff while you're
+offline, because you're not in the game.
+
+---
+
+## 8. Combat and XP sharing
+
+- **Kill XP is split by damage share.** If you did 60% of a monster's damage,
+  you get 60% of its XP. This is true whether you're in a party or not, so a
+  passer-by who helps gets their fair share.
+- **Drops** go to whoever did the most damage. (A share-based roll is possible
+  later.)
+- **Defense XP** still comes from being attacked.
+
+---
+
+## 9. Parties and group quests
+
+- Start a party by inviting someone nearby. **Max 4 people** (Charisma can raise
+  it, see section 1).
+- **Quest XP** goes to every member **in full** (it's not split).
+- **Quest loot**: every member gets their own full reward.
+- **Quests have level gates**, for example "needs Strength 10" or "needs
+  Spellcasting 15". You can join any party, but you can't take or get credit
+  for a quest you're below the gate for. So a level 1 can't skip the main quest
+  by joining a strong friend.
+- Party members see each other's health bars and are shown on the map.
+
+**First group quest: The Howling Hollow.** Wolves are attacking the farm. The
+Farmer asks a party (2 to 4 players, everyone Strength 8+) to clear wolves from
+Wolf Hollow and defeat the **Dire wolf** pack leader. Everyone gets the full XP,
+a wolf-fang amulet setting and coins. It can also be done alone, but it's built
+to be much easier together.
+
+---
+
+## 10. The main quest line
+
+The opening is part of the main quest, not a "tutorial". It's still guided by
+**Old Maren**, but now she acts as a hub: after the first few lessons she
+**sends you to a trainer for each skill**, in any order you like (as long as
+you're the right level).
+
+Each trainer gives a short chapter that teaches their skill and ends with a
+reward, usually a starter tool. Maren's ❗ shows which trainers are ready for
+you. Your 📜 Quests tab shows all chapters, done and open.
+
+Planned chapters:
+
+| Trainer | Skill | Chapter |
+|---|---|---|
+| Old Maren | Fishing, Cooking, Eating | "Living off the land" (as today) |
+| Forester Holt | Woodcutting | Chop, make a stone axe, sell logs |
+| Miner Greta | Mining | Stone, ore, then find your first gem |
+| Smith Brann | Smithing, Smelting | Bars, tools, armor (today's lessons) |
+| Herbalist Wren | Foraging | Get a shovel, dig 5 finds, find a night herb |
+| Farmer Odo | Farming | Buy a plot (Odo pays for the first), plant, harvest |
+| Huntmaster Kael | Hunting, Melee, Ranged, Defense | Today's combat lesson, then the wolf |
+| Tailor Ines | Tailoring | Make leather boots from boar hide |
+| Fletcher Rook | Fletching | Make a bow and a plain staff |
+| Jeweller Pim | Jewelcrafting | Cut a gem, make a silver ring |
+| Archmage Ysolde | Spellcasting | Learn spells, cast Soul trap and fill a gem |
+| Enchanter Vale | Enchanting | Enchant your plain staff; see the Repairer |
+| Alchemist Moss | Alchemy | Brew a health potion |
+| Shopkeeper Tam | Trading | Buy, sell, use the sell slider |
+| Captain Bryn (bounty board) | Renown | Finish 3 bounties |
+| Farmer Odo again | Leadership | The Howling Hollow group quest |
+
+**Spending Mastery points becomes a quest step** (in Maren's early chapter):
+"Open a skill tree and spend your first Mastery point."
+
+---
+
+## 11. The world map
+
+The map grows, but not by a lot. Everything new is close to town.
+
+- **Trainer Row**: a short street of small buildings just north and east of the
+  current town square. Each trainer has their own little building with their
+  work station inside (the forge, the sewing table, the jeweller's bench...).
+  They're all within a few seconds' walk of each other.
+- **The Mages' Guild** (already south-west of town) gains the enchanting altar,
+  the alchemy table, the Repairer and the spell trainer.
+- **The Farm**: fields east of town, with plots for players.
+- **The Quarry**: a small rocky area to the north with gem rocks and a soul stone
+  rock, plus fire beetles.
+- **The Cave**: a small cave entrance in the hills, with bats and cave spiders,
+  and rarer gem rocks deeper in.
+- **Wolf Hollow**: a clearing at the edge of the Dark Forest, for the group
+  quest.
+- **The Graveyard**: a small spooky area for night monsters and night herbs.
+- **Forage spots** scattered through meadows, forest edges and lake shores.
+
+### Shops
+The Merchant splits up. Each trainer sells the starter gear and recipes for
+their own skill (shovels from the Herbalist, seeds from the Farmer, vials from
+the Alchemist and so on), and buys back what their skill makes.
+
+A **General Store** (Shopkeeper Tam) stays in the town square. It buys anything,
+so it's where you sell junk, and sells basics like food.
+
+**No player-to-player trading.** You trade only with shops.
+
+### Day and night
+- A full day lasts about **40 minutes** (30 day, 10 night), the same for
+  everyone.
+- The screen darkens at dusk and lightens at dawn. Light spells and night
+  vision potions help you see.
+- **Night-only monsters** (giant bats roam more widely, will-o'-wisps, grave
+  ghouls) and **night-only herbs** (glowcap, moonpetal) appear only at night.
+
+---
+
+## 12. Small fixes on the list
+
+These are small and can be built first:
+
+1. **Phone layout**: the message box no longer covers the 📜 Quests button, and
+   the whole screen adapts to the size of the phone or window.
+2. **Sell part of a stack**: a slider and a number box to pick how many to sell,
+   with the price shown per item and in total.
+3. **Bag button shows weight and slots**: a small weight bar and a count like
+   "3 / 12" on the bag button.
+4. **Spending Mastery points becomes a quest step** (see section 10).
+
+---
+
+## 13. Build order (stages)
+
+This is too big to build in one go safely. I recommend these stages. Each one
+can be built, tested and played on its own, and each one adds its trainer's
+quest chapter as it goes, so the main quest grows with the game.
+
+| Stage | What gets built | Why this order |
+|---|---|---|
+| **1. Small fixes** | Phone layout, sell slider, bag weight and slots, Mastery point quest step | Quick wins, nothing depends on them |
+| **2. The five disciplines** | Strength, Endurance, Wisdom, Dexterity, Charisma; skills move; health, stamina, mana, speed and price bonuses; old XP carried over | Everything else plugs into this |
+| **3. Bigger town and trainers** | Trainer Row buildings, Merchant split into trainer shops plus General Store, Maren's hub quest for existing skills, day and night cycle | Gives new skills a place to live |
+| **4. Wear and repair** | Worn-out gear becomes Broken instead of vanishing, armor wears from damage, the paid Repairer | Needed before enchanting |
+| **5. Foraging, Hunting and new monsters** | Shovel, forage spots, ingredients, night herbs; slimes, bats, boars, beetles, spiders and night monsters; kill XP split by damage share; Hunting drop bonus | Ingredients for potions and crafting |
+| **6. Alchemy** | Alchemy table, vials, the potion list | Uses stage 5's ingredients |
+| **7. Gems, Jewelcrafting and soul stone** | Gem and soul stone rocks with continuous sizes, cutting, rings, amulets, inlays, soul gems | Needed for enchanting |
+| **8. Spellcasting** | Spell bar, new spell list, learning by level and books, Invisibility, Soul trap with the glow and blink, filling soul gems | Needed for enchanting |
+| **9. Enchanting** | Enchanting altar, staffs, armor and tool enchants, the Mend spell, Enchanting tree unlocks | Needs stages 4, 7 and 8 |
+| **10. Tailoring and Fletching** | Sewing table, cloth and leather armor, bows, arrows, plain staffs | Uses hides, silk and logs |
+| **11. Farming** | Farm area, buying and expanding plots, seeds, real-time growth | Independent, can move earlier |
+| **12. Trading and Renown** | Trading XP, Renown XP, bounty tiers, Renown-gated quests | Builds on the existing boards |
+| **13. Parties and Leadership** | Invites, party UI, shared quest XP and loot, quest level gates, Leadership bonus, The Howling Hollow | Biggest server change, best done last |
+
+Stages 10, 11 and 12 can be done in any order once stage 3 is in.
+
+---
+
+## 14. Open questions
+
+1. **Cooking**: under Dexterity (with the other making skills) or Endurance (next
+   to Farming, since meals give stamina)? This doc puts it in Dexterity.
+2. **Keep or reset characters?** The plan carries old XP into the new skills
+   (Magic becomes Spellcasting, Combat XP splits into Strength). A fresh reset is
+   simpler to build. Which do you want?
+3. **Maren's first lesson** has you fish until the rod breaks. With gear now
+   going to Broken instead of vanishing, should that lesson end with Maren
+   sending you to the Repairer, or just giving you a new rod as now?
+4. **Mages' Guild rank**: fold it into Renown (chest size depends on Renown), or
+   keep a separate guild rank?
+5. **Drops in a fight with several players**: most damage takes all (simple), or
+   everyone who helped gets their own roll?
+6. **Day length**: is 40 minutes (30 day, 10 night) about right?
+7. **Land cost**: is 2 gold for the first plot a fair price for an early player?
+8. **Trainer names**: the names in section 10 are placeholders. Change any you
+   like.
+9. **Spell books**: should some spells be shop-only, or only from drops and
+   quests?
+10. **Speed from Dexterity**: is +50% at level 99 too much? Walking that fast may
+    feel odd next to slower players.
