@@ -417,7 +417,9 @@ export class WorldScene extends Phaser.Scene {
       g.fillStyle(0x9aa3ab).fillRect(-12, -12, 22, 2);
       c.add(g);
     }
-    const label = this.add.text(0, id === "board" || id === "guildboard" ? -32 : -28, name, { fontSize: "12px", color: "#ffd84a", stroke: "#000", strokeThickness: 3 }).setOrigin(0.5);
+    // In the guild hall the stations stand close to the Archmage, so their names go underneath.
+    const below = id === "chest" || id === "guildboard";
+    const label = this.add.text(0, below ? 22 : id === "board" ? -32 : -28, name, { fontSize: "12px", color: "#ffd84a", stroke: "#000", strokeThickness: 3 }).setOrigin(0.5);
     c.add(label);
   }
 

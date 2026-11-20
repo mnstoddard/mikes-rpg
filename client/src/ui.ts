@@ -1807,6 +1807,8 @@ export function resetForSignOut() {
   closeShop();
   closeBounties();
   closeCraft();
+  closeGuild();
+  closeChest();
   closeInfo();
   closeDialog();
   document.body.classList.remove("history-open", "has-quest");

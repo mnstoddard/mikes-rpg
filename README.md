@@ -214,6 +214,37 @@ many you have (the tracker goes back to Maren's quest once it's handed in):
 
 Rules live in `shared/bounties.ts`; the board is in `shared/npcs.ts`.
 
+## Bag space and stacks
+
+Your bag has 28 slots. Most things stack in one slot: up to 50 logs, ore,
+stone or fish, 100 feathers, 10 health potions, and 25 of everything else
+(bars, stews, monster drops). Tools, weapons and armor don't stack, since each
+one wears down on its own. A small number in the corner of a slot shows how
+many are in it. Tapping a stack at the Merchant sells the whole stack, and
+Drop drops the whole stack. Sorting the bag also joins split stacks. The
+limits live in `shared/bag.ts` (`STACK_LIMITS`), so they're easy to change.
+
+## The Mages' Guild
+
+A purple stone hall south-west of town, by the coast, with its door facing the
+road. It opens once Old Maren's lessons are done.
+
+- **Archmage Ysolde** rents you space in the **enchanted chest**: 1 gold for 4
+  spaces. Each space holds a whole stack. More space comes 4 at a time and each
+  step costs more: 2, 4, 7, 12, 20, then 30 gold (up to 28 spaces).
+- **Enchanted chests** stand in the guild hall, on the east island and just
+  inside the Dark Forest gate. They all open the same storage. With a chest
+  open, tap a stack in your bag to put it in, or tap one in the chest to take it out.
+- **Guild rank** caps how big your chest can be: Initiate 4 spaces, Apprentice 8
+  (5 points), Adept 12 (15), Conjurer 16 (30), Enchanter 20 (50), Magus 24 (80),
+  Archmage 28 (120).
+- The **guild board** has 3 magic jobs: defeat monsters with spells (hold a
+  staff; it counts up by itself), or bring things the guild enchants with
+  (feathers, pelts, charms, silk, rare logs and ore). Each one pays guild points,
+  Magic XP and a little money. "New bounties" swaps them for free.
+
+All the numbers are in `shared/guild.ts`.
+
 ## Merchant and money
 
 The Merchant (purple, on the road near the middle of the map) buys
