@@ -23,8 +23,8 @@ export const SAVE_VERSION = 3; // 3 = the five Disciplines (Strength, Endurance,
 /** Everything about a character that survives logging out. */
 export interface SaveData {
   saveVersion?: number; // see SAVE_VERSION
-  quest?: { step: number; count: number }; // tutorial step (shared/quests.ts) and progress on it
-  questRev?: number; // which version of Maren's step list the quest step counts in (shared/quests.ts QUEST_REV)
+  quest?: unknown; // the main quest (shared/quests.ts QuestProgress: per chapter, which step and progress on it). Before rev 3: { step, count } in one list
+  questRev?: number; // which version of the quest steps this save uses (shared/quests.ts QUEST_REV)
   x?: number;
   y?: number;
   inventory?: (string | null)[]; // one per bag entry (shared/bag.ts); saves from before grouped slots had one per slot

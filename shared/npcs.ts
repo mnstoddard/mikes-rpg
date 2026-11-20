@@ -1,7 +1,9 @@
 // People and work stations that stand around the world. They block the tile they're on.
-// Click one to walk over and use it: Old Maren talks to you, the Merchant opens his shop, the furnace,
-// anvil and stove open their crafting windows, the bounty board shows its jobs.
-export type NpcId = "maren" | "merchant" | "furnace" | "anvil" | "stove" | "workbench" | "board"
+// Click one to walk over and use it: trainers teach you their skill (and run a little shop),
+// Old Maren talks to you, the furnace, anvil, stove and workbench open their crafting windows,
+// the bounty board shows its jobs.
+export type NpcId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "bryn"
+  | "furnace" | "anvil" | "stove" | "workbench" | "board"
   | "archmage" | "guildboard" | "chest" | "chest_east" | "chest_forest";
 
 export interface NpcDef {
@@ -13,42 +15,77 @@ export interface NpcDef {
   y: number;
   color: number;
   greeting: string;
-  /** People: a little emoji they carry (the Merchant's money bag, Maren's rod). */
+  /** People: a little emoji they carry (Tam's money bag, Maren's rod). */
   badge?: string;
+  /** A name over their building's door: where to draw it (the door tile) and what it says. */
+  sign?: { x: number; y: number; text: string };
 }
 
 export const NPCS: NpcDef[] = [
   {
-    // The tutorial guide (shared/quests.ts). Click her to talk; a ❗ shows when she has something for you.
-    id: "maren", name: "Old Maren", kind: "person", x: 14, y: 12, color: 0x2e86c1, badge: "🎣",
+    // The guide (shared/quests.ts). Click her to talk; a ❗ shows when she has something for you.
+    id: "maren", name: "Old Maren", kind: "person", x: 29, y: 13, color: 0x2e86c1, badge: "🎣",
     greeting: "",
   },
   {
-    id: "merchant", name: "Merchant", kind: "person", x: 16, y: 10, color: 0x8e44ad,
-    badge: "💰",
-    greeting: "I'll buy anything you've got, and I sell tools, starter weapons, health potions, stew, vegetables, worms, bars, logs and ore. Click your items to sell, or tap Buy.",
-  },
-  {
-    id: "furnace", name: "Furnace", kind: "station", x: 14, y: 10, color: 0x8b3a1a,
-    greeting: "The furnace roars. Pick a bar to smelt.",
-  },
-  {
-    id: "anvil", name: "Anvil", kind: "station", x: 18, y: 10, color: 0x555a60,
-    greeting: "Pick a tool, weapon or piece of armor to make at the anvil.",
-  },
-  {
-    id: "stove", name: "Stove", kind: "station", x: 12, y: 10, color: 0x3a3a3a,
+    id: "stove", name: "Stove", kind: "station", x: 31, y: 13, color: 0x3a3a3a,
     greeting: "The stove is ready. Pick a dish, put ingredients in the pot, and pick a log to burn.",
   },
   {
-    // Handicraft (shared/handicraft.ts): fishing bait for now.
-    id: "workbench", name: "Workbench", kind: "station", x: 20, y: 10, color: 0x8b5a2b,
-    greeting: "A sturdy workbench. Pick something to make.",
+    // Jobs that pay double (shared/bounties.ts). Opens in Captain Bryn's lessons.
+    id: "board", name: "Bounty board", kind: "station", x: 28, y: 15, color: 0x8b5a2b,
+    greeting: "Folk pin jobs here. Bring the full amount and they pay double what a shop would.",
   },
   {
-    // Jobs that pay double (shared/bounties.ts). Opens once Old Maren's tutorial is done.
-    id: "board", name: "Bounty board", kind: "station", x: 17, y: 9, color: 0x8b5a2b,
-    greeting: "Folk pin jobs here. Bring the full amount and they pay double what the Merchant would.",
+    id: "bryn", name: "Captain Bryn", kind: "person", x: 31, y: 15, color: 0x7f8c8d, badge: "📋",
+    greeting: "Folk round here need a hand with all sorts. Check the board.",
+  },
+  // ---- The General Store (in the square) ----
+  {
+    id: "tam", name: "Shopkeeper Tam", kind: "person", x: 15, y: 14, color: 0x8e44ad, badge: "💰",
+    greeting: "Welcome to the General Store! I'll buy anything you've got, and I sell rods, pots, food and potions.",
+    sign: { x: 15, y: 12, text: "💰 General Store" },
+  },
+  // ---- Trainer Row (north of the road) ----
+  {
+    id: "holt", name: "Forester Holt", kind: "person", x: 15, y: 7, color: 0x27ae60, badge: "🪓",
+    greeting: "I buy logs and axes, and I sell stone axes and logs.",
+    sign: { x: 15, y: 9, text: "🪓 Forester Holt" },
+  },
+  {
+    id: "greta", name: "Miner Greta", kind: "person", x: 23, y: 7, color: 0x95a5a6, badge: "⛏️",
+    greeting: "I buy ore, stone and pickaxes, and I sell stone pickaxes and ore.",
+    sign: { x: 23, y: 9, text: "⛏️ Miner Greta" },
+  },
+  {
+    id: "brann", name: "Smith Brann", kind: "person", x: 30, y: 7, color: 0xc0392b, badge: "🔨",
+    greeting: "I buy bars, tools, weapons and armor, and I sell hammers, tongs and bars.",
+    sign: { x: 30, y: 9, text: "🔨 Smith Brann" },
+  },
+  {
+    id: "furnace", name: "Furnace", kind: "station", x: 29, y: 7, color: 0x8b3a1a,
+    greeting: "The furnace roars. Pick a bar to smelt.",
+  },
+  {
+    id: "anvil", name: "Anvil", kind: "station", x: 31, y: 7, color: 0x555a60,
+    greeting: "Pick a tool, weapon or piece of armor to make at the anvil.",
+  },
+  // ---- Rook's workshop (in the square) ----
+  {
+    id: "rook", name: "Woodworker Rook", kind: "person", x: 22, y: 14, color: 0xa0522d, badge: "🪚",
+    greeting: "I buy bait, worms, feathers and hides, and I sell worms.",
+    sign: { x: 23, y: 12, text: "🪚 Woodworker Rook" },
+  },
+  {
+    // Handicraft (shared/handicraft.ts): fishing bait for now.
+    id: "workbench", name: "Workbench", kind: "station", x: 24, y: 14, color: 0x8b5a2b,
+    greeting: "A sturdy workbench. Pick something to make.",
+  },
+  // ---- Kael's lodge (by the gate to the Dark Forest) ----
+  {
+    id: "kael", name: "Huntmaster Kael", kind: "person", x: 22, y: 18, color: 0x6e2c00, badge: "🏹",
+    greeting: "I buy weapons, armor and what monsters drop, and I sell starter weapons and potions.",
+    sign: { x: 24, y: 19, text: "🏹 Huntmaster Kael" },
   },
   // ---- The Mages' Guild (shared/guild.ts): the hall south-west of town, by the coast ----
   {

@@ -458,7 +458,19 @@ Each trainer gives a short chapter that teaches their skill and ends with a
 reward, usually a starter tool. Maren's ❗ shows which trainers are ready for
 you. Your 📜 Quests tab shows all chapters, done and open.
 
-Planned chapters:
+**Built in stage 3** (for the skills that exist now): Maren's chapter
+("Living off the land": fishing, cooking, eating, selling a fish to Tam, then
+Fishing 3 and Cooking 3), then chapters from Tam (Trading), Holt
+(Woodcutting), Greta (Mining), Brann (Smithing and Smelting), Rook
+(Handicraft), Kael (Melee, Defense, Ranged, and the gate), Ysolde
+(Spellcasting, and guild membership) and Bryn (Renown and the bounty board).
+After Maren's, they can be done in any order, with no level needed. One
+chapter is "active" at a time: talking to another trainer switches to theirs,
+and the first one keeps its place. Characters from before stage 3 kept every
+skill they had learned (and the gate, if it was open), and can do the trainers'
+chapters for the rewards.
+
+Planned chapters (the full list, as more skills arrive):
 
 | Trainer | Skill | Chapter |
 |---|---|---|
@@ -486,10 +498,13 @@ Planned chapters:
 
 The map grows, but not by a lot. Everything new is close to town.
 
-- **Trainer Row**: a short street of small buildings just north and east of the
-  current town square. Each trainer has their own little building with their
-  work station inside (the forge, the workbench, the alchemy table...).
-  They're all within a few seconds' walk of each other.
+- **Trainer Row** (built in stage 3): a row of wooden buildings just north of
+  the main road, with the woods and the quarry behind them: Forester Holt, Miner
+  Greta, and Smith Brann's smithy (the furnace and anvil moved inside). The town
+  square below the road has Tam's General Store, Rook's workshop (with the
+  workbench), and an open corner with Old Maren, the stove, the bounty board and
+  Captain Bryn. Kael's lodge is south of the road, by the gate. Buildings are
+  walk-in rooms on the same map.
 - **The Mages' Guild** (already south-west of town) gains the enchanting altar,
   the alchemy table, the Repairer and the spell trainer.
 - **The Farm**: fields east of town, with plots for players.
@@ -503,6 +518,8 @@ The map grows, but not by a lot. Everything new is close to town.
 - **Forage spots** scattered through meadows, forest edges and lake shores.
 
 ### Shops
+*Built in stage 3. Tam pays the same as the trainers for now (balance later).*
+
 The Merchant splits up. Each trainer sells the starter gear and recipes for
 their own skill (shovels from the Herbalist, seeds from the Farmer, vials from
 the Alchemist and so on), and buys back what their skill makes.
@@ -513,6 +530,10 @@ so it's where you sell junk, and sells basics like food.
 **No player-to-player trading.** You trade only with shops.
 
 ### Day and night
+*Built in stage 3: the 40-minute cycle, a gentle dark at night, and a ☀️/🌙
+button by the zoom buttons that says how long until it changes. Night monsters
+and herbs come in stage 5.*
+
 - A full day lasts about **40 minutes** (30 day, 10 night), the same for
   everyone.
 - The screen darkens at dusk and lightens at dawn. Light spells and night
@@ -546,7 +567,7 @@ quest chapter as it goes, so the main quest grows with the game.
 |---|---|---|
 | **1. Small fixes** ✅ built | Phone layout, sell slider, bag weight and slots, Mastery point quest step | Quick wins, nothing depends on them |
 | **2. The five disciplines** ✅ built | Strength, Endurance, Wisdom, Dexterity, Charisma; skills move; health, stamina, mana, speed and price bonuses; every character reset to start fresh | Everything else plugs into this |
-| **3. Bigger town and trainers** | Trainer Row buildings, Merchant split into trainer shops plus General Store, Maren's hub quest for existing skills, day and night cycle | Gives new skills a place to live |
+| **3. Bigger town and trainers** ✅ built | Trainer Row buildings, Merchant split into trainer shops plus General Store, Maren's hub quest for existing skills, day and night cycle | Gives new skills a place to live |
 | **4. Wear and repair** | Worn-out gear becomes Broken instead of vanishing, armor wears from damage, the paid Repairer | Needed before enchanting |
 | **5. Foraging, Hunting and new monsters** | Shovel, forage spots, ingredients, night herbs; slimes, bats, boars, beetles, spiders and night monsters; kill XP split by damage share; Hunting drop bonus | Ingredients for potions and crafting |
 | **6. Alchemy** | Alchemy table, vials, the potion list | Uses stage 5's ingredients |
@@ -574,10 +595,10 @@ Stages 10, 11 and 12 can be done in any order once stage 3 is in.
    keep a separate guild rank?
 5. **Drops in a fight with several players**: most damage takes all (simple), or
    everyone who helped gets their own roll?
-6. **Day length**: is 40 minutes (30 day, 10 night) about right?
+6. ~~Day length~~ **Decided: 40 minutes** (30 day, 10 night), and night is
+   only gently dark for now.
 7. **Land cost**: is 2 gold for the first plot a fair price for an early player?
-8. **Trainer names**: the names in section 10 are placeholders. Change any you
-   like.
+8. ~~Trainer names~~ **Decided: keep them** (they can still be renamed any time).
 9. **Spell books**: should some spells be shop-only, or only from drops and
    quests?
 10. ~~Walking speed from Dexterity~~ **Decided: it has a cap** (+30% for now).

@@ -43,7 +43,7 @@ export function masterySpeed(level: number): number {
 /** "33%": how much faster than Mastery 1. */
 export const speedBonusPercent = (level: number) => Math.round((masterySpeed(level) - 1) * 100);
 
-/** Each Mastery level adds 2% to what the Merchant pays: Mastery 11 = +20%, 51 = double. */
+/** Each Mastery level adds 2% to what a shop pays: Mastery 11 = +20%, 51 = double. */
 export const MASTERY_VALUE_PER_LEVEL = 0.02;
 export const masteryValue = (level: number) => 1 + (level - 1) * MASTERY_VALUE_PER_LEVEL;
 export const valueBonusPercent = (level: number) => Math.round((masteryValue(level) - 1) * 100);

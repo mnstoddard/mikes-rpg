@@ -96,10 +96,10 @@ export const MONSTER_IDS = Object.keys(MONSTERS) as MonsterId[];
 export const MONSTER_SPAWNS: [MonsterId, number, number][] = [
   // Chickens in the field north-west of town.
   ["chicken", 6, 3], ["chicken", 8, 4], ["chicken", 6, 5], ["chicken", 9, 3], ["chicken", 7, 7],
-  // Rats around the rocks north of the road.
-  ["rat", 22, 6], ["rat", 24, 8], ["rat", 22, 8], ["rat", 25, 6],
+  // Rats around the quarry rocks, north of Trainer Row.
+  ["rat", 20, 2], ["rat", 25, 1], ["rat", 25, 3], ["rat", 27, 3],
   // Cows in the meadow south of the road.
-  ["cow", 15, 18], ["cow", 18, 17], ["cow", 25, 18], ["cow", 28, 17],
+  ["cow", 15, 18], ["cow", 18, 17], ["cow", 31, 17], ["cow", 14, 18],
   // The Dark Forest, past the gate: wolves near the gate, goblins west, spiders east, bandits deep south.
   ["wolf", 22, 23], ["wolf", 31, 23], ["wolf", 25, 25], ["wolf", 34, 25],
   ["goblin", 11, 26], ["goblin", 14, 28], ["goblin", 10, 29], ["goblin", 16, 25],

@@ -1,12 +1,13 @@
 // The bounty board: 5 jobs at a time, each asking for an amount of one item.
 //
-// The board stands next to the Merchant and opens once Old Maren's tutorial is
-// done. Bounties only ask for things you could get yourself right now: types
-// you can gather, things you can smelt, smith or cook (from materials you can
-// gather), and drops from monsters you've already defeated.
+// The board stands in the town square next to Captain Bryn, and opens in his
+// lesson (shared/quests.ts). Bounties only ask for things you could get
+// yourself right now: types you can gather, things you can smelt, smith or
+// cook (from materials you can gather), and drops from monsters you've
+// already defeated.
 //
 // Hand in the full amount (no part hand-ins) and you get double what the
-// Merchant would pay you for them (your Mastery counts), plus XP: the same XP
+// shop would pay you for them (your Mastery counts), plus XP: the same XP
 // as gathering or making them once more, in that item's skill. Monster drops
 // give Combat XP and that monster's Mastery instead. A finished bounty is
 // replaced by a new one, and Refresh (free for now) rerolls all 5.
@@ -23,7 +24,7 @@ import { gearDurability, recipeFor, sellPriceFor } from "./crafting";
 
 /** How many bounties are on the board at once. */
 export const BOUNTY_COUNT = 5;
-/** You get this many times what the Merchant would pay you. */
+/** You get this many times what a shop would pay you. */
 export const BOUNTY_PAY = 2;
 
 export interface Bounty { item: ItemId; count: number }
@@ -88,7 +89,7 @@ export function bountyChoices(p: BountyPlayer): ItemId[][] {
       groups.push([1, 2, 3].flatMap((n) => woods.map((w: Wood) => mealId(dish, w, Array(n).fill(fish)))));
     }
   }
-  // Monster drops, from monsters you've defeated before (not potions: the Merchant sells those).
+  // Monster drops, from monsters you've defeated before (not potions: a shop sells those).
   for (const m of MONSTER_IDS) {
     if (!(p.combatMastery[m] ?? 0)) continue;
     for (const d of MONSTERS[m].drops) if (d.item !== POTION_ID) groups.push([d.item]);
@@ -145,7 +146,7 @@ export interface BountyReward {
 export const bountyRenown = (count: number) => 5 + count;
 
 /**
- * What handing in a bounty pays: double what the Merchant would give you for
+ * What handing in a bounty pays: double what a shop would give you for
  * the items (with your Mastery), and the XP of gathering or making them once
  * more (monster drops: the monster's kill bonus each).
  */
