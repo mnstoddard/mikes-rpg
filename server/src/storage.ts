@@ -26,14 +26,15 @@ export interface SaveData {
   quest?: { step: number; count: number }; // tutorial step (shared/quests.ts) and progress on it
   x?: number;
   y?: number;
-  inventory?: (string | null)[];
+  inventory?: (string | null)[]; // one per bag entry (shared/bag.ts); saves from before grouped slots had one per slot
+  slots?: number[]; // per entry: which bag slot it's in (missing in older saves: entry i was slot i)
   coins?: number; // total money, in bronze coins
   skills?: Record<string, number>; // XP per Discipline, e.g. { foraging: 42 } (key kept from before Disciplines)
   skillXp?: Record<string, number>; // XP per skill, e.g. { woodcutting: 120, fishing: 0, mining: 8 }
   // Mastery XP per type, e.g. { pine: 300, oak: 12 }. (Saves from before skillXp
   // existed had Mastery per skill here instead, e.g. { woodcutting: 120 }.)
   mastery?: Record<string, number>;
-  durability?: (number | null)[]; // per inventory slot: uses left on a tool
+  durability?: (number | null)[]; // per entry: uses left on a tool
   belt?: Record<string, { item: string; durability: number } | null>; // tools on the belt, e.g. { axe: { item: "axe_bronze_pine", durability: 120 } }
   stamina?: number; // stamina when saved
   staminaAt?: number; // when that was (ms since 1970), so stamina keeps coming back while logged out
@@ -42,13 +43,13 @@ export interface SaveData {
   gear?: Record<string, { item: string; durability: number } | null>; // weapon and armor being worn, e.g. { weapon: { item: "dagger_bronze_pine", durability: 140 } }
   spell?: string; // spell the staff casts, e.g. "fire_blast"
   combatMastery?: Record<string, number>; // Mastery XP per weapon type, spell and monster, e.g. { dagger: 40, chicken: 22 }
-  lockedSlots?: number[]; // inventory slots holding locked items, e.g. [0, 3], so Sell all skips them
+  lockedSlots?: number[]; // entries holding locked items, e.g. [0, 3], so Sell all skips them
   tree?: Record<string, number>; // Mastery skill tree ranks bought, e.g. { "cooking.slots": 2 }
   bounties?: { item: string; count: number }[]; // the bounty board's 5 jobs, e.g. [{ item: "oak_logs", count: 6 }]
   tracked?: string; // the bounty on the quest tracker (its item), if one is picked over Maren's quest
   color?: number; // character colour, picked in Settings (one of shared/colors.ts)
   locked?: string[]; // old: item types that were locked; turned into lockedSlots when loaded
-  counts?: number[]; // per inventory slot: how many are in the stack (missing in older saves: 1 each)
+  counts?: number[]; // per entry: how many are in the stack (missing in older saves: 1 each)
   guild?: GuildSave; // the Mages' Guild: rank points, magic bounties and the enchanted chest
   // Add more here later (skills, bank, quests...). Stored as JSON, so no
   // database migration is needed for new fields.
@@ -58,7 +59,8 @@ export interface SaveData {
 export interface GuildSave {
   points?: number;
   bounties?: unknown[]; // the guild board's 3 jobs
-  chest?: { item: string; count: number; durability?: number | null }[]; // one per chest space; empty spaces are { item: "", count: 0 }
+  chestSize?: number; // spaces rented (missing in older saves: one chest entry per space)
+  chest?: { item: string; count: number; durability?: number | null; slot?: number }[]; // one per entry, with its space (older saves: one per space, empty ones { item: "", count: 0 })
 }
 
 export interface Account {

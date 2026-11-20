@@ -205,6 +205,12 @@
     /* Stacks: how many are in a slot */
     .slot .count-badge { position: absolute; left: 2px; bottom: 0; font-size: 11px; line-height: 1.1; color: #fff; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000; pointer-events: none; }
     body.shop-open .slot .count-badge { bottom: auto; top: 0; left: auto; right: 2px; }
+    /* A slot holding several kinds of one thing (a stone axe and a bronze axe): drawn like a little pile */
+    .slot.mixed { box-shadow: 2px -2px 0 -1px rgba(255,255,255,.28), 4px -4px 0 -2px rgba(255,255,255,.16); }
+    .slot .lock-badge.some { opacity: .5; }
+    .info-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .info-nav-text { flex: 1; text-align: center; font-size: 12px; color: #d8c9a8; }
+    .info-flip { min-width: 34px; padding: 4px 8px; }
     /* Mages' Guild window and the enchanted chest */
     #guild, #chest { display: none; left: 50%; top: 14%; transform: translateX(-50%); width: min(340px, calc(100vw - 32px)); padding: 12px 14px; z-index: 5; text-align: center; max-height: calc(100vh - 120px); overflow-y: auto; border-color: #6a4fa0; }
     body.guild-open #guild, body.chest-open #chest { display: block; }

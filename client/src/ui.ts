@@ -14,7 +14,7 @@ import { GUIDE_NAME, type QuestView } from "../../shared/quests";
 import { PLAYER_COLORS } from "../../shared/colors";
 import {
   ARMOR, ARMOR_TYPES, ArmorType, GEAR_SLOTS, Gear, GearSlot, SLOT_ICONS, SLOT_NAMES, WEAPONS, WEAPON_TYPES, WeaponType,
-  armorId, emptyGear, isArmor, isGear, isWeapon, parseWeapon, weaponId,
+  armorId, emptyGear, isArmor, isGear, isWeapon, parseArmor, parseWeapon, weaponId,
 } from "../../shared/gear";
 import {
   ARMOR_LEVEL, CombatMasteryId, CombatMasteryXp, MONSTERS, MONSTER_IDS, POTION_HEAL, POTION_ID, SPELLS, SPELL_IDS, SpellId, armorPoints, attackFor,
@@ -22,7 +22,7 @@ import {
 } from "../../shared/combat";
 import { gearDurability } from "../../shared/crafting";
 import { Bounty, bountyReward, slotCounts } from "../../shared/bounties";
-import { stackLimit } from "../../shared/bag";
+import { Bag, emptyBag, entriesIn, slotTotal, stackLimit, usedSlots } from "../../shared/bag";
 import { carriedWeight, carryCapacity, kg, weightOf } from "../../shared/weight";
 import {
   CHEST_RENT, CHEST_START, CHEST_STEP, GuildBounty, GuildView, RANKS, expandCost, guildBountyName, guildReward, rankFor,
@@ -35,6 +35,7 @@ import {
 import { BAITS, BAIT_IDS, BaitId, isBait } from "../../shared/handicraft";
 import { TreeRanks, treeBonus } from "../../shared/skilltree";
 import { setTreeData, treeButton, treeRanks } from "./tree";
+import { toolSvg } from "./toolIcons";
 
 const MAX_MESSAGES = 6;
 const messagesEl = document.getElementById("messages")!;
@@ -99,7 +100,8 @@ const staminaOf = (item: ItemId) => foodStamina(item, lastMastery, tree("cooking
 /** How many ingredients fit in your pot. */
 const potSize = () => BASE_INGREDIENTS + tree("cooking", "slots");
 /** The item whose info card is showing. */
-type InfoTarget = { kind: "slot"; slot: number } | { kind: "belt"; type: ToolType } | { kind: "gear"; slot: GearSlot };
+/** A bag slot shows one of the things in it at a time: `pick` is which (0 = the one on top). */
+type InfoTarget = { kind: "slot"; slot: number; pick: number } | { kind: "belt"; type: ToolType } | { kind: "gear"; slot: GearSlot };
 let info: InfoTarget | null = null;
 /** The Merchant's window is on its Buy tab (otherwise Sell). */
 let shopBuying = false;
@@ -129,7 +131,11 @@ function icon(cls: string, glyph: string, tint?: string): HTMLElement {
     const img = document.createElement("img");
     img.className = "svg-icon";
     img.alt = "";
-    img.src = `data:image/svg+xml,${encodeURIComponent(SVG_ICONS[glyph.slice(4)] ?? "")}`;
+    img.draggable = false; // or the browser drags the picture itself, and dragging items around the bag stops working
+    const name = glyph.slice(4);
+    const [kind, type, material, wood] = name.split("/");
+    const svg = kind === "tool" ? toolSvg(type as ToolType, (material || null) as Material | null, (wood || null) as Wood | null) : SVG_ICONS[name];
+    img.src = `data:image/svg+xml,${encodeURIComponent(svg ?? "")}`;
     box.appendChild(img);
   } else {
     box.textContent = glyph;
@@ -503,7 +509,7 @@ export function renderMastery(mastery: ItemMasteryXp) {
   lastMastery = mastery;
   setTreeData({ mastery });
   renderDisciplines(lastDisciplines);
-  renderInventory(invItems); // prices depend on Mastery
+  renderInventory(); // prices depend on Mastery
 }
 
 export function flashDiscipline(id: DisciplineId) {
@@ -565,14 +571,17 @@ messagesEl.onclick = () => {
 };
 document.getElementById("history-close")!.onclick = () => document.body.classList.remove("history-open");
 
-// Clicking an item drops it, or sells it while the Merchant's shop is open.
-// In lock mode (the 🔒 button on the inventory), clicking an item locks or
-// unlocks just that one item instead.
+// Clicking a slot opens its item card (or sells it while the Merchant's shop is open).
+// Similar things share a slot (shared/bag.ts): the card cycles through them.
+// In lock mode (the 🔒 button on the inventory), clicking a slot locks or
+// unlocks everything in it instead.
+let bag: Bag = emptyBag(0);
+// The bag's lists, one place per entry (an axe, 12 pine logs...). Messages to the server name an entry.
 let invItems: (ItemId | null)[] = [];
-let locked: boolean[] = []; // per inventory slot
-let durability: (number | null)[] = []; // per inventory slot: uses left on tools
-let counts: number[] = []; // per inventory slot: how many are in the stack
-/** How many are in this bag slot (0 if empty). */
+let locked: boolean[] = []; // per entry
+let durability: (number | null)[] = []; // per entry: uses left on tools
+let counts: number[] = []; // per entry: how many
+/** How many are in this entry (0 if unused). */
 const countAt = (i: number) => (invItems[i] ? Math.max(1, counts[i] ?? 1) : 0);
 let lockMode = false;
 let onDrop: (slot: number) => void = () => {};
@@ -625,13 +634,11 @@ export function setInventoryActions(actions: {
   onCraft = actions.craft;
 }
 
-export function renderDurability(slots: (number | null)[]) {
-  durability = slots;
-}
-
-/** How many are in each bag slot. The server sends this just before the inventory, which redraws the bag. */
-export function renderCounts(slots: number[]) {
-  counts = slots;
+/** The server sends the whole bag after every change. */
+export function renderBag(b: Bag) {
+  bag = b;
+  ({ inventory: invItems, locked, durability, counts } = b);
+  renderInventory();
 }
 
 /** A small number in the corner of a slot holding more than one. */
@@ -678,7 +685,7 @@ export function renderBelt(belt: Belt) {
     const slot = el("slot belt-slot" + (on ? " filled" : ""));
     if (on) {
       const max = maxDurability(on.item);
-      slot.append(icon("", t.icon, ITEMS[on.item].tint), durabilityBar(on.durability, max));
+      slot.append(icon("", ITEMS[on.item].icon, ITEMS[on.item].tint), durabilityBar(on.durability, max));
       slot.title = `${ITEMS[on.item].name}: ${toolEffect(on.item)}. ${on.durability} of ${max} uses left. Click for details.`;
       slot.onclick = () => showInfo({ kind: "belt", type });
     } else {
@@ -741,13 +748,12 @@ export function renderGear(gear: Gear, spell: SpellId) {
 }
 renderGear(lastGear, lastSpell);
 
-/** The server tells us which inventory slots are locked. */
-export function renderLocks(slots: boolean[]) {
-  locked = slots;
-  renderInventory(invItems);
+/** Lock everything in a slot, or unlock it if it's all locked already. */
+function toggleLock(slot: number) {
+  const here = entriesIn(bag, slot);
+  const lock = !here.every((e) => locked[e]);
+  for (const e of here) if (!!locked[e] !== lock) onLock(e, lock);
 }
-
-const toggleLock = (slot: number) => onLock(slot, !locked[slot]);
 
 const lockModeBtn = document.getElementById("lock-mode")!;
 const invTitle = document.getElementById("inv-title")!;
@@ -756,7 +762,7 @@ function setLockMode(on: boolean) {
   lockModeBtn.classList.toggle("active", on);
   document.body.classList.toggle("lock-mode", on);
   invTitle.textContent = on ? "Tap items to lock" : "Inventory";
-  renderInventory(invItems);
+  renderInventory();
 }
 lockModeBtn.onclick = () => setLockMode(!lockMode);
 document.getElementById("sort-bag")!.onclick = () => onSort();
@@ -782,7 +788,7 @@ function onDragMove(e: PointerEvent) {
   if (!drag) return;
   if (!drag.ghost) {
     if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 8) return; // still a tap
-    const id = invItems[drag.from];
+    const id = invItems[entriesIn(bag, drag.from)[0]];
     if (!id) return cancelDrag();
     drag.ghost = icon("", ITEMS[id].icon, ITEMS[id].tint);
     drag.ghost.id = "drag-ghost";
@@ -827,55 +833,73 @@ function cancelDrag() {
 
 const shopIsOpen = () => document.body.classList.contains("shop-open");
 
-export function renderInventory(items: (ItemId | null)[]) {
-  invItems = items;
+/** What to call an item in the bag and on its card: just "Axe" for tools (the card says what it's made of). */
+const shortName = (id: ItemId) => ITEMS[id].short ?? ITEMS[id].name;
+
+/** What a slot of mixed things holds, e.g. "axes", "stews", "swords" (shared/bag.ts groups them). */
+function groupName(id: ItemId): string {
+  const meal = parseMeal(id);
+  const name = isTool(id) ? TOOL_TYPES[parseTool(id).type].name : meal ? DISHES[meal.dish].name
+    : isWeapon(id) ? WEAPONS[parseWeapon(id).type].name : isArmor(id) ? ARMOR[parseArmor(id).type].name : ITEMS[id].name;
+  return /s$/.test(name) ? name.toLowerCase() : `${name.toLowerCase()}s`;
+}
+
+export function renderInventory() {
   slotsEl.replaceChildren();
-  const used = items.filter(Boolean).length; // slots in use (each stack takes one)
+  const used = usedSlots(bag); // each slot holds one pile of similar things
   bagCountEl.textContent = used ? String(used) : "";
   const selling = shopIsOpen();
   renderWeight();
-  for (let i = 0; i < items.length; i++) {
+  for (let i = 0; i < bag.slotCount; i++) {
     const slot = document.createElement("div");
     slot.className = "slot" + (drag?.ghost && drag.from === i ? " drag-from" : "");
     slot.dataset.slot = String(i);
-    const id = items[i];
-    if (id) {
+    const here = entriesIn(bag, i);
+    if (here.length) {
+      const top = here[0]; // the best one shows on top
+      const id = invItems[top]!;
       const item = ITEMS[id];
+      const kinds = here.length;
       slot.classList.add("filled");
+      if (kinds > 1) slot.classList.add("mixed"); // drawn like a little pile of cards
       slot.appendChild(icon("item-icon", item.icon, item.tint));
-      if (isTool(id)) slot.appendChild(durabilityBar(durability[i] ?? maxDurability(id), maxDurability(id)));
-      if (isGear(id)) slot.appendChild(durabilityBar(durability[i] ?? gearDurability(id), gearDurability(id)));
-      const n = countAt(i);
+      if (isTool(id)) slot.appendChild(durabilityBar(durability[top] ?? maxDurability(id), maxDurability(id)));
+      if (isGear(id)) slot.appendChild(durabilityBar(durability[top] ?? gearDurability(id), gearDurability(id)));
+      const n = slotTotal(bag, i);
       if (n > 1) slot.appendChild(countBadge(n));
       const tag = document.createElement("span");
       tag.className = "price-tag";
-      const price = sellPriceFor(id, lastMastery, durability[i]);
+      const price = sellPriceFor(id, lastMastery, durability[top]);
       tag.textContent = `${price}b`;
       slot.appendChild(tag);
-      const isLocked = !!locked[i];
-      if (isLocked) {
-        slot.classList.add("locked");
+      const lockedHere = here.filter((e) => locked[e]).length;
+      const allLocked = lockedHere === kinds;
+      if (lockedHere) {
+        if (allLocked) slot.classList.add("locked");
         const lock = document.createElement("span");
-        lock.className = "lock-badge";
+        lock.className = "lock-badge" + (allLocked ? "" : " some");
         lock.textContent = "🔒";
         slot.appendChild(lock);
       }
-      const many = n > 1 ? `${n} ${item.name.toLowerCase()}` : item.single;
-      slot.title = lockMode ? `${isLocked ? "Unlock" : "Lock"} ${n > 1 ? "these" : "this"} ${many}`
-        : isLocked ? `${n > 1 ? `${n} × ` : ""}${item.name} (locked)`
+      const name = shortName(id);
+      const many = kinds > 1 ? `${n} ${groupName(id)} (${kinds} kinds)` : n > 1 ? `${n} ${item.name.toLowerCase()}` : item.single;
+      slot.title = lockMode ? `${allLocked ? "Unlock" : "Lock"} ${n > 1 ? "these" : "this"} ${many}`
+        : allLocked ? `${n > 1 ? `${n} × ` : ""}${name} (locked)`
         : chestIsOpen() ? `Put ${many} in your chest`
+        : selling && kinds > 1 ? `${many}: tap to pick which to sell`
         : selling ? `Sell ${many} for ${formatMoney(price * n)}`
-        : `${n > 1 ? `${n} × ` : ""}${item.name} (stacks to ${stackLimit(id)}): click for details, or drag to move it`;
+        : kinds > 1 ? `${many}: click to see each one, or drag to move them`
+        : `${n > 1 ? `${n} × ` : ""}${name} (stacks to ${stackLimit(id)}): click for details, or drag to move it`;
       slot.onpointerdown = (e) => startDrag(e, i);
       slot.onclick = () => {
         if (justDragged) return;
         if (lockMode) return toggleLock(i);
-        if (chestIsOpen()) return onDeposit(i);
-        if (shopIsOpen() && !shopBuying) {
-          if (isLocked) return showMessage(`That ${item.single} is locked. Tap 🔒 on your inventory, then tap it to unlock.`);
-          return onSell(i);
+        if (chestIsOpen()) { for (const e of here) onDeposit(e); return; }
+        if (shopIsOpen() && !shopBuying && kinds === 1) {
+          if (allLocked) return showMessage(`That ${item.single} is locked. Tap 🔒 on your inventory, then tap it to unlock.`);
+          return onSell(top);
         }
-        showInfo({ kind: "slot", slot: i });
+        showInfo({ kind: "slot", slot: i, pick: 0 });
       };
     }
     slotsEl.appendChild(slot);
@@ -938,7 +962,7 @@ document.querySelectorAll<HTMLElement>(".shop-tab").forEach((b) => {
   b.onclick = () => {
     shopBuying = b.dataset.mode === "buy";
     resetSellAll();
-    renderInventory(invItems);
+    renderInventory();
   };
 });
 
@@ -950,14 +974,14 @@ export function openShop() {
   closeInfo();
   document.body.classList.add("shop-open");
   openPanel("inventory"); // so you can click your items, on phones too
-  renderInventory(invItems);
+  renderInventory();
 }
 
 export function closeShop() {
   if (!shopIsOpen()) return;
   document.body.classList.remove("shop-open");
   resetSellAll();
-  renderInventory(invItems);
+  renderInventory();
 }
 
 // "Sell all" asks once more before selling ("Tap again to sell..."), so one
@@ -987,7 +1011,7 @@ function renderShop() {
   document.body.classList.toggle("shop-buying", shopBuying);
   if (shopBuying) return renderBuy();
   shopBody.replaceChildren();
-  shopBody.append(el("", "Tap an item in your bag to sell it (a stack sells all at once). To keep one, tap 🔒 on your bag, then tap the item."));
+  shopBody.append(el("", "Tap an item in your bag to sell it (a stack sells all at once). If a slot holds different kinds (like two axes), tap it to pick which one. To keep one, tap 🔒 on your bag, then tap the item."));
   const prices = el("");
   prices.id = "shop-prices";
   // Prices for the kinds of thing you're carrying (there are too many to list them all).
@@ -1475,7 +1499,7 @@ document.getElementById("guild-close")!.onclick = closeGuild;
 
 const chestSlotsEl = document.getElementById("chest-slots")!;
 const chestTitle = document.getElementById("chest-title")!;
-let chest: { items: (ItemId | null)[]; counts: number[]; durability: (number | null)[] } = { items: [], counts: [], durability: [] };
+let chest: Bag = emptyBag(0);
 
 export function showChest(c: typeof chest, open: boolean) {
   chest = c;
@@ -1488,7 +1512,7 @@ export function showChest(c: typeof chest, open: boolean) {
     closeDialog();
     document.body.classList.add("chest-open");
     openPanel("inventory"); // so you can tap your items, on phones too
-    renderInventory(invItems);
+    renderInventory();
   }
   renderChest();
 }
@@ -1496,30 +1520,33 @@ export function showChest(c: typeof chest, open: boolean) {
 export function closeChest() {
   if (!chestIsOpen()) return;
   document.body.classList.remove("chest-open");
-  renderInventory(invItems);
+  renderInventory();
 }
 
 function renderChest() {
   if (!chestIsOpen()) return;
-  const used = chest.items.filter(Boolean).length;
-  chestTitle.textContent = `📦 Enchanted chest (${used}/${chest.items.length})`;
+  chestTitle.textContent = `📦 Enchanted chest (${usedSlots(chest)}/${chest.slotCount})`;
   chestSlotsEl.replaceChildren();
-  chest.items.forEach((id, i) => {
+  for (let i = 0; i < chest.slotCount; i++) {
     const slot = document.createElement("div");
     slot.className = "slot";
-    if (id) {
+    const here = entriesIn(chest, i);
+    if (here.length) {
+      const top = here[0];
+      const id = chest.inventory[top]!;
       const item = ITEMS[id];
-      const n = Math.max(1, chest.counts[i] ?? 1);
+      const n = slotTotal(chest, i);
       slot.classList.add("filled");
+      if (here.length > 1) slot.classList.add("mixed");
       slot.appendChild(icon("item-icon", item.icon, item.tint));
-      if (isTool(id)) slot.appendChild(durabilityBar(chest.durability[i] ?? maxDurability(id), maxDurability(id)));
-      if (isGear(id)) slot.appendChild(durabilityBar(chest.durability[i] ?? gearDurability(id), gearDurability(id)));
+      if (isTool(id)) slot.appendChild(durabilityBar(chest.durability[top] ?? maxDurability(id), maxDurability(id)));
+      if (isGear(id)) slot.appendChild(durabilityBar(chest.durability[top] ?? gearDurability(id), gearDurability(id)));
       if (n > 1) slot.appendChild(countBadge(n));
-      slot.title = `Take out ${n > 1 ? `${n} ${item.name.toLowerCase()}` : item.single}`;
-      slot.onclick = () => onWithdraw(i);
+      slot.title = `Take out ${here.length > 1 ? `all ${n} (${here.length} kinds)` : n > 1 ? `${n} ${item.name.toLowerCase()}` : item.single}`;
+      slot.onclick = () => { for (const e of here) onWithdraw(e); };
     }
     chestSlotsEl.appendChild(slot);
-  });
+  }
 }
 
 document.getElementById("chest-close")!.onclick = closeChest;
@@ -1561,9 +1588,14 @@ function renderInfo() {
   const target = info;
   let id: ItemId | null;
   let uses: number | null = null;
+  let entry = -1; // the bag entry being shown
+  let here: number[] = []; // everything in that bag slot
   if (target.kind === "slot") {
-    id = invItems[target.slot] ?? null;
-    uses = durability[target.slot] ?? null;
+    here = entriesIn(bag, target.slot);
+    target.pick = Math.max(0, Math.min(target.pick, here.length - 1));
+    entry = here[target.pick] ?? -1;
+    id = invItems[entry] ?? null;
+    uses = durability[entry] ?? null;
   } else if (target.kind === "belt") {
     const t = lastBelt[target.type];
     id = t?.item ?? null;
@@ -1575,14 +1607,41 @@ function renderInfo() {
   }
   if (!id) return closeInfo();
   const item = ITEMS[id];
-  const isLocked = target.kind === "slot" && !!locked[target.slot];
+  const isLocked = entry >= 0 && !!locked[entry];
   infoBody.replaceChildren();
   infoButtons.replaceChildren();
+  // Several kinds in this slot (a stone axe and a bronze axe, or stews of different recipes): flip through them.
+  if (here.length > 1 && target.kind === "slot") {
+    const nav = el("info-nav");
+    const flip = (d: number) => { target.pick = (target.pick + d + here.length) % here.length; renderInfo(); };
+    const prev = document.createElement("button");
+    prev.className = "shop-btn info-flip";
+    prev.textContent = "◀";
+    prev.title = "Previous one";
+    prev.onclick = () => flip(-1);
+    const next = document.createElement("button");
+    next.className = "shop-btn info-flip";
+    next.textContent = "▶";
+    next.title = "Next one";
+    next.onclick = () => flip(1);
+    nav.append(prev, el("info-nav-text", `${target.pick + 1} of ${here.length} in this slot`), next);
+    infoBody.appendChild(nav);
+  }
   const head = el("craft-head");
-  head.append(icon("craft-icon", item.icon, item.tint), el("craft-name", item.name + (isLocked ? " 🔒" : "")));
+  head.append(icon("craft-icon", item.icon, item.tint), el("craft-name", shortName(id) + (isLocked ? " 🔒" : "")));
   infoBody.appendChild(head);
-  const stack = target.kind === "slot" ? countAt(target.slot) : 1;
-  if (stackLimit(id) > 1) infoBody.append(infoLine("In this stack", `${stack} of ${stackLimit(id)}`, "a full stack takes one bag slot"));
+  const stack = entry >= 0 ? countAt(entry) : 1;
+  if (target.kind === "slot") {
+    const total = slotTotal(bag, target.slot);
+    if (here.length > 1) infoBody.append(infoLine("In this slot", `${total} of ${stackLimit(id)}`, stack > 1 ? `${stack} of this one` : "similar things share a slot"));
+    else if (stackLimit(id) > 1) infoBody.append(infoLine("In this stack", `${stack} of ${stackLimit(id)}`, "a full stack takes one bag slot"));
+  }
+  // Tools: what the head and handle are made of.
+  if (isTool(id)) {
+    const { metal, wood } = parseTool(id);
+    if (metal) infoBody.append(infoLine(hasHandle(parseTool(id).type) ? "Head" : "Made of", MATERIALS[metal].name));
+    if (wood) infoBody.append(infoLine(metal ? "Handle" : "Wood", WOODS[wood].name));
+  }
 
   // Value: base price, your Mastery multiplier, and what the Merchant pays and charges.
   const mid = masteryIdFor(id);
@@ -1675,13 +1734,18 @@ function renderInfo() {
   } else if (target.kind === "gear") {
     infoButton("Take off", () => { onRemove(target.slot); closeInfo(); });
   } else {
-    const slot = target.slot;
-    if (isTool(id)) infoButton("Put on belt", () => { onEquip(slot); closeInfo(); });
-    if (isGear(id)) infoButton(isWeapon(id) ? "Hold" : "Wear", () => { onWear(slot); closeInfo(); });
-    if (id === POTION_ID) infoButton(`Drink (+${POTION_HEAL})`, () => { onDrink(slot); closeInfo(); });
-    if (isFood(id)) infoButton(`Eat (+${staminaOf(id)})`, () => { onEat(slot); closeInfo(); }, staminaNow >= MAX_STAMINA);
-    infoButton(isLocked ? "Unlock" : "Lock", () => onLock(slot, !isLocked));
-    infoButton(stack > 1 ? `Drop all ${stack}` : "Drop", () => { onDrop(slot); closeInfo(); }, isLocked);
+    // Buttons act on the one showing. With several kinds in the slot, the card stays open so you can pick another.
+    const e = entry;
+    const done = () => { if (here.length === 1) closeInfo(); };
+    if (shopIsOpen() && !shopBuying) {
+      infoButton(`Sell${stack > 1 ? ` all ${stack}` : ""} (${formatMoney(sellPriceFor(id, lastMastery, uses) * stack)})`, () => { onSell(e); done(); }, isLocked);
+    }
+    if (isTool(id)) infoButton("Put on belt", () => { onEquip(e); closeInfo(); });
+    if (isGear(id)) infoButton(isWeapon(id) ? "Hold" : "Wear", () => { onWear(e); closeInfo(); });
+    if (id === POTION_ID) infoButton(`Drink (+${POTION_HEAL})`, () => { onDrink(e); closeInfo(); });
+    if (isFood(id)) infoButton(`Eat (+${staminaOf(id)})`, () => { onEat(e); done(); }, staminaNow >= MAX_STAMINA);
+    infoButton(isLocked ? "Unlock" : "Lock", () => onLock(e, !isLocked));
+    infoButton(stack > 1 ? `Drop all ${stack}` : "Drop", () => { onDrop(e); done(); }, isLocked);
   }
   infoButton("Close", closeInfo);
 }

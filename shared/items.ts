@@ -19,9 +19,11 @@ export type BaseItemId =
 
 export interface ItemDef {
   name: string;
+  /** Shorter name for the bag and the item card, e.g. just "Axe" (the card says what it's made of). */
+  short?: string;
   /** Name for just one, e.g. "oak log". */
   single: string;
-  icon: string; // emoji for now, swapped for pixel art later
+  icon: string; // an emoji, or "svg:..." for one the client draws (tools: "svg:tool/axe/bronze/oak")
   /** CSS filter that tints the emoji so similar items look different, e.g. oak vs pine logs. */
   tint?: string;
   /** What the Merchant pays for one, in bronze coins (before Mastery). */
@@ -124,21 +126,27 @@ for (const bar of BAR_IDS) {
   ITEMS[bar] = { name: `${metal.name} bar`, single: `${metal.name.toLowerCase()} bar`, icon: "🧈", tint: metal.tint, sellPrice: 0, inputs: metal.ores };
   ITEMS[bar].sellPrice = Math.floor(exactBase(bar));
 }
+/** Tools are drawn by the client: the head in its metal or stone, the handle in its wood. */
+function toolIcon(tool: ToolItemId) {
+  const { type, metal, wood } = parseTool(tool);
+  return `svg:tool/${type}/${metal ?? ""}/${wood ?? ""}`;
+}
 for (const tool of ALL_TOOL_IDS) {
   const { type, metal, wood } = parseTool(tool);
   if (!metal) {
     // Fishing rods: all wood, 2 logs.
     const name = `${WOODS[wood!].name} ${TOOL_TYPES[type].name.toLowerCase()}`;
     const logs = `${wood}_logs` as BaseItemId;
-    ITEMS[tool] = { name, single: name.toLowerCase(), icon: TOOL_TYPES[type].icon, tint: ITEMS[logs].tint, sellPrice: 0, inputs: Array<ItemId>(ROD_LOGS).fill(logs) };
+    ITEMS[tool] = { name, short: TOOL_TYPES[type].name, single: name.toLowerCase(), icon: toolIcon(tool), sellPrice: 0, inputs: Array<ItemId>(ROD_LOGS).fill(logs) };
     ITEMS[tool].sellPrice = Math.floor(exactBase(tool));
     continue;
   }
   const name = `${MATERIALS[metal].name} ${TOOL_TYPES[type].name.toLowerCase()}`;
   ITEMS[tool] = {
     name: wood ? `${name} (${WOODS[wood].name})` : name,
+    short: TOOL_TYPES[type].name,
     single: wood ? `${name.toLowerCase()} (${WOODS[wood].name.toLowerCase()})` : name.toLowerCase(),
-    icon: TOOL_TYPES[type].icon, tint: MATERIALS[metal].tint, sellPrice: 0,
+    icon: toolIcon(tool), sellPrice: 0,
     inputs: [...Array<ItemId>(headCount(type)).fill(metal === "stone" ? "stone" : barId(metal)), ...(wood ? [`${wood}_logs` as BaseItemId] : [])],
   };
   ITEMS[tool].sellPrice = Math.floor(exactBase(tool));

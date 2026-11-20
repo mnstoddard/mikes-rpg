@@ -23,7 +23,7 @@ like `http://192.168.1.20:5173`; open that on their device.
 - **Quests / Skills / Inventory:** the 📜, 📊 and 🎒 buttons (bottom right) open each panel; tap again to close. On phones they start closed so they don't cover the map.
 - **Messages:** tap the message box (bottom left) to see every message since you logged in, with times.
 - **Settings:** the ⚙️ button (top right, under the zoom buttons) lets you change your name (it's your login too), your password (needs the old one) and your character's colour, or **Sign out**.
-- **Moving and sorting your bag:** drag an item onto another slot to swap them (mouse or finger; a short tap still opens the item). The ⇅ button at the top left of the inventory sorts it: tools, weapons, armor, food, potions, bars, logs, ore, fish, then everything else. Locks and uses left move with the item.
+- **Moving and sorting your bag:** drag an item onto another slot to swap them (a slot of several axes moves together) (mouse or finger; a short tap still opens the item). The ⇅ button at the top left of the inventory sorts it: tools, weapons, armor, food, potions, bars, logs, ore, fish, then everything else. Locks and uses left move with the item.
 
 ## The tutorial: Old Maren
 
@@ -218,9 +218,20 @@ Rules live in `shared/bounties.ts`; the board is in `shared/npcs.ts`.
 
 Your bag has 12 slots. Most things stack in one slot: up to 50 logs, ore,
 stone or fish, 100 feathers, 10 health potions, and 25 of everything else.
-Tools, weapons, armor and bait don't stack. A small number in the corner of a
-slot shows how many are in it. Tapping a stack at the Merchant sells the whole
-stack, and Drop drops the whole stack. Sorting the bag also joins split stacks.
+**Similar things share a slot too:** every axe goes together (a stone axe and a
+bronze axe), every pickaxe, every sword, every helmet and so on (up to 10 in a
+slot), every bait of one kind (up to 10), and every meal of one dish (all your
+stews, whatever went into them, up to 25). A slot holding different kinds looks
+like a little pile. Tap it and the item card shows one at a time: use ◀ ▶ to flip
+through them and see each one's numbers, then eat, equip, lock, drop or (at the
+Merchant) sell the one showing. Weight still counts every single item.
+
+A small number in the corner of a slot shows how many are in it. At the
+Merchant, tapping a slot with just one kind sells the whole stack; a slot with
+several kinds opens the card so you pick which. Drop drops the stack you're
+looking at. In 🔒 mode, tapping a slot locks (or unlocks) everything in it; the
+card's Lock button locks just the one showing (a faded 🔒 means some of the slot
+is locked). Sorting the bag also joins split stacks.
 
 You can also only carry so much **weight**: 45 kg to start. The ⚖️ bar under
 your bag shows it. Your bag counts, and so do the tools on your belt and the
@@ -231,8 +242,8 @@ about 19 ore or logs. When you're full, gathering stops and the Merchant won't
 sell you more until you sell, drop, eat or store something. Old Maren's gifts
 always fit, so the tutorial can't get stuck.
 
-Characters from when bags had 28 slots keep everything: on login, stacks are
-joined, and whatever doesn't fit in 12 slots goes into their enchanted chest
+Characters from when bags had 28 slots, or when every tool took its own slot,
+keep everything: on login, similar things are joined, and whatever doesn't fit in 12 slots goes into their enchanted chest
 (if they have space) or is sold to the Merchant for its full price.
 
 The numbers live in `shared/bag.ts` (stack sizes), `shared/weight.ts`
@@ -281,6 +292,9 @@ The **tool belt** sits above your bag (it doesn't use bag slots) and has one slo
 each for an 🪓 axe, ⛏️ pickaxe, 🎣 fishing rod, 🔨 hammer and 🗜️ tongs. Click a
 tool in your bag to put it on the belt (the one already there goes back in your
 bag); click a belt slot to take it off. Only the tool on the belt counts.
+Tools are just called "Axe", "Pickaxe" and so on in your bag, and drawn to show
+what they're made of: the head is the colour of its stone or metal and the
+handle the colour of its wood. The item card lists the head and handle.
 
 - **Gathering tools** (axe, pickaxe, rod) make you faster. Without one, gathering
   takes **3 times longer**. For axes and pickaxes, the head (stone or metal) and the handle's wood each add a bonus:
@@ -439,7 +453,7 @@ also while logged out, and from **eating** (click a fish or a meal, then Eat).
 - **Chum bait** (Handicraft 3, 2 food scraps + 1 worm): +50% Fishing XP per catch.
 - **Glow bait** (Handicraft 6, 2 worms + 1 feather): 15% chance to catch two fish.
 
-Each bait lasts 25 catches and takes a bag slot of its own. Fishing uses the
+Each bait lasts 25 catches; up to 10 of one kind share a bag slot. Fishing uses the
 first **unlocked** bait in your bag, so lock one to save it for later. Worms
 turn up 12% of the time while chopping or mining (the Merchant sells them too),
 and cooking leaves food scraps 35% of the time.
