@@ -17,6 +17,9 @@ import { NPCS, npcAt } from "../../shared/npcs";
 import { DISCIPLINES, DisciplineId, DisciplineXp, SkillId, SkillXp, emptySkills, findSkill, levelForXp } from "../../shared/disciplines";
 import { ItemMasteryXp, MasteryId } from "../../shared/mastery";
 import { showLogin } from "./login";
+import { setTreeActions } from "./tree";
+import { renderTreeRanks } from "./ui";
+import type { TreeRanks } from "../../shared/skilltree";
 import type { QuestView } from "../../shared/quests";
 
 const TILE_COLORS: Record<Tile, number> = {
@@ -134,6 +137,11 @@ export class WorldScene extends Phaser.Scene {
       sort: () => room.send("sortInventory"),
       move: (from, to) => room.send("moveItem", { from, to }),
     });
+    setTreeActions({
+      buy: (node) => room.send("treeBuy", { node }),
+      reset: (skill) => room.send("treeReset", { skill }),
+    });
+    room.onMessage("tree", (ranks: TreeRanks) => renderTreeRanks(ranks));
     setQuestActions({ track: (bounty) => room.send("track", bounty == null ? {} : { bounty }) });
     setAccountActions({
       rename: (name) => room.send("rename", { name }),
@@ -393,6 +401,16 @@ export class WorldScene extends Phaser.Scene {
       c.add([g, fire, steam]);
       this.tweens.add({ targets: fire, alpha: 0.5, duration: 350, yoyo: true, repeat: -1 });
       this.tweens.add({ targets: steam, y: -30, alpha: 0, scaleX: 1.8, duration: 1400, repeat: -1 });
+    } else if (id === "workbench") {
+      // A wooden bench on legs, with a jar of worms and a little bundle of thread.
+      g.fillStyle(0x5c3a1a).fillRect(-12, -2, 3, 12).fillRect(9, -2, 3, 12); // legs
+      g.fillStyle(0x9a6b3a).fillRect(-14, -8, 28, 7); // top
+      g.fillStyle(0x6e4a24).fillRect(-14, -2, 28, 2);
+      g.fillStyle(0xcfe8ef, 0.85).fillRect(-10, -16, 7, 8); // jar
+      g.fillStyle(0xd98a8a).fillRect(-9, -11, 5, 2); // worms in it
+      g.fillStyle(0xf2e6c9).fillCircle(6, -11, 3); // thread
+      g.lineStyle(1, 0x8b5a2b).strokeCircle(6, -11, 3);
+      c.add(g);
     } else if (id.startsWith("chest")) {
       // A purple chest with gold bands and a glowing keyhole.
       g.fillStyle(0x4a2a7a).fillRoundedRect(-12, -10, 24, 18, 3);

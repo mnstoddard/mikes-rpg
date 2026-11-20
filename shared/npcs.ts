@@ -1,7 +1,7 @@
 // People and work stations that stand around the world. They block the tile they're on.
 // Click one to walk over and use it: Old Maren talks to you, the Merchant opens his shop, the furnace,
 // anvil and stove open their crafting windows, the bounty board shows its jobs.
-export type NpcId = "maren" | "merchant" | "furnace" | "anvil" | "stove" | "board"
+export type NpcId = "maren" | "merchant" | "furnace" | "anvil" | "stove" | "workbench" | "board"
   | "archmage" | "guildboard" | "chest" | "chest_east" | "chest_forest";
 
 export interface NpcDef {
@@ -26,7 +26,7 @@ export const NPCS: NpcDef[] = [
   {
     id: "merchant", name: "Merchant", kind: "person", x: 16, y: 10, color: 0x8e44ad,
     badge: "💰",
-    greeting: "I'll buy anything you've got, and I sell tools, starter weapons, health potions, fish stew, bars, logs and ore. Click your items to sell, or tap Buy.",
+    greeting: "I'll buy anything you've got, and I sell tools, starter weapons, health potions, stew, vegetables, worms, bars, logs and ore. Click your items to sell, or tap Buy.",
   },
   {
     id: "furnace", name: "Furnace", kind: "station", x: 14, y: 10, color: 0x8b3a1a,
@@ -38,7 +38,12 @@ export const NPCS: NpcDef[] = [
   },
   {
     id: "stove", name: "Stove", kind: "station", x: 12, y: 10, color: 0x3a3a3a,
-    greeting: "The stove is ready. Pick a fish, how many, and a log to burn.",
+    greeting: "The stove is ready. Pick a dish, put ingredients in the pot, and pick a log to burn.",
+  },
+  {
+    // Handicraft (shared/handicraft.ts): fishing bait for now.
+    id: "workbench", name: "Workbench", kind: "station", x: 20, y: 10, color: 0x8b5a2b,
+    greeting: "A sturdy workbench. Pick something to make.",
   },
   {
     // Jobs that pay double (shared/bounties.ts). Opens once Old Maren's tutorial is done.

@@ -43,6 +43,7 @@ export interface SaveData {
   spell?: string; // spell the staff casts, e.g. "fire_blast"
   combatMastery?: Record<string, number>; // Mastery XP per weapon type, spell and monster, e.g. { dagger: 40, chicken: 22 }
   lockedSlots?: number[]; // inventory slots holding locked items, e.g. [0, 3], so Sell all skips them
+  tree?: Record<string, number>; // Mastery skill tree ranks bought, e.g. { "cooking.slots": 2 }
   bounties?: { item: string; count: number }[]; // the bounty board's 5 jobs, e.g. [{ item: "oak_logs", count: 6 }]
   tracked?: string; // the bounty on the quest tracker (its item), if one is picked over Maren's quest
   color?: number; // character colour, picked in Settings (one of shared/colors.ts)

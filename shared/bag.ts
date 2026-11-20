@@ -14,6 +14,7 @@ import { RESOURCE_FOR_ITEM } from "./foraging";
 import { isTool } from "./tools";
 import { isGear } from "./gear";
 import { POTION_ID } from "./combat";
+import { isBait } from "./handicraft";
 
 /** Change these to make stacks bigger or smaller. */
 export const STACK_LIMITS = {
@@ -28,7 +29,7 @@ export const STACK_LIMITS = {
 
 /** How many of this item fit in one slot (1 = it doesn't stack). */
 export function stackLimit(item: ItemId): number {
-  if (isTool(item) || isGear(item)) return 1;
+  if (isTool(item) || isGear(item) || isBait(item)) return 1; // bait wears down one catch at a time, like a tool
   if (RESOURCE_FOR_ITEM[item]) return STACK_LIMITS.gathered;
   if (item === "feather") return STACK_LIMITS.feather;
   if (item === POTION_ID) return STACK_LIMITS.potion;
