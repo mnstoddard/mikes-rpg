@@ -31,7 +31,7 @@ Maren's quests arrived. Nobody's old XP, items or coins carry over.
 
 | Discipline | What it raises | Skills in it |
 |---|---|---|
-| 💪 **Strength** | Max **health** | Melee, Ranged, Defense *(Athletics maybe, not decided)* |
+| 💪 **Strength** | Max **health** | Melee, Ranged, Defense |
 | 🌿 **Endurance** (was Foraging) | Max **stamina** | Fishing, Woodcutting, Mining, Foraging *(new)*, Farming *(new)*, Hunting *(new)* |
 | 🔮 **Wisdom** | Max **mana** | Spellcasting *(replaces Magic)*, Enchanting *(new)*, Alchemy *(new)* |
 | 🤲 **Dexterity** (was Crafting) | **Weight limit** and **walking speed** | Cooking, Handicraft, Smithing, Smelting |
@@ -49,8 +49,8 @@ Mining and Endurance.
   Endurance next to Farming instead, since meals give stamina. See open
   questions.)
 - **Melee, Ranged, Defense** go to Strength. (Ranged covers bows, slings and
-  darts; there's no separate Archery skill.) An Athletics skill might join them
-  later; that's not decided yet.
+  darts; there's no separate Archery skill.)
+  There's no Athletics skill either.
 - **Tailoring and Fletching** are not separate skills: both fold into
   **Handicraft**. **Jewelcrafting** is not a separate skill: it folds into
   **Smithing**.
@@ -181,11 +181,11 @@ tools and jewellery are all mixed into one ladder. For example:
 | Smithing level | Unlocks |
 |---|---|
 | 1 | Bronze dagger, stone tools |
-| 2 | Bronze short sword, tin ring |
+| 2 | Bronze short sword, bronze ring |
 | 3 | Bronze helmet, bronze tools |
-| 4 | Bronze mace, tin amulet |
+| 4 | Bronze mace, bronze amulet |
 | 5 | Bronze shield, bronze boots |
-| 7 | Bronze platelegs, tin inlay |
+| 7 | Bronze platelegs, bronze inlay |
 | 9 | Bronze platebody, bronze spear |
 | 12 | Silver ring |
 | 15 | Iron dagger, iron tools |
@@ -200,16 +200,16 @@ tools and jewellery are all mixed into one ladder. For example:
 ### Two metal ladders
 - **Fighting and tool metals** (Strength gear and tools): stone, bronze, iron,
   steel, mithril, as today.
-- **Jewellery metals** (rings, amulets and inlays): **tin** (low quality,
-  available right away), then **silver**, **gold**, **platinum**, and
+- **Jewellery metals** (rings, amulets and inlays): **bronze** (low quality,
+  available right away, the same bronze bars as weapons), then **silver**, **gold**, **platinum**, and
   **iridium** at very high levels. Better jewellery metal means a stronger
   ring or amulet and a higher enchanting cap on an inlay. Platinum and iridium
   need new ore rocks (in the Quarry and deep in the Cave).
 
 ### Coins use the same metals
-Money follows the jewellery ladder: **tin, silver, gold, platinum and iridium
-coins**, each worth 100 of the one below. Tin coins replace today's bronze
-coins.
+Money follows the jewellery ladder: **bronze, silver, gold, platinum and
+iridium coins**, each worth 100 of the one below. Bronze, silver and gold
+coins work as they do today; platinum and iridium are added on top.
 
 ### Handicraft: bows, staffs, cloth and leather (no Fletching or Tailoring skill)
 Handicraft already makes fishing bait at the workbench. It also takes over
@@ -230,7 +230,7 @@ Smithing also does what a Jewelcrafting skill would have done. At the anvil
 
 - **Cut** raw gems. Cutting keeps the size; cut gems are worth more and are
   needed for enchanting.
-- **Make settings**: rings, amulets and inlays in tin, silver, gold, platinum
+- **Make settings**: rings, amulets and inlays in bronze, silver, gold, platinum
   or iridium (each unlocks at its own Smithing level).
 - **Set gems** into rings and amulets.
 - **Shape soul gems** from raw soul stone.
@@ -289,8 +289,8 @@ Guild. Every enchantment uses:
 2. **A filled soul gem**: the power. It's used up.
 3. **A cut gem**: the effect. Gem type picks the effect, and gem size sets how
    strong it is. It's used up.
-4. **Optional metal inlay** (tin, silver, gold, platinum or iridium): raises
-   the cap on how strong the enchantment can be. Tin raises it a little,
+4. **Optional metal inlay** (bronze, silver, gold, platinum or iridium): raises
+   the cap on how strong the enchantment can be. Bronze raises it a little,
    iridium the most.
 
 What each gem does:
@@ -449,7 +449,7 @@ Planned chapters:
 | Old Maren | Fishing, Cooking, Eating | "Living off the land" (as today) |
 | Forester Holt | Woodcutting | Chop, make a stone axe, sell logs |
 | Miner Greta | Mining | Stone, ore, then find your first gem |
-| Smith Brann | Smithing, Smelting | Bars, tools, armor (today's lessons), then cut a gem and make a tin ring |
+| Smith Brann | Smithing, Smelting | Bars, tools, armor (today's lessons), then cut a gem and make a bronze ring |
 | Herbalist Wren | Foraging | Get a shovel, dig 5 finds, find a night herb |
 | Farmer Odo | Farming | Buy a plot (Odo pays for the first), plant, harvest |
 | Huntmaster Kael | Hunting, Melee, Ranged, Defense | Today's combat lesson, then the wolf |
@@ -566,7 +566,3 @@ Stages 10, 11 and 12 can be done in any order once stage 3 is in.
 9. **Spell books**: should some spells be shop-only, or only from drops and
    quests?
 10. **Walking speed from Dexterity**: is +30% at level 99 about right?
-11. **Athletics**: add it to Strength (climbing, shortcuts, sprinting), or not?
-12. **Coins**: when tin coins replace bronze, should everyone's money convert
-    straight across (1 bronze becomes 1 tin)? Since everyone starts fresh at
-    stage 2, this only matters if coins change before then.
