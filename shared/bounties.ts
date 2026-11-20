@@ -13,7 +13,7 @@
 // Shared so the board shows the same rewards the server pays.
 import { ITEMS, ItemId } from "./items";
 import { RESOURCES, RESOURCE_FOR_ITEM, RESOURCE_IDS, ResourceId } from "./foraging";
-import { DISCIPLINES, DisciplineId, DisciplineXp, SkillId, SkillXp, findSkill, levelForXp } from "./disciplines";
+import { SkillId, SkillXp, findSkill, isUnlocked, levelForXp } from "./disciplines";
 import { BAR_IDS, BarId, MATERIALS, MATERIAL_IDS, Material, METAL_IDS, TOOL_TYPE_IDS, WOOD_IDS, Wood, barId, hasHandle, isTool, isWoodTool, maxDurability, toolId } from "./tools";
 import { ARMOR_TYPES, WEAPON_TYPES, armorId, isGear, weaponId } from "./gear";
 import { DISHES, DISH_IDS, INGREDIENTS, INGREDIENT_IDS, fitsDish, mealId } from "./cooking";
@@ -30,7 +30,8 @@ export interface Bounty { item: ItemId; count: number }
 
 /** What decides which bounties you can get: your levels, and which monsters you've defeated. */
 export interface BountyPlayer {
-  disciplines: DisciplineXp;
+  /** Skills you've been taught (shared/quests.ts unlockedSkills). */
+  unlocked: SkillId[];
   skillXp: SkillXp;
   combatMastery: CombatMasteryXp;
 }
@@ -38,10 +39,9 @@ export interface BountyPlayer {
 const rand = (lo: number, hi: number) => lo + Math.floor(Math.random() * (hi - lo + 1));
 const pickOne = <T>(list: T[]): T => list[Math.floor(Math.random() * list.length)];
 
-/** Is this skill open (its Discipline is high enough) and at least this level? */
+/** Have you been taught this skill, and is it at least this level? */
 function skillAt(p: BountyPlayer, skill: SkillId, level: number): boolean {
-  const { discipline, def } = findSkill(skill);
-  return levelForXp(p.disciplines[discipline]) >= def.unlockLevel && levelForXp(p.skillXp[skill]) >= level;
+  return isUnlocked(p.unlocked, skill) && levelForXp(p.skillXp[skill]) >= level;
 }
 
 const canGather = (p: BountyPlayer, r: ResourceId) => skillAt(p, RESOURCES[r].skill, RESOURCES[r].level);
@@ -132,13 +132,17 @@ const dropper = (item: ItemId): MonsterId | null => MONSTER_IDS.find((m) => MONS
 export interface BountyReward {
   coins: number;
   xp: number;
-  /** Where the XP goes: a Discipline, plus a skill (Woodcutting...) or a monster's Mastery. */
-  discipline: DisciplineId;
+  /** Where the XP goes: a skill (Woodcutting...), or a monster's Mastery for monster drops. */
   skill?: SkillId;
   monster?: MonsterId;
-  /** "Woodcutting", or "Combat" for monster drops. */
+  /** "Woodcutting", or "Wolf Mastery" for monster drops. */
   label: string;
+  /** Renown XP: every bounty trains Renown, bigger ones more. */
+  renown: number;
 }
+
+/** Renown for finishing a bounty: 5, plus 1 for each thing handed in. */
+export const bountyRenown = (count: number) => 5 + count;
 
 /**
  * What handing in a bounty pays: double what the Merchant would give you for
@@ -150,14 +154,14 @@ export function bountyReward(b: Bounty, mastery: ItemMasteryXp): BountyReward {
   const resource = RESOURCE_FOR_ITEM[b.item];
   if (resource) {
     const r = RESOURCES[resource];
-    return { coins, xp: r.xp * b.count, discipline: findSkill(r.skill).discipline, skill: r.skill, label: findSkill(r.skill).def.name };
+    return { coins, xp: r.xp * b.count, skill: r.skill, label: findSkill(r.skill).def.name, renown: bountyRenown(b.count) };
   }
   const recipe = recipeFor(b.item);
   if (recipe) {
-    return { coins, xp: recipe.xp * b.count, discipline: findSkill(recipe.skill).discipline, skill: recipe.skill, label: findSkill(recipe.skill).def.name };
+    return { coins, xp: recipe.xp * b.count, skill: recipe.skill, label: findSkill(recipe.skill).def.name, renown: bountyRenown(b.count) };
   }
   const monster = dropper(b.item);
-  return { coins, xp: (monster ? MONSTERS[monster].xp : 1) * b.count, discipline: "combat", monster: monster ?? undefined, label: DISCIPLINES.combat.name };
+  return { coins, xp: (monster ? MONSTERS[monster].xp : 1) * b.count, monster: monster ?? undefined, label: monster ? `${MONSTERS[monster].name} Mastery` : "Mastery", renown: bountyRenown(b.count) };
 }
 
 /**

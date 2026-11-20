@@ -93,6 +93,9 @@ export const TREES: Record<SkillId, TreeNode[]> = {
     node("defense", "dodge", "Footwork", "💨", 0.02),
     node("defense", "xp", "Quick learner", "📖", 0.1),
   ],
+  // Charisma skills only have "Quick learner" for now; more upgrades come with Trading and Renown's own stage.
+  trading: [node("trading", "xp", "Quick learner", "📖", 0.1)],
+  renown: [node("renown", "xp", "Quick learner", "📖", 0.1)],
 };
 
 export const ALL_TREE_NODES = Object.values(TREES).flat();

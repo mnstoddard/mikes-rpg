@@ -17,10 +17,8 @@ import {
 
 // ---- Health and mana ----
 
-/** Health: 50 at Defense level 1, +2 per Defense level. */
-export const maxHealth = (defenseLevel: number) => 48 + 2 * defenseLevel;
-/** Mana: 50 at Magic level 1, +2 per Magic level. Spells use it. */
-export const maxMana = (magicLevel: number) => 48 + 2 * magicLevel;
+// Max health comes from Strength, max mana from Wisdom (shared/stats.ts).
+export { maxHealth, maxMana } from "./stats";
 /** Mana comes back 1 every 6 seconds (10 ticks), online or off. */
 export const MANA_REGEN_TICKS = 10;
 /** Health comes back very slowly on its own: 1 a minute (100 ticks). Potions are the quick way. */

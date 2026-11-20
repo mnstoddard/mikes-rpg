@@ -27,6 +27,7 @@ import { WOOD_IDS, Wood } from "./tools";
 // ---- Stamina ----
 
 /** Everyone starts with this much (it will grow with levels later). */
+/** Stamina at Endurance 1. Your max goes up with Endurance (shared/stats.ts maxStamina). */
 export const MAX_STAMINA = 100;
 /** You get 1 stamina back every 30 seconds, online or off. */
 export const STAMINA_REGEN_MS = 30_000;
@@ -45,6 +46,9 @@ export const STAMINA_COST: Record<SkillId, number> = {
   ranged: 1,
   magic: 0,
   defense: 0,
+  // Charisma: talking costs nothing.
+  trading: 0,
+  renown: 0,
 };
 
 // ---- Fish ----

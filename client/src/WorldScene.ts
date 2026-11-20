@@ -15,7 +15,7 @@ import { closeDialog, openDialog, renderQuest, renderStamina, renderVitals, rend
 import { masteryName } from "../../shared/crafting";
 import type { Belt, ToolType } from "../../shared/tools";
 import { NPCS, npcAt } from "../../shared/npcs";
-import { DISCIPLINES, DisciplineId, DisciplineXp, SkillId, SkillXp, emptySkills, findSkill, levelForXp } from "../../shared/disciplines";
+import { DISCIPLINES, DisciplineId, DisciplineView, SkillId, SkillXp, emptySkills, findSkill, isUnlocked, levelForXp } from "../../shared/disciplines";
 import { ItemMasteryXp, MasteryId } from "../../shared/mastery";
 import { showLogin } from "./login";
 import { setTreeActions } from "./tree";
@@ -67,7 +67,8 @@ export class WorldScene extends Phaser.Scene {
   private pinchStartDist = 0;
   private pinchStartZoom = 1;
   private gestureWasPinch = false;
-  private lastDisciplines?: DisciplineXp;
+  private lastDisciplines?: DisciplineView;
+  private skillXpSeen = false; // the first skill XP after logging in isn't "gained"
   private skillXp: SkillXp = emptySkills();
   /** The ❗ over Old Maren when she has something to say. */
   private guideAlert?: Phaser.GameObjects.Text;
@@ -102,19 +103,20 @@ export class WorldScene extends Phaser.Scene {
   private attach(room: Room, reconnected = false) {
     this.room = room;
     room.onMessage("message", (text: string) => showMessage(text));
-    room.onMessage("disciplines", (disciplines: DisciplineXp) => {
-      // Floating "+1 Foraging XP" over your head whenever you earn XP.
-      if (this.lastDisciplines) {
-        for (const id of Object.keys(disciplines) as DisciplineId[]) {
-          const gained = disciplines[id] - (this.lastDisciplines[id] ?? 0);
-          if (gained > 0) this.floatText(`+${gained} ${DISCIPLINES[id].name} XP`, "#9be28a");
-        }
-      }
+    room.onMessage("disciplines", (disciplines: DisciplineView) => {
       this.lastDisciplines = disciplines;
       renderDisciplines(disciplines);
     });
     room.onMessage("levelup", (msg: { discipline: DisciplineId; level: number }) => this.celebrateLevelUp(msg.discipline));
     room.onMessage("skillxp", (skillXp: SkillXp) => {
+      // Floating "+2 Fishing XP" over your head whenever you earn XP.
+      if (this.skillXpSeen) {
+        for (const id of Object.keys(skillXp) as SkillId[]) {
+          const gained = skillXp[id] - (this.skillXp[id] ?? 0);
+          if (gained > 0) this.floatText(`+${gained} ${findSkill(id).def.name} XP`, "#9be28a");
+        }
+      }
+      this.skillXpSeen = true;
       this.skillXp = skillXp;
       renderSkillXp(skillXp);
     });
@@ -265,6 +267,7 @@ export class WorldScene extends Phaser.Scene {
     for (const key of [...this.trees.keys(), ...this.rocks.keys()]) this.setStump(key, false);
     this.marker.setVisible(false);
     this.lastDisciplines = undefined;
+    this.skillXpSeen = false;
   }
 
   /**
@@ -548,7 +551,7 @@ export class WorldScene extends Phaser.Scene {
     view.tween?.stop();
     // A long jump (waking up at Maren's) snaps straight there instead of sliding across the map.
     if (Math.abs(view.container.x - tx) > TILE_SIZE * 2 || Math.abs(view.container.y - ty) > TILE_SIZE * 2) view.container.setPosition(tx, ty);
-    else view.tween = this.tweens.add({ targets: view.container, x: tx, y: ty, duration: TICK_MS, ease: "Linear" });
+    else view.tween = this.tweens.add({ targets: view.container, x: tx, y: ty, duration: player.stepMs || TICK_MS, ease: "Linear" });
     view.container.setDepth(10 + player.y + 0.5);
     if (isMe && this.marker.visible && this.marker.x === tx && this.marker.y === ty) this.marker.setVisible(false);
   }
@@ -676,8 +679,8 @@ export class WorldScene extends Phaser.Scene {
   /** " (Woodcutting level 20)" if you can't gather this type yet, else "". */
   private lockNote(type: ResourceId) {
     const r = RESOURCES[type];
-    const { discipline, def } = findSkill(r.skill);
-    if (levelForXp(this.lastDisciplines?.[discipline] ?? 0) < def.unlockLevel) return ` (${DISCIPLINES[discipline].name} level ${def.unlockLevel})`;
+    const { def } = findSkill(r.skill);
+    if (!isUnlocked(this.lastDisciplines?.unlocked ?? [], r.skill)) return ` (learn ${def.name} first)`;
     return levelForXp(this.skillXp[r.skill] ?? 0) < r.level ? ` (${def.name} level ${r.level})` : "";
   }
 

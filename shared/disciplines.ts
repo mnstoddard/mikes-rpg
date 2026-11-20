@@ -1,22 +1,26 @@
 // Disciplines and skills.
 //
-// A Discipline is a broad area you level up (Foraging). Each Discipline holds
-// Skills, the actual things you do (Woodcutting, Fishing), which unlock as the
-// Discipline's level goes up. All XP from a Discipline's skills goes into the
-// Discipline. Shared so the client shows the same numbers the server uses.
+// A Discipline is a broad area (Strength, Endurance...). Each Discipline holds
+// Skills, the actual things you do (Woodcutting, Fishing). A Discipline's level
+// is the average level of its unlocked skills (rounded down), so
+// it goes up as they do. Skills unlock through quests, when someone teaches you.
+// Each Discipline raises one of your stats (see shared/stats.ts).
+// Shared so the client shows the same numbers the server uses.
 
-export type DisciplineId = "foraging" | "crafting" | "combat";
+export type DisciplineId = "strength" | "endurance" | "wisdom" | "dexterity" | "charisma";
 export type GatherSkill = "woodcutting" | "fishing" | "mining";
 export type CraftSkill = "smelting" | "smithing" | "cooking" | "handicraft";
+/** "magic" is Spellcasting (its id stays "magic" so spells, staffs and trees keep working). */
 export type CombatSkill = "melee" | "ranged" | "magic" | "defense";
-export type SkillId = GatherSkill | CraftSkill | CombatSkill;
+export type SocialSkill = "trading" | "renown";
+export type SkillId = GatherSkill | CraftSkill | CombatSkill | SocialSkill;
 
 export interface SkillDef {
   id: SkillId;
   name: string;
   icon: string;
-  /** Discipline level needed to use this skill. */
-  unlockLevel: number;
+  /** Who teaches it (shown while it's still locked). */
+  teacher?: string;
   description: string;
 }
 
@@ -28,33 +32,47 @@ export interface DisciplineDef {
 }
 
 export const DISCIPLINES: Record<DisciplineId, DisciplineDef> = {
-  foraging: {
-    name: "Foraging", icon: "🌿",
-    description: "Gathering from the wild.",
+  strength: {
+    name: "Strength", icon: "💪",
+    description: "Fighting, and staying alive. Raises your max health.",
     skills: [
-      { id: "fishing", name: "Fishing", icon: "🎣", unlockLevel: 1, description: "Click the water's edge to fish." },
-      { id: "woodcutting", name: "Woodcutting", icon: "🪓", unlockLevel: 3, description: "Click a tree to chop logs." },
-      { id: "mining", name: "Mining", icon: "⛏️", unlockLevel: 5, description: "Click a rock to mine ore." },
+      { id: "melee", name: "Melee", icon: "🗡️", description: "Hold a dagger, sword, mace, spear or two-handed sword and click a monster." },
+      { id: "defense", name: "Defense", icon: "🛡️", description: "Trained by being attacked. Higher Defense means monsters miss more, and you can wear better armor." },
+      { id: "ranged", name: "Ranged", icon: "🏹", description: "Hold a sling, darts or a bow and hit monsters from a distance." },
     ],
   },
-  crafting: {
-    name: "Crafting", icon: "⚒️",
-    description: "Making things from what you gather.",
+  endurance: {
+    name: "Endurance", icon: "🌿",
+    description: "Gathering from the wild. Raises your max stamina.",
     skills: [
-      { id: "cooking", name: "Cooking", icon: "🍲", unlockLevel: 1, description: "Use the stove by the furnace to cook meals (stew, stir fry, curry, roast) from fish, meat and vegetables. Meals give back lots of stamina." },
-      { id: "handicraft", name: "Handicraft", icon: "🧵", unlockLevel: 2, description: "Use the workbench just east of the anvil to make fishing bait from worms, food scraps and feathers." },
-      { id: "smithing", name: "Smithing", icon: "🔨", unlockLevel: 3, description: "Use the anvil by the Merchant to make tools from stone or a metal bar, plus a log." },
-      { id: "smelting", name: "Smelting", icon: "🔥", unlockLevel: 5, description: "Use the furnace by the Merchant to turn ore into bars." },
+      { id: "fishing", name: "Fishing", icon: "🎣", description: "Click the water's edge to fish." },
+      { id: "woodcutting", name: "Woodcutting", icon: "🪓", description: "Click a tree to chop logs." },
+      { id: "mining", name: "Mining", icon: "⛏️", description: "Click a rock to mine ore." },
     ],
   },
-  combat: {
-    name: "Combat", icon: "⚔️",
-    description: "Fighting monsters, and staying alive.",
+  wisdom: {
+    name: "Wisdom", icon: "🔮",
+    description: "Magic. Raises your max mana.",
     skills: [
-      { id: "melee", name: "Melee", icon: "🗡️", unlockLevel: 1, description: "Hold a dagger, sword, mace, spear or two-handed sword and click a monster." },
-      { id: "defense", name: "Defense", icon: "🛡️", unlockLevel: 1, description: "Trained by being attacked. Higher Defense means more health, monsters miss more, and you can wear better armor." },
-      { id: "magic", name: "Magic", icon: "🪄", unlockLevel: 3, description: "Hold a staff, pick a spell, and click a monster. Spells use mana." },
-      { id: "ranged", name: "Ranged", icon: "🏹", unlockLevel: 5, description: "Hold a sling, darts or a bow and hit monsters from a distance." },
+      { id: "magic", name: "Spellcasting", icon: "🪄", description: "Hold a staff, pick a spell, and click a monster. Spells use mana." },
+    ],
+  },
+  dexterity: {
+    name: "Dexterity", icon: "🤲",
+    description: "Making things. Raises how much you can carry and how fast you walk.",
+    skills: [
+      { id: "cooking", name: "Cooking", icon: "🍲", description: "Use the stove by the furnace to cook meals (stew, stir fry, curry, roast) from fish, meat and vegetables. Meals give back lots of stamina." },
+      { id: "handicraft", name: "Handicraft", icon: "🧵", description: "Use the workbench just east of the anvil to make fishing bait from worms, food scraps and feathers." },
+      { id: "smithing", name: "Smithing", icon: "🔨", description: "Use the anvil by the Merchant to make tools from stone or a metal bar, plus a log." },
+      { id: "smelting", name: "Smelting", icon: "🔥", description: "Use the furnace by the Merchant to turn ore into bars." },
+    ],
+  },
+  charisma: {
+    name: "Charisma", icon: "🤝",
+    description: "Dealing with people. Better shop prices.",
+    skills: [
+      { id: "trading", name: "Trading", icon: "💰", description: "Trained by selling things to the Merchant. The more it's worth, the more XP." },
+      { id: "renown", name: "Renown", icon: "📋", description: "Trained by finishing bounties, on the bounty board and the Mages' Guild board." },
     ],
   },
 };
@@ -87,11 +105,37 @@ export function levelForXp(xp: number): number {
   return level;
 }
 
-export type DisciplineXp = Record<DisciplineId, number>;
-
-/** Each skill also has its own level (same curve, up to 99). It unlocks better types. */
+/** Each skill has its own XP and level (up to 99). A Discipline's level comes from its skills' levels. */
 export type SkillXp = Record<SkillId, number>;
-export const emptySkills = (): SkillXp => ({ woodcutting: 0, fishing: 0, mining: 0, smelting: 0, smithing: 0, cooking: 0, handicraft: 0, melee: 0, ranged: 0, magic: 0, defense: 0 });
-export const emptyDisciplines = (): DisciplineXp => ({ foraging: 0, crafting: 0, combat: 0 });
+export const SKILL_IDS: SkillId[] = DISCIPLINE_IDS.flatMap((d) => DISCIPLINES[d].skills.map((s) => s.id));
+export const emptySkills = (): SkillXp => Object.fromEntries(SKILL_IDS.map((id) => [id, 0])) as SkillXp;
 export const isCombatSkill = (skill: SkillId): skill is CombatSkill => skill === "melee" || skill === "ranged" || skill === "magic" || skill === "defense";
 export const isCraftSkill = (skill: SkillId): skill is CraftSkill => skill === "smelting" || skill === "smithing" || skill === "cooking" || skill === "handicraft";
+
+/** A Discipline's level for each Discipline. */
+export type DisciplineLevels = Record<DisciplineId, number>;
+
+const skillLevel = (xp: SkillXp, id: SkillId) => levelForXp(xp[id] ?? 0);
+
+const average = (levels: number[]) => (levels.length ? Math.floor(levels.reduce((a, b) => a + b, 0) / levels.length) : 1);
+
+/** Which skills a character has unlocked. Skills unlock through quests (shared/quests.ts), not by level. */
+export type Unlocked = ReadonlySet<SkillId> | readonly SkillId[];
+const has = (u: Unlocked, id: SkillId) => (Array.isArray(u) ? (u as readonly SkillId[]).includes(id) : (u as ReadonlySet<SkillId>).has(id));
+
+/**
+ * A Discipline's level: the average level of its unlocked skills, rounded down
+ * (level 1 if none are unlocked yet). A newly unlocked skill starts at level 1,
+ * so it pulls the average down a little until you train it.
+ */
+export const disciplineLevel = (xp: SkillXp, d: DisciplineId, unlocked: Unlocked) =>
+  average(DISCIPLINES[d].skills.filter((s) => has(unlocked, s.id)).map((s) => skillLevel(xp, s.id)));
+
+export const disciplineLevels = (xp: SkillXp, unlocked: Unlocked): DisciplineLevels =>
+  Object.fromEntries(DISCIPLINE_IDS.map((d) => [d, disciplineLevel(xp, d, unlocked)])) as DisciplineLevels;
+
+export const isUnlocked = (unlocked: Unlocked, skill: SkillId) => has(unlocked, skill);
+
+/** What the server sends the client: each Discipline's level, and the skills you've been taught. */
+export interface DisciplineView { levels: DisciplineLevels; unlocked: SkillId[] }
+export const newDisciplineView = (): DisciplineView => ({ levels: { strength: 1, endurance: 1, wisdom: 1, dexterity: 1, charisma: 1 }, unlocked: [] });

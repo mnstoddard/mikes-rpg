@@ -4,14 +4,14 @@
 // button under any skill. One tab per skill; each upgrade shows its rank, what
 // it gives now and at the next rank, and a button to buy the next rank.
 // Builds its own window and styles, so it doesn't touch index.html.
-import { DISCIPLINES, DISCIPLINE_IDS, SkillId, SkillXp, emptySkills, findSkill, levelForXp } from "../../shared/disciplines";
+import { DISCIPLINES, DISCIPLINE_IDS, SkillId, SkillXp, emptySkills, findSkill, isUnlocked, levelForXp } from "../../shared/disciplines";
 import type { ItemMasteryXp } from "../../shared/mastery";
 import { TREES, TreeRanks, earnedPoints, nodeEffect, rankCost, spentIn, spentPoints } from "../../shared/skilltree";
 
 let ranks: TreeRanks = {};
 let mastery: ItemMasteryXp = {};
 let combatMastery: Record<string, number | undefined> = {};
-let disciplines: Record<string, number> = {};
+let unlocked: SkillId[] = [];
 let skillXp: SkillXp = emptySkills();
 let tab: SkillId = "cooking";
 let isOpen = false;
@@ -28,11 +28,11 @@ export function setTreeActions(a: { buy: (node: string) => void; reset: (skill: 
 }
 
 /** Keep the numbers the window needs up to date (ui.ts calls this when they change). */
-export function setTreeData(d: { ranks?: TreeRanks; mastery?: ItemMasteryXp; combatMastery?: Record<string, number | undefined>; disciplines?: Record<string, number>; skillXp?: SkillXp }) {
+export function setTreeData(d: { ranks?: TreeRanks; mastery?: ItemMasteryXp; combatMastery?: Record<string, number | undefined>; unlocked?: SkillId[]; skillXp?: SkillXp }) {
   if (d.ranks) ranks = d.ranks;
   if (d.mastery) mastery = d.mastery;
   if (d.combatMastery) combatMastery = d.combatMastery;
-  if (d.disciplines) disciplines = d.disciplines;
+  if (d.unlocked) unlocked = d.unlocked;
   if (d.skillXp) skillXp = d.skillXp;
   renderButton();
   render();
@@ -142,9 +142,9 @@ function render() {
   const tabs = div("tree-tabs");
   for (const d of DISCIPLINE_IDS) {
     for (const s of DISCIPLINES[d].skills) {
-      const unlocked = levelForXp(disciplines[d] ?? 0) >= s.unlockLevel;
+      const open = isUnlocked(unlocked, s.id);
       const spent = spentIn(ranks, s.id);
-      const t = button("", () => { tab = s.id; render(); }, false, "tree-tab" + (tab === s.id ? " active" : "") + (unlocked ? "" : " locked"));
+      const t = button("", () => { tab = s.id; render(); }, false, "tree-tab" + (tab === s.id ? " active" : "") + (open ? "" : " locked"));
       t.textContent = `${s.icon} ${s.name}`;
       if (spent) {
         const sp = document.createElement("span");
@@ -152,7 +152,7 @@ function render() {
         sp.textContent = `·${spent}`;
         t.appendChild(sp);
       }
-      t.title = unlocked ? `${s.name} tree` : `${s.name} unlocks at ${DISCIPLINES[d].name} ${s.unlockLevel} (you can still plan its tree)`;
+      t.title = open ? `${s.name} tree` : `${s.name}: not learned yet (you can still plan its tree)`;
       tabs.appendChild(t);
     }
   }

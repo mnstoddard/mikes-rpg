@@ -11,8 +11,8 @@ import {
   speedBonusPercent, valueBonusPercent,
 } from "../../shared/mastery";
 import {
-  DISCIPLINES, DISCIPLINE_IDS, DisciplineId, DisciplineXp, GatherSkill, SkillId, SkillXp, emptyDisciplines,
-  emptySkills, findSkill, isCraftSkill, levelForXp, xpForLevel,
+  DISCIPLINES, DISCIPLINE_IDS, DisciplineId, DisciplineLevels, GatherSkill, SkillId, SkillXp, disciplineLevels,
+  emptySkills, findSkill, isCraftSkill, isUnlocked, levelForXp, xpForLevel,
 } from "../../shared/disciplines";
 import {
   ALL_MASTERY_IDS, Recipe, SHOP_STOCK, buyPriceFor, failXp, gearDurability, masteryName, recipeFor, recipeWear, sellPriceFor,
@@ -39,9 +39,10 @@ import {
   stackName, takeFromEntry, takeItem, usedSlots,
 } from "../../shared/bag";
 import { carriedWeight, carryCapacity, kg, weightOf } from "../../shared/weight";
+import { buyWithCharisma, maxStamina, sellWithCharisma, tradingXp, walkBonus } from "../../shared/stats";
 import {
   CHEST_MAX, CHEST_RENT, CHEST_START, CHEST_STEP, GUILD_BOUNTY_COUNT, GuildBounty, GuildView, RANKS, REAGENTS, expandCost, guildBountyName,
-  guildReward, newGuildBoard, newGuildBounty, rankFor, validGuildBounty,
+  guildRenown, guildReward, newGuildBoard, newGuildBounty, rankFor, validGuildBounty,
 } from "../../shared/guild";
 import { findSkill as skillInfo } from "../../shared/disciplines";
 import { formatMoney } from "../../shared/money";
@@ -51,7 +52,7 @@ import {
 import { BAITS, BaitId, MUSHROOM_CHANCE, SCRAPS_CHANCE, WORM_CHANCE, isBait } from "../../shared/handicraft";
 import { TREES, TreeEffect, TreeRanks, cleanRanks, earnedPoints, rankCost, spentPoints, treeBonus, treeNode, treeRoll } from "../../shared/skilltree";
 import {
-  BURN_UNTIL, GUIDE_NAME, Gift, QUESTS, QUEST_REV, boardOpen, migrateStep, isProtected, QuestProgress, QuestStep, QuestView, STEPS, gateOpen, giftItems, newQuestProgress, tutorialDone,
+  BURN_UNTIL, GUIDE_NAME, Gift, QUESTS, QUEST_REV, boardOpen, migrateStep, teachStep, unlockedSkills, isProtected, QuestProgress, QuestStep, QuestView, STEPS, gateOpen, giftItems, newQuestProgress, tutorialDone,
 } from "../../shared/quests";
 import { BOUNTY_COUNT, Bounty, bountyChoices, bountyName, bountyReward, newBoard, newBounty, slotCounts, validBounty } from "../../shared/bounties";
 import { Account, SAVE_VERSION, SaveData, checkPassword, hashPassword, store, usernameKey } from "./storage";
@@ -88,6 +89,7 @@ export class Player extends Schema {
   @type("number") faceY = 0;
   @type("number") hp = 50; // health (others see your health bar)
   @type("number") maxHp = 50;
+  @type("number") stepMs = TICK_MS; // how long each step takes (Dexterity makes you walk faster), so others see you slide at the right speed
 
   // Server-only (not synced to everyone):
   path: Point[] = [];
@@ -103,11 +105,13 @@ export class Player extends Schema {
   belt: Belt = emptyBelt(); // equipped tools (don't use bag space)
   crafting: { recipe: Recipe; remaining: number; station: NpcDef } | null = null; // smelting / smithing in progress
   craftTimer = 0;
-  disciplines: DisciplineXp = emptyDisciplines(); // XP per Discipline
   skillXp: SkillXp = emptySkills(); // XP per skill (Woodcutting level etc.)
+  unlocked: SkillId[] = []; // skills Old Maren has taught (shared/quests.ts unlockedSkills); kept up to date by refreshStats
+  levels: DisciplineLevels = { strength: 1, endurance: 1, wisdom: 1, dexterity: 1, charisma: 1 }; // each Discipline's level (average of its unlocked skills)
   mastery: ItemMasteryXp = {}; // Mastery XP per type (Pine, Copper, Trout...)
   coins = 0; // total money, in bronze coins
-  stamina = MAX_STAMINA; // each action costs some; food and time bring it back
+  stamina = MAX_STAMINA; // each action costs some; food and time bring it back (max from Endurance)
+  maxStamina = MAX_STAMINA;
   regenTicks = 0; // ticks since the last stamina came back on its own
   locked: boolean[] = []; // per entry: locked items can't be sold or dropped by accident
   talkTo: NpcDef | null = null; // person the player is walking over to talk to
@@ -296,11 +300,12 @@ export class WorldRoom extends Room<WorldState> {
       if (!this.nearNpc(p, "merchant")) return this.say(client, "You need to be next to the Merchant to sell.");
       // Sell `count` of the stack (all of it if left out).
       const n = Math.min(countIn(p, msg.slot), wantCount(msg.count));
-      const price = sellPriceFor(item, p.mastery, p.durability[msg.slot]) * n;
+      const price = sellWithCharisma(sellPriceFor(item, p.mastery, p.durability[msg.slot]), p.levels.charisma) * n;
       takeFromEntry(p, msg.slot, n);
       p.coins += price;
       this.say(client, `You sell ${stackName(item, n)} for ${formatMoney(price)}.`);
       for (let k = 0; k < n; k++) this.questEvent(p, client, { kind: "sell", item });
+      this.addSkillXp(p, client, "trading", tradingXp(price));
       this.sendInventory(client, p);
       this.saveSoon(p);
     });
@@ -319,7 +324,7 @@ export class WorldRoom extends Room<WorldState> {
         if (!item || p.locked[i]) continue;
         if (isProtected(p.quest, item)) { kept.add(item); continue; }
         const n = countIn(p, i);
-        total += sellPriceFor(item, p.mastery, p.durability[i]) * n;
+        total += sellWithCharisma(sellPriceFor(item, p.mastery, p.durability[i]), p.levels.charisma) * n;
         clearEntry(p, i);
         for (let k = 0; k < n; k++) sold.push(item);
         count += n;
@@ -329,6 +334,7 @@ export class WorldRoom extends Room<WorldState> {
       p.coins += total;
       this.say(client, `You sell ${count} item${count === 1 ? "" : "s"} for ${formatMoney(total)}.`);
       for (const item of sold) this.questEvent(p, client, { kind: "sell", item });
+      this.addSkillXp(p, client, "trading", tradingXp(total));
       this.sendInventory(client, p);
       this.saveSoon(p);
     });
@@ -340,7 +346,7 @@ export class WorldRoom extends Room<WorldState> {
       if (!p || !SHOP_STOCK.includes(item)) return;
       if (!this.nearNpc(p, "merchant")) return this.say(client, "You need to be next to the Merchant to buy.");
       const want = Math.max(1, Math.min(28, Math.floor(Number(msg.count) || 1)));
-      const price = buyPriceFor(item);
+      const price = buyWithCharisma(buyPriceFor(item), p.levels.charisma);
       let bought = 0;
       while (bought < want) {
         if (!this.fits(p, item) || p.coins < price) break;
@@ -398,15 +404,15 @@ export class WorldRoom extends Room<WorldState> {
       if (!item || !isFood(item)) return;
       if (isProtected(p.quest, item)) return this.say(client, this.keepIt(item, "eat"));
       const questEat = this.step(p)?.goal.kind === "eat" && isMeal(item); // Maren asked you to eat it, so you can even when full
-      if (p.stamina >= MAX_STAMINA && !questEat) return this.say(client, `You're not hungry. Your stamina is full (${MAX_STAMINA}).`);
+      if (p.stamina >= p.maxStamina && !questEat) return this.say(client, `You're not hungry. Your stamina is full (${p.maxStamina}).`);
       const gain = foodStamina(item, p.mastery, this.tree(p, "cooking", "mealStamina"));
       takeFromEntry(p, msg.slot, 1);
       const before = p.stamina;
-      p.stamina = Math.min(MAX_STAMINA, p.stamina + gain);
+      p.stamina = Math.min(p.maxStamina, p.stamina + gain);
       this.sendInventory(client, p);
       this.sendStamina(client, p);
       const wasted = gain - (p.stamina - before);
-      this.say(client, `You eat the ${ITEMS[item].single}. +${p.stamina - before} stamina (${p.stamina}/${MAX_STAMINA}).` +
+      this.say(client, `You eat the ${ITEMS[item].single}. +${p.stamina - before} stamina (${p.stamina}/${p.maxStamina}).` +
         (wasted > 0 ? ` (${wasted} more would have gone past full.)` : ""));
       this.questEvent(p, client, { kind: "eat", item });
       this.saveSoon(p);
@@ -419,16 +425,13 @@ export class WorldRoom extends Room<WorldState> {
       if (!p || !recipe) return;
       const station = NPCS.find((n) => n.id === STATION_FOR[recipe.skill])!;
       if (!this.nearNpc(p, station.id)) return this.say(client, `You need to be next to the ${station.name.toLowerCase()}.`);
-      const { discipline, def } = findSkill(recipe.skill);
-      if (levelForXp(p.disciplines[discipline]) < def.unlockLevel) {
-        return this.say(client, `You need ${DISCIPLINES[discipline].name} level ${def.unlockLevel} to use ${def.name}. ${GUIDE_NAME} will tell you how to get there.`);
-      }
+      if (!isUnlocked(p.unlocked, recipe.skill)) return this.say(client, this.notTaught(recipe.skill));
       const blocked = this.toolBlock(p, recipe.skill);
       if (blocked) return this.say(client, blocked);
       if (!this.hasStamina(client, p, recipe.skill)) return;
       const level = levelForXp(p.skillXp[recipe.skill]);
       if (level < recipe.level) {
-        return this.say(client, `You need ${def.name} level ${recipe.level} to make ${aOr(ITEMS[recipe.output].single)}. (You're level ${level}.)`);
+        return this.say(client, `You need ${findSkill(recipe.skill).def.name} level ${recipe.level} to make ${aOr(ITEMS[recipe.output].single)}. (You're level ${level}.)`);
       }
       const meal = parseMeal(recipe.output);
       if (meal) {
@@ -472,9 +475,9 @@ export class WorldRoom extends Room<WorldState> {
       const reward = bountyReward(b, p.mastery);
       takeItem(p, b.item, b.count, ok);
       p.coins += reward.coins;
-      this.say(client, `📋 Bounty done: ${bountyName(b).toLowerCase()}! You get ${formatMoney(reward.coins)} and ${reward.xp} ${reward.label} XP.`);
-      this.addXp(p, client, reward.discipline, reward.xp);
+      this.say(client, `📋 Bounty done: ${bountyName(b).toLowerCase()}! You get ${formatMoney(reward.coins)}, ${reward.xp} ${reward.label} XP and ${reward.renown} Renown XP.`);
       if (reward.skill) this.addSkillXp(p, client, reward.skill, reward.xp);
+      this.addSkillXp(p, client, "renown", reward.renown);
       if (reward.monster) this.addCombatMastery(p, client, reward.monster, reward.xp);
       // A new job goes up in its place.
       const others = p.bounties.filter((_, i) => i !== msg.index).map((x) => x.item);
@@ -857,7 +860,7 @@ export class WorldRoom extends Room<WorldState> {
 
     this.state.players.forEach((p, sessionId) => {
       // Stamina comes back on its own, 1 every 30 seconds.
-      if (p.stamina < MAX_STAMINA && ++p.regenTicks >= REGEN_TICKS) {
+      if (p.stamina < p.maxStamina && ++p.regenTicks >= REGEN_TICKS) {
         p.regenTicks = 0;
         p.stamina++;
         p.dirty = true;
@@ -868,7 +871,7 @@ export class WorldRoom extends Room<WorldState> {
       const client = this.clients.getById(sessionId);
       let vitals = false;
       if (p.hp < p.maxHp && ++p.healthTicks >= HEALTH_REGEN_TICKS) { p.healthTicks = 0; p.hp++; vitals = true; }
-      const mMax = maxMana(levelForXp(p.skillXp.magic));
+      const mMax = this.maxManaOf(p);
       if (p.mana < mMax && ++p.manaTicks >= MANA_REGEN_TICKS) { p.manaTicks = 0; p.mana++; vitals = true; }
       if (vitals && client) this.sendVitals(client, p);
       if (p.fighting) return this.combatTick(p, sessionId);
@@ -902,7 +905,7 @@ export class WorldRoom extends Room<WorldState> {
         if (client && this.isNextTo(p, npc)) this.openShop(client, p, npc);
       }
       // Keep a steady pace; if they'd been standing still, start the clock from now.
-      p.nextStepAt = Math.max(p.nextStepAt + TICK_MS, now + TICK_MS - STEP_LOOP_MS);
+      p.nextStepAt = Math.max(p.nextStepAt + p.stepMs, now + p.stepMs - STEP_LOOP_MS);
     });
   }
 
@@ -910,11 +913,8 @@ export class WorldRoom extends Room<WorldState> {
   private startGathering(client: Client, p: Player, resource: ResourceId, target: Point) {
     const res = RESOURCES[resource];
     const skill = res.skill;
-    const { discipline, def } = findSkill(skill);
-    const level = levelForXp(p.disciplines[discipline]);
-    if (level < def.unlockLevel) {
-      return this.say(client, `You need ${DISCIPLINES[discipline].name} level ${def.unlockLevel} to use ${def.name}.`);
-    }
+    const { def } = findSkill(skill);
+    if (!isUnlocked(p.unlocked, skill)) return this.say(client, this.notTaught(skill));
     const skillLevel = levelForXp(p.skillXp[skill]);
     if (skillLevel < res.level) {
       return this.say(client, `You need ${def.name} level ${res.level} to ${verbFor(resource)}. (You're level ${skillLevel}.)`);
@@ -1015,7 +1015,6 @@ export class WorldRoom extends Room<WorldState> {
     }
     // Chum bait: more Fishing XP (the skill only, like the tree's "Quick learner").
     const skillXp = bait?.effect === "xp" ? Math.round(res.xp * (1 + bait.amount)) : res.xp;
-    this.addXp(p, client, "foraging", forageXp(resource));
     this.addMasteryXp(p, client, resource, res.xp);
     this.addSkillXp(p, client, skill, skillXp); // sends both skill levels and Mastery
     this.saveSoon(p);
@@ -1054,7 +1053,7 @@ export class WorldRoom extends Room<WorldState> {
     const after = cloneBag(p);
     for (const input of recipe.inputs) takeItem(after, input, 1, (i) => !after.locked[i]);
     const inputsWeight = recipe.inputs.reduce((sum, i) => sum + weightOf(i), 0);
-    if (roomFor(after, recipe.output) < 1 || this.carried(p) - inputsWeight + weightOf(recipe.output) > carryCapacity()) {
+    if (roomFor(after, recipe.output) < 1 || this.carried(p) - inputsWeight + weightOf(recipe.output) > this.capacity(p)) {
       if (client) this.say(client, roomFor(after, recipe.output) < 1 ? "Your bag is full. Make room first." : this.fullReason(p, recipe.output));
       return this.stopActions(p);
     }
@@ -1091,7 +1090,6 @@ export class WorldRoom extends Room<WorldState> {
       };
       this.say(client, (worked ? WORKED : FAILED)[recipe.skill] + (extras.length ? ` You also get ${extras.join(" and ")}!` : ""));
     }
-    this.addXp(p, client, "crafting", xp);
     this.addMasteryXp(p, client, recipe.mastery, xp);
     this.addSkillXp(p, client, recipe.skill, xp);
     this.questEvent(p, client, { kind: "craft", item: recipe.output, worked });
@@ -1121,7 +1119,7 @@ export class WorldRoom extends Room<WorldState> {
   }
 
   private sendStamina(client: Client, p: Player) {
-    client.send("stamina", { stamina: p.stamina, max: MAX_STAMINA });
+    client.send("stamina", { stamina: p.stamina, max: p.maxStamina });
   }
 
   /** "1 tin ore" if you're short of something for this recipe (locked items don't count), else null. */
@@ -1165,7 +1163,7 @@ export class WorldRoom extends Room<WorldState> {
   /** How many more of this item you could carry, by weight. */
   private canLift(p: Player, item: ItemId): number {
     const w = weightOf(item);
-    const spare = carryCapacity() - this.carried(p);
+    const spare = this.capacity(p) - this.carried(p);
     return w <= 0 ? Infinity : Math.max(0, Math.floor(spare / w));
   }
 
@@ -1177,7 +1175,7 @@ export class WorldRoom extends Room<WorldState> {
   /** Why you can't take one more of this: bag full, or too heavy. */
   private fullReason(p: Player, item: ItemId) {
     if (roomFor(p, item) < 1) return "Your bag is full. Sell or drop something first, or put things in your enchanted chest.";
-    return `That's too heavy: you're carrying ${kg(this.carried(p))} of ${kg(carryCapacity())}. Sell, drop or eat something, or put things in your enchanted chest.`;
+    return `That's too heavy: you're carrying ${kg(this.carried(p))} of ${kg(this.capacity(p))}. Sell, drop or eat something, or put things in your enchanted chest.`;
   }
 
   /** One catch uses up a little of the bait. When it runs out, it's gone. */
@@ -1206,9 +1204,75 @@ export class WorldRoom extends Room<WorldState> {
     return BASE_INGREDIENTS + this.tree(p, "cooking", "slots");
   }
 
-  /** Max health: from your Defense level, plus the Defense tree's "Toughness". */
+  /** Max health: from your Strength level, plus the Defense tree's "Toughness". */
   private maxHpOf(p: Player) {
-    return maxHealth(levelForXp(p.skillXp.defense)) + this.tree(p, "defense", "health");
+    return maxHealth(p.levels.strength) + this.tree(p, "defense", "health");
+  }
+
+  /** Max mana: from your Wisdom level. */
+  private maxManaOf(p: Player) {
+    return maxMana(p.levels.wisdom);
+  }
+
+  /** What you can carry: from your Dexterity level. */
+  private capacity(p: Player) {
+    return carryCapacity(p.levels.dexterity);
+  }
+
+  /** "Old Maren hasn't taught you Mining yet." */
+  private notTaught(skill: SkillId) {
+    const name = findSkill(skill).def.name;
+    return teachStep(skill) >= 0 ? `${GUIDE_NAME} hasn't taught you ${name} yet. Keep following her lessons in the 📜 Quests tab.`
+      : `You haven't learned ${name} yet.`;
+  }
+
+  /**
+   * Work out everything that comes from your skills and quests: which skills
+   * you've been taught, each Discipline's level, and the stats they give
+   * (health, stamina, mana, carry weight, walking speed). Call after any skill
+   * level-up or quest step. Says what went up, and sends the client the new numbers.
+   */
+  private refreshStats(p: Player, client: Client | undefined) {
+    const taught = new Set(p.unlocked);
+    const before = { ...p.levels };
+    p.unlocked = unlockedSkills(p.quest);
+    p.levels = disciplineLevels(p.skillXp, p.unlocked);
+    const oldHp = p.maxHp, oldStamina = p.maxStamina;
+    p.maxHp = this.maxHpOf(p);
+    if (p.maxHp > oldHp) p.hp += p.maxHp - oldHp; // the new health comes filled
+    p.hp = Math.min(p.hp, p.maxHp);
+    p.maxStamina = maxStamina(p.levels.endurance);
+    if (p.maxStamina > oldStamina) p.stamina += p.maxStamina - oldStamina;
+    p.stamina = Math.min(p.stamina, p.maxStamina);
+    p.mana = Math.min(p.mana, this.maxManaOf(p));
+    p.stepMs = Math.round(TICK_MS / (1 + walkBonus(p.levels.dexterity)));
+    if (!client) return;
+    for (const id of p.unlocked) {
+      if (!taught.has(id) && p.levels) {
+        const { def } = findSkill(id);
+        this.say(client, `📖 You've learned ${def.name}! ${def.description}`);
+      }
+    }
+    for (const d of DISCIPLINE_IDS) {
+      if (p.levels[d] > before[d]) {
+        this.say(client, `Congratulations, your ${DISCIPLINES[d].name} is now level ${p.levels[d]}! ${this.statNote(p, d)}`);
+        client.send("levelup", { discipline: d, level: p.levels[d] });
+      }
+    }
+    this.sendDisciplines(client, p);
+    this.sendVitals(client, p);
+    this.sendStamina(client, p);
+  }
+
+  /** What a Discipline level-up did for you: "Max health 60." */
+  private statNote(p: Player, d: DisciplineId) {
+    switch (d) {
+      case "strength": return `Max health ${p.maxHp}.`;
+      case "endurance": return `Max stamina ${p.maxStamina}.`;
+      case "wisdom": return `Max mana ${this.maxManaOf(p)}.`;
+      case "dexterity": return `You can carry ${kg(this.capacity(p))}, and walk ${Math.round(walkBonus(p.levels.dexterity) * 100)}% faster.`;
+      case "charisma": return "Shops pay you a little more and charge you a little less.";
+    }
   }
 
   /** Your chance at one crafting try: Mastery, belt tool, and the skill tree's "Steady hands". */
@@ -1379,9 +1443,9 @@ export class WorldRoom extends Room<WorldState> {
     p.coins += reward.coins;
     p.guildBounties[index] = newGuildBounty(this.guildPlayer(p), p.guildBounties.filter((_, i) => i !== index).concat(b));
     if (client) {
-      this.say(client, `🔮 Guild bounty done: ${guildBountyName(b).toLowerCase()}! +${reward.points} guild point${reward.points === 1 ? "" : "s"}, ${formatMoney(reward.coins)} and ${reward.magicXp} Magic XP.`);
-      this.addXp(p, client, "combat", reward.magicXp);
+      this.say(client, `🔮 Guild bounty done: ${guildBountyName(b).toLowerCase()}! +${reward.points} guild point${reward.points === 1 ? "" : "s"}, ${formatMoney(reward.coins)}, ${reward.magicXp} Spellcasting XP and ${guildRenown(reward.points)} Renown XP.`);
       this.addSkillXp(p, client, "magic", reward.magicXp);
+      this.addSkillXp(p, client, "renown", guildRenown(reward.points));
       const rank = rankFor(p.guildPoints);
       if (rank > rankBefore) {
         this.say(client, `🎉 You are now a guild ${RANKS[rank].name}! Your enchanted chest can grow to ${RANKS[rank].maxChest} spaces.`);
@@ -1523,8 +1587,7 @@ export class WorldRoom extends Room<WorldState> {
     if (isWeapon(item)) {
       const def = WEAPONS[parseWeapon(item).type];
       const { def: skill } = skillInfo(def.style);
-      const combat = levelForXp(p.disciplines.combat);
-      if (combat < skill.unlockLevel) return `You need Combat level ${skill.unlockLevel} to use ${skill.name}. (You're level ${combat}.)`;
+      if (!isUnlocked(p.unlocked, def.style)) return this.notTaught(def.style);
       const level = levelForXp(p.skillXp[def.style]);
       if (level < def.level) return `You need ${skill.name} level ${def.level} to hold ${aOr(def.name.toLowerCase())}. (You're level ${level}.)`;
     } else if (isArmor(item)) {
@@ -1608,7 +1671,6 @@ export class WorldRoom extends Room<WorldState> {
       else if (spell?.freeze && !killed) this.say(client, `You hit the ${def.name.toLowerCase()} for ${damage}. It's frozen in place! ❄️`);
     }
     if (xp) {
-      this.addXp(p, client, "combat", xp);
       this.addSkillXp(p, client, style, xp);
       this.addCombatMastery(p, client, a.mastery, xp);
       this.addCombatMastery(p, client, m.kind, xp);
@@ -1734,7 +1796,6 @@ export class WorldRoom extends Room<WorldState> {
     const worn = GEAR_SLOTS.filter((s) => s !== "weapon" && p.gear[s]);
     if (worn.length) this.wearGear(p, client, worn[Math.floor(Math.random() * worn.length)], wearFor(def.level));
     const xp = defenseXp(m.kind);
-    this.addXp(p, client, "combat", xp);
     this.addSkillXp(p, client, "defense", xp);
     if (p.hp <= 0) return this.die(p, sessionId, def.name);
     // Fight back automatically if you were just standing there.
@@ -1800,7 +1861,7 @@ export class WorldRoom extends Room<WorldState> {
 
   /** Health, mana and their maximums (only you see your mana). */
   private sendVitals(client: Client, p: Player) {
-    client.send("vitals", { hp: p.hp, maxHp: p.maxHp, mana: p.mana, maxMana: maxMana(levelForXp(p.skillXp.magic)) });
+    client.send("vitals", { hp: p.hp, maxHp: p.maxHp, mana: p.mana, maxMana: this.maxManaOf(p) });
   }
 
   private sendGear(client: Client, p: Player) {
@@ -1856,7 +1917,8 @@ export class WorldRoom extends Room<WorldState> {
 
   private goalMet(p: Player, step: QuestStep): boolean {
     const g = step.goal;
-    if (g.kind === "level") return levelForXp(p.disciplines[g.discipline]) >= g.level;
+    if (g.kind === "level") return p.levels[g.discipline] >= g.level;
+    if (g.kind === "skillLevel") return levelForXp(p.skillXp[g.skill]) >= g.level;
     if (g.kind === "equip") return g.tools.every((prefix) => TOOL_TYPE_IDS.some((t) => p.belt[t]?.item.startsWith(prefix)));
     if (g.kind === "have") return Object.entries(g.items).every(([item, n]) => this.countOf(p, item as ItemId) >= n!);
     if (g.kind === "gear") return g.items.every((prefix) => GEAR_SLOTS.some((slot) => p.gear[slot]?.item.startsWith(prefix)));
@@ -1880,6 +1942,7 @@ export class WorldRoom extends Room<WorldState> {
       step = this.step(p);
     }
     this.saveSoon(p);
+    this.refreshStats(p, client); // a lesson may have taught you a skill
     if (!client) return;
     if (step) this.say(client, `📜 Next: ${step.task}.`);
     this.sendQuest(client, p);
@@ -2016,9 +2079,15 @@ export class WorldRoom extends Room<WorldState> {
     let progress: string | undefined;
     let fraction: number | undefined;
     if (g.kind === "level") {
-      const xp = p.disciplines[g.discipline];
+      const have = p.levels[g.discipline];
+      const skills = DISCIPLINES[g.discipline].skills.filter((sk) => p.unlocked.includes(sk.id))
+        .map((sk) => `${sk.name} ${levelForXp(p.skillXp[sk.id])}`).join(", ");
+      progress = `${DISCIPLINES[g.discipline].name} ${Math.min(have, g.level)} / ${g.level} (${skills})`;
+      fraction = Math.min(1, have / g.level);
+    } else if (g.kind === "skillLevel") {
+      const xp = p.skillXp[g.skill];
       const need = xpForLevel(g.level);
-      progress = `${DISCIPLINES[g.discipline].name} XP ${Math.min(xp, need)} / ${need}`;
+      progress = `${findSkill(g.skill).def.name} XP ${Math.min(xp, need)} / ${need}`;
       fraction = Math.min(1, xp / need);
     } else if (g.kind === "have") {
       const want = Object.entries(g.items) as [ItemId, number][];
@@ -2076,25 +2145,6 @@ export class WorldRoom extends Room<WorldState> {
     return best;
   }
 
-  private addXp(p: Player, client: Client | undefined, discipline: DisciplineId, xp: number) {
-    const before = levelForXp(p.disciplines[discipline]);
-    p.disciplines[discipline] += xp;
-    const after = levelForXp(p.disciplines[discipline]);
-    if (!client) return;
-    this.sendDisciplines(client, p);
-    this.checkQuest(p, client); // "Reach Foraging level 3" steps
-    if (after > before) {
-      const d = DISCIPLINES[discipline];
-      this.say(client, `Congratulations, you just advanced a ${d.name} level! You are now level ${after}.`);
-      for (const skill of d.skills) {
-        if (skill.unlockLevel > before && skill.unlockLevel <= after) {
-          this.say(client, `You've unlocked ${skill.name}! ${skill.description}`);
-        }
-      }
-      client.send("levelup", { discipline, level: after });
-    }
-  }
-
   /** Skill level (up to 99): unlocks better types. */
   private addSkillXp(p: Player, client: Client | undefined, skill: SkillId, xp: number) {
     const before = levelForXp(p.skillXp[skill]);
@@ -2102,8 +2152,12 @@ export class WorldRoom extends Room<WorldState> {
     const boosted = xp * (1 + this.tree(p, skill, "xp"));
     p.skillXp[skill] += Math.floor(boosted) + (Math.random() < boosted % 1 ? 1 : 0);
     const after = levelForXp(p.skillXp[skill]);
-    if (!client) return;
+    if (!client) {
+      if (after > before) this.refreshStats(p, undefined);
+      return;
+    }
     this.sendMastery(client, p);
+    this.sendDisciplines(client, p); // the floating "+5 Fishing XP" comes from this
     if (after > before) {
       const { def } = findSkill(skill);
       this.say(client, `Your ${def.name} level is now ${after}!`);
@@ -2119,17 +2173,15 @@ export class WorldRoom extends Room<WorldState> {
       } else if (skill === "handicraft") {
         for (const b of Object.values(BAITS)) if (b.level > before && b.level <= after) this.say(client, `You can now make ${b.name.toLowerCase()} at the workbench!`);
       } else if (skill === "defense") {
-        p.maxHp = this.maxHpOf(p);
-        p.hp = Math.min(p.maxHp, p.hp + 2 * (after - before)); // the new health comes filled
-        this.say(client, `Your health goes up to ${p.maxHp}.`);
         for (const m of Object.values(METALS)) if (m.level > before && m.level <= after) this.say(client, `You can now wear ${m.name.toLowerCase()} armor!`);
         this.sendVitals(client, p);
       } else if (skill === "melee" || skill === "ranged" || skill === "magic") {
         for (const w of Object.values(WEAPONS)) if (w.style === skill && w.level > before && w.level <= after) this.say(client, `You can now use ${aOr(w.name.toLowerCase())}!`);
         if (skill === "magic") {
           for (const sp of Object.values(SPELLS)) if (sp.level > before && sp.level <= after) this.say(client, `You can now cast ${sp.icon} ${sp.name}! Pick it under your gear.`);
-          this.sendVitals(client, p);
         }
+      } else if (skill === "trading" || skill === "renown") {
+        // Nothing new to unlock yet; the Charisma level-up message says what it does.
       } else if (isCraftSkill(skill)) {
         for (const m of Object.values(METALS)) {
           if (m.level > before && m.level <= after) {
@@ -2143,6 +2195,8 @@ export class WorldRoom extends Room<WorldState> {
         }
       }
       client.send("skillup", { skill, level: after });
+      this.refreshStats(p, client); // Discipline levels, health, stamina, mana, speed...
+      this.checkQuest(p, client); // "Reach Fishing level 3" steps
     }
   }
 
@@ -2160,8 +2214,9 @@ export class WorldRoom extends Room<WorldState> {
     if (this.step(p)?.goal.kind === "spendPoint") this.sendQuest(client, p); // "you have a point to spend"
   }
 
+  /** Discipline levels and the skills you've been taught. (The client works out the stats from these too.) */
   private sendDisciplines(client: Client, p: Player) {
-    client.send("disciplines", p.disciplines);
+    client.send("disciplines", { levels: p.levels, unlocked: p.unlocked });
   }
 
   /** Skill levels and per-type Mastery, both shown in the Skills panel. */
@@ -2345,7 +2400,7 @@ export class WorldRoom extends Room<WorldState> {
     // Stamina also came back while you were logged out (1 every 30 seconds). Old saves start full.
     if (typeof save.stamina === "number" && Number.isFinite(save.stamina)) {
       const away = typeof save.staminaAt === "number" ? Math.max(0, Date.now() - save.staminaAt) : 0;
-      p.stamina = Math.max(0, Math.min(MAX_STAMINA, Math.floor(save.stamina) + Math.floor(away / STAMINA_REGEN_MS)));
+      p.stamina = Math.max(0, Math.floor(save.stamina) + Math.floor(away / STAMINA_REGEN_MS)); // capped below, once Endurance is known
     }
     if (Array.isArray(save.lockedSlots)) {
       for (const i of save.lockedSlots) if (Number.isInteger(i) && i >= 0 && i < old.inventory.length && old.inventory[i]) old.locked[i] = true;
@@ -2355,11 +2410,6 @@ export class WorldRoom extends Room<WorldState> {
     }
     this.restoreGuild(p, save.guild);
     this.fitOldBag(p, old);
-    // Saved under "skills" (its name before Disciplines existed), so old saves keep working.
-    for (const id of DISCIPLINE_IDS) {
-      const xp = save.skills?.[id];
-      if (typeof xp === "number" && Number.isFinite(xp) && xp >= 0) p.disciplines[id] = Math.floor(xp);
-    }
     const ok = (xp: unknown): xp is number => typeof xp === "number" && Number.isFinite(xp) && xp >= 0;
     for (const id of Object.keys(p.skillXp) as SkillId[]) {
       if (save.skillXp) {
@@ -2384,13 +2434,19 @@ export class WorldRoom extends Room<WorldState> {
     for (const id of ALL_COMBAT_MASTERY_IDS) if (ok(save.combatMastery?.[id])) p.combatMastery[id] = Math.floor(save.combatMastery![id]);
     if (SPELL_IDS.includes(save.spell as SpellId) && levelForXp(p.skillXp.magic) >= SPELLS[save.spell as SpellId].level) p.spell = save.spell as SpellId;
     p.tree = cleanRanks(save.tree);
+    // Skills taught, Discipline levels, and the stats they give.
+    p.unlocked = unlockedSkills(p.quest);
+    p.levels = disciplineLevels(p.skillXp, p.unlocked);
+    p.maxStamina = maxStamina(p.levels.endurance);
+    p.stamina = Math.min(p.stamina, p.maxStamina);
+    p.stepMs = Math.round(TICK_MS / (1 + walkBonus(p.levels.dexterity)));
     p.maxHp = this.maxHpOf(p);
     p.hp = p.maxHp;
     if (typeof save.hp === "number" && Number.isFinite(save.hp)) {
       const away = typeof save.hpAt === "number" ? Math.max(0, Date.now() - save.hpAt) : 0;
       p.hp = Math.max(1, Math.min(p.maxHp, Math.floor(save.hp) + Math.floor(away / HEALTH_REGEN_MS)));
     }
-    p.mana = maxMana(levelForXp(p.skillXp.magic));
+    p.mana = this.maxManaOf(p);
     if (Array.isArray(save.bounties)) p.bounties = save.bounties.filter(validBounty).slice(0, BOUNTY_COUNT);
     if (typeof save.tracked === "string" && p.bounties.some((b) => b.item === save.tracked)) p.tracked = save.tracked as ItemId;
   }
@@ -2400,7 +2456,7 @@ export class WorldRoom extends Room<WorldState> {
     const dest = p.path.length ? p.path[p.path.length - 1] : p;
     const bag = cloneBag(p);
     compact(bag); // leave out unused entries
-    return { saveVersion: SAVE_VERSION, questRev: QUEST_REV, quest: { ...p.quest }, x: dest.x, y: dest.y, inventory: bag.inventory, slots: bag.slotOf, coins: p.coins, skills: { ...p.disciplines }, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: bag.durability, belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), hp: p.hp, hpAt: Date.now(), gear: { ...p.gear }, spell: p.spell, combatMastery: { ...p.combatMastery }, tree: { ...p.tree }, lockedSlots: bag.locked.flatMap((on, i) => (on ? [i] : [])), bounties: p.bounties.map((b) => ({ ...b })), tracked: p.tracked ?? undefined, color: p.color, counts: bag.counts, guild: this.guildSave(p) };
+    return { saveVersion: SAVE_VERSION, questRev: QUEST_REV, quest: { ...p.quest }, x: dest.x, y: dest.y, inventory: bag.inventory, slots: bag.slotOf, coins: p.coins, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: bag.durability, belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), hp: p.hp, hpAt: Date.now(), gear: { ...p.gear }, spell: p.spell, combatMastery: { ...p.combatMastery }, tree: { ...p.tree }, lockedSlots: bag.locked.flatMap((on, i) => (on ? [i] : [])), bounties: p.bounties.map((b) => ({ ...b })), tracked: p.tracked ?? undefined, color: p.color, counts: bag.counts, guild: this.guildSave(p) };
   }
 
   private async save(p: Player) {

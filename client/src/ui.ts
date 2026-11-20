@@ -1,6 +1,7 @@
 import { INVENTORY_SIZE, ITEMS, ItemId } from "../../shared/items";
 import { formatMoney, toPurse } from "../../shared/money";
-import { CraftSkill, DISCIPLINES, DISCIPLINE_IDS, DisciplineId, DisciplineXp, MAX_LEVEL, SkillId, SkillXp, emptyDisciplines, emptySkills, findSkill, isCraftSkill, levelForXp, xpForLevel } from "../../shared/disciplines";
+import { CraftSkill, DISCIPLINES, DISCIPLINE_IDS, DisciplineId, DisciplineView, MAX_LEVEL, SkillId, SkillXp, emptySkills, findSkill, isCraftSkill, isUnlocked, levelForXp, newDisciplineView, xpForLevel } from "../../shared/disciplines";
+import { buyWithCharisma, maxHealth, maxMana, maxStamina, sellWithCharisma, walkBonus } from "../../shared/stats";
 import { ItemMasteryXp, MasteryId, craftSuccess, masteryValue, masteryIn, masteryLevelForXp, masterySuccess, masteryXpForLevel, percent, speedBonusPercent, valueBonusPercent } from "../../shared/mastery";
 import { RESOURCES, forageXp, resourcesFor } from "../../shared/foraging";
 import { SHOP_STOCK, beltBonus, buyPriceFor, masteryIdFor, masteryName, recipeFor, sellPriceFor, successFor } from "../../shared/crafting";
@@ -67,7 +68,22 @@ openPanel(isSmallScreen() ? "" : "inventory");
 
 // ---- Disciplines (and the skills inside them) ----
 
-let lastDisciplines: DisciplineXp = emptyDisciplines();
+let lastDisciplines: DisciplineView = newDisciplineView();
+/** What a shop pays you for one, with your Mastery and Charisma. */
+const sellPrice = (id: ItemId, uses?: number | null) => sellWithCharisma(sellPriceFor(id, lastMastery, uses), lastDisciplines.levels.charisma);
+/** What the Merchant charges you for one, with your Charisma. */
+const buyPrice = (id: ItemId) => buyWithCharisma(buyPriceFor(id), lastDisciplines.levels.charisma);
+
+/** What each Discipline does for you right now: "Max health 60". */
+function disciplineStat(id: DisciplineId, level: number): string {
+  switch (id) {
+    case "strength": return `Max health ${maxHealth(level)}`;
+    case "endurance": return `Max stamina ${maxStamina(level)}`;
+    case "wisdom": return `Max mana ${maxMana(level)}`;
+    case "dexterity": return `Carry ${kg(carryCapacity(level))} · walk ${Math.round(walkBonus(level) * 100)}% faster`;
+    case "charisma": return `Shop prices ${Math.round((sellWithCharisma(1000, level) / 1000 - 1) * 100)}% better`;
+  }
+}
 let lastSkillXp: SkillXp = emptySkills();
 let lastMastery: ItemMasteryXp = {};
 let flashSkill: SkillId | undefined;
@@ -144,23 +160,27 @@ function icon(cls: string, glyph: string, tint?: string): HTMLElement {
   return box;
 }
 
-export function renderDisciplines(disciplines: DisciplineXp, flash?: DisciplineId) {
-  if (disciplines !== lastDisciplines) setTreeData({ disciplines });
+export function renderDisciplines(disciplines: DisciplineView, flash?: DisciplineId) {
+  if (disciplines !== lastDisciplines) setTreeData({ unlocked: disciplines.unlocked });
+  const charismaChanged = disciplines.levels.charisma !== lastDisciplines.levels.charisma;
   lastDisciplines = disciplines;
+  if (charismaChanged) { renderInventory(); if (shopIsOpen()) renderShop(); }
   skillListEl.replaceChildren();
   for (const id of DISCIPLINE_IDS) {
     const def = DISCIPLINES[id];
-    const xp = disciplines[id] ?? 0;
-    const level = levelForXp(xp);
-    const start = xpForLevel(level);
-    const next = xpForLevel(level + 1);
+    // A Discipline's level is the average of its unlocked skills' levels; the bar shows how close the next one is.
+    const level = disciplines.levels[id] ?? 1;
+    const taught = def.skills.filter((s) => isUnlocked(disciplines.unlocked, s.id));
+    const levels = taught.map((s) => levelForXp(lastSkillXp[s.id] ?? 0));
+    const sum = levels.reduce((a, b) => a + b, 0);
     const maxed = level >= MAX_LEVEL;
-    const pct = maxed ? 100 : Math.floor(((xp - start) / (next - start)) * 100);
+    const toNext = taught.length ? taught.length * (level + 1) - sum : 0;
+    const pct = maxed || !taught.length ? (maxed ? 100 : 0) : Math.floor(((sum - level * taught.length) / taught.length) * 100);
 
     const row = document.createElement("div");
     const isOpen = openDisciplines.has(id);
     row.className = "skill" + (flash === id ? " flash" : "") + (isOpen ? " open" : "");
-    row.title = `${def.description} Click to ${isOpen ? "fold it up" : "show its skills"}.`;
+    row.title = `${def.description} Its level is the average of its skills' levels. Click to ${isOpen ? "fold it up" : "show its skills"}.`;
     row.onclick = () => {
       if (isOpen) openDisciplines.delete(id); else openDisciplines.add(id);
       renderDisciplines(lastDisciplines);
@@ -174,7 +194,9 @@ export function renderDisciplines(disciplines: DisciplineXp, flash?: DisciplineI
       el("skill-name", `${isOpen ? "▾" : "▸"} ${def.name}`),
       el("skill-level", `Lv ${level}`),
       bar,
-      el("skill-xp", maxed ? `${xp.toLocaleString()} XP (max level)` : `${xp.toLocaleString()} / ${next.toLocaleString()} XP · ${(next - xp).toLocaleString()} to go`),
+      el("skill-xp", (taught.length
+        ? `${disciplineStat(id, level)} · average of ${taught.length} skill${taught.length === 1 ? "" : "s"}` + (maxed ? "" : ` · ${toNext} more skill level${toNext === 1 ? "" : "s"} to go`)
+        : `${disciplineStat(id, level)} · no skills learned yet`)),
     );
 
     if (!isOpen) {
@@ -185,18 +207,18 @@ export function renderDisciplines(disciplines: DisciplineXp, flash?: DisciplineI
     const subs = el("subskills");
     subs.style.gridColumn = "1 / 4";
     for (const skill of def.skills) {
-      const unlocked = level >= skill.unlockLevel;
+      const unlocked = isUnlocked(disciplines.unlocked, skill.id);
       const sub = el("subskill" + (unlocked ? "" : " locked") + (flashSkill === skill.id ? " flash" : ""));
       sub.title = `${skill.description} Click to show or hide its details.`;
       const head = el("ss-head");
       const open = expanded.has(skill.id);
       head.append(el("ss-icon", skill.icon), el("ss-name", `${open ? "▾" : "▸"} ${skill.name}`),
-        el("ss-state", unlocked ? `Lv ${levelForXp(lastSkillXp[skill.id] ?? 0)}` : `🔒 ${def.name} ${skill.unlockLevel}`));
+        el("ss-state", unlocked ? `Lv ${levelForXp(lastSkillXp[skill.id] ?? 0)}` : "🔒 not learned"));
       sub.appendChild(head);
       if (open) {
         // A locked skill shows nothing as available yet (not even its level-1 types, like Bronze).
         sub.appendChild(unlocked ? skillDetails(skill.id)
-          : el("mastery m-info", `🔒 Unlocks at ${def.name} level ${skill.unlockLevel}. Until then you can't use any of it.`));
+          : el("mastery m-info", "🔒 Old Maren will teach you this in one of her lessons (📜 Quests). Until then you can't use any of it."));
       }
       sub.onclick = (e) => {
         e.stopPropagation(); // don't also fold up the Discipline
@@ -205,7 +227,7 @@ export function renderDisciplines(disciplines: DisciplineXp, flash?: DisciplineI
       };
       subs.appendChild(sub);
     }
-    if (id === "combat") subs.appendChild(monsterRow());
+    if (id === "strength") subs.appendChild(monsterRow());
     row.appendChild(subs);
     skillListEl.appendChild(row);
   }
@@ -251,7 +273,7 @@ function skillDetails(skill: SkillId): HTMLElement {
       const mXp = lastMastery[id] ?? 0;
       const m = masteryLevelForXp(mXp);
       const mStart = masteryXpForLevel(m), mNext = masteryXpForLevel(m + 1);
-      const price = sellPriceFor(r.item, lastMastery);
+      const price = sellPrice(r.item);
       row.append(ic, el("m-type-name", item.name), el("m-type-state", `Mastery ${m}`));
       const mBar = el("skill-bar t-bar");
       const mFill = document.createElement("div");
@@ -365,7 +387,7 @@ function craftDetails(skill: CraftSkill, level: number, box: HTMLElement) {
         continue;
       }
       list.appendChild(masteryRow(bar, ITEMS[bar].name, "🧈", metal.tint,
-        (m) => `${percent(craftSuccess(m, bonus))} success · sells for ${formatMoney(sellPriceFor(bar, lastMastery))}`,
+        (m) => `${percent(craftSuccess(m, bonus))} success · sells for ${formatMoney(sellPrice(bar))}`,
         (m) => `${percent(masterySuccess(m))} base success, ${valueBonusPercent(m)}% more money. ${metal.barXp} XP each.`));
     }
   } else {
@@ -870,7 +892,7 @@ export function renderInventory() {
       if (n > 1) slot.appendChild(countBadge(n));
       const tag = document.createElement("span");
       tag.className = "price-tag";
-      const price = sellPriceFor(id, lastMastery, durability[top]);
+      const price = sellPrice(id, durability[top]);
       tag.textContent = `${price}b`;
       slot.appendChild(tag);
       const lockedHere = here.filter((e) => locked[e]).length;
@@ -924,7 +946,7 @@ export function renderInventory() {
 function renderWeight() {
   const weightEl = document.getElementById("weight")!; // looked up here: this runs before the rest of this file has loaded
   const carried = carriedWeight({ inventory: invItems, counts }, lastBelt, lastGear);
-  const max = carryCapacity();
+  const max = carryCapacity(lastDisciplines.levels.dexterity);
   const pct = Math.min(1, carried / max);
   weightEl.replaceChildren();
   const bar = el("weight-bar");
@@ -1032,12 +1054,12 @@ function renderShop() {
   const carrying = [...new Set(invItems.filter((id): id is ItemId => !!id))];
   for (const id of carrying) {
     const span = document.createElement("span");
-    span.append(icon("", ITEMS[id].icon, ITEMS[id].tint), ` ${ITEMS[id].name}: ${formatMoney(sellPriceFor(id, lastMastery))}`);
+    span.append(icon("", ITEMS[id].icon, ITEMS[id].tint), ` ${ITEMS[id].name}: ${formatMoney(sellPrice(id))}`);
     span.className = "price";
     prices.appendChild(span);
   }
   const unlockedSlots = invItems.flatMap((id, i) => (id && !locked[i] ? [i] : []));
-  const total = unlockedSlots.reduce((sum, i) => sum + sellPriceFor(invItems[i]!, lastMastery, durability[i]) * countAt(i), 0);
+  const total = unlockedSlots.reduce((sum, i) => sum + sellPrice(invItems[i]!, durability[i]) * countAt(i), 0);
   const unlockedCount = unlockedSlots.reduce((sum, i) => sum + countAt(i), 0);
   const lockedCount = invItems.reduce((sum, id, i) => sum + (id && locked[i] ? countAt(i) : 0), 0);
   shopBody.append(prices, el("", !invItems.some(Boolean) ? "You have nothing to sell. Go chop or fish!"
@@ -1057,7 +1079,7 @@ function renderBuy() {
   list.id = "buy-list";
   for (const id of SHOP_STOCK) {
     const item = ITEMS[id];
-    const price = buyPriceFor(id);
+    const price = buyPrice(id);
     const row = el("buy-row" + (coins < price ? " poor" : ""));
     const ic = icon("buy-icon", item.icon, item.tint);
     const one = document.createElement("button");
@@ -1199,10 +1221,9 @@ function renderCraft() {
   craftTitle.textContent = `${{ furnace: "Furnace", anvil: "Anvil", stove: "Stove", workbench: "Workbench" }[station]} · ${findSkill(skill).def.name} level ${level}`;
   craftBody.replaceChildren();
   const lockedAt = (m: Material) => (level < MATERIALS[m].level ? MATERIALS[m].level : undefined);
-  const { discipline, def: skillDef } = findSkill(skill);
-  const disciplineLevel = levelForXp(lastDisciplines[discipline] ?? 0);
-  if (disciplineLevel < skillDef.unlockLevel) {
-    craftBody.append(el("craft-warn", `${skillDef.name} unlocks at ${DISCIPLINES[discipline].name} level ${skillDef.unlockLevel} (you're level ${disciplineLevel}). Old Maren will tell you how to get there.`));
+  const { def: skillDef } = findSkill(skill);
+  if (!isUnlocked(lastDisciplines.unlocked, skill)) {
+    craftBody.append(el("craft-warn", `You haven't learned ${skillDef.name} yet. Old Maren will teach you in one of her lessons (📜 Quests).`));
     craftOne.disabled = true;
     craftAll.disabled = true;
     return;
@@ -1285,7 +1306,7 @@ function renderCraft() {
     el("craft-info", `Mastery ${m}` + (!tool ? " · no tool needed" : lastBelt[tool] ? ` · ${ITEMS[lastBelt[tool]!.item].name} on your belt`
       : recipe.needsTool ? ` · no ${TOOL_TYPES[tool].name.toLowerCase()} on your belt (half chance)` : ` · no ${TOOL_TYPES[tool].name.toLowerCase()} needed`) +
       (steady ? ` · skill tree: ${Math.round(steady * 100)}% fewer failures` : "")));
-  const facts = [`Sells for ${formatMoney(sellPriceFor(output, lastMastery))}`, `${recipe.xp} XP`, `costs ${STAMINA_COST[skill]} stamina`];
+  const facts = [`Sells for ${formatMoney(sellPrice(output))}`, `${recipe.xp} XP`, `costs ${STAMINA_COST[skill]} stamina`];
   if (isTool(output)) facts.unshift(`${toolEffect(output)}, ${maxDurability(output)} uses`);
   if (isGear(output)) {
     const needs = gearNeeds(output)!;
@@ -1439,7 +1460,7 @@ function renderBounties() {
     const unused = isTool(b.item) || isGear(b.item) ? " (unused)" : "";
     row.append(icon("bounty-icon", item.icon, item.tint), el("bounty-what", `${b.count} × ${item.name}${unused}`), btn,
       el("bounty-have", `You have ${Math.min(have, b.count)} / ${b.count}`),
-      el("bounty-reward", `Reward: ${formatMoney(reward.coins)} · +${reward.xp} ${reward.label} XP`));
+      el("bounty-reward", `Reward: ${formatMoney(reward.coins)} · +${reward.xp} ${reward.label} XP · +${reward.renown} Renown XP`));
     bountyList.appendChild(row);
   });
 }
@@ -1572,7 +1593,7 @@ function guildBountyRow(b: GuildBounty, index: number) {
   if (ready) row.classList.add("ready");
   row.append(icon("bounty-icon", icon_, tint), el("bounty-what", guildBountyName(b)), btn,
     el("bounty-have", `${b.kind === "slay" ? "Done" : "You have"} ${Math.min(done, b.count)} / ${b.count}`),
-    el("bounty-reward", `Reward: +${reward.points} guild point${reward.points === 1 ? "" : "s"} · ${formatMoney(reward.coins)} · +${reward.magicXp} Magic XP`));
+    el("bounty-reward", `Reward: +${reward.points} guild point${reward.points === 1 ? "" : "s"} · ${formatMoney(reward.coins)} · +${reward.magicXp} Spellcasting XP`));
   return row;
 }
 
@@ -1741,12 +1762,12 @@ function renderInfo() {
   if (item.inputs) {
     const counts = new Map<ItemId, number>();
     for (const i of item.inputs) counts.set(i, (counts.get(i) ?? 0) + 1);
-    const parts = [...counts].map(([i, n]) => `${n} ${n === 1 ? ITEMS[i].single : ITEMS[i].name.toLowerCase()} (${formatMoney(sellPriceFor(i, lastMastery))} each)`).join(" + ");
+    const parts = [...counts].map(([i, n]) => `${n} ${n === 1 ? ITEMS[i].single : ITEMS[i].name.toLowerCase()} (${formatMoney(sellPrice(i))} each)`).join(" + ");
     infoBody.append(infoLine("Made from", parts, `×${CRAFT_MARKUP}, then your Mastery`));
   }
-  const price = sellPriceFor(id, lastMastery, uses);
+  const price = sellPrice(id, uses);
   infoBody.append(infoLine("Merchant pays", formatMoney(price), isTool(id) && uses != null && uses < maxDurability(id) ? "less because it's worn" : ""));
-  if (SHOP_STOCK.includes(id)) infoBody.append(infoLine("Merchant sells", formatMoney(buyPriceFor(id))));
+  if (SHOP_STOCK.includes(id)) infoBody.append(infoLine("Merchant sells", formatMoney(buyPrice(id))));
 
   // Where it comes from.
   const res = RESOURCE_FOR_ITEM[id];
@@ -1826,7 +1847,7 @@ function renderInfo() {
     const e = entry;
     const done = () => { if (here.length === 1) closeInfo(); };
     if (shopIsOpen() && !shopBuying) {
-      const each = sellPriceFor(id, lastMastery, uses);
+      const each = sellPrice(id, uses);
       infoButton(stack > 1 ? `Sell… (${formatMoney(each)} each)` : `Sell (${formatMoney(each)})`, () => {
         if (stack === 1) { onSell(e); done(); return; }
         askAmount({ title: `Sell ${ITEMS[id].name.toLowerCase()}`, glyph: ITEMS[id].icon, tint: ITEMS[id].tint, max: stack, start: stack, each, verb: "Sell", ok: (k) => { onSell(e, k); done(); } });
@@ -1835,7 +1856,7 @@ function renderInfo() {
     if (isTool(id)) infoButton("Put on belt", () => { onEquip(e); closeInfo(); });
     if (isGear(id)) infoButton(isWeapon(id) ? "Hold" : "Wear", () => { onWear(e); closeInfo(); });
     if (id === POTION_ID) infoButton(`Drink (+${POTION_HEAL})`, () => { onDrink(e); closeInfo(); });
-    if (isFood(id)) infoButton(`Eat (+${staminaOf(id)})`, () => { onEat(e); done(); }, staminaNow >= MAX_STAMINA);
+    if (isFood(id)) infoButton(`Eat (+${staminaOf(id)})`, () => { onEat(e); done(); }, staminaNow >= staminaMax);
     infoButton(isLocked ? "Unlock" : "Lock", () => onLock(e, !isLocked));
     infoButton(stack > 1 ? `Drop all ${stack}` : "Drop", () => { onDrop(e); done(); }, isLocked);
   }
@@ -1996,7 +2017,7 @@ function renderQuestTab() {
     const item = ITEMS[b.item];
     const have = bountyHave(b);
     const reward = bountyReward(b, lastMastery);
-    questListEl.append(row(item.icon, item.tint, `${b.count} × ${item.name}`, `${formatMoney(reward.coins)} · +${reward.xp} ${reward.label} XP`,
+    questListEl.append(row(item.icon, item.tint, `${b.count} × ${item.name}`, `${formatMoney(reward.coins)} · +${reward.xp} ${reward.label} XP · +${reward.renown} Renown`,
       have >= b.count ? "✓ Ready to hand in" : `You have ${have} / ${b.count}`, tb === b, () => onTrack(i)));
   });
   questListEl.append(el("qt-note", "Hand bounties in at the board next to the Merchant."));

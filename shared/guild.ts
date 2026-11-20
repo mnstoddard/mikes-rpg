@@ -143,3 +143,6 @@ export interface GuildView {
   chestSize: number; // 0 = no chest rented yet
   bounties: GuildBounty[];
 }
+
+/** Renown XP for finishing a guild bounty: 5, plus 2 for each guild point it gives. */
+export const guildRenown = (points: number) => 5 + 2 * points;

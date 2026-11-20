@@ -17,11 +17,8 @@ import { ARMOR, WEAPONS, isArmor, isWeapon, parseArmor, parseWeapon } from "./ge
 import { isMeal } from "./cooking";
 import { isBait } from "./handicraft";
 
-/** How much a new player can carry, in tenths of a kg (45 kg). */
-export const BASE_CAPACITY = 450;
-
-/** What you can carry. (One number for now: backpacks or Strength could raise it later.) */
-export const carryCapacity = () => BASE_CAPACITY;
+/** What you can carry comes from Dexterity: 45 kg at level 1 (shared/stats.ts). */
+export { carryCapacity } from "./stats";
 
 /** Tools, by type (tenths of a kg). */
 const TOOL_WEIGHT: Record<ToolType, number> = { axe: 20, pickaxe: 20, rod: 10, hammer: 15, tongs: 10, pot: 15 };
