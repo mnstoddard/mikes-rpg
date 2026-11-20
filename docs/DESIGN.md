@@ -31,10 +31,10 @@ Maren's quests arrived. Nobody's old XP, items or coins carry over.
 
 | Discipline | What it raises | Skills in it |
 |---|---|---|
-| 💪 **Strength** | Max **health** | Melee, Ranged, Defense |
+| 💪 **Strength** | Max **health** | Melee, Ranged, Defense, plus more combat skills *(still being chosen)* |
 | 🌿 **Endurance** (was Foraging) | Max **stamina** | Fishing, Woodcutting, Mining, Foraging *(new)*, Farming *(new)*, Hunting *(new)* |
 | 🔮 **Wisdom** | Max **mana** | Spellcasting *(replaces Magic)*, Enchanting *(new)*, Alchemy *(new)* |
-| 🤲 **Dexterity** (was Crafting) | Overall **speed**: walking, gathering and crafting | Cooking, Handicraft, Smithing, Smelting, Tailoring *(new)*, Fletching *(new)*, Jewelcrafting *(new)* |
+| 🤲 **Dexterity** (was Crafting) | Overall **speed**: walking, gathering and crafting | Cooking, Handicraft, Smithing, Smelting |
 | 🤝 **Charisma** | Better **shop prices** and bigger **party size** | Trading *(new)*, Renown *(new)*, Leadership *(new)* |
 
 How a discipline levels: every bit of XP you earn in a skill also goes into
@@ -48,8 +48,12 @@ Mining and Endurance.
 - **Cooking** goes to Dexterity with the other making skills. (It could go to
   Endurance next to Farming instead, since meals give stamina. See open
   questions.)
-- **Melee, Ranged, Defense** go to Strength. Defense no longer raises health by
-  itself; Strength does. Defense still makes monsters miss more and lets you wear
+- **Melee, Ranged, Defense** go to Strength. Strength will get more skills
+  than these three; which ones is still being decided.
+- **Tailoring and Fletching** are not separate skills: both fold into
+  **Handicraft**. **Jewelcrafting** is not a separate skill: it folds into
+  **Smithing**.
+- **Defense** no longer raises health by itself; Strength does. Defense still makes monsters miss more and lets you wear
   better armor.
 - **Magic** becomes **Spellcasting** under Wisdom.
 - **Mages' Guild rank** (from the guild's magic bounties) folds into **Renown**.
@@ -165,19 +169,22 @@ Monster strength also sets how much **soul energy** it gives when soul trapped
 Same as today, now under Dexterity. Smithing also makes the **shovel** and
 **plain metal for inlays** (silver and gold wire, see Enchanting).
 
-### Tailoring (new)
-Makes cloth and leather armor from hides, pelts and spider silk at a sewing
-table. Cloth and leather armor are lighter than metal, so they suit spellcasters
-and archers (and leave more weight for gathering).
+### Handicraft: bows, staffs, cloth and leather (no Fletching or Tailoring skill)
+Handicraft already makes fishing bait at the workbench. It also takes over
+what Fletching and Tailoring skills would have done, so neither is a separate
+skill:
 
-### Fletching (new)
-Makes bows and arrows at a fletching bench: a log for the bow, spider silk or
-sinew for the string, feathers and metal tips for arrows. Also makes the
-**plain staffs** that Enchanting turns into magic staffs. The wood type sets the
-staff's base strength (pine is weakest, elderwood is strongest).
+- **Woodwork**: fishing rods, bows (a log, plus spider silk or sinew for the
+  string), arrows (feathers and metal tips), and the **plain staffs** that
+  Enchanting turns into magic staffs. The wood type sets a staff's base strength
+  (pine is weakest, elderwood is strongest).
+- **Sewing**: cloth and leather armor from hides, pelts and spider silk.
+  Cloth and leather are lighter than metal, so they suit spellcasters and
+  archers (and leave more weight for gathering).
 
-### Jewelcrafting (new)
-At a jeweller's bench you:
+### Smithing: jewellery and gems (no Jewelcrafting skill)
+Smithing also does what a Jewelcrafting skill would have done. At the anvil
+(or a jeweller's bench next to it) you:
 
 - **Cut** raw gems. Cutting keeps the size; cut gems are worth more and are
   needed for enchanting.
@@ -254,7 +261,7 @@ What each gem does:
 
 Plus damage reduction on armor from any gem with a gold inlay (to be balanced).
 
-**Enchanted staffs**: a plain staff (from Fletching) plus a soul gem plus a gem
+**Enchanted staffs**: a plain staff (from Handicraft) plus a soul gem plus a gem
 makes a magic staff that fires bolts. Its strength comes from the wood type and
 the soul gem's size and fullness. Each bolt uses a **tiny bit of mana** (about 1),
 so staves are a cheap way to fight, while spells are stronger but cost more.
@@ -398,13 +405,11 @@ Planned chapters:
 | Old Maren | Fishing, Cooking, Eating | "Living off the land" (as today) |
 | Forester Holt | Woodcutting | Chop, make a stone axe, sell logs |
 | Miner Greta | Mining | Stone, ore, then find your first gem |
-| Smith Brann | Smithing, Smelting | Bars, tools, armor (today's lessons) |
+| Smith Brann | Smithing, Smelting | Bars, tools, armor (today's lessons), then cut a gem and make a silver ring |
 | Herbalist Wren | Foraging | Get a shovel, dig 5 finds, find a night herb |
 | Farmer Odo | Farming | Buy a plot (Odo pays for the first), plant, harvest |
 | Huntmaster Kael | Hunting, Melee, Ranged, Defense | Today's combat lesson, then the wolf |
-| Tailor Ines | Tailoring | Make leather boots from boar hide |
-| Fletcher Rook | Fletching | Make a bow and a plain staff |
-| Jeweller Pim | Jewelcrafting | Cut a gem, make a silver ring |
+| Woodworker Rook | Handicraft | Make bait, a bow, a plain staff and leather boots |
 | Archmage Ysolde | Spellcasting | Learn spells, cast Soul trap and fill a gem |
 | Enchanter Vale | Enchanting | Enchant your plain staff; see the Repairer |
 | Alchemist Moss | Alchemy | Brew a health potion |
@@ -423,7 +428,7 @@ The map grows, but not by a lot. Everything new is close to town.
 
 - **Trainer Row**: a short street of small buildings just north and east of the
   current town square. Each trainer has their own little building with their
-  work station inside (the forge, the sewing table, the jeweller's bench...).
+  work station inside (the forge, the workbench, the alchemy table...).
   They're all within a few seconds' walk of each other.
 - **The Mages' Guild** (already south-west of town) gains the enchanting altar,
   the alchemy table, the Repairer and the spell trainer.
@@ -479,16 +484,16 @@ quest chapter as it goes, so the main quest grows with the game.
 
 | Stage | What gets built | Why this order |
 |---|---|---|
-| **1. Small fixes** | Phone layout, sell slider, bag weight and slots, Mastery point quest step | Quick wins, nothing depends on them |
+| **1. Small fixes** ✅ built | Phone layout, sell slider, bag weight and slots, Mastery point quest step | Quick wins, nothing depends on them |
 | **2. The five disciplines** | Strength, Endurance, Wisdom, Dexterity, Charisma; skills move; health, stamina, mana, speed and price bonuses; every character reset to start fresh | Everything else plugs into this |
 | **3. Bigger town and trainers** | Trainer Row buildings, Merchant split into trainer shops plus General Store, Maren's hub quest for existing skills, day and night cycle | Gives new skills a place to live |
 | **4. Wear and repair** | Worn-out gear becomes Broken instead of vanishing, armor wears from damage, the paid Repairer | Needed before enchanting |
 | **5. Foraging, Hunting and new monsters** | Shovel, forage spots, ingredients, night herbs; slimes, bats, boars, beetles, spiders and night monsters; kill XP split by damage share; Hunting drop bonus | Ingredients for potions and crafting |
 | **6. Alchemy** | Alchemy table, vials, the potion list | Uses stage 5's ingredients |
-| **7. Gems, Jewelcrafting and soul stone** | Gem and soul stone rocks with continuous sizes, cutting, rings, amulets, inlays, soul gems | Needed for enchanting |
+| **7. Gems and soul stone** | Gem and soul stone rocks with continuous sizes, and Smithing's gem cutting, rings, amulets, inlays and soul gems | Needed for enchanting |
 | **8. Spellcasting** | Spell bar, new spell list, learning by level and books, Invisibility, Soul trap with the glow and blink, filling soul gems | Needed for enchanting |
 | **9. Enchanting** | Enchanting altar, staffs, armor and tool enchants, the Mend spell, Enchanting tree unlocks | Needs stages 4, 7 and 8 |
-| **10. Tailoring and Fletching** | Sewing table, cloth and leather armor, bows, arrows, plain staffs | Uses hides, silk and logs |
+| **10. More Handicraft** | Cloth and leather armor, bows, arrows and plain staffs, all in Handicraft | Uses hides, silk and logs |
 | **11. Farming** | Farm area, buying and expanding plots, seeds, real-time growth | Independent, can move earlier |
 | **12. Trading and Renown** | Trading XP, Renown XP, bounty tiers, Renown-gated quests | Builds on the existing boards |
 | **13. Parties and Leadership** | Invites, party UI, shared quest XP and loot, quest level gates, Leadership bonus, The Howling Hollow | Biggest server change, best done last |
