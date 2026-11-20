@@ -55,7 +55,11 @@ export type Goal =
   /** Defeat monsters (of one type, if set; with one style, if set). */
   | { kind: "kill"; monster?: MonsterId; count: number; style?: CombatStyle }
   /** Drink a health potion. */
-  | { kind: "drink" };
+  | { kind: "drink" }
+  /** Track a bounty (tap it in the 📜 Quests tab or on the board). */
+  | { kind: "track" }
+  /** Hand in bounties at the board. */
+  | { kind: "bounty"; count: number };
 
 export interface QuestStep {
   /** Which quest (0, 1, 2). */
@@ -84,11 +88,13 @@ export interface QuestStep {
   fightWith?: "weapon" | CombatStyle;
   /** Finishing this talk step opens the gate to the Dark Forest. */
   opensGate?: boolean;
+  /** From this talk step on, the bounty board is open. */
+  opensBoard?: boolean;
 }
 
-export const QUESTS = ["Living off the land", "The woodcutter's start", "Into the rocks", "Standing your ground"];
+export const QUESTS = ["Living off the land", "The woodcutter's start", "Into the rocks", "Standing your ground", "Odd jobs"];
 
-const WORN_ROD: Gift = { item: "rod_stone_pine", durability: 8 };
+const WORN_ROD: Gift = { item: "rod_pine", durability: 8 };
 const WORN_PICK: Gift = { item: "pickaxe_stone_pine", durability: 10 };
 const LOG: Gift = { item: "pine_logs" };
 const MINNOW: Gift = { item: "minnow" };
@@ -137,7 +143,7 @@ export const STEPS: QuestStep[] = [
     quest: 0, task: `Tell ${GUIDE_NAME} your rod broke`, goal: { kind: "talk" },
     lines: [
       "Snapped, did it? Every tool wears down a little each time you use it, and when it runs out, it breaks.",
-      "Better tools last longer. Stone wears out fastest, bronze lasts more than twice as long, and the finer metals longer still. A better wooden handle helps too.",
+      "Better tools last longer. Stone wears out fastest, bronze lasts more than twice as long, and the finer metals longer still. A better wooden handle helps too. Fishing rods are all wood, so for those, the better the wood, the better the rod.",
       "Now, raw minnows won't keep you going for long. Take this pine log to the stove and cook your fish into a stew. Pick Stew, tap your minnow to put it in the pot, and pick the Pine log to burn.",
     ],
     give: [LOG],
@@ -190,23 +196,23 @@ export const STEPS: QuestStep[] = [
     quest: 0, task: `Go back to ${GUIDE_NAME} for your reward`, goal: { kind: "talk" },
     lines: [
       "You've got the hang of living off the land: fish, cook, eat, and sell what you don't need.",
-      "Here's your reward: a bronze rod and a bronze pot. Faster fishing, fewer burned stews, and they last much longer. And some coins and a couple of stews for the road.",
+      "Here's your reward: an oak fishing rod and a bronze pot. Faster fishing, fewer burned stews, and they last much longer. And some coins and a couple of stews for the road.",
       "Put them both on your belt. Your old stone pot goes back in your bag when you do.",
     ],
-    give: [{ item: "rod_bronze_pine" }, { item: "pot_bronze" }, { item: SHOP_STEW, count: 2 }],
+    give: [{ item: "rod_oak" }, { item: "pot_bronze" }, { item: SHOP_STEW, count: 2 }],
     coins: 50,
   },
 
   // ---------------- Quest 2: The woodcutter's start ----------------
   {
-    quest: 1, task: "Put the bronze rod and bronze pot on your belt", goal: { kind: "equip", tools: ["rod_bronze", "pot_bronze"], names: "bronze rod and bronze pot" },
-    hint: "Click the bronze rod in your bag and press \"Put on belt\", then the same for the bronze pot.",
-    protect: ["rod_bronze", "pot_bronze"],
+    quest: 1, task: "Put the oak rod and bronze pot on your belt", goal: { kind: "equip", tools: ["rod_", "pot_bronze"], names: "oak rod and bronze pot" },
+    hint: "Click the oak fishing rod in your bag and press \"Put on belt\", then the same for the bronze pot.",
+    protect: ["rod_", "pot_bronze"],
   },
   {
     quest: 1, task: "Reach Foraging level 3 (keep fishing)", goal: { kind: "level", discipline: "foraging", level: 3 },
     hint: "Keep fishing. Every fish gives Foraging XP, and at level 3 you can chop trees.",
-    needsTool: "rod", protect: ["rod_bronze"],
+    needsTool: "rod", protect: ["rod_"],
   },
   {
     quest: 1, task: `Talk to ${GUIDE_NAME} about Woodcutting`, goal: { kind: "talk" },
@@ -353,7 +359,7 @@ export const STEPS: QuestStep[] = [
     protect: ["pickaxe_bronze"],
     lines: [
       "A bronze pickaxe, made with your own hands! You're ready.",
-      "Take these bronze tongs, and some coins. Now you have a whole set of bronze tools: rod, pot, axe, hammer, pickaxe and tongs.",
+      "Take these bronze tongs, and some coins. Now you have a whole set of good tools: an oak rod, and a bronze pot, axe, hammer, pickaxe and tongs. When you want a better rod, carve one at the anvil from 2 logs of finer wood.",
       "There's one more thing every adventurer needs to know: how to look after yourself. Come and talk to me again when you're ready.",
     ],
     give: [{ item: "tongs_bronze" }],
@@ -474,17 +480,48 @@ export const STEPS: QuestStep[] = [
     lines: [
       "You came back! And in one piece, too.",
       "Here's a bronze platebody and bronze boots. With those you've a full bronze set: helmet, platebody, platelegs, boots and shield. And some coins.",
-      "That's all I can teach you. The forest gets harder the deeper you go, so train up, make better gear, and keep potions handy. Go and make your fortune!",
-      "One more thing: the bounty board next to the Merchant is open to you now. Folk pin up jobs there, and they pay double what the Merchant would.",
+      "The forest gets harder the deeper you go, so train up, make better gear, and keep potions handy.",
+      "Come and talk to me once more when you're ready. I've one last tip, about earning a living.",
     ],
     give: [{ item: "platebody_bronze" }, { item: "boots_bronze" }],
     coins: 300,
+  },
+
+  // ---------------- Quest 5: Odd jobs ----------------
+  {
+    quest: 4, task: `Talk to ${GUIDE_NAME} about the bounty board`, goal: { kind: "talk" }, opensBoard: true,
+    lines: [
+      "See the notice board next to the Merchant? That's the bounty board. Folk pin up jobs there: bring the full amount and they pay double what the Merchant would, plus XP.",
+      "Now, open the 📜 Quests tab, bottom right. It shows my lessons and every bounty on the board. Tap one to track it, and it shows up next to your health, so you always know how many more you need.",
+      "Go on: open the 📜 tab and tap a bounty to track it. Pick one that looks easy!",
+    ],
+  },
+  {
+    quest: 4, task: "Track a bounty (tap 📜 Quests, then tap a bounty)", goal: { kind: "track" },
+    hint: "Tap the 📜 Quests tab at the bottom right, then tap one of the bounties in it. It'll show up next to your health.",
+  },
+  {
+    quest: 4, task: "Finish a bounty and hand it in at the board", goal: { kind: "bounty", count: 1 },
+    hint: "Gather or make what your bounty asks for, then click the bounty board next to the Merchant and press Hand in. Too hard? Press Refresh on the board for new ones.",
+  },
+  {
+    quest: 4, task: `Go back to ${GUIDE_NAME} for your reward`, goal: { kind: "talk" },
+    lines: [
+      "Your first bounty! See? Honest work, and good pay.",
+      "Any time you like, tap a quest or a bounty in the 📜 tab to switch what you're tracking. The board always has 5 jobs, and a new one goes up for every one you finish.",
+      "That's all I can teach you. Go and make your fortune!",
+    ],
+    coins: 100,
   },
 ];
 
 /** The Dark Forest's gate opens once you're past this step. */
 export const GATE_STEP = STEPS.findIndex((s) => s.opensGate);
 export const gateOpen = (q: { step: number }) => q.step > GATE_STEP;
+
+/** The bounty board opens once you reach this step (Maren telling you about it). */
+export const BOARD_STEP = STEPS.findIndex((s) => s.opensBoard);
+export const boardOpen = (q: { step: number }) => q.step >= BOARD_STEP;
 
 /** Every stew burns until you've reached this step (the first "Tell Maren what happened"). */
 export const BURN_UNTIL = STEPS.findIndex((s) => s.goal.kind === "craft" && s.goal.tries);

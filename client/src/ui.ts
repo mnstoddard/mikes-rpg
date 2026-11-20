@@ -8,9 +8,10 @@ import { RESOURCE_FOR_ITEM } from "../../shared/foraging";
 import { CRAFT_MARKUP } from "../../shared/items";
 import {
   BAR_IDS, Belt, MATERIALS, MATERIAL_IDS, Material, METALS, METAL_IDS, Metal, TOOL_TYPES, TOOL_TYPE_IDS, ToolType, WOODS, WOOD_IDS, Wood, barId, emptyBelt,
-  hasHandle, isTool, maxDurability, metalOfBar, parseTool, toolBonus, toolForSkill, toolId,
+  ROD_LOGS, hasHandle, isTool, isWoodTool, maxDurability, metalOfBar, parseTool, toolBonus, toolForSkill, toolId,
 } from "../../shared/tools";
-import type { QuestView } from "../../shared/quests";
+import { GUIDE_NAME, type QuestView } from "../../shared/quests";
+import { PLAYER_COLORS } from "../../shared/colors";
 import {
   ARMOR, ARMOR_TYPES, ArmorType, GEAR_SLOTS, Gear, GearSlot, SLOT_ICONS, SLOT_NAMES, WEAPONS, WEAPON_TYPES, WeaponType,
   armorId, emptyGear, isArmor, isGear, isWeapon, parseWeapon, weaponId,
@@ -21,6 +22,11 @@ import {
 } from "../../shared/combat";
 import { gearDurability } from "../../shared/crafting";
 import { Bounty, bountyReward, slotCounts } from "../../shared/bounties";
+import { stackLimit } from "../../shared/bag";
+import {
+  CHEST_RENT, CHEST_START, CHEST_STEP, GuildBounty, GuildView, RANKS, expandCost, guildBountyName, guildReward, rankFor,
+} from "../../shared/guild";
+import { MONSTERS as MONSTER_DEFS } from "../../shared/combat";
 import {
   BASE_INGREDIENTS, DISHES, DISH_IDS, DishId, FOOD_KINDS, FUEL_STAMINA, INGREDIENTS, IngredientId, MAX_STAMINA, RAW_FISH_STAMINA, STAMINA_COST,
   fireStamina, fitsDish, foodStamina, ingredientStamina, isFood, isIngredient, isMeal, mealBaseStamina, mealId, parseMeal,
@@ -39,12 +45,13 @@ const skillListEl = document.getElementById("skill-list")!;
 
 // ---- Side panel tabs (Skills / Inventory): one open at a time, tap again to close ----
 
-type Panel = "inventory" | "skills" | "";
+type Panel = "inventory" | "skills" | "quests" | "";
 const isSmallScreen = () => matchMedia("(max-width: 640px), (max-height: 500px)").matches;
 
 export function openPanel(panel: Panel) {
   document.body.dataset.panel = panel;
   document.querySelectorAll<HTMLElement>(".tab").forEach((b) => b.classList.toggle("active", b.dataset.tab === panel));
+  if (panel === "quests") renderQuestTab();
 }
 
 document.querySelectorAll<HTMLElement>(".tab").forEach((b) => {
@@ -516,12 +523,46 @@ export function flashMastery(type: MasteryId) {
 
 renderDisciplines(lastDisciplines);
 
+// ---- Messages: the last few in the box, and every one since you logged in when you tap it ----
+
+const MAX_HISTORY = 500;
+const history: { at: Date; text: string }[] = [];
+const historyList = document.getElementById("history-list")!;
+
 export function showMessage(text: string) {
   const line = document.createElement("div");
   line.textContent = text;
   messagesEl.appendChild(line);
   while (messagesEl.children.length > MAX_MESSAGES) messagesEl.firstChild!.remove();
+  history.push({ at: new Date(), text });
+  if (history.length > MAX_HISTORY) history.shift();
+  if (document.body.classList.contains("history-open")) renderHistory();
 }
+
+function renderHistory() {
+  // Only jump to the newest message if you were already at the bottom (not while reading back).
+  const atBottom = historyList.scrollHeight - historyList.scrollTop - historyList.clientHeight < 30;
+  historyList.replaceChildren();
+  if (!history.length) historyList.append(el("", "No messages yet."));
+  for (const h of history) {
+    const row = document.createElement("div");
+    const time = document.createElement("span");
+    time.className = "h-time";
+    time.textContent = h.at.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    row.append(time, h.text);
+    historyList.appendChild(row);
+  }
+  if (atBottom || !historyList.dataset.shown) historyList.scrollTop = historyList.scrollHeight;
+  historyList.dataset.shown = "1";
+}
+
+messagesEl.onclick = () => {
+  closeSettings();
+  document.body.classList.add("history-open");
+  delete historyList.dataset.shown;
+  renderHistory();
+};
+document.getElementById("history-close")!.onclick = () => document.body.classList.remove("history-open");
 
 // Clicking an item drops it, or sells it while the Merchant's shop is open.
 // In lock mode (the 🔒 button on the inventory), clicking an item locks or
@@ -529,6 +570,9 @@ export function showMessage(text: string) {
 let invItems: (ItemId | null)[] = [];
 let locked: boolean[] = []; // per inventory slot
 let durability: (number | null)[] = []; // per inventory slot: uses left on tools
+let counts: number[] = []; // per inventory slot: how many are in the stack
+/** How many are in this bag slot (0 if empty). */
+const countAt = (i: number) => (invItems[i] ? Math.max(1, counts[i] ?? 1) : 0);
 let lockMode = false;
 let onDrop: (slot: number) => void = () => {};
 let onSell: (slot: number) => void = () => {};
@@ -543,6 +587,8 @@ let onWear: (slot: number) => void = () => {};
 let onRemove: (slot: GearSlot) => void = () => {};
 let onDrink: (slot: number) => void = () => {};
 let onSpell: (id: SpellId) => void = () => {};
+let onSort: () => void = () => {};
+let onMove: (from: number, to: number) => void = () => {};
 
 export function setInventoryActions(actions: {
   drop: (slot: number) => void;
@@ -558,7 +604,11 @@ export function setInventoryActions(actions: {
   remove: (slot: GearSlot) => void;
   drink: (slot: number) => void;
   spell: (id: SpellId) => void;
+  sort: () => void;
+  move: (from: number, to: number) => void;
 }) {
+  onSort = actions.sort;
+  onMove = actions.move;
   onEat = actions.eat;
   onWear = actions.wear;
   onRemove = actions.remove;
@@ -576,6 +626,19 @@ export function setInventoryActions(actions: {
 
 export function renderDurability(slots: (number | null)[]) {
   durability = slots;
+}
+
+/** How many are in each bag slot. The server sends this just before the inventory, which redraws the bag. */
+export function renderCounts(slots: number[]) {
+  counts = slots;
+}
+
+/** A small number in the corner of a slot holding more than one. */
+function countBadge(n: number) {
+  const b = document.createElement("span");
+  b.className = "count-badge";
+  b.textContent = String(n);
+  return b;
 }
 
 /** "+10% Woodcutting speed" / "+10% fewer Smithing failures" */
@@ -693,18 +756,84 @@ function setLockMode(on: boolean) {
   renderInventory(invItems);
 }
 lockModeBtn.onclick = () => setLockMode(!lockMode);
+document.getElementById("sort-bag")!.onclick = () => onSort();
+
+// ---- Dragging items around the bag: press on an item and move it onto another slot ----
+// (A short tap still opens the item, sells it, or locks it as before.)
+
+let drag: { from: number; x: number; y: number; ghost: HTMLElement | null; over: HTMLElement | null } | null = null;
+/** A drag just ended: ignore the click that the browser sends right after. */
+let justDragged = false;
+
+const slotAt = (x: number, y: number) => (document.elementFromPoint(x, y) as HTMLElement | null)?.closest<HTMLElement>("#slots .slot") ?? null;
+
+function startDrag(e: PointerEvent, from: number) {
+  if (e.button !== 0) return;
+  drag = { from, x: e.clientX, y: e.clientY, ghost: null, over: null };
+  window.addEventListener("pointermove", onDragMove);
+  window.addEventListener("pointerup", endDrag);
+  window.addEventListener("pointercancel", cancelDrag);
+}
+
+function onDragMove(e: PointerEvent) {
+  if (!drag) return;
+  if (!drag.ghost) {
+    if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 8) return; // still a tap
+    const id = invItems[drag.from];
+    if (!id) return cancelDrag();
+    drag.ghost = icon("", ITEMS[id].icon, ITEMS[id].tint);
+    drag.ghost.id = "drag-ghost";
+    document.body.appendChild(drag.ghost);
+    document.body.classList.add("dragging");
+    slotsEl.children[drag.from]?.classList.add("drag-from");
+    setHoverText(null);
+  }
+  drag.ghost.style.left = `${e.clientX}px`;
+  drag.ghost.style.top = `${e.clientY}px`;
+  const over = slotAt(e.clientX, e.clientY);
+  if (over !== drag.over) {
+    drag.over?.classList.remove("drag-over");
+    over?.classList.add("drag-over");
+    drag.over = over;
+  }
+}
+
+function endDrag(e: PointerEvent) {
+  if (drag?.ghost) {
+    const target = slotAt(e.clientX, e.clientY);
+    const to = target ? Number(target.dataset.slot) : -1;
+    if (to >= 0 && to !== drag.from) onMove(drag.from, to);
+    justDragged = true;
+    setTimeout(() => { justDragged = false; }, 0);
+  }
+  cancelDrag();
+}
+
+function cancelDrag() {
+  if (drag) {
+    drag.ghost?.remove();
+    drag.over?.classList.remove("drag-over");
+    slotsEl.querySelector(".drag-from")?.classList.remove("drag-from");
+  }
+  drag = null;
+  document.body.classList.remove("dragging");
+  window.removeEventListener("pointermove", onDragMove);
+  window.removeEventListener("pointerup", endDrag);
+  window.removeEventListener("pointercancel", cancelDrag);
+}
 
 const shopIsOpen = () => document.body.classList.contains("shop-open");
 
 export function renderInventory(items: (ItemId | null)[]) {
   invItems = items;
   slotsEl.replaceChildren();
-  const used = items.filter(Boolean).length;
+  const used = items.filter(Boolean).length; // slots in use (each stack takes one)
   bagCountEl.textContent = used ? String(used) : "";
   const selling = shopIsOpen();
   for (let i = 0; i < INVENTORY_SIZE; i++) {
     const slot = document.createElement("div");
-    slot.className = "slot";
+    slot.className = "slot" + (drag?.ghost && drag.from === i ? " drag-from" : "");
+    slot.dataset.slot = String(i);
     const id = items[i];
     if (id) {
       const item = ITEMS[id];
@@ -712,6 +841,8 @@ export function renderInventory(items: (ItemId | null)[]) {
       slot.appendChild(icon("item-icon", item.icon, item.tint));
       if (isTool(id)) slot.appendChild(durabilityBar(durability[i] ?? maxDurability(id), maxDurability(id)));
       if (isGear(id)) slot.appendChild(durabilityBar(durability[i] ?? gearDurability(id), gearDurability(id)));
+      const n = countAt(i);
+      if (n > 1) slot.appendChild(countBadge(n));
       const tag = document.createElement("span");
       tag.className = "price-tag";
       const price = sellPriceFor(id, lastMastery, durability[i]);
@@ -725,12 +856,17 @@ export function renderInventory(items: (ItemId | null)[]) {
         lock.textContent = "🔒";
         slot.appendChild(lock);
       }
-      slot.title = lockMode ? `${isLocked ? "Unlock" : "Lock"} this ${item.single}`
-        : isLocked ? `${item.name} (locked)`
-        : selling ? `Sell ${item.single} for ${formatMoney(price)}`
-        : `${item.name}: click for details`;
+      const many = n > 1 ? `${n} ${item.name.toLowerCase()}` : item.single;
+      slot.title = lockMode ? `${isLocked ? "Unlock" : "Lock"} ${n > 1 ? "these" : "this"} ${many}`
+        : isLocked ? `${n > 1 ? `${n} × ` : ""}${item.name} (locked)`
+        : chestIsOpen() ? `Put ${many} in your chest`
+        : selling ? `Sell ${many} for ${formatMoney(price * n)}`
+        : `${n > 1 ? `${n} × ` : ""}${item.name} (stacks to ${stackLimit(id)}): click for details, or drag to move it`;
+      slot.onpointerdown = (e) => startDrag(e, i);
       slot.onclick = () => {
+        if (justDragged) return;
         if (lockMode) return toggleLock(i);
+        if (chestIsOpen()) return onDeposit(i);
         if (shopIsOpen() && !shopBuying) {
           if (isLocked) return showMessage(`That ${item.single} is locked. Tap 🔒 on your inventory, then tap it to unlock.`);
           return onSell(i);
@@ -742,8 +878,10 @@ export function renderInventory(items: (ItemId | null)[]) {
   }
   if (selling) renderShop();
   renderBounties();
+  renderGuild();
   renderCraft();
   renderInfo();
+  renderTracker();
 }
 
 // ---- Money: shown under the inventory, doesn't use a slot ----
@@ -784,6 +922,8 @@ document.querySelectorAll<HTMLElement>(".shop-tab").forEach((b) => {
 export function openShop() {
   closeCraft();
   closeBounties();
+  closeGuild();
+  closeChest();
   closeInfo();
   document.body.classList.add("shop-open");
   openPanel("inventory"); // so you can click your items, on phones too
@@ -824,7 +964,7 @@ function renderShop() {
   document.body.classList.toggle("shop-buying", shopBuying);
   if (shopBuying) return renderBuy();
   shopBody.replaceChildren();
-  shopBody.append(el("", "Tap an item in your bag to sell it. To keep one, tap 🔒 on your bag, then tap the item."));
+  shopBody.append(el("", "Tap an item in your bag to sell it (a stack sells all at once). To keep one, tap 🔒 on your bag, then tap the item."));
   const prices = el("");
   prices.id = "shop-prices";
   // Prices for the kinds of thing you're carrying (there are too many to list them all).
@@ -835,15 +975,16 @@ function renderShop() {
     span.className = "price";
     prices.appendChild(span);
   }
-  const unlocked = invItems.filter((id, i): id is ItemId => !!id && !locked[i]);
-  const total = unlocked.reduce((sum, id) => sum + sellPriceFor(id, lastMastery), 0);
-  const lockedCount = invItems.filter((id, i) => id && locked[i]).length;
+  const unlockedSlots = invItems.flatMap((id, i) => (id && !locked[i] ? [i] : []));
+  const total = unlockedSlots.reduce((sum, i) => sum + sellPriceFor(invItems[i]!, lastMastery, durability[i]) * countAt(i), 0);
+  const unlockedCount = unlockedSlots.reduce((sum, i) => sum + countAt(i), 0);
+  const lockedCount = invItems.reduce((sum, id, i) => sum + (id && locked[i] ? countAt(i) : 0), 0);
   shopBody.append(prices, el("", !invItems.some(Boolean) ? "You have nothing to sell. Go chop or fish!"
     : `Sell all gives you ${formatMoney(total)}` + (lockedCount ? ` (keeps ${lockedCount} locked).` : ".")));
 
-  sellAllBtn.disabled = !unlocked.length;
-  if (!unlocked.length) resetSellAll();
-  sellAllBtn.textContent = sellAllArmed ? `Sell ${unlocked.length} for ${formatMoney(total)}?` : "Sell all";
+  sellAllBtn.disabled = !unlockedCount;
+  if (!unlockedCount) resetSellAll();
+  sellAllBtn.textContent = sellAllArmed ? `Sell ${unlockedCount} for ${formatMoney(total)}?` : "Sell all";
   sellAllBtn.classList.toggle("armed", sellAllArmed);
 }
 
@@ -887,6 +1028,8 @@ export function openCraft(id: string) {
   if (!(id in STATION_SKILL)) return;
   closeShop();
   closeBounties();
+  closeGuild();
+  closeChest();
   closeInfo();
   station = id as Station;
   document.body.classList.add("craft-open");
@@ -900,7 +1043,7 @@ export function closeCraft() {
 }
 
 /** How many of this item you have that aren't locked (crafting never uses locked items). */
-const haveUnlocked = (item: ItemId) => invItems.filter((id, i) => id === item && !locked[i]).length;
+const haveUnlocked = (item: ItemId) => invItems.reduce((sum, id, i) => sum + (id === item && !locked[i] ? countAt(i) : 0), 0);
 
 /** A row of choices (metal, wood, tool type...). Locked ones show the level they need. */
 function choices<T extends string>(label: string, ids: T[], current: T, show: (id: T) => { icon: string; tint?: string; name: string; lockedAt?: number }, choose: (id: T) => void) {
@@ -966,8 +1109,15 @@ function renderCraft() {
       );
       output = armorId(pick.armor, pick.armorMetal);
     } else {
-      craftBody.append(choices("Tool", TOOL_TYPE_IDS, pick.type, (t) => ({ icon: TOOL_TYPES[t].icon, name: TOOL_TYPES[t].name }), (t) => { pick.type = t; }), head());
-      if (hasHandle(pick.type)) craftBody.append(handle());
+      craftBody.append(choices("Tool", TOOL_TYPE_IDS, pick.type, (t) => ({ icon: TOOL_TYPES[t].icon, name: TOOL_TYPES[t].name }), (t) => { pick.type = t; }));
+      if (isWoodTool(pick.type)) {
+        // Fishing rods are all wood: pick which logs to carve it from.
+        craftBody.append(choices(`Wood (${ROD_LOGS} logs)`, WOOD_IDS, pick.wood, (w) => ({ icon: "🪵", tint: ITEMS[`${w}_logs`].tint, name: WOODS[w].name,
+          lockedAt: level < RESOURCES[w].level ? RESOURCES[w].level : undefined }), (w) => { pick.wood = w; }));
+      } else {
+        craftBody.append(head());
+        if (hasHandle(pick.type)) craftBody.append(handle());
+      }
       output = toolId(pick.type, pick.metal, pick.wood);
     }
   }
@@ -1121,9 +1271,12 @@ export function setBountyActions(actions: { handIn: (index: number) => void; ref
 /** The server sent the board's bounties. `open`: the player just clicked the board. */
 export function showBounties(list: Bounty[], open: boolean) {
   bounties = list;
+  renderTracker();
   if (open) {
     closeShop();
     closeCraft();
+    closeGuild();
+    closeChest();
     closeInfo();
     closeDialog();
     document.body.classList.add("bounty-open");
@@ -1142,7 +1295,7 @@ function renderBounties() {
   if (!bounties.length) bountyList.append(el("bounty-note", "No one needs anything right now. Try Refresh."));
   bounties.forEach((b, index) => {
     const item = ITEMS[b.item];
-    const have = invItems.filter((id, i) => slotCounts(b.item, id, !!locked[i], durability[i])).length;
+    const have = invItems.reduce((sum, id, i) => sum + (slotCounts(b.item, id, !!locked[i], durability[i]) ? countAt(i) : 0), 0);
     const ready = have >= b.count;
     const reward = bountyReward(b, lastMastery);
     const row = el("bounty-row" + (ready ? " ready" : ""));
@@ -1162,6 +1315,191 @@ function renderBounties() {
 
 document.getElementById("bounty-refresh")!.onclick = () => onRefreshBounties();
 document.getElementById("bounty-close")!.onclick = closeBounties;
+
+// ---- The Mages' Guild: rank, renting the enchanted chest, and magic bounties (rules in shared/guild.ts) ----
+
+const guildBody = document.getElementById("guild-body")!;
+let guild: GuildView | null = null;
+let onBuySpace: () => void = () => {};
+let onDeposit: (slot: number) => void = () => {};
+let onWithdraw: (slot: number) => void = () => {};
+let onGuildHandIn: (index: number) => void = () => {};
+let onRefreshGuild: () => void = () => {};
+const guildIsOpen = () => document.body.classList.contains("guild-open");
+const chestIsOpen = () => document.body.classList.contains("chest-open");
+
+export function setGuildActions(actions: {
+  buySpace: () => void; deposit: (slot: number) => void; withdraw: (slot: number) => void;
+  handIn: (index: number) => void; refresh: () => void;
+}) {
+  onBuySpace = actions.buySpace;
+  onDeposit = actions.deposit;
+  onWithdraw = actions.withdraw;
+  onGuildHandIn = actions.handIn;
+  onRefreshGuild = actions.refresh;
+}
+
+/** The server sent the guild's state. `open`: the player just clicked the Archmage or the guild board. */
+export function showGuild(g: GuildView, open: boolean) {
+  guild = g;
+  if (open) {
+    closeShop();
+    closeCraft();
+    closeBounties();
+    closeChest();
+    closeInfo();
+    closeDialog();
+    document.body.classList.add("guild-open");
+    if (!isSmallScreen()) openPanel("inventory");
+  }
+  renderGuild();
+}
+
+export function closeGuild() {
+  document.body.classList.remove("guild-open");
+}
+
+function renderGuild() {
+  if (!guildIsOpen() || !guild) return;
+  const g = guild;
+  guildBody.replaceChildren();
+
+  // Rank: points and what the next rank needs.
+  const rank = rankFor(g.points);
+  const next = RANKS[rank + 1];
+  const rankBox = el("guild-rank");
+  rankBox.append(el("guild-rank-name", `Rank: ${RANKS[rank].name}`),
+    el("bounty-note", next ? `${g.points} guild points · ${next.name} at ${next.points}` : `${g.points} guild points · the highest rank`));
+  if (next) {
+    const bar = el("q-bar");
+    const fill = document.createElement("div");
+    const from = RANKS[rank].points;
+    fill.style.width = `${Math.floor(((g.points - from) / (next.points - from)) * 100)}%`;
+    bar.appendChild(fill);
+    rankBox.appendChild(bar);
+  }
+  guildBody.appendChild(rankBox);
+
+  // The chest: rent it, or buy more space (as much as your rank allows).
+  const chestBox = el("guild-section");
+  chestBox.append(el("guild-head", "📦 Enchanted chest"));
+  const size = g.chestSize;
+  const cost = size ? expandCost(size) : CHEST_RENT;
+  const nextSize = size ? size + CHEST_STEP : CHEST_START;
+  const btn = document.createElement("button");
+  btn.className = "shop-btn";
+  if (!size) {
+    chestBox.append(el("bounty-note", `Rent ${CHEST_START} spaces for ${formatMoney(CHEST_RENT)}. Each space holds a whole stack. Open it from any enchanted chest: here, on the east island, or in the Dark Forest.`));
+    btn.textContent = `Rent (${formatMoney(CHEST_RENT)})`;
+  } else {
+    chestBox.append(el("bounty-note", `You have ${size} spaces.` + (cost == null ? " That's as big as they get." : "")));
+    btn.textContent = cost == null ? "Full size" : `+${CHEST_STEP} spaces (${formatMoney(cost)})`;
+  }
+  const allowed = RANKS[rank].maxChest;
+  if (cost != null && nextSize > allowed) {
+    const need = RANKS.find((r) => r.maxChest >= nextSize)!;
+    chestBox.append(el("craft-warn", `${/^[AEIOU]/.test(RANKS[rank].name) ? "An" : "A"} ${RANKS[rank].name} may rent up to ${allowed} spaces. Reach ${need.name} for more.`));
+    btn.disabled = true;
+  } else if (cost != null && coins < cost) {
+    chestBox.append(el("craft-warn", `You have ${formatMoney(coins)}.`));
+    btn.disabled = true;
+  }
+  if (cost == null) btn.disabled = true;
+  btn.onclick = () => onBuySpace();
+  chestBox.appendChild(btn);
+  guildBody.appendChild(chestBox);
+
+  // Magic bounties.
+  const list = el("guild-section");
+  list.append(el("guild-head", "📜 Guild bounties"),
+    el("bounty-note", "Defeat monsters with spells (hold a staff), or bring things the guild enchants with. Each one earns guild points."));
+  g.bounties.forEach((b, index) => list.appendChild(guildBountyRow(b, index)));
+  guildBody.appendChild(list);
+}
+
+function guildBountyRow(b: GuildBounty, index: number) {
+  const reward = guildReward(b);
+  const icon_ = b.kind === "slay" ? MONSTER_DEFS[b.monster].icon : ITEMS[b.item].icon;
+  const tint = b.kind === "reagent" ? ITEMS[b.item].tint : undefined;
+  let done: number;
+  let ready = false;
+  const row = el("bounty-row");
+  const btn = document.createElement("button");
+  btn.className = "shop-btn";
+  if (b.kind === "slay") {
+    done = b.progress;
+    btn.textContent = "🔮";
+    btn.disabled = true;
+    btn.title = "Counts up by itself each time you defeat one with a spell.";
+  } else {
+    done = invItems.reduce((sum, id, i) => sum + (id === b.item && !locked[i] ? countAt(i) : 0), 0);
+    ready = done >= b.count;
+    btn.textContent = "Hand in";
+    btn.disabled = !ready;
+    btn.onclick = () => onGuildHandIn(index);
+  }
+  if (ready) row.classList.add("ready");
+  row.append(icon("bounty-icon", icon_, tint), el("bounty-what", guildBountyName(b)), btn,
+    el("bounty-have", `${b.kind === "slay" ? "Done" : "You have"} ${Math.min(done, b.count)} / ${b.count}`),
+    el("bounty-reward", `Reward: +${reward.points} guild point${reward.points === 1 ? "" : "s"} · ${formatMoney(reward.coins)} · +${reward.magicXp} Magic XP`));
+  return row;
+}
+
+document.getElementById("guild-refresh")!.onclick = () => onRefreshGuild();
+document.getElementById("guild-close")!.onclick = closeGuild;
+
+// ---- Enchanted chest window: tap a stack in your bag to put it in, tap one here to take it out ----
+
+const chestSlotsEl = document.getElementById("chest-slots")!;
+const chestTitle = document.getElementById("chest-title")!;
+let chest: { items: (ItemId | null)[]; counts: number[]; durability: (number | null)[] } = { items: [], counts: [], durability: [] };
+
+export function showChest(c: typeof chest, open: boolean) {
+  chest = c;
+  if (open) {
+    closeShop();
+    closeCraft();
+    closeBounties();
+    closeGuild();
+    closeInfo();
+    closeDialog();
+    document.body.classList.add("chest-open");
+    openPanel("inventory"); // so you can tap your items, on phones too
+    renderInventory(invItems);
+  }
+  renderChest();
+}
+
+export function closeChest() {
+  if (!chestIsOpen()) return;
+  document.body.classList.remove("chest-open");
+  renderInventory(invItems);
+}
+
+function renderChest() {
+  if (!chestIsOpen()) return;
+  const used = chest.items.filter(Boolean).length;
+  chestTitle.textContent = `📦 Enchanted chest (${used}/${chest.items.length})`;
+  chestSlotsEl.replaceChildren();
+  chest.items.forEach((id, i) => {
+    const slot = document.createElement("div");
+    slot.className = "slot";
+    if (id) {
+      const item = ITEMS[id];
+      const n = Math.max(1, chest.counts[i] ?? 1);
+      slot.classList.add("filled");
+      slot.appendChild(icon("item-icon", item.icon, item.tint));
+      if (isTool(id)) slot.appendChild(durabilityBar(chest.durability[i] ?? maxDurability(id), maxDurability(id)));
+      if (isGear(id)) slot.appendChild(durabilityBar(chest.durability[i] ?? gearDurability(id), gearDurability(id)));
+      if (n > 1) slot.appendChild(countBadge(n));
+      slot.title = `Take out ${n > 1 ? `${n} ${item.name.toLowerCase()}` : item.single}`;
+      slot.onclick = () => onWithdraw(i);
+    }
+    chestSlotsEl.appendChild(slot);
+  });
+}
+
+document.getElementById("chest-close")!.onclick = closeChest;
 
 // ---- Item info card: click an item (or a belt tool) to see what it's worth and does ----
 
@@ -1220,6 +1558,8 @@ function renderInfo() {
   const head = el("craft-head");
   head.append(icon("craft-icon", item.icon, item.tint), el("craft-name", item.name + (isLocked ? " 🔒" : "")));
   infoBody.appendChild(head);
+  const stack = target.kind === "slot" ? countAt(target.slot) : 1;
+  if (stackLimit(id) > 1) infoBody.append(infoLine("In this stack", `${stack} of ${stackLimit(id)}`, "a full stack takes one bag slot"));
 
   // Value: base price, your Mastery multiplier, and what the Merchant pays and charges.
   const mid = masteryIdFor(id);
@@ -1316,7 +1656,7 @@ function renderInfo() {
     if (id === POTION_ID) infoButton(`Drink (+${POTION_HEAL})`, () => { onDrink(slot); closeInfo(); });
     if (isFood(id)) infoButton(`Eat (+${staminaOf(id)})`, () => { onEat(slot); closeInfo(); }, staminaNow >= MAX_STAMINA);
     infoButton(isLocked ? "Unlock" : "Lock", () => onLock(slot, !isLocked));
-    infoButton("Drop", () => { onDrop(slot); closeInfo(); }, isLocked);
+    infoButton(stack > 1 ? `Drop all ${stack}` : "Drop", () => { onDrop(slot); closeInfo(); }, isLocked);
   }
   infoButton("Close", closeInfo);
 }
@@ -1386,28 +1726,99 @@ export function setHoverText(action: string | null, target = "", x = 0, y = 0) {
 
 // ---- Old Maren: the quest tracker and her dialog ----
 
+// ---- The quest tracker (next to your health) and the 📜 Quests tab ----
+// The tracker shows one thing: Maren's current step, or a bounty you picked in the Quests tab.
+
 const questEl = document.getElementById("quest")!;
-let questMin = false;
-questEl.onclick = () => { questMin = !questMin; questEl.classList.toggle("min", questMin); };
+const questListEl = document.getElementById("quest-list")!;
+let lastQuest: QuestView | null = null;
+/** The tracked bounty's item, or null for Maren's quest. */
+let trackedItem: ItemId | null = null;
+let onTrack: (bounty: number | null) => void = () => {};
+
+export function setQuestActions(actions: { track: (bounty: number | null) => void }) {
+  onTrack = actions.track;
+}
+
+questEl.onclick = () => openPanel(document.body.dataset.panel === "quests" ? "" : "quests");
+
+/** How many of a bounty's items you have that count (unlocked, unused). */
+const bountyHave = (b: Bounty) => invItems.reduce((sum, id, i) => sum + (slotCounts(b.item, id, !!locked[i], durability[i]) ? countAt(i) : 0), 0);
+const trackedBounty = () => bounties.find((b) => b.item === trackedItem) ?? null;
+
+export function renderTracked(item: ItemId | null) {
+  trackedItem = item;
+  renderTracker();
+}
 
 export function renderQuest(q: QuestView, flash = false) {
+  lastQuest = q;
+  renderTracker(flash);
+}
+
+function bar(fraction: number) {
+  const b = el("q-bar");
+  const fill = document.createElement("div");
+  fill.style.width = `${Math.floor(Math.min(1, fraction) * 100)}%`;
+  b.appendChild(fill);
+  return b;
+}
+
+function renderTracker(flash = false) {
+  if (document.body.dataset.panel === "quests") renderQuestTab();
+  const b = trackedBounty();
+  const q = lastQuest;
+  if (!b && !q) return;
   document.body.classList.add("has-quest");
   questEl.replaceChildren();
-  questEl.append(el("q-title", q.done ? `📜 ${q.quest}` : `📜 Quest ${q.number}/${q.of}: ${q.quest}`), el("q-task", (q.talk ? "❗ " : "") + q.task));
-  if (q.warning) questEl.append(el("q-warn", `⚠️ ${q.warning}`));
-  if (q.progress) questEl.append(el("q-progress", q.progress));
-  if (q.fraction != null) {
-    const bar = el("q-bar");
-    const fill = document.createElement("div");
-    fill.style.width = `${Math.floor(Math.min(1, q.fraction) * 100)}%`;
-    bar.appendChild(fill);
-    questEl.append(bar);
+  if (b) {
+    const have = bountyHave(b);
+    const item = ITEMS[b.item];
+    questEl.append(el("q-title", "📋 Bounty"), el("q-task", `${b.count} × ${item.name}${isTool(b.item) || isGear(b.item) ? " (unused)" : ""}`),
+      el("q-progress", have >= b.count ? `✓ ${b.count} / ${b.count}: hand it in at the board!` : `${have} / ${b.count}`), bar(have / b.count));
+  } else if (q) {
+    questEl.append(el("q-title", q.done ? `📜 ${q.quest}` : `📜 Quest ${q.number}/${q.of}: ${q.quest}`), el("q-task", (q.talk ? "❗ " : "") + q.task));
+    if (q.warning) questEl.append(el("q-warn", `⚠️ ${q.warning}`));
+    if (q.progress) questEl.append(el("q-progress", q.progress));
+    if (q.fraction != null) questEl.append(bar(q.fraction));
   }
+  if (bounties.length) questEl.append(el("q-switch", "Tap to switch quest or bounty"));
   if (flash) {
     questEl.classList.remove("flash");
     void questEl.offsetWidth; // restart the animation
     questEl.classList.add("flash");
   }
+}
+
+/** The 📜 tab: Maren's quest, then each bounty on the board. Tap one to track it. */
+function renderQuestTab() {
+  questListEl.replaceChildren();
+  const row = (glyph: string, tint: string | undefined, title: string, sub: string, state: string, tracked: boolean, onclick: () => void) => {
+    const r = el("qt-row" + (tracked ? " tracked" : ""));
+    r.append(icon("qt-icon", glyph, tint), el("qt-title", title), el("qt-sub", sub), el("qt-state", tracked ? "📍 Tracking" : state));
+    r.title = tracked ? "Showing next to your health" : "Tap to track this";
+    r.onclick = onclick;
+    return r;
+  };
+  const tb = trackedBounty();
+  questListEl.append(el("qt-head", `${GUIDE_NAME}'s lessons`));
+  if (lastQuest) {
+    const q = lastQuest;
+    questListEl.append(row("📜", undefined, q.done ? q.quest : `Quest ${q.number}/${q.of}: ${q.quest}`, q.task, q.progress ?? (q.done ? "" : "Tap to track"), !tb, () => onTrack(null)));
+  }
+  questListEl.append(el("qt-head", "📋 Bounties"));
+  if (!bounties.length) {
+    questListEl.append(el("qt-note", `The bounty board next to the Merchant opens later in ${GUIDE_NAME}'s lessons.`));
+    return;
+  }
+  bounties.forEach((b, i) => {
+    const item = ITEMS[b.item];
+    const have = bountyHave(b);
+    const reward = bountyReward(b, lastMastery);
+    questListEl.append(row(item.icon, item.tint, `${b.count} × ${item.name}`, `${formatMoney(reward.coins)} · +${reward.xp} ${reward.label} XP`,
+      have >= b.count ? "✓ Ready to hand in" : `You have ${have} / ${b.count}`, tb === b, () => onTrack(i)));
+  });
+  questListEl.append(el("qt-note", "Hand bounties in at the board next to the Merchant."));
 }
 
 const dialogName = document.getElementById("dialog-name")!;
@@ -1423,6 +1834,8 @@ export function openDialog(name: string, lines: string[]) {
   closeShop();
   closeBounties();
   closeCraft();
+  closeGuild();
+  closeChest();
   closeInfo();
   dialogLines = lines;
   dialogAt = 0;
@@ -1443,4 +1856,123 @@ dialogNext.onclick = () => {
 
 export function closeDialog() {
   document.body.classList.remove("dialog-open");
+}
+
+// ---- ⚙️ Settings: change your name, password or colour, or sign out ----
+
+const settingsEl = document.getElementById("settings")!;
+const nameForm = document.getElementById("set-name-form") as HTMLFormElement;
+const nameInput = document.getElementById("set-name") as HTMLInputElement;
+const nameMsg = document.getElementById("set-name-msg")!;
+const pwForm = document.getElementById("set-pw-form") as HTMLFormElement;
+const pwCurrent = document.getElementById("set-pw-current") as HTMLInputElement;
+const pwNew = document.getElementById("set-pw-new") as HTMLInputElement;
+const pwMsg = document.getElementById("set-pw-msg")!;
+const colorsEl = document.getElementById("set-colors")!;
+let myName = "";
+let myColor = 0;
+let pendingAccount: "name" | "password" | null = null;
+let account = {
+  rename: (_name: string) => {},
+  password: (_current: string, _next: string) => {},
+  color: (_color: number) => {},
+  signOut: () => {},
+};
+
+export function setAccountActions(actions: typeof account) {
+  account = actions;
+}
+
+/** Your own name and colour, as the server has them. */
+export function renderMe(name: string, color: number) {
+  myName = name;
+  myColor = color;
+  if (settingsEl.contains(document.activeElement) && document.activeElement === nameInput) return;
+  if (document.body.classList.contains("settings-open")) renderSettings();
+}
+
+function setMsg(box: HTMLElement, ok: boolean, text: string) {
+  box.textContent = text;
+  box.className = "set-msg " + (ok ? "ok" : "bad");
+}
+
+function renderSettings() {
+  colorsEl.replaceChildren();
+  for (const c of PLAYER_COLORS) {
+    const b = document.createElement("button");
+    b.className = "swatch" + (c.color === myColor ? " active" : "");
+    b.style.background = `#${c.color.toString(16).padStart(6, "0")}`;
+    b.title = c.name;
+    b.setAttribute("aria-label", c.name);
+    b.onclick = () => account.color(c.color);
+    colorsEl.appendChild(b);
+  }
+}
+
+export function openSettings() {
+  document.body.classList.remove("history-open");
+  document.body.classList.add("settings-open");
+  nameInput.value = myName;
+  nameMsg.textContent = "";
+  pwMsg.textContent = "";
+  pwCurrent.value = pwNew.value = "";
+  renderSettings();
+}
+
+export function closeSettings() {
+  document.body.classList.remove("settings-open");
+}
+
+/** The server answered a name or password change. */
+export function accountResult(ok: boolean, text: string, name: string) {
+  const box = pendingAccount === "password" ? pwMsg : nameMsg;
+  pendingAccount = null;
+  setMsg(box, ok, text);
+  if (box === pwMsg && ok) pwCurrent.value = pwNew.value = "";
+  if (box === nameMsg) nameInput.value = name;
+  if (ok && name) {
+    myName = name;
+    try { localStorage.setItem("rpg.lastUsername", name); } catch { /* storage blocked */ }
+  }
+}
+
+nameForm.onsubmit = (e) => {
+  e.preventDefault();
+  const name = nameInput.value.trim();
+  if (!name || name === myName) return setMsg(nameMsg, false, name ? "That's already your name." : "Type a new name first.");
+  pendingAccount = "name";
+  setMsg(nameMsg, true, "Saving…");
+  account.rename(name);
+};
+
+pwForm.onsubmit = (e) => {
+  e.preventDefault();
+  if (!pwCurrent.value) return setMsg(pwMsg, false, "Type your current password first.");
+  if (pwNew.value.length < 6) return setMsg(pwMsg, false, "New passwords need at least 6 characters.");
+  pendingAccount = "password";
+  setMsg(pwMsg, true, "Changing…");
+  account.password(pwCurrent.value, pwNew.value);
+};
+
+document.getElementById("settings-btn")!.onclick = () => (document.body.classList.contains("settings-open") ? closeSettings() : openSettings());
+document.getElementById("settings-close")!.onclick = closeSettings;
+document.getElementById("sign-out")!.onclick = () => { closeSettings(); account.signOut(); };
+
+/** After signing out: forget the last character's messages, bounties and tracker. */
+export function resetForSignOut() {
+  closeSettings();
+  closeShop();
+  closeBounties();
+  closeCraft();
+  closeGuild();
+  closeChest();
+  closeInfo();
+  closeDialog();
+  document.body.classList.remove("history-open", "has-quest");
+  messagesEl.replaceChildren();
+  history.length = 0;
+  bounties = [];
+  trackedItem = null;
+  lastQuest = null;
+  if (lockMode) setLockMode(false);
 }

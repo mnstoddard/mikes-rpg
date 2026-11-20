@@ -17,14 +17,15 @@
     #hud { top: calc(8px + env(safe-area-inset-top)); left: calc(8px + env(safe-area-inset-left)); padding: 6px 10px; font-size: 13px; pointer-events: none; }
     #hover { position: fixed; pointer-events: none; font-size: 13px; color: #fff; text-shadow: 1px 1px 0 #000; display: none; }
     #hover b { color: #ffd84a; font-weight: normal; }
-    #messages { left: calc(8px + env(safe-area-inset-left)); bottom: calc(8px + env(safe-area-inset-bottom)); width: 380px; padding: 6px 10px; font-size: 13px; line-height: 1.45; pointer-events: none; color: #f2e6c9; }
+    #messages { left: calc(8px + env(safe-area-inset-left)); bottom: calc(8px + env(safe-area-inset-bottom)); width: 380px; padding: 6px 10px; font-size: 13px; line-height: 1.45; color: #f2e6c9; cursor: pointer; touch-action: manipulation; }
+    #messages:hover { border-color: #ffd84a; }
     #messages div:last-child { color: #fff; }
     #tabs { position: fixed; right: calc(8px + env(safe-area-inset-right)); bottom: calc(8px + env(safe-area-inset-bottom)); display: flex; gap: 6px; }
     .tab { width: 52px; height: 52px; font-size: 26px; position: relative; }
     .tab.active { border-color: #ffd84a; background: rgba(90, 74, 47, .95); }
     .tab-count { position: absolute; right: 3px; bottom: 1px; font-size: 12px; color: #ffd84a; }
     .sidepanel { display: none; right: calc(8px + env(safe-area-inset-right)); bottom: calc(68px + env(safe-area-inset-bottom)); padding: 8px; }
-    body[data-panel="inventory"] #inventory, body[data-panel="skills"] #skills { display: block; }
+    body[data-panel="inventory"] #inventory, body[data-panel="skills"] #skills, body[data-panel="quests"] #quests { display: block; }
     .sidepanel h3 { margin: 0 0 6px; font-size: 13px; color: #ffd84a; font-weight: normal; text-align: center; }
     #slots { display: grid; grid-template-columns: repeat(4, 40px); grid-auto-rows: 36px; gap: 3px; }
     .slot { background: rgba(0,0,0,.25); border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 24px; user-select: none; }
@@ -197,6 +198,27 @@
     @media (max-width: 640px), (max-height: 500px) {
       #bounty { top: calc(56px + env(safe-area-inset-top)); padding: 8px 10px; max-height: 55vh; }
     }
+    /* Stacks: how many are in a slot */
+    .slot .count-badge { position: absolute; left: 2px; bottom: 0; font-size: 11px; line-height: 1.1; color: #fff; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000; pointer-events: none; }
+    body.shop-open .slot .count-badge { bottom: auto; top: 0; left: auto; right: 2px; }
+    /* Mages' Guild window and the enchanted chest */
+    #guild, #chest { display: none; left: 50%; top: 14%; transform: translateX(-50%); width: min(340px, calc(100vw - 32px)); padding: 12px 14px; z-index: 5; text-align: center; max-height: calc(100vh - 120px); overflow-y: auto; border-color: #6a4fa0; }
+    body.guild-open #guild, body.chest-open #chest { display: block; }
+    #guild h3, #chest h3 { margin: 0 0 6px; font-size: 16px; color: #d9b8ff; font-weight: normal; }
+    #guild .buttons, #chest .buttons { display: flex; gap: 6px; margin-top: 8px; }
+    .guild-rank { padding: 6px 8px; background: rgba(0,0,0,.25); border-radius: 3px; text-align: left; }
+    .guild-rank-name { font-size: 15px; color: #fff; }
+    .guild-rank .q-bar { height: 6px; background: #1d170f; border: 1px solid #6b5a3e; border-radius: 3px; overflow: hidden; }
+    .guild-rank .q-bar div { height: 100%; background: #b48cff; }
+    .guild-section { margin-top: 8px; padding: 6px 8px; background: rgba(0,0,0,.2); border-radius: 3px; text-align: left; }
+    .guild-section > .shop-btn { width: 100%; margin-top: 4px; }
+    .guild-head { font-size: 14px; color: #ffd84a; margin-bottom: 3px; }
+    #chest-slots { display: grid; grid-template-columns: repeat(4, 40px); grid-auto-rows: 36px; gap: 3px; justify-content: center; margin: 6px 0; }
+    body.chest-open #inventory .slot.filled { outline: 1px solid #b48cff; }
+    @media (max-width: 640px), (max-height: 500px) {
+      #guild, #chest { top: calc(56px + env(safe-area-inset-top)); padding: 8px 10px; max-height: 50vh; }
+      #chest-slots { grid-template-columns: repeat(7, 34px); grid-auto-rows: 30px; }
+    }
     /* Item info card */
     #info { display: none; left: 50%; top: 18%; transform: translateX(-50%); width: min(320px, calc(100vw - 32px)); padding: 12px 14px; z-index: 6; }
     body.info-open #info { display: block; }
@@ -228,8 +250,8 @@
     #spells { display: flex; gap: 3px; margin: -2px 0 6px; padding-bottom: 6px; border-bottom: 1px solid #6b5a3e; }
     #spells .pick { flex: 1; }
     #login-error { min-height: 1.3em; font-size: 13px; color: #ff9a8a; text-align: center; }
-    /* Quest tracker: under the stamina bar, shows the tutorial step you're on */
-    #quest { display: none; top: calc(150px + env(safe-area-inset-top)); left: calc(8px + env(safe-area-inset-left)); width: 230px; padding: 6px 9px; font-size: 12px; color: #f2e6c9; cursor: pointer; }
+    /* Quest tracker: right of the health, stamina and mana bars. Shows the tracked quest step or bounty. */
+    #quest { display: none; top: calc(42px + env(safe-area-inset-top)); left: calc(182px + env(safe-area-inset-left)); width: 230px; max-width: calc(100vw - 240px); padding: 6px 9px; font-size: 12px; color: #f2e6c9; cursor: pointer; box-sizing: border-box; }
     body.has-quest #quest { display: block; }
     #quest .q-title { color: #ffd84a; font-size: 12px; margin-bottom: 2px; }
     #quest .q-task { color: #fff; font-size: 13px; line-height: 1.35; }
@@ -238,7 +260,7 @@
     #quest .q-bar { height: 6px; margin-top: 3px; background: #1d170f; border: 1px solid #6b5a3e; border-radius: 3px; overflow: hidden; }
     #quest .q-bar div { height: 100%; background: #9be28a; transition: width .3s; }
     #quest.flash { animation: flash 1.2s ease-out; }
-    #quest.min .q-task, #quest.min .q-progress, #quest.min .q-bar { display: none; }
+    #quest .q-switch { margin-top: 3px; font-size: 10.5px; color: #c9bc9c; }
     /* Talking to Old Maren */
     #dialog { display: none; left: 50%; bottom: calc(150px + env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(420px, calc(100vw - 32px)); padding: 12px 14px; z-index: 7; }
     body.dialog-open #dialog { display: block; }
@@ -248,31 +270,80 @@
     #dialog-page { font-size: 11px; color: #c9bc9c; margin-right: auto; }
     #dialog .shop-btn { flex: 0 0 110px; }
     @media (max-width: 640px), (max-height: 500px) {
-      #quest { top: calc(137px + env(safe-area-inset-top)); width: min(200px, calc(100vw - 80px)); padding: 4px 7px; }
+      #quest { top: calc(36px + env(safe-area-inset-top)); left: calc(140px + env(safe-area-inset-left)); width: auto; right: calc(56px + env(safe-area-inset-right)); max-width: 230px; padding: 4px 7px; }
       #quest .q-task { font-size: 12px; }
       #dialog { bottom: auto; top: calc(56px + env(safe-area-inset-top)); }
       #dialog-text { font-size: 14px; }
     }
+    /* 📜 Quests tab: Maren's quest and the board's bounties. Tap one to track it. */
+    #quests { width: 260px; max-height: calc(100vh - 100px); overflow-y: auto; }
+    .qt-head { font-size: 11px; color: #c9bc9c; margin: 6px 0 3px; }
+    .qt-row { display: grid; grid-template-columns: 26px 1fr; gap: 1px 6px; align-items: center; padding: 6px 7px; margin-bottom: 3px; background: rgba(0,0,0,.25); border: 1px solid transparent; border-radius: 3px; cursor: pointer; touch-action: manipulation; }
+    .qt-row:hover { background: rgba(255,255,255,.08); }
+    .qt-row.tracked { border-color: #ffd84a; background: rgba(90, 74, 47, .95); }
+    .qt-icon { grid-row: span 3; font-size: 20px; text-align: center; }
+    .qt-title { font-size: 13px; color: #fff; }
+    .qt-sub { font-size: 11.5px; color: #f2e6c9; }
+    .qt-state { font-size: 11px; color: #9be28a; }
+    .qt-row.tracked .qt-state { color: #ffd84a; }
+    .qt-note { font-size: 12px; color: #c9bc9c; padding: 4px 2px; }
+    /* Full message history: tap the message box */
+    #history { display: none; left: 50%; top: 10%; transform: translateX(-50%); width: min(460px, calc(100vw - 32px)); padding: 12px 14px; z-index: 8; }
+    body.history-open #history { display: block; }
+    #history h3, #settings h3 { margin: 0 0 8px; font-size: 16px; color: #ffd84a; font-weight: normal; text-align: center; }
+    #history-list { max-height: min(60vh, 520px); overflow-y: auto; font-size: 13px; line-height: 1.45; color: #f2e6c9; -webkit-user-select: text; user-select: text; }
+    #history-list div { padding: 1px 0; border-bottom: 1px solid rgba(107, 90, 62, .35); }
+    #history-list .h-time { color: #8a8070; font-size: 11px; margin-right: 6px; }
+    #history .buttons, #settings .buttons { display: flex; gap: 6px; margin-top: 10px; }
+    /* ⚙️ Settings: name, password, colour, sign out */
+    #settings-btn { font-size: 20px; margin-top: 6px; }
+    #settings { display: none; left: 50%; top: 10%; transform: translateX(-50%); width: min(320px, calc(100vw - 32px)); padding: 12px 14px; z-index: 8; max-height: calc(100vh - 80px); overflow-y: auto; }
+    body.settings-open #settings { display: block; }
+    .set-section { padding: 8px 0; border-top: 1px solid rgba(107, 90, 62, .5); }
+    .set-label { font-size: 12px; color: #c9bc9c; margin-bottom: 4px; }
+    .set-row { display: flex; gap: 6px; }
+    #settings input { flex: 1; min-width: 0; font: inherit; font-size: 16px; -webkit-user-select: text; user-select: text; padding: 5px 7px; border: 1px solid #6b5a3e; border-radius: 3px; background: #1d170f; color: #fff; }
+    #settings form { display: flex; flex-direction: column; gap: 5px; margin: 0; }
+    #settings .shop-btn { flex: 0 0 auto; padding: 6px 12px; }
+    #set-colors { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+    .swatch { height: 30px; border-radius: 50%; border: 2px solid #000; cursor: pointer; touch-action: manipulation; padding: 0; }
+    .swatch.active { outline: 3px solid #ffd84a; outline-offset: 1px; }
+    .set-msg { min-height: 1.2em; font-size: 12px; margin-top: 4px; }
+    .set-msg.ok { color: #9be28a; }
+    .set-msg.bad { color: #ff9a8a; }
+    #sign-out { width: 100%; background: #7a2e22; }
+    #sign-out:hover { background: #923a2b !important; }
+    /* Sorting and moving things in the bag */
+    #sort-bag { position: absolute; left: 0; top: -4px; width: 28px; height: 24px; padding: 0; font-size: 14px; line-height: 1;
+      background: rgba(0,0,0,.25); border: 1px solid #6b5a3e; border-radius: 3px; color: #f2e6c9; cursor: pointer; touch-action: manipulation; }
+    #sort-bag:hover { border-color: #ffd84a; }
+    #slots .slot.filled { touch-action: none; }
+    body.dragging, body.dragging * { cursor: grabbing !important; }
+    #slots .slot.drag-from { opacity: .35; }
+    #slots .slot.drag-over { outline: 2px solid #ffd84a !important; }
+    #drag-ghost { position: fixed; z-index: 20; pointer-events: none; font-size: 26px; transform: translate(-50%, -50%); filter: drop-shadow(0 2px 3px rgba(0,0,0,.7)); }
+    #drag-ghost .svg-icon { width: 26px; height: 26px; }
   </style>
 </head>
 <body>
   <div id="game"></div>
   <div id="hud" class="panel">Connecting…</div>
   <div id="stamina" class="panel"></div>
-  <div id="quest" class="panel" title="Your task from Old Maren. Tap to fold it up."></div>
+  <div id="quest" class="panel" title="What you're working on. Tap to pick a different quest or bounty."></div>
   <div id="dialog" class="panel">
     <div id="dialog-name">Old Maren</div>
     <div id="dialog-text"></div>
     <div class="buttons"><span id="dialog-page"></span><button id="dialog-next" class="shop-btn">Next</button></div>
   </div>
-  <div id="zoom"><button id="zoom-in" class="panel btn" aria-label="Zoom in">+</button><button id="zoom-out" class="panel btn" aria-label="Zoom out">−</button></div>
+  <div id="zoom"><button id="zoom-in" class="panel btn" aria-label="Zoom in">+</button><button id="zoom-out" class="panel btn" aria-label="Zoom out">−</button><button id="settings-btn" class="panel btn" aria-label="Settings" title="Settings: name, password, colour, sign out">⚙️</button></div>
   <div id="tabs">
+    <button class="panel btn tab" data-tab="quests" aria-label="Quests and bounties" title="Quests and bounties">📜</button>
     <button class="panel btn tab" data-tab="skills" aria-label="Disciplines and Mastery" title="Disciplines and Mastery">📊</button>
     <button class="panel btn tab" data-tab="inventory" aria-label="Inventory" title="Inventory">🎒<span id="bag-count" class="tab-count"></span></button>
   </div>
   <div id="hover"></div>
-  <div id="messages" class="panel"></div>
-  <div id="inventory" class="panel sidepanel"><h3><span id="inv-title">Inventory</span><button id="lock-mode" aria-label="Lock items" title="Lock items so they can't be sold or dropped">🔒</button></h3><div class="strip-label">Tool belt</div><div id="belt"></div><div class="strip-label">Gear</div><div id="gear"></div><div id="spells"></div><div id="slots"></div><div id="money"></div></div>
+  <div id="messages" class="panel" title="Tap to see every message"></div>
+  <div id="inventory" class="panel sidepanel"><h3><button id="sort-bag" aria-label="Sort bag" title="Sort your bag. You can also drag items to move them.">⇅</button><span id="inv-title">Inventory</span><button id="lock-mode" aria-label="Lock items" title="Lock items so they can't be sold or dropped">🔒</button></h3><div class="strip-label">Tool belt</div><div id="belt"></div><div class="strip-label">Gear</div><div id="gear"></div><div id="spells"></div><div id="slots"></div><div id="money"></div></div>
   <div id="shop" class="panel">
     <h3 id="shop-title">Merchant</h3>
     <div id="shop-tabs"><button class="shop-tab active" data-mode="sell">Sell</button><button class="shop-tab" data-mode="buy">Buy</button></div>
@@ -300,11 +371,53 @@
       <button id="bounty-close" class="shop-btn">Close</button>
     </div>
   </div>
+  <div id="guild" class="panel">
+    <h3>🔮 Mages' Guild</h3>
+    <div id="guild-body"></div>
+    <div class="buttons">
+      <button id="guild-refresh" class="shop-btn" title="Swap the guild's bounties for new ones (free). Spell progress is lost.">🔄 New bounties</button>
+      <button id="guild-close" class="shop-btn">Close</button>
+    </div>
+  </div>
+  <div id="chest" class="panel">
+    <h3 id="chest-title">📦 Enchanted chest</h3>
+    <div class="bounty-note">Tap a stack in your bag to put it in. Tap one here to take it out.</div>
+    <div id="chest-slots"></div>
+    <div class="buttons"><button id="chest-close" class="shop-btn">Close</button></div>
+  </div>
   <div id="info" class="panel">
     <div id="info-body"></div>
     <div id="info-buttons" class="buttons"></div>
   </div>
   <div id="skills" class="panel sidepanel"><h3>Disciplines</h3><div id="skill-list"></div></div>
+  <div id="quests" class="panel sidepanel"><h3>Quests</h3><div id="quest-list"></div></div>
+  <div id="history" class="panel">
+    <h3>Messages</h3>
+    <div id="history-list"></div>
+    <div class="buttons"><button id="history-close" class="shop-btn">Close</button></div>
+  </div>
+  <div id="settings" class="panel">
+    <h3>⚙️ Settings</h3>
+    <div class="set-section">
+      <div class="set-label">Your name (you log in with it too)</div>
+      <form id="set-name-form" autocomplete="off"><div class="set-row"><input id="set-name" maxlength="12" autocomplete="off" /><button type="submit" class="shop-btn">Save</button></div></form>
+      <div id="set-name-msg" class="set-msg"></div>
+    </div>
+    <div class="set-section">
+      <div class="set-label">Change password</div>
+      <form id="set-pw-form" autocomplete="off">
+        <input id="set-pw-current" type="password" placeholder="Current password" autocomplete="current-password" maxlength="100" />
+        <div class="set-row"><input id="set-pw-new" type="password" placeholder="New password (6+ letters)" autocomplete="new-password" minlength="6" maxlength="100" /><button type="submit" class="shop-btn">Change</button></div>
+      </form>
+      <div id="set-pw-msg" class="set-msg"></div>
+    </div>
+    <div class="set-section">
+      <div class="set-label">Your colour</div>
+      <div id="set-colors"></div>
+    </div>
+    <div class="set-section"><button id="sign-out" class="shop-btn">Sign out</button></div>
+    <div class="buttons"><button id="settings-close" class="shop-btn" style="flex:1">Close</button></div>
+  </div>
   <div id="login">
     <form class="panel" autocomplete="on">
       <h2>Welcome</h2>

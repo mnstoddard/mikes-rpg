@@ -45,9 +45,20 @@ export interface SaveData {
   lockedSlots?: number[]; // inventory slots holding locked items, e.g. [0, 3], so Sell all skips them
   tree?: Record<string, number>; // Mastery skill tree ranks bought, e.g. { "cooking.slots": 2 }
   bounties?: { item: string; count: number }[]; // the bounty board's 5 jobs, e.g. [{ item: "oak_logs", count: 6 }]
+  tracked?: string; // the bounty on the quest tracker (its item), if one is picked over Maren's quest
+  color?: number; // character colour, picked in Settings (one of shared/colors.ts)
   locked?: string[]; // old: item types that were locked; turned into lockedSlots when loaded
+  counts?: number[]; // per inventory slot: how many are in the stack (missing in older saves: 1 each)
+  guild?: GuildSave; // the Mages' Guild: rank points, magic bounties and the enchanted chest
   // Add more here later (skills, bank, quests...). Stored as JSON, so no
   // database migration is needed for new fields.
+}
+
+/** The Mages' Guild part of a save (shared/guild.ts). */
+export interface GuildSave {
+  points?: number;
+  bounties?: unknown[]; // the guild board's 3 jobs
+  chest?: { item: string; count: number; durability?: number | null }[]; // one per chest space; empty spaces are { item: "", count: 0 }
 }
 
 export interface Account {
@@ -63,6 +74,9 @@ interface Store {
   create(username: string, passwordHash: string): Promise<boolean>;
   save(username: string, data: SaveData): Promise<void>;
   touchLogin(username: string): Promise<void>;
+  /** Change an account's name (it's also the login). Returns false if the new name is taken. */
+  rename(oldName: string, newName: string): Promise<boolean>;
+  setPassword(username: string, passwordHash: string): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -106,6 +120,19 @@ class PostgresStore implements Store {
   async touchLogin(username: string) {
     await this.pool.query("UPDATE accounts SET last_login_at = now() WHERE username_key = $1", [usernameKey(username)]);
   }
+  async rename(oldName: string, newName: string) {
+    try {
+      const res = await this.pool.query("UPDATE accounts SET username_key = $2, username = $3 WHERE username_key = $1",
+        [usernameKey(oldName), usernameKey(newName), newName.trim()]);
+      return res.rowCount === 1;
+    } catch (err: any) {
+      if (err.code === "23505") return false; // that name is someone else's
+      throw err;
+    }
+  }
+  async setPassword(username: string, passwordHash: string) {
+    await this.pool.query("UPDATE accounts SET password_hash = $2 WHERE username_key = $1", [usernameKey(username), passwordHash]);
+  }
   async close() { await this.pool.end(); }
 }
 
@@ -134,6 +161,21 @@ class FileStore implements Store {
     await this.flush();
   }
   async touchLogin() {}
+  async rename(oldName: string, newName: string) {
+    const from = usernameKey(oldName), to = usernameKey(newName);
+    const acct = this.accounts[from];
+    if (!acct || (to !== from && this.accounts[to])) return false;
+    delete this.accounts[from];
+    this.accounts[to] = { ...acct, username: newName.trim() };
+    await this.flush();
+    return true;
+  }
+  async setPassword(username: string, passwordHash: string) {
+    const acct = this.accounts[usernameKey(username)];
+    if (!acct) return;
+    acct.passwordHash = passwordHash;
+    await this.flush();
+  }
   async close() { await this.writing; }
   private flush() {
     // Write one at a time, to a temp file first, so a crash can't leave half a file.

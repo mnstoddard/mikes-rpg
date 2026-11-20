@@ -14,7 +14,7 @@
 import { ITEMS, ItemId } from "./items";
 import { RESOURCES, RESOURCE_FOR_ITEM, RESOURCE_IDS, ResourceId } from "./foraging";
 import { DISCIPLINES, DisciplineId, DisciplineXp, SkillId, SkillXp, findSkill, levelForXp } from "./disciplines";
-import { BAR_IDS, BarId, MATERIALS, MATERIAL_IDS, Material, METAL_IDS, TOOL_TYPE_IDS, WOOD_IDS, Wood, barId, hasHandle, isTool, maxDurability, toolId } from "./tools";
+import { BAR_IDS, BarId, MATERIALS, MATERIAL_IDS, Material, METAL_IDS, TOOL_TYPE_IDS, WOOD_IDS, Wood, barId, hasHandle, isTool, isWoodTool, maxDurability, toolId } from "./tools";
 import { ARMOR_TYPES, WEAPON_TYPES, armorId, isGear, weaponId } from "./gear";
 import { DISHES, DISH_IDS, INGREDIENTS, INGREDIENT_IDS, fitsDish, mealId } from "./cooking";
 import { CombatMasteryXp, MONSTERS, MONSTER_IDS, MonsterId, POTION_ID } from "./combat";
@@ -72,10 +72,13 @@ export function bountyChoices(p: BountyPlayer): ItemId[][] {
   // (dozens of variants) doesn't fill the whole board.
   for (const m of MATERIAL_IDS) {
     if (!smithAt(p, m)) continue;
-    groups.push(TOOL_TYPE_IDS.flatMap((type) => (!hasHandle(type) ? [toolId(type, m, "pine")] : woods.map((w) => toolId(type, m, w)))));
+    groups.push(TOOL_TYPE_IDS.filter((type) => !isWoodTool(type)).flatMap((type) => (!hasHandle(type) ? [toolId(type, m, "pine")] : woods.map((w) => toolId(type, m, w)))));
     if (woods.length) groups.push(WEAPON_TYPES.flatMap((type) => woods.map((w) => weaponId(type, m, w))));
   }
   for (const m of METAL_IDS) if (smithAt(p, m)) groups.push(ARMOR_TYPES.map((type) => armorId(type, m)));
+  // Fishing rods: all wood, so any wood you can chop and carve.
+  const rodWoods = woods.filter((w) => skillAt(p, "smithing", RESOURCES[w as ResourceId].level));
+  if (rodWoods.length) groups.push(rodWoods.map((w) => toolId("rod", "stone", w)));
   // Cooking: a dish you can cook of 1 to 3 of one fish you can catch, over a
   // log you can chop. (Fish only, so you can always get what it asks for.)
   for (const dish of DISH_IDS) {

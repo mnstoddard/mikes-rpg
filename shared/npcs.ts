@@ -1,7 +1,8 @@
 // People and work stations that stand around the world. They block the tile they're on.
 // Click one to walk over and use it: Old Maren talks to you, the Merchant opens his shop, the furnace,
 // anvil and stove open their crafting windows, the bounty board shows its jobs.
-export type NpcId = "maren" | "merchant" | "furnace" | "anvil" | "stove" | "workbench" | "board";
+export type NpcId = "maren" | "merchant" | "furnace" | "anvil" | "stove" | "workbench" | "board"
+  | "archmage" | "guildboard" | "chest" | "chest_east" | "chest_forest";
 
 export interface NpcDef {
   id: NpcId;
@@ -49,7 +50,34 @@ export const NPCS: NpcDef[] = [
     id: "board", name: "Bounty board", kind: "station", x: 17, y: 9, color: 0x8b5a2b,
     greeting: "Folk pin jobs here. Bring the full amount and they pay double what the Merchant would.",
   },
+  // ---- The Mages' Guild (shared/guild.ts): the hall south-west of town, by the coast ----
+  {
+    id: "archmage", name: "Archmage Ysolde", kind: "person", x: 8, y: 19, color: 0x5b2c9f, badge: "🔮",
+    greeting: "Welcome to the Mages' Guild. Rent space in our enchanted chest, or help the guild to rise in rank.",
+  },
+  {
+    // Magic jobs that raise your guild rank. Opens once Old Maren's tutorial is done.
+    id: "guildboard", name: "Guild board", kind: "station", x: 10, y: 19, color: 0x5b2c9f,
+    greeting: "Magic jobs for the guild. Finish them to rise in rank.",
+  },
+  // Enchanted chests: all of them open the same storage, wherever you are.
+  {
+    id: "chest", name: "Enchanted chest", kind: "station", x: 6, y: 19, color: 0x6a3fb5,
+    greeting: "The chest hums with magic.",
+  },
+  {
+    id: "chest_east", name: "Enchanted chest", kind: "station", x: 47, y: 10, color: 0x6a3fb5,
+    greeting: "The chest hums with magic.",
+  },
+  {
+    id: "chest_forest", name: "Enchanted chest", kind: "station", x: 28, y: 22, color: 0x6a3fb5,
+    greeting: "The chest hums with magic.",
+  },
 ];
+
+/** Every enchanted chest opens the same storage. */
+export const CHEST_IDS: NpcId[] = ["chest", "chest_east", "chest_forest"];
+export const isChest = (id: string) => (CHEST_IDS as string[]).includes(id);
 
 export const npcAt = (x: number, y: number) => NPCS.find((n) => n.x === x && n.y === y);
 export const npcById = (id: string) => NPCS.find((n) => n.id === id);

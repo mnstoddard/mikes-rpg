@@ -20,21 +20,26 @@ like `http://192.168.1.20:5173`; open that on their device.
 
 - **Walk / chop:** click or tap a tile or a tree.
 - **Zoom:** pinch with two fingers, scroll the mouse wheel, or use the + / − buttons (top right). Your zoom is remembered.
-- **Skills / Inventory:** the 📊 and 🎒 buttons (bottom right) open each panel; tap again to close. On phones both start closed so they don't cover the map.
+- **Quests / Skills / Inventory:** the 📜, 📊 and 🎒 buttons (bottom right) open each panel; tap again to close. On phones they start closed so they don't cover the map.
+- **Messages:** tap the message box (bottom left) to see every message since you logged in, with times.
+- **Settings:** the ⚙️ button (top right, under the zoom buttons) lets you change your name (it's your login too), your password (needs the old one) and your character's colour, or **Sign out**.
+- **Moving and sorting your bag:** drag an item onto another slot to swap them (mouse or finger; a short tap still opens the item). The ⇅ button at the top left of the inventory sorts it: tools, weapons, armor, food, potions, bars, logs, ore, fish, then everything else. Locks and uses left move with the item.
 
 ## The tutorial: Old Maren
 
 Every new character starts with empty hands next to **Old Maren**, a retired
 fisher standing just south of the furnace. A ❗ floats over her when she has
 something to say: click her to talk (tap **Next** to read on). The **quest
-tracker** under the stamina bar always shows your current task and progress
-(tap it to fold it up). There's no skipping.
+tracker**, right of the health, stamina and mana bars, always shows your current
+task and progress. Tap it (or the 📜 button) to open the **Quests tab**, which
+lists her current lesson and every bounty on the board: tap one to track it
+instead. There's no skipping.
 
 1. **Living off the land:** catch a minnow by hand, get her worn rod and fish
    until it breaks (tools wear out), cook a stew (the first one always burns),
    get her stone pot (pots raise success, rods/axes/picks raise speed), cook a
    stew that can't fail, learn about stamina and eat it, then sell a fish.
-   Reward: Bronze rod, Bronze pot, 2 stews, 50 bronze.
+   Reward: Oak fishing rod, Bronze pot, 2 stews, 50 bronze.
 2. **The woodcutter's start:** reach Foraging 3, chop 3 logs by hand, cook up to
    Crafting 3, make a stone axe at the anvil (can't fail), chop 10 logs with it,
    sell some logs. Reward: Bronze axe, Bronze hammer, 1 silver.
@@ -49,6 +54,10 @@ tracker** under the stamina bar always shows your current task and progress
    (can't fail) and wear them. Then she opens the gate to the Dark Forest:
    defeat a wolf and come back. Reward: bronze platebody and boots (a full
    bronze armor set), 3 silver.
+5. **Odd jobs:** she opens the bounty board and shows you the 📜 Quests tab. Track
+   a bounty there, finish it and hand it in at the board. Reward: 1 silver.
+
+Characters who had already finished the tutorial start Quest 5 the next time they log in.
 
 Characters who had already finished Quest 3 go straight on to Quest 4 (no reset).
 
@@ -183,8 +192,10 @@ walking in says "You're not ready to go in there yet." No fighting other players
 ## The bounty board
 
 A notice board stands just above the Merchant (between him and the anvil). It
-opens once you finish Old Maren's tutorial; before that, clicking it says it isn't
-open to you yet. Click it to see **5 bounties**, each asking for an amount of one item:
+opens when Old Maren tells you about it (Quest 5); before that, clicking it says it isn't
+open to you yet. Click it to see **5 bounties**, each asking for an amount of one item.
+The same 5 show in the 📜 Quests tab: tap one to **track** it, and the tracker shows how
+many you have (the tracker goes back to Maren's quest once it's handed in):
 
 - **Only things you could get yourself right now:** types you can chop, mine or
   catch; bars you can smelt, tools, weapons and armor you can smith, and stews you
@@ -202,6 +213,37 @@ open to you yet. Click it to see **5 bounties**, each asking for an amount of on
 - Your 5 bounties are saved with your character.
 
 Rules live in `shared/bounties.ts`; the board is in `shared/npcs.ts`.
+
+## Bag space and stacks
+
+Your bag has 28 slots. Most things stack in one slot: up to 50 logs, ore,
+stone or fish, 100 feathers, 10 health potions, and 25 of everything else
+(bars, stews, monster drops). Tools, weapons and armor don't stack, since each
+one wears down on its own. A small number in the corner of a slot shows how
+many are in it. Tapping a stack at the Merchant sells the whole stack, and
+Drop drops the whole stack. Sorting the bag also joins split stacks. The
+limits live in `shared/bag.ts` (`STACK_LIMITS`), so they're easy to change.
+
+## The Mages' Guild
+
+A purple stone hall south-west of town, by the coast, with its door facing the
+road. It opens once Old Maren's lessons are done.
+
+- **Archmage Ysolde** rents you space in the **enchanted chest**: 1 gold for 4
+  spaces. Each space holds a whole stack. More space comes 4 at a time and each
+  step costs more: 2, 4, 7, 12, 20, then 30 gold (up to 28 spaces).
+- **Enchanted chests** stand in the guild hall, on the east island and just
+  inside the Dark Forest gate. They all open the same storage. With a chest
+  open, tap a stack in your bag to put it in, or tap one in the chest to take it out.
+- **Guild rank** caps how big your chest can be: Initiate 4 spaces, Apprentice 8
+  (5 points), Adept 12 (15), Conjurer 16 (30), Enchanter 20 (50), Magus 24 (80),
+  Archmage 28 (120).
+- The **guild board** has 3 magic jobs: defeat monsters with spells (hold a
+  staff; it counts up by itself), or bring things the guild enchants with
+  (feathers, pelts, charms, silk, rare logs and ore). Each one pays guild points,
+  Magic XP and a little money. "New bounties" swaps them for free.
+
+All the numbers are in `shared/guild.ts`.
 
 ## Merchant and money
 
@@ -227,10 +269,13 @@ tool in your bag to put it on the belt (the one already there goes back in your
 bag); click a belt slot to take it off. Only the tool on the belt counts.
 
 - **Gathering tools** (axe, pickaxe, rod) make you faster. Without one, gathering
-  takes **3 times longer**. The head (stone or metal) and the handle's wood each add a bonus:
+  takes **3 times longer**. For axes and pickaxes, the head (stone or metal) and the handle's wood each add a bonus:
   Stone 2%, Bronze 5%, Iron 10%, Steel 15%, Mithril 25%; Pine 5%, Oak 7%, Birch 9%,
   Maple 12%, Yew 15%, Ironwood 20%, Elderwood 25%. So a Bronze + Pine axe is
   10% faster, a Mithril + Elderwood one 50% faster. Anyone can use any tool.
+- **Fishing rods are all wood** (no metal): 2 logs of one kind, and the wood counts twice.
+  A Pine rod is 10% faster with 120 uses, up to Elderwood: 50% faster, 300 uses. Rods
+  from older saves (like a Bronze + Pine rod) turned into a rod of their handle's wood.
 - **Crafting tools**: the hammer helps Smithing, the tongs help Smelting. They
   remove that share of your failures (a 10% hammer turns a 75% fail chance into
   67.5%). Without one, your success chance is **cut in half**. Tongs have no
@@ -250,8 +295,9 @@ works or fails. A failed try **loses the materials** and gives half the XP (at
 least 1). The window shows your chance before you start. Crafting never uses
 locked items.
 
-- 🔨 **Smithing** at the **anvil** (right of the Merchant): axe, pickaxe, rod and
-  hammer = 1 stone or bar + 1 log; tongs = 1 stone or bar. **Stone tools** are the
+- 🔨 **Smithing** at the **anvil** (right of the Merchant): axe, pickaxe and
+  hammer = 1 stone or bar + 1 log; tongs = 1 stone or bar; a fishing rod = 2 logs
+  (needs the Smithing level of chopping that wood, 80% success to start, no hammer needed). **Stone tools** are the
   starter tier: 80% success at Mastery 1 and no hammer needed, so a new smith
   can make a Stone + Pine axe right away. Metals unlock at Smithing 1 / 15 / 30 / 60.
 - 🔥 **Smelting** at the **furnace** (left of the Merchant). Every bar takes 2 ores:

@@ -12,7 +12,7 @@ import { ItemMasteryXp, MAX_SUCCESS, MasteryId, craftSuccess, masteryIn, mastery
 import type { CraftSkill } from "./disciplines";
 import {
   ALL_TOOL_IDS, BAR_IDS, BarId, Belt, MATERIALS, MATERIAL_IDS, METALS, METAL_IDS, TOOL_TYPES, TOOL_TYPE_IDS, ToolType, WOODS, WOOD_IDS,
-  headCount, isTool, maxDurability, metalOfBar, parseTool, toolBonus, toolForSkill, toolId, wearFor,
+  STONE, headCount, isTool, maxDurability, metalOfBar, parseTool, toolBonus, toolForSkill, toolId, wearFor,
 } from "./tools";
 import { DISHES, DISH_IDS, DishId, SHOP_STEW, isMeal, mealLevel, mealXp, parseMeal } from "./cooking";
 import { BAITS, BAIT_IDS, BaitId, isBait } from "./handicraft";
@@ -97,6 +97,13 @@ for (const bar of BAR_IDS) {
 }
 for (const tool of ALL_TOOL_IDS) {
   const { type, metal, wood } = parseTool(tool);
+  if (!metal) {
+    // Fishing rods: carved from 2 logs at the anvil. You can make one from any wood you
+    // could chop (same level in Smithing), it's easy (80% at first) and needs no hammer.
+    const r = RESOURCES[wood as ResourceId];
+    RECIPES.set(tool, { output: tool, skill: "smithing", inputs: ITEMS[tool].inputs!, level: r.level, xp: r.xp * 2 + 2, mastery: type, start: STONE.startSuccess, needsTool: false });
+    continue;
+  }
   // Better materials give more XP (and so more Mastery).
   const mat = MATERIALS[metal];
   // Tongs and the pot use 3 bars, so they give 3 times the XP.
