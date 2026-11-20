@@ -37,10 +37,12 @@ Maren's quests arrived. Nobody's old XP, items or coins carry over.
 | 🤲 **Dexterity** (was Crafting) | **Weight limit** and **walking speed** | Cooking, Handicraft, Smithing, Smelting |
 | 🤝 **Charisma** | Better **shop prices** and bigger **party size** | Trading *(new)*, Renown *(new)*, Leadership *(new)* |
 
-How a discipline levels: every bit of XP you earn in a skill also goes into
-that skill's discipline (this is how it works today). So Mining XP raises both
-Mining and Endurance. (Still open: whether a discipline should instead be the
-total of its skills' levels. See open question 11.)
+How a discipline levels (decided): **a discipline's level is the average of
+its skills' levels**, rounded down. For example, Endurance with Fishing 20,
+Woodcutting 10, Mining 6, Foraging 1, Farming 1 and Hunting 4 is
+(20 + 10 + 6 + 1 + 1 + 4) / 6 = level 7. The discipline has no XP bar of its
+own any more; it goes up as its skills go up. Every skill counts, including ones
+still at level 1, so training all of a discipline's skills raises it fastest.
 
 ### Where the old skills went (my placement, easy to change)
 
@@ -569,6 +571,10 @@ Stages 10, 11 and 12 can be done in any order once stage 3 is in.
 9. **Spell books**: should some spells be shop-only, or only from drops and
    quests?
 10. ~~Walking speed from Dexterity~~ **Decided: it has a cap** (+30% for now).
-11. **How a discipline's level works**: is it the total of its skills' levels
-    (Mining 10 + Fishing 5 = Endurance 15), or its own XP bar filled by all its
-    skills' XP (as it works today)?
+11. ~~How a discipline's level works~~ **Decided: the average of its skills'
+    levels.**
+12. **Unlocking skills with an average**: today a skill unlocks at a discipline
+    level (Woodcutting at Foraging 3). With an average, a brand-new skill at
+    level 1 pulls the discipline down a little. Should skills unlock by
+    discipline level, by a quest from their trainer, or by the level of another
+    skill (for example, Mining opens at Woodcutting 3)?
