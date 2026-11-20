@@ -39,15 +39,14 @@ Maren's quests arrived. Nobody's old XP, items or coins carry over.
 
 How a discipline levels: every bit of XP you earn in a skill also goes into
 that skill's discipline (this is how it works today). So Mining XP raises both
-Mining and Endurance.
+Mining and Endurance. (Still open: whether a discipline should instead be the
+total of its skills' levels. See open question 11.)
 
 ### Where the old skills went (my placement, easy to change)
 
 - **Fishing, Woodcutting, Mining** stay together under Endurance, which is what
   Foraging is renamed to. Gathering is hard work, so stamina fits.
-- **Cooking** goes to Dexterity with the other making skills. (It could go to
-  Endurance next to Farming instead, since meals give stamina. See open
-  questions.)
+- **Cooking** stays with the other making skills in Dexterity (decided).
 - **Melee, Ranged, Defense** go to Strength. (Ranged covers bows, slings and
   darts; there's no separate Archery skill.)
   There's no Athletics skill either.
@@ -64,14 +63,19 @@ Mining and Endurance.
 
 These are first guesses, picked to feel close to today's numbers at level 1.
 
-- **Health** = 48 + 2 per Strength level (50 at level 1, about 246 at 99).
-- **Stamina** = 95 + 5 per Endurance level (100 at level 1, about 590 at 99).
-- **Mana** = 48 + 2 per Wisdom level (50 at level 1).
-- **Weight limit** = 45 kg, plus 0.5 kg per Dexterity level (about 94 kg at 99).
-- **Walking speed** = +0.3% per Dexterity level, up to about +30% at 99. Only
-  walking gets faster; gathering and crafting speed come from tools, Mastery
-  and skill trees as they do today. (Capped so players can't zip across the
-  screen faster than the server can follow.)
+- **Health** = 45 + 5 per Strength level (50 at level 1, 540 at 99).
+- **Stamina** = 95 + 5 per Endurance level (100 at level 1, 590 at 99).
+- **Mana** = 45 + 5 per Wisdom level (50 at level 1, 540 at 99). The mana bar
+  shows all the time from stage 2, next to health and stamina.
+- **Weight limit** = 44 kg + 1 kg per Dexterity level (45 kg at level 1, 143 kg
+  at 99).
+- **Walking speed** = +1% per Dexterity level, **capped at +30%** (reached at
+  Dexterity 31). Only walking gets faster; gathering and crafting speed come
+  from tools, Mastery and skill trees as they do today. The cap keeps players
+  from zipping across the screen faster than the server can follow.
+
+Mike's call: these are best guesses to start with, and they'll be balanced
+after playing.
 - **Prices** = Charisma raises what shops pay you by 0.3% per level and cuts
   what you pay by the same, up to about 30% at 99.
 - **Party size** = 4, rising to 5 at Charisma 50 and 6 at Charisma 90.
@@ -354,8 +358,8 @@ The health potion the Merchant sells today stays, as a weak shop version.
 ## 6. Charisma
 
 ### Trading (new)
-You earn Trading XP every time you **buy from or sell to** a shop. XP is based on
-the value of the deal. Trading level unlocks better shop deals and, later,
+You earn Trading XP **only when you sell** to a shop (buying gives none). XP
+is based on the value of what you sell. Trading level unlocks better shop deals and, later,
 special stock that shopkeepers only show to good customers.
 
 ### Renown (new)
@@ -548,8 +552,7 @@ Stages 10, 11 and 12 can be done in any order once stage 3 is in.
 
 ## 14. Open questions
 
-1. **Cooking**: under Dexterity (with the other making skills) or Endurance (next
-   to Farming, since meals give stamina)? This doc puts it in Dexterity.
+1. ~~Cooking: Dexterity or Endurance?~~ **Decided: Dexterity.**
 2. ~~Keep or reset characters?~~ **Decided: everyone starts fresh** when stage 2
    goes in.
 3. **Maren's first lesson** has you fish until the rod breaks. With gear now
@@ -565,4 +568,7 @@ Stages 10, 11 and 12 can be done in any order once stage 3 is in.
    like.
 9. **Spell books**: should some spells be shop-only, or only from drops and
    quests?
-10. **Walking speed from Dexterity**: is +30% at level 99 about right?
+10. ~~Walking speed from Dexterity~~ **Decided: it has a cap** (+30% for now).
+11. **How a discipline's level works**: is it the total of its skills' levels
+    (Mining 10 + Fishing 5 = Endurance 15), or its own XP bar filled by all its
+    skills' XP (as it works today)?
