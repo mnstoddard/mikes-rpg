@@ -328,7 +328,22 @@ enchanting armor, using gold inlays, two effects on one item, and repairing
 enchanted items.
 
 ### Wear and repair
-Gear already wears out today. The changes:
+*Built in stage 4 (decided with Mike):*
+- Tools wear per use, weapons per hit, armor as you take hits. Everything works
+  at **full strength until 0 uses**.
+- At 10% left you get a warning, and the bar turns red.
+- At 0 it's **Broken**: it goes back in your bag (💔) and can't be put on your
+  belt, held or worn until it's repaired.
+- **Repairer Oswin** at the Mages' Guild fixes things, one at a time or with
+  **Repair all**. Anyone can use him, not just guild members.
+- Cost: about **1 bronze coin per 10% worn** for stone or pine. Bronze costs ×2,
+  iron ×4, steel ×8 and mithril ×16. Rods scale with their wood (balance later).
+- **Broken things sell for half price.** Worn things sell for between half and
+  full price, depending on how worn they are.
+- Old Maren's rod lesson: the rod breaks and stays broken, and she sends you to
+  the Repairer. That first repair is free, and it shows you where the guild is.
+
+The original plan, for later stages:
 
 - **Weapons** wear with each attack; **armor** wears as you take damage (the
   piece that's hit, or all worn pieces a little); **tools** wear with each use.
@@ -568,7 +583,7 @@ quest chapter as it goes, so the main quest grows with the game.
 | **1. Small fixes** ✅ built | Phone layout, sell slider, bag weight and slots, Mastery point quest step | Quick wins, nothing depends on them |
 | **2. The five disciplines** ✅ built | Strength, Endurance, Wisdom, Dexterity, Charisma; skills move; health, stamina, mana, speed and price bonuses; every character reset to start fresh | Everything else plugs into this |
 | **3. Bigger town and trainers** ✅ built | Trainer Row buildings, Merchant split into trainer shops plus General Store, Maren's hub quest for existing skills, day and night cycle | Gives new skills a place to live |
-| **4. Wear and repair** | Worn-out gear becomes Broken instead of vanishing, armor wears from damage, the paid Repairer | Needed before enchanting |
+| **4. Wear and repair** ✅ built | Worn-out gear becomes Broken instead of vanishing, armor wears from damage, the paid Repairer | Needed before enchanting |
 | **5. Foraging, Hunting and new monsters** | Shovel, forage spots, ingredients, night herbs; slimes, bats, boars, beetles, spiders and night monsters; kill XP split by damage share; Hunting drop bonus | Ingredients for potions and crafting |
 | **6. Alchemy** | Alchemy table, vials, the potion list | Uses stage 5's ingredients |
 | **7. Gems and soul stone** | Gem and soul stone rocks with continuous sizes, and Smithing's gem cutting, rings, amulets, inlays and soul gems | Needed for enchanting |

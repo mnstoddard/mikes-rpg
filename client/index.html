@@ -54,6 +54,15 @@
     .coin.bronze { background: #c07a3c; }
     #shop { display: none; left: 50%; top: 22%; transform: translateX(-50%); /* above your character, so you can still see the shopkeeper */ width: min(300px, calc(100vw - 32px)); padding: 12px 14px; z-index: 5; text-align: center; }
     body.shop-open #shop { display: block; }
+    #repair { display: none; left: 50%; top: 22%; transform: translateX(-50%); width: min(320px, calc(100vw - 32px)); padding: 12px 14px; z-index: 5; text-align: center; }
+    body.repair-open #repair { display: block; }
+    #repair h3 { margin: 0 0 8px; font-size: 16px; color: #ffd84a; font-weight: normal; }
+    #repair-body { font-size: 14px; line-height: 1.5; color: #f2e6c9; margin-bottom: 10px; }
+    #repair-list { display: flex; flex-direction: column; gap: 3px; margin-top: 6px; max-height: 40vh; overflow-y: auto; }
+    #repair .buttons { display: flex; gap: 6px; }
+    #repair .buttons .shop-btn { flex: 1; }
+    .slot.broken .item-icon { filter: grayscale(1) brightness(.7); }
+    .broken-badge { position: absolute; left: 1px; top: 0; font-size: 11px; pointer-events: none; }
     #shop h3 { margin: 0 0 8px; font-size: 16px; color: #ffd84a; font-weight: normal; }
     #shop-body { font-size: 14px; line-height: 1.5; color: #f2e6c9; margin-bottom: 10px; }
     #shop-body .price { color: #fff; }
@@ -384,6 +393,14 @@
   <div id="hover"></div>
   <div id="messages" class="panel" title="Tap to see every message"></div>
   <div id="inventory" class="panel sidepanel"><h3><button id="sort-bag" aria-label="Sort bag" title="Sort your bag. You can also drag items to move them.">⇅</button><span id="inv-title">Inventory</span><button id="lock-mode" aria-label="Lock items" title="Lock items so they can't be sold or dropped">🔒</button></h3><div class="strip-label">Tool belt</div><div id="belt"></div><div class="strip-label">Gear</div><div id="gear"></div><div id="spells"></div><div id="slots"></div><div id="weight"></div><div id="money"></div></div>
+  <div id="repair" class="panel">
+    <h3>🔧 Repairer Oswin</h3>
+    <div id="repair-body"></div>
+    <div class="buttons">
+      <button id="repair-all" class="shop-btn">Repair all</button>
+      <button id="repair-close" class="shop-btn">Close</button>
+    </div>
+  </div>
   <div id="shop" class="panel">
     <h3 id="shop-title">Shop</h3>
     <div id="shop-tabs"><button class="shop-tab active" data-mode="sell">Sell</button><button class="shop-tab" data-mode="buy">Buy</button></div>

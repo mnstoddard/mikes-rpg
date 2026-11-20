@@ -14,6 +14,7 @@ import {
 import { GUIDE_NAME, teacherOf, type ChapterView, type QuestView } from "../../shared/quests";
 import { SHOPS, SHOP_IDS, sellersOf, type ShopId } from "../../shared/shops";
 import { npcById } from "../../shared/npcs";
+import { isBroken, type RepairJob } from "../../shared/repair";
 import { PLAYER_COLORS } from "../../shared/colors";
 import {
   ARMOR, ARMOR_TYPES, ArmorType, GEAR_SLOTS, Gear, GearSlot, SLOT_ICONS, SLOT_NAMES, WEAPONS, WEAPON_TYPES, WeaponType,
@@ -897,6 +898,13 @@ export function renderInventory() {
       slot.appendChild(icon("item-icon", item.icon, item.tint));
       if (isTool(id)) slot.appendChild(durabilityBar(durability[top] ?? maxDurability(id), maxDurability(id)));
       if (isGear(id)) slot.appendChild(durabilityBar(durability[top] ?? gearDurability(id), gearDurability(id)));
+      if (isBroken(id, durability[top])) {
+        slot.classList.add("broken");
+        const b = document.createElement("span");
+        b.className = "broken-badge";
+        b.textContent = "💔";
+        slot.appendChild(b);
+      }
       const n = slotTotal(bag, i);
       if (n > 1) slot.appendChild(countBadge(n));
       const tag = document.createElement("span");
@@ -1000,6 +1008,64 @@ export function renderCoins(totalBronze: number) {
   }
 }
 renderCoins(0);
+
+// ---- The Repairer's window (at the Mages' Guild) ----
+
+const repairBody = document.getElementById("repair-body")!;
+const repairAllBtn = document.getElementById("repair-all") as HTMLButtonElement;
+let repairActions: { repair: (where: string, key: string | number) => void; repairAll: () => void } = { repair: () => {}, repairAll: () => {} };
+
+export function setRepairActions(actions: typeof repairActions) {
+  repairActions = actions;
+}
+
+export function closeRepair() {
+  document.body.classList.remove("repair-open");
+}
+
+/** Everything worn or broken, with what it costs to fix. `open` opens the window (otherwise it only updates if open). */
+export function showRepairs(view: { jobs: RepairJob[]; free: boolean; open: boolean }) {
+  if (view.open) {
+    closeDialog();
+    closeShop();
+    closeCraft();
+    closeBounties();
+    closeGuild();
+    closeChest();
+    closeInfo();
+    document.body.classList.add("repair-open");
+  }
+  if (!document.body.classList.contains("repair-open")) return;
+  repairBody.replaceChildren();
+  const where = { belt: "on your belt", gear: "you're wearing it", bag: "in your bag" };
+  if (!view.jobs.length) {
+    repairBody.append(el("", "Nothing needs fixing. Come back when something wears out!"));
+  } else {
+    repairBody.append(el("", view.free ? "Your first repair is free (Old Maren's an old friend)." : `About 1 bronze for every 10% worn, more for finer things. You have ${formatMoney(coins)}.`));
+    const list = el("");
+    list.id = "repair-list";
+    for (const j of view.jobs) {
+      const item = ITEMS[j.item];
+      const cost = view.free ? 0 : j.cost;
+      const row = el("buy-row" + (coins < cost ? " poor" : ""));
+      const b = document.createElement("button");
+      b.className = "buy-btn";
+      const state = j.durability <= 0 ? "💔 broken" : `${Math.round((j.durability / j.max) * 100)}% left`;
+      b.append(icon("buy-icon", item.icon, item.tint), el("buy-name", `${item.short ?? item.name} · ${state}`), el("buy-price", cost ? formatMoney(cost) : "Free"));
+      b.title = `Repair your ${item.single} (${where[j.where]}): ${j.durability} of ${j.max} uses left`;
+      b.onclick = () => repairActions.repair(j.where, j.key);
+      row.append(b);
+      list.append(row);
+    }
+    repairBody.append(list);
+  }
+  const total = view.free ? 0 : view.jobs.reduce((sum, j) => sum + j.cost, 0);
+  repairAllBtn.disabled = !view.jobs.length;
+  repairAllBtn.textContent = view.jobs.length > 1 ? `Repair all (${total ? formatMoney(total) : "free"})` : "Repair all";
+}
+
+repairAllBtn.onclick = () => repairActions.repairAll();
+document.getElementById("repair-close")!.onclick = closeRepair;
 
 // ---- Shop window (the General Store or a trainer's shop) ----
 // You sell by clicking items in your inventory while this is open.
@@ -1845,7 +1911,8 @@ function renderInfo() {
     }
     infoBody.append(infoLine("Needs", `${findSkill(needs.skill).def.name} level ${needs.level}`, have < needs.level ? `you're level ${have}` : ""));
     const bar = durabilityBar(left, max);
-    const row = infoLine("Uses left", `${left} of ${max}`, isWeapon(id) ? "each attack wears it down" : "each attack on you wears down one piece");
+    const row = infoLine("Uses left", left <= 0 ? `Broken (0 of ${max})` : `${left} of ${max}`,
+      left <= 0 ? "the Repairer at the Mages' Guild can fix it" : isWeapon(id) ? "each attack wears it down" : "each attack on you wears down one piece");
     row.appendChild(bar);
     infoBody.append(row);
   }
@@ -1857,7 +1924,8 @@ function renderInfo() {
     const left = uses ?? max;
     infoBody.append(infoLine("Bonus", toolEffect(id)));
     const bar = durabilityBar(left, max);
-    const row = infoLine("Uses left", `${left} of ${max}`, "harder trees, rocks, fish and recipes wear it faster");
+    const row = infoLine("Uses left", left <= 0 ? `Broken (0 of ${max})` : `${left} of ${max}`,
+      left <= 0 ? "the Repairer at the Mages' Guild can fix it" : "harder trees, rocks, fish and recipes wear it faster");
     row.appendChild(bar);
     infoBody.append(row);
   }
@@ -1877,8 +1945,9 @@ function renderInfo() {
         askAmount({ title: `Sell ${ITEMS[id].name.toLowerCase()}`, glyph: ITEMS[id].icon, tint: ITEMS[id].tint, max: stack, start: stack, each, verb: "Sell", ok: (k) => { onSell(e, k); done(); } });
       }, isLocked);
     }
-    if (isTool(id)) infoButton("Put on belt", () => { onEquip(e); closeInfo(); });
-    if (isGear(id)) infoButton(isWeapon(id) ? "Hold" : "Wear", () => { onWear(e); closeInfo(); });
+    const broken = isBroken(id, uses);
+    if (isTool(id)) infoButton("Put on belt", () => { onEquip(e); closeInfo(); }, broken);
+    if (isGear(id)) infoButton(isWeapon(id) ? "Hold" : "Wear", () => { onWear(e); closeInfo(); }, broken);
     if (id === POTION_ID) infoButton(`Drink (+${POTION_HEAL})`, () => { onDrink(e); closeInfo(); });
     if (isFood(id)) infoButton(`Eat (+${staminaOf(id)})`, () => { onEat(e); done(); }, staminaNow >= staminaMax);
     infoButton(isLocked ? "Unlock" : "Lock", () => onLock(e, !isLocked));
@@ -2066,6 +2135,7 @@ let dialogAt = 0;
 export function openDialog(name: string, lines: string[]) {
   if (!lines.length) return;
   closeShop();
+  closeRepair();
   closeBounties();
   closeCraft();
   closeGuild();
@@ -2196,6 +2266,7 @@ document.getElementById("sign-out")!.onclick = () => { closeSettings(); account.
 export function resetForSignOut() {
   closeSettings();
   closeShop();
+  closeRepair();
   closeBounties();
   closeCraft();
   closeGuild();

@@ -4,7 +4,7 @@
 // the bounty board shows its jobs.
 export type NpcId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "bryn"
   | "furnace" | "anvil" | "stove" | "workbench" | "board"
-  | "archmage" | "guildboard" | "chest" | "chest_east" | "chest_forest";
+  | "archmage" | "guildboard" | "repairer" | "chest" | "chest_east" | "chest_forest";
 
 export interface NpcDef {
   id: NpcId;
@@ -91,6 +91,11 @@ export const NPCS: NpcDef[] = [
   {
     id: "archmage", name: "Archmage Ysolde", kind: "person", x: 8, y: 19, color: 0x5b2c9f, badge: "🔮",
     greeting: "Welcome to the Mages' Guild. Rent space in our enchanted chest, or help the guild to rise in rank.",
+  },
+  {
+    // Fixes worn and broken tools, weapons and armor (shared/repair.ts), for anyone.
+    id: "repairer", name: "Repairer Oswin", kind: "person", x: 10, y: 18, color: 0x7d6608, badge: "🔧",
+    greeting: "Worn out? Broken? I'll make it good as new, for a few coins.",
   },
   {
     // Magic jobs that raise your guild rank. Opens once Old Maren's tutorial is done.
