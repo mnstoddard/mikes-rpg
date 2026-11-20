@@ -585,7 +585,7 @@ let counts: number[] = []; // per entry: how many
 const countAt = (i: number) => (invItems[i] ? Math.max(1, counts[i] ?? 1) : 0);
 let lockMode = false;
 let onDrop: (slot: number) => void = () => {};
-let onSell: (slot: number) => void = () => {};
+let onSell: (slot: number, count?: number) => void = () => {};
 let onSellAll: () => void = () => {};
 let onLock: (slot: number, locked: boolean) => void = () => {};
 let onEquip: (slot: number) => void = () => {};
@@ -602,7 +602,7 @@ let onMove: (from: number, to: number) => void = () => {};
 
 export function setInventoryActions(actions: {
   drop: (slot: number) => void;
-  sell: (slot: number) => void;
+  sell: (slot: number, count?: number) => void;
   sellAll: () => void;
   lock: (slot: number, locked: boolean) => void;
   equip: (slot: number) => void;
@@ -847,7 +847,8 @@ function groupName(id: ItemId): string {
 export function renderInventory() {
   slotsEl.replaceChildren();
   const used = usedSlots(bag); // each slot holds one pile of similar things
-  bagCountEl.textContent = used ? String(used) : "";
+  bagCountEl.textContent = `${used}/${bag.slotCount}`;
+  document.getElementById("bag-tab")!.title = `Inventory: ${used} of ${bag.slotCount} slots used`;
   const selling = shopIsOpen();
   renderWeight();
   for (let i = 0; i < bag.slotCount; i++) {
@@ -894,9 +895,15 @@ export function renderInventory() {
       slot.onclick = () => {
         if (justDragged) return;
         if (lockMode) return toggleLock(i);
-        if (chestIsOpen()) { for (const e of here) onDeposit(e); return; }
+        if (chestIsOpen()) {
+          // One stack of one kind: pick how many to put in. A pile of several kinds goes in all at once.
+          if (kinds === 1 && n > 1) return askAmount({ title: `Put ${item.name.toLowerCase()} in your chest`, glyph: item.icon, tint: item.tint, max: n, start: n, verb: "Put in", ok: (k) => onDeposit(top, k) });
+          for (const e of here) onDeposit(e);
+          return;
+        }
         if (shopIsOpen() && !shopBuying && kinds === 1) {
           if (allLocked) return showMessage(`That ${item.single} is locked. Tap 🔒 on your inventory, then tap it to unlock.`);
+          if (n > 1) return askAmount({ title: `Sell ${item.name.toLowerCase()}`, glyph: item.icon, tint: item.tint, max: n, start: n, each: price, verb: "Sell", ok: (k) => onSell(top, k) });
           return onSell(top);
         }
         showInfo({ kind: "slot", slot: i, pick: 0 });
@@ -923,12 +930,18 @@ function renderWeight() {
   const bar = el("weight-bar");
   const fill = document.createElement("div");
   fill.style.width = `${Math.floor(pct * 100)}%`;
-  fill.style.background = carried >= max ? "#e74c3c" : pct >= 0.8 ? "#f1c40f" : "#8fb3d9";
+  fill.style.background = carried >= max ? "#e74c3c" : pct >= 0.8 ? "#f1c40f" : "#5fb84a";
   bar.appendChild(fill);
   weightEl.append(el("weight-label", `⚖️ ${kg(carried)} / ${kg(max)}`), bar);
   weightEl.title = `You're carrying ${kg(carried)} of the ${kg(max)} you can carry. Your bag, the tools on your belt and the gear you wear all count. ` +
     "When you're full you can't pick up more: sell, drop or eat something, or put it in your enchanted chest.";
   weightEl.classList.toggle("full", carried >= max);
+  // The same bar, small, along the bottom of the 🎒 button: green, yellow when nearly full, red when full.
+  const tabBar = document.querySelector<HTMLElement>("#bag-weight span");
+  if (tabBar) {
+    tabBar.style.width = `${Math.floor(pct * 100)}%`;
+    tabBar.style.background = fill.style.background;
+  }
 }
 
 // ---- Money: shown under the inventory, doesn't use a slot ----
@@ -980,6 +993,7 @@ export function openShop() {
 export function closeShop() {
   if (!shopIsOpen()) return;
   document.body.classList.remove("shop-open");
+  closeAmount();
   resetSellAll();
   renderInventory();
 }
@@ -1035,7 +1049,7 @@ function renderShop() {
   sellAllBtn.classList.toggle("armed", sellAllArmed);
 }
 
-/** The Merchant's goods: click one to buy it, or ×5 for five. */
+/** The Merchant's goods: click one to pick how many to buy. */
 function renderBuy() {
   shopBody.replaceChildren();
   shopBody.append(el("", `He never runs out. You have ${formatMoney(coins)}.`));
@@ -1049,20 +1063,90 @@ function renderBuy() {
     const one = document.createElement("button");
     one.className = "buy-btn";
     one.append(ic, el("buy-name", item.name), el("buy-price", formatMoney(price)));
-    one.title = isTool(id) ? `${item.name}: ${toolEffect(id)}, ${maxDurability(id)} uses.` : `Buy 1 ${item.single}`;
-    one.onclick = () => onBuy(id, 1);
-    const five = document.createElement("button");
-    five.className = "buy-five";
-    five.textContent = "×5";
-    five.title = `Buy 5 for ${formatMoney(price * 5)}`;
-    five.onclick = () => onBuy(id, 5);
-    row.append(one, five);
+    one.title = isTool(id) ? `${item.name}: ${toolEffect(id)}, ${maxDurability(id)} uses. Tap to buy.` : `Buy ${item.name.toLowerCase()}`;
+    // As many as you can afford, up to a full bag's worth (the server stops early if your bag or weight runs out).
+    const most = Math.max(1, Math.min(BUY_MAX, Math.floor(coins / price)));
+    one.onclick = () => askAmount({ title: `Buy ${item.name.toLowerCase()}`, glyph: item.icon, tint: item.tint, max: most, start: 1, each: price, verb: "Buy", ok: (k) => onBuy(id, k) });
+    row.append(one);
     list.appendChild(row);
   }
   shopBody.appendChild(list);
 }
 
 document.getElementById("shop-close")!.onclick = closeShop;
+
+/** The server sells at most this many in one go. */
+const BUY_MAX = 28;
+
+// ---- "How many?" box: a slider and a number box, for selling, buying and the chest ----
+
+const amountEl = document.getElementById("amount")!;
+const amountTitle = document.getElementById("amount-title")!;
+const amountRange = document.getElementById("amount-range") as HTMLInputElement;
+const amountNumber = document.getElementById("amount-number") as HTMLInputElement;
+const amountPrice = document.getElementById("amount-price")!;
+const amountOk = document.getElementById("amount-ok") as HTMLButtonElement;
+let amountJob: { max: number; each?: number; verb: string; ok: (n: number) => void } | null = null;
+
+export interface AmountAsk {
+  title: string;
+  glyph: string;
+  tint?: string;
+  /** Most you can pick (the slider goes 1 to this). */
+  max: number;
+  /** Where the slider starts. */
+  start: number;
+  /** Price of one, if money changes hands: shows "12 × 5 bronze = 60 bronze". */
+  each?: number;
+  /** The button: "Sell", "Buy", "Put in"... */
+  verb: string;
+  ok: (n: number) => void;
+}
+
+export function askAmount(a: AmountAsk) {
+  const max = Math.max(1, Math.floor(a.max));
+  amountJob = { max, each: a.each, verb: a.verb, ok: a.ok };
+  amountTitle.replaceChildren(icon("amount-icon", a.glyph, a.tint), document.createTextNode(a.title));
+  amountRange.max = amountNumber.max = String(max);
+  amountRange.disabled = max === 1;
+  setAmount(a.start);
+  document.body.classList.add("amount-open");
+}
+
+export function closeAmount() {
+  amountJob = null;
+  document.body.classList.remove("amount-open");
+}
+
+function setAmount(raw: number) {
+  if (!amountJob) return;
+  const n = Math.max(1, Math.min(amountJob.max, Math.floor(raw) || 1));
+  amountRange.value = String(n);
+  if (document.activeElement !== amountNumber || Number(amountNumber.value) !== n) amountNumber.value = String(n);
+  const { each } = amountJob;
+  amountPrice.textContent = each === undefined ? `${n} of ${amountJob.max}`
+    : `${n} × ${formatMoney(each)} = ${formatMoney(each * n)}`;
+  amountPrice.style.display = each === undefined && amountJob.max === 1 ? "none" : "";
+  amountOk.textContent = `${amountJob.verb} ${n}`;
+}
+
+amountRange.oninput = () => setAmount(Number(amountRange.value));
+amountNumber.oninput = () => { if (amountNumber.value !== "") setAmount(Number(amountNumber.value)); };
+amountNumber.onblur = () => setAmount(Number(amountNumber.value));
+amountNumber.onkeydown = (e) => { if (e.key === "Enter") amountOk.click(); };
+document.getElementById("amount-less")!.onclick = () => setAmount(Number(amountRange.value) - 1);
+document.getElementById("amount-more")!.onclick = () => setAmount(Number(amountRange.value) + 1);
+document.getElementById("amount-one")!.onclick = () => setAmount(1);
+document.getElementById("amount-half")!.onclick = () => amountJob && setAmount(Math.ceil(amountJob.max / 2));
+document.getElementById("amount-all")!.onclick = () => amountJob && setAmount(amountJob.max);
+document.getElementById("amount-cancel")!.onclick = closeAmount;
+amountOk.onclick = () => {
+  if (!amountJob) return;
+  const n = Number(amountRange.value);
+  const ok = amountJob.ok;
+  closeAmount();
+  ok(n);
+};
 
 // ---- Crafting windows: the furnace (Smelting) and the anvil (Smithing) ----
 
@@ -1368,15 +1452,15 @@ document.getElementById("bounty-close")!.onclick = closeBounties;
 const guildBody = document.getElementById("guild-body")!;
 let guild: GuildView | null = null;
 let onBuySpace: () => void = () => {};
-let onDeposit: (slot: number) => void = () => {};
-let onWithdraw: (slot: number) => void = () => {};
+let onDeposit: (slot: number, count?: number) => void = () => {};
+let onWithdraw: (slot: number, count?: number) => void = () => {};
 let onGuildHandIn: (index: number) => void = () => {};
 let onRefreshGuild: () => void = () => {};
 const guildIsOpen = () => document.body.classList.contains("guild-open");
 const chestIsOpen = () => document.body.classList.contains("chest-open");
 
 export function setGuildActions(actions: {
-  buySpace: () => void; deposit: (slot: number) => void; withdraw: (slot: number) => void;
+  buySpace: () => void; deposit: (slot: number, count?: number) => void; withdraw: (slot: number, count?: number) => void;
   handIn: (index: number) => void; refresh: () => void;
 }) {
   onBuySpace = actions.buySpace;
@@ -1520,6 +1604,7 @@ export function showChest(c: typeof chest, open: boolean) {
 export function closeChest() {
   if (!chestIsOpen()) return;
   document.body.classList.remove("chest-open");
+  closeAmount();
   renderInventory();
 }
 
@@ -1543,7 +1628,10 @@ function renderChest() {
       if (isGear(id)) slot.appendChild(durabilityBar(chest.durability[top] ?? gearDurability(id), gearDurability(id)));
       if (n > 1) slot.appendChild(countBadge(n));
       slot.title = `Take out ${here.length > 1 ? `all ${n} (${here.length} kinds)` : n > 1 ? `${n} ${item.name.toLowerCase()}` : item.single}`;
-      slot.onclick = () => { for (const e of here) onWithdraw(e); };
+      slot.onclick = () => {
+        if (here.length === 1 && n > 1) return askAmount({ title: `Take out ${item.name.toLowerCase()}`, glyph: item.icon, tint: item.tint, max: n, start: n, verb: "Take out", ok: (k) => onWithdraw(top, k) });
+        for (const e of here) onWithdraw(e);
+      };
     }
     chestSlotsEl.appendChild(slot);
   }
@@ -1738,7 +1826,11 @@ function renderInfo() {
     const e = entry;
     const done = () => { if (here.length === 1) closeInfo(); };
     if (shopIsOpen() && !shopBuying) {
-      infoButton(`Sell${stack > 1 ? ` all ${stack}` : ""} (${formatMoney(sellPriceFor(id, lastMastery, uses) * stack)})`, () => { onSell(e); done(); }, isLocked);
+      const each = sellPriceFor(id, lastMastery, uses);
+      infoButton(stack > 1 ? `Sell… (${formatMoney(each)} each)` : `Sell (${formatMoney(each)})`, () => {
+        if (stack === 1) { onSell(e); done(); return; }
+        askAmount({ title: `Sell ${ITEMS[id].name.toLowerCase()}`, glyph: ITEMS[id].icon, tint: ITEMS[id].tint, max: stack, start: stack, each, verb: "Sell", ok: (k) => { onSell(e, k); done(); } });
+      }, isLocked);
     }
     if (isTool(id)) infoButton("Put on belt", () => { onEquip(e); closeInfo(); });
     if (isGear(id)) infoButton(isWeapon(id) ? "Hold" : "Wear", () => { onWear(e); closeInfo(); });

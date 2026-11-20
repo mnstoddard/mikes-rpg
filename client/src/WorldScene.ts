@@ -123,7 +123,7 @@ export class WorldScene extends Phaser.Scene {
     room.onMessage("masteryup", (msg: { resource: MasteryId; level: number }) => this.celebrateMastery(msg.resource, msg.level));
     setInventoryActions({
       drop: (slot) => room.send("drop", { slot }),
-      sell: (slot) => room.send("sell", { slot }),
+      sell: (slot, count) => room.send("sell", { slot, count }),
       sellAll: () => room.send("sellAll"),
       lock: (slot, locked) => room.send("lock", { slot, locked }),
       equip: (slot) => room.send("equip", { slot }),
@@ -186,8 +186,8 @@ export class WorldScene extends Phaser.Scene {
     });
     setGuildActions({
       buySpace: () => room.send("buyChestSpace"),
-      deposit: (slot) => room.send("deposit", { slot }),
-      withdraw: (slot) => room.send("withdraw", { slot }),
+      deposit: (slot, count) => room.send("deposit", { slot, count }),
+      withdraw: (slot, count) => room.send("withdraw", { slot, count }),
       handIn: (index) => room.send("guildHandIn", { index }),
       refresh: () => room.send("refreshGuild"),
     });

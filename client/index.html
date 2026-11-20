@@ -107,8 +107,11 @@
     /* Phones and other small screens */
     @media (max-width: 640px), (max-height: 500px) {
       #hud { font-size: 12px; padding: 4px 8px; }
-      #messages { width: auto; right: calc(130px + env(safe-area-inset-right)); font-size: 12px; padding: 4px 8px; }
-      #messages div:nth-last-child(n+4) { display: none; } /* last 3 lines only */
+      /* The message box sits left of the 📜 📊 🎒 buttons (never on top of them) and shows just the newest
+         message, cut to 2 lines. Tap it to read every message. */
+      #messages { width: auto; right: calc(152px + env(safe-area-inset-right)); font-size: 12px; line-height: 1.35; padding: 4px 8px; }
+      #messages div:not(:last-child) { display: none; }
+      #messages div:last-child { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
       .sidepanel { padding: 6px; }
       #slots { grid-template-columns: repeat(4, 38px); grid-auto-rows: 34px; }
       .slot { font-size: 22px; }
@@ -333,6 +336,29 @@
     #slots .slot.drag-over { outline: 2px solid #ffd84a !important; }
     #drag-ghost { position: fixed; z-index: 20; pointer-events: none; font-size: 26px; transform: translate(-50%, -50%); filter: drop-shadow(0 2px 3px rgba(0,0,0,.7)); }
     #drag-ghost .svg-icon { width: 26px; height: 26px; }
+    /* 🎒 button: slots used ("3/12") and a weight bar along the bottom */
+    #bag-tab { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 2px; }
+    #bag-tab .bag-glyph { font-size: 18px; line-height: 1; }
+    #bag-count { font-size: 10px; line-height: 1; margin-top: 1px; color: #ffd84a; letter-spacing: -.3px; white-space: nowrap; }
+    #bag-weight { position: absolute; left: 4px; right: 4px; bottom: 2px; height: 3px; background: #1d170f; border-radius: 2px; overflow: hidden; }
+    #bag-weight span { display: block; height: 100%; width: 0; background: #5fb84a; transition: width .3s; }
+    /* "How many?" box for selling, buying and the chest */
+    #amount { display: none; left: 50%; top: 22%; transform: translateX(-50%); width: min(300px, calc(100vw - 32px)); padding: 12px 14px; z-index: 9; box-sizing: border-box; }
+    body.amount-open #amount { display: block; }
+    #amount h3 { margin: 0 0 10px; font-size: 16px; color: #ffd84a; font-weight: normal; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    #amount .amount-icon { font-size: 22px; }
+    #amount .amount-icon .svg-icon { width: 22px; height: 22px; }
+    .amount-row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+    .amount-row .shop-btn { flex: 0 0 auto; }
+    .amount-step { width: 40px; font-size: 18px; padding: 4px 0; }
+    .amount-quick { padding: 6px 10px; }
+    #amount-range { flex: 1; min-width: 0; height: 28px; accent-color: #ffd84a; touch-action: manipulation; }
+    #amount-number { width: 64px; flex: 1; min-width: 0; font: inherit; font-size: 16px; -webkit-user-select: text; user-select: text; padding: 5px 7px; border: 1px solid #6b5a3e; border-radius: 3px; background: #1d170f; color: #fff; text-align: center; }
+    #amount-price { font-size: 14px; color: #fff; text-align: center; margin: 2px 0 10px; }
+    #amount .buttons { display: flex; gap: 6px; }
+    @media (max-width: 640px), (max-height: 500px) {
+      #amount { top: calc(56px + env(safe-area-inset-top)); padding: 10px 12px; }
+    }
   </style>
 </head>
 <body>
@@ -349,7 +375,7 @@
   <div id="tabs">
     <button class="panel btn tab" data-tab="quests" aria-label="Quests and bounties" title="Quests and bounties">📜</button>
     <button class="panel btn tab" data-tab="skills" aria-label="Disciplines and Mastery" title="Disciplines and Mastery">📊</button>
-    <button class="panel btn tab" data-tab="inventory" aria-label="Inventory" title="Inventory">🎒<span id="bag-count" class="tab-count"></span></button>
+    <button id="bag-tab" class="panel btn tab" data-tab="inventory" aria-label="Inventory" title="Inventory"><span class="bag-glyph">🎒</span><span id="bag-count"></span><span id="bag-weight"><span></span></span></button>
   </div>
   <div id="hover"></div>
   <div id="messages" class="panel" title="Tap to see every message"></div>
@@ -394,6 +420,22 @@
     <div class="bounty-note">Tap a stack in your bag to put it in. Tap one here to take it out.</div>
     <div id="chest-slots"></div>
     <div class="buttons"><button id="chest-close" class="shop-btn">Close</button></div>
+  </div>
+  <div id="amount" class="panel">
+    <h3 id="amount-title"></h3>
+    <div class="amount-row">
+      <button id="amount-less" class="shop-btn amount-step" aria-label="One less">−</button>
+      <input id="amount-range" type="range" min="1" max="1" step="1" value="1" aria-label="How many" />
+      <button id="amount-more" class="shop-btn amount-step" aria-label="One more">+</button>
+    </div>
+    <div class="amount-row">
+      <input id="amount-number" type="number" min="1" max="1" step="1" inputmode="numeric" aria-label="How many" />
+      <button id="amount-one" class="shop-btn amount-quick">1</button>
+      <button id="amount-half" class="shop-btn amount-quick">Half</button>
+      <button id="amount-all" class="shop-btn amount-quick">All</button>
+    </div>
+    <div id="amount-price"></div>
+    <div class="buttons"><button id="amount-ok" class="shop-btn">OK</button><button id="amount-cancel" class="shop-btn">Cancel</button></div>
   </div>
   <div id="info" class="panel">
     <div id="info-body"></div>

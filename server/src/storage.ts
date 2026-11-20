@@ -24,6 +24,7 @@ export const SAVE_VERSION = 2; // 2 = tutorial steps reordered (equip steps, gua
 export interface SaveData {
   saveVersion?: number; // see SAVE_VERSION
   quest?: { step: number; count: number }; // tutorial step (shared/quests.ts) and progress on it
+  questRev?: number; // which version of Maren's step list the quest step counts in (shared/quests.ts QUEST_REV)
   x?: number;
   y?: number;
   inventory?: (string | null)[]; // one per bag entry (shared/bag.ts); saves from before grouped slots had one per slot

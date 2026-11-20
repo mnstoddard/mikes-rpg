@@ -51,7 +51,7 @@ import {
 import { BAITS, BaitId, MUSHROOM_CHANCE, SCRAPS_CHANCE, WORM_CHANCE, isBait } from "../../shared/handicraft";
 import { TREES, TreeEffect, TreeRanks, cleanRanks, earnedPoints, rankCost, spentPoints, treeBonus, treeNode, treeRoll } from "../../shared/skilltree";
 import {
-  BURN_UNTIL, GUIDE_NAME, Gift, QUESTS, boardOpen, isProtected, QuestProgress, QuestStep, QuestView, STEPS, gateOpen, giftItems, newQuestProgress, tutorialDone,
+  BURN_UNTIL, GUIDE_NAME, Gift, QUESTS, QUEST_REV, boardOpen, migrateStep, isProtected, QuestProgress, QuestStep, QuestView, STEPS, gateOpen, giftItems, newQuestProgress, tutorialDone,
 } from "../../shared/quests";
 import { BOUNTY_COUNT, Bounty, bountyChoices, bountyName, bountyReward, newBoard, newBounty, slotCounts, validBounty } from "../../shared/bounties";
 import { Account, SAVE_VERSION, SaveData, checkPassword, hashPassword, store, usernameKey } from "./storage";
@@ -62,6 +62,8 @@ const AUTOSAVE_TICKS = 100; // 100 x 0.6s = once a minute
 const MIN_SAVE_GAP_MS = 10_000; // "important" saves happen right away, but at most every 10s per player
 const USERNAME_RE = /^[A-Za-z0-9][A-Za-z0-9 _-]{0,11}$/;
 const MIN_PASSWORD = 6;
+/** How many of a stack to sell or move: a whole number from 1 up, or everything if left out. */
+const wantCount = (count: unknown) => (Number.isInteger(count) && (count as number) >= 1 ? (count as number) : Infinity);
 const CRAFT_TICKS = 3; // one smelt, smith or cook every 3 ticks (1.8s); crafting is about success, not speed
 const REGEN_TICKS = Math.round(STAMINA_REGEN_MS / TICK_MS); // 50 ticks = 30s per stamina
 // For automated play-tests only (never set on Render): every gathering tick gets an item.
@@ -284,7 +286,7 @@ export class WorldRoom extends Room<WorldState> {
     });
 
     // While the Merchant's shop is open, clicking an inventory item sells it.
-    this.onMessage("sell", (client, msg: { slot: number }) => {
+    this.onMessage("sell", (client, msg: { slot: number; count?: number }) => {
       const p = this.state.players.get(client.sessionId);
       if (!p || !Number.isInteger(msg?.slot)) return;
       const item = p.inventory[msg.slot];
@@ -292,10 +294,10 @@ export class WorldRoom extends Room<WorldState> {
       if (p.locked[msg.slot]) return this.say(client, `That ${ITEMS[item].single} is locked. Unlock it to sell it.`);
       if (isProtected(p.quest, item)) return this.say(client, this.keepIt(item, "sell"));
       if (!this.nearNpc(p, "merchant")) return this.say(client, "You need to be next to the Merchant to sell.");
-      // Tapping a stack sells all of it.
-      const n = countIn(p, msg.slot);
+      // Sell `count` of the stack (all of it if left out).
+      const n = Math.min(countIn(p, msg.slot), wantCount(msg.count));
       const price = sellPriceFor(item, p.mastery, p.durability[msg.slot]) * n;
-      clearEntry(p, msg.slot);
+      takeFromEntry(p, msg.slot, n);
       p.coins += price;
       this.say(client, `You sell ${stackName(item, n)} for ${formatMoney(price)}.`);
       for (let k = 0; k < n; k++) this.questEvent(p, client, { kind: "sell", item });
@@ -612,6 +614,7 @@ export class WorldRoom extends Room<WorldState> {
       p.tree[node.id] = rank + 1;
       this.say(client, `🌳 ${findSkill(node.skill).def.name}: ${node.name} rank ${rank + 1}!`);
       this.treeChanged(client, p);
+      this.checkQuest(p, client); // Maren's "spend a Mastery point" step
     });
 
     // Reset one skill's tree (or every tree): free for now, all the points come back.
@@ -767,14 +770,14 @@ export class WorldRoom extends Room<WorldState> {
     });
 
     // Put a whole stack from your bag into the chest.
-    this.onMessage("deposit", (client, msg: { slot: number }) => {
+    this.onMessage("deposit", (client, msg: { slot: number; count?: number }) => {
       const p = this.state.players.get(client.sessionId);
       if (!p || !Number.isInteger(msg?.slot)) return;
       const item = p.inventory[msg.slot];
       if (!item) return;
       if (!this.nearChest(p)) return this.say(client, "You need to be next to an enchanted chest.");
       if (isProtected(p.quest, item)) return this.say(client, this.keepIt(item, "store"));
-      const n = countIn(p, msg.slot);
+      const n = Math.min(countIn(p, msg.slot), wantCount(msg.count));
       const put = addItem(p.chest, item, n, p.durability[msg.slot]);
       if (!put) return this.say(client, "Your chest is full. Buy more space from Archmage Ysolde at the Mages' Guild.");
       takeFromEntry(p, msg.slot, put);
@@ -785,13 +788,13 @@ export class WorldRoom extends Room<WorldState> {
     });
 
     // Take a whole stack out of the chest into your bag.
-    this.onMessage("withdraw", (client, msg: { slot: number }) => {
+    this.onMessage("withdraw", (client, msg: { slot: number; count?: number }) => {
       const p = this.state.players.get(client.sessionId);
       if (!p || !Number.isInteger(msg?.slot)) return;
       const item = p.chest.inventory[msg.slot];
       if (!item) return;
       if (!this.nearChest(p)) return this.say(client, "You need to be next to an enchanted chest.");
-      const n = countIn(p.chest, msg.slot);
+      const n = Math.min(countIn(p.chest, msg.slot), wantCount(msg.count));
       const got = this.give(p, item, n, p.chest.durability[msg.slot]);
       if (!got) return this.say(client, this.fullReason(p, item));
       takeFromEntry(p.chest, msg.slot, got);
@@ -1858,6 +1861,7 @@ export class WorldRoom extends Room<WorldState> {
     if (g.kind === "have") return Object.entries(g.items).every(([item, n]) => this.countOf(p, item as ItemId) >= n!);
     if (g.kind === "gear") return g.items.every((prefix) => GEAR_SLOTS.some((slot) => p.gear[slot]?.item.startsWith(prefix)));
     if (g.kind === "track") return !!p.tracked;
+    if (g.kind === "spendPoint") return Object.values(p.tree).some((rank) => (rank ?? 0) > 0);
     return false;
   }
 
@@ -2023,6 +2027,9 @@ export class WorldRoom extends Room<WorldState> {
     } else if (g.kind === "toolBreaks") {
       const t = p.belt[g.tool];
       progress = t ? `${t.durability} use${t.durability === 1 ? "" : "s"} left` : `Not on your belt yet`;
+    } else if (g.kind === "spendPoint") {
+      const free = this.freePoints(p);
+      progress = free ? `You have ${free} Mastery point${free === 1 ? "" : "s"} to spend` : "No points yet: catch more minnows";
     } else if ("count" in g && g.count > 1) {
       progress = `${p.quest.count} / ${g.count}`;
       fraction = p.quest.count / g.count;
@@ -2150,6 +2157,7 @@ export class WorldRoom extends Room<WorldState> {
       ? `Fewer failures, and it sells for ${valueBonusPercent(after)}% more.`
       : `${speedBonusPercent(after)}% faster, sells for ${valueBonusPercent(after)}% more.`));
     client.send("masteryup", { resource: id, level: after });
+    if (this.step(p)?.goal.kind === "spendPoint") this.sendQuest(client, p); // "you have a point to spend"
   }
 
   private sendDisciplines(client: Client, p: Player) {
@@ -2289,7 +2297,7 @@ export class WorldRoom extends Room<WorldState> {
       if (isWalkable(spawn.x, spawn.y)) { p.x = spawn.x; p.y = spawn.y; return; }
     }
     if (save.quest && Number.isInteger(save.quest.step) && save.quest.step >= 0) {
-      p.quest = { step: Math.min(save.quest.step, STEPS.length), count: Number.isInteger(save.quest.count) && save.quest.count >= 0 ? save.quest.count : 0 };
+      p.quest = { step: Math.min(migrateStep(save.quest.step, save.questRev), STEPS.length), count: Number.isInteger(save.quest.count) && save.quest.count >= 0 ? save.quest.count : 0 };
     }
     if (Number.isInteger(save.x) && Number.isInteger(save.y) && isWalkable(save.x!, save.y!)) {
       p.x = save.x!;
@@ -2392,7 +2400,7 @@ export class WorldRoom extends Room<WorldState> {
     const dest = p.path.length ? p.path[p.path.length - 1] : p;
     const bag = cloneBag(p);
     compact(bag); // leave out unused entries
-    return { saveVersion: SAVE_VERSION, quest: { ...p.quest }, x: dest.x, y: dest.y, inventory: bag.inventory, slots: bag.slotOf, coins: p.coins, skills: { ...p.disciplines }, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: bag.durability, belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), hp: p.hp, hpAt: Date.now(), gear: { ...p.gear }, spell: p.spell, combatMastery: { ...p.combatMastery }, tree: { ...p.tree }, lockedSlots: bag.locked.flatMap((on, i) => (on ? [i] : [])), bounties: p.bounties.map((b) => ({ ...b })), tracked: p.tracked ?? undefined, color: p.color, counts: bag.counts, guild: this.guildSave(p) };
+    return { saveVersion: SAVE_VERSION, questRev: QUEST_REV, quest: { ...p.quest }, x: dest.x, y: dest.y, inventory: bag.inventory, slots: bag.slotOf, coins: p.coins, skills: { ...p.disciplines }, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: bag.durability, belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), hp: p.hp, hpAt: Date.now(), gear: { ...p.gear }, spell: p.spell, combatMastery: { ...p.combatMastery }, tree: { ...p.tree }, lockedSlots: bag.locked.flatMap((on, i) => (on ? [i] : [])), bounties: p.bounties.map((b) => ({ ...b })), tracked: p.tracked ?? undefined, color: p.color, counts: bag.counts, guild: this.guildSave(p) };
   }
 
   private async save(p: Player) {

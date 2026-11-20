@@ -59,7 +59,9 @@ export type Goal =
   /** Track a bounty (tap it in the 📜 Quests tab or on the board). */
   | { kind: "track" }
   /** Hand in bounties at the board. */
-  | { kind: "bounty"; count: number };
+  | { kind: "bounty"; count: number }
+  /** Spend a Mastery point in any skill's tree (done once any upgrade has a rank). */
+  | { kind: "spendPoint" };
 
 export interface QuestStep {
   /** Which quest (0, 1, 2). */
@@ -144,9 +146,22 @@ export const STEPS: QuestStep[] = [
     lines: [
       "Snapped, did it? Every tool wears down a little each time you use it, and when it runs out, it breaks.",
       "Better tools last longer. Stone wears out fastest, bronze lasts more than twice as long, and the finer metals longer still. A better wooden handle helps too. Fishing rods are all wood, so for those, the better the wood, the better the rod.",
+      "Look at you, though: all that fishing raised your Minnow Mastery. Every kind of fish, log and ore has its own Mastery, and every time one goes up a level, you earn a Mastery point.",
+      "Spend your points on upgrades, like faster fishing or a bigger cooking pot. Open the 📊 panel (bottom right), tap the 🌳 next to any skill, and pick an upgrade. Go on, spend your first point now.",
+    ],
+  },
+  {
+    quest: 0, task: "Spend a Mastery point (tap 📊, then a 🌳)", goal: { kind: "spendPoint" },
+    hint: "Open the 📊 panel at the bottom right, tap the 🌳 next to a skill, and pick an upgrade. No points yet? Catch a few more minnows: each Mastery level gives you one.",
+  },
+  {
+    quest: 0, task: `Tell ${GUIDE_NAME} what you picked`, goal: { kind: "talk" },
+    lines: [
+      "Good choice! And don't fret about picking wrong: resetting a tree is free, and all your points come back. Here's a few coins for learning that.",
       "Now, raw minnows won't keep you going for long. Take this pine log to the stove and cook your fish into a stew. Pick Stew, tap your minnow to put it in the pot, and pick the Pine log to burn.",
     ],
     give: [LOG],
+    coins: 25,
   },
   {
     // The first stew always burns (see BURN_UNTIL).
@@ -220,7 +235,7 @@ export const STEPS: QuestStep[] = [
       "Foraging 3! Each Discipline opens new skills as it levels up. Foraging gives you Woodcutting at 3 and Mining at 5. Crafting gives you Handicraft at 2, Smithing at 3 and Smelting at 5.",
       "While we're at it, open the 📊 panel (bottom right), then Foraging, then Fishing. See the Minnow row and its Mastery level? Every kind of fish, log and ore has its own Mastery, and so does everything you make.",
       "Mastery goes up each time you catch or make that thing. The higher it is, the faster you gather it, the more often your crafting works, and the more the Merchant pays for it. It never stops growing.",
-      "And every Mastery level earns you a Mastery point. Spend them in any skill's tree (the 🌳 button in the 📊 panel) on upgrades like faster chopping or a bigger cooking pot. Changed your mind? Resetting is free.",
+      "And remember: every Mastery level earns you another Mastery point to spend in a skill's tree (the 🌳 buttons in the 📊 panel).",
       "Now, you've no axe yet, so chop 3 logs by hand. Slow going, like your first fish. Pine trees are the pointy ones.",
     ],
   },
@@ -554,3 +569,16 @@ export interface QuestView {
 
 /** Pieces of a stack of gifts: { item: "pine_logs", count: 5 } -> five pine logs. */
 export const giftItems = (gifts: Gift[] = []) => gifts.flatMap((g) => Array<Gift>(g.count ?? 1).fill({ item: g.item, durability: g.durability }));
+
+/**
+ * Saves from before Maren's Mastery point lesson (added after "Tell Maren your
+ * rod broke") have step numbers 2 lower from there on. Bump QUEST_REV whenever
+ * steps are added, and teach `migrateStep` how to move old saves along.
+ */
+export const QUEST_REV = 2;
+export const MASTERY_LESSON_STEP = STEPS.findIndex((s) => s.goal.kind === "spendPoint");
+export function migrateStep(step: number, rev: number | undefined): number {
+  // Rev 1 had the talk step just before the lesson, then went straight to cooking.
+  if ((rev ?? 1) < 2 && step >= MASTERY_LESSON_STEP) step += 2;
+  return step;
+}
