@@ -29,7 +29,7 @@ import {
   parseWeapon,
 } from "../../shared/gear";
 import {
-  Belt, METALS, TOOL_TYPES, TOOL_TYPE_IDS, TOOL_WARN_AT, ToolType, emptyBelt, isTool, maxDurability, parseTool,
+  Belt, METALS, TOOL_TYPES, TOOL_TYPE_IDS, TOOL_WARN_AT, ToolType, emptyBelt, isTool, legacyTool, maxDurability, parseTool,
   toolBonus, toolForSkill, wearFor,
 } from "../../shared/tools";
 import { INVENTORY_SIZE, ITEMS, ItemId, LEGACY_ITEMS } from "../../shared/items";
@@ -38,10 +38,11 @@ import { findSkill as skillInfo } from "../../shared/disciplines";
 import { formatMoney } from "../../shared/money";
 import { MAX_STAMINA, STAMINA_COST, STAMINA_REGEN_MS, FISH_IDS, foodStamina, isFood, isStew } from "../../shared/cooking";
 import {
-  BURN_UNTIL, GUIDE_NAME, Gift, QUESTS, isProtected, QuestProgress, QuestStep, QuestView, STEPS, gateOpen, giftItems, newQuestProgress, tutorialDone,
+  BURN_UNTIL, GUIDE_NAME, Gift, QUESTS, boardOpen, isProtected, QuestProgress, QuestStep, QuestView, STEPS, gateOpen, giftItems, newQuestProgress, tutorialDone,
 } from "../../shared/quests";
 import { BOUNTY_COUNT, Bounty, bountyName, bountyReward, newBoard, newBounty, slotCounts, validBounty } from "../../shared/bounties";
 import { Account, SAVE_VERSION, SaveData, checkPassword, hashPassword, store, usernameKey } from "./storage";
+import { PLAYER_COLORS, isPlayerColor } from "../../shared/colors";
 
 const STEP_LOOP_MS = 50; // how often the server checks whether someone should take a step
 const AUTOSAVE_TICKS = 100; // 100 x 0.6s = once a minute
@@ -102,6 +103,7 @@ export class Player extends Schema {
   healthTicks = 0; // ticks since health last came back on its own
   manaTicks = 0;
   bounties: Bounty[] = []; // the 5 jobs on this player's bounty board (filled the first time they look)
+  tracked: ItemId | null = null; // the bounty shown on the quest tracker (by its item), or null for Maren's quest
   dirty = false; // something changed since the last save
   lastSavedAt = 0;
 }
@@ -134,7 +136,6 @@ export class WorldState extends Schema {
   @type("number") tick = 0;
 }
 
-const COLORS = [0xe74c3c, 0x3498db, 0xf1c40f, 0x9b59b6, 0x1abc9c, 0xe67e22, 0xecf0f1, 0xff6ec7];
 const CARDINAL = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
 
 /** Things that can count toward a tutorial step. */
@@ -145,7 +146,9 @@ type QuestEvent =
   | { kind: "eat"; item: ItemId }
   | { kind: "sell"; item: ItemId }
   | { kind: "kill"; monster: MonsterId; style: CombatStyle }
-  | { kind: "drink" };
+  | { kind: "drink" }
+  | { kind: "track" }
+  | { kind: "bounty" };
 
 /** Where each crafting skill is done. */
 const STATION_FOR = { smelting: "furnace", smithing: "anvil", cooking: "stove" } as const;
@@ -159,6 +162,19 @@ const isTree = (x: number, y: number) =>
 const aOr = (word: string) => /(tongs|platelegs|boots)\b/.test(word) ? `a pair of ${word}` : `${/^[aeiou]/i.test(word) ? "an" : "a"} ${word}`;
 /** "2 bronze bars", "3 health potions" (names already plural, like "Pine logs", stay as they are). */
 const plural = (name: string) => /[a-rt-z]$/i.test(name) ? `${name.toLowerCase()}s` : name.toLowerCase();
+
+/** Where an item goes when the bag is sorted (lower first). */
+function sortGroup(item: ItemId): number {
+  if (isTool(item)) return 0;
+  if (isWeapon(item)) return 1;
+  if (isArmor(item)) return 2;
+  if (isFood(item)) return 3;
+  if (item === POTION_ID) return 4;
+  if (item.endsWith("_bar")) return 5;
+  const r = RESOURCE_FOR_ITEM[item];
+  if (r) return { woodcutting: 6, mining: 7, fishing: 8 }[RESOURCES[r].skill as "woodcutting" | "mining" | "fishing"] ?? 9;
+  return 10;
+}
 
 /** "chop Oak trees", "mine Copper rocks", "fish at Trout spots": for messages. */
 function verbFor(id: ResourceId) {
@@ -432,6 +448,8 @@ export class WorldRoom extends Room<WorldState> {
       const others = p.bounties.filter((_, i) => i !== msg.index).map((x) => x.item);
       const next = newBounty(p, [...others, b.item]);
       if (next) p.bounties[msg.index] = next; else p.bounties.splice(msg.index, 1);
+      if (p.tracked === b.item && !p.bounties.some((x) => x.item === b.item)) p.tracked = null; // done: the tracker goes back to Maren's quest
+      this.questEvent(p, client, { kind: "bounty" });
       this.sendInventory(client, p);
       this.sendBounties(client, p);
       this.saveSoon(p);
@@ -442,9 +460,102 @@ export class WorldRoom extends Room<WorldState> {
       const p = this.state.players.get(client.sessionId);
       if (!p || !this.boardReady(client, p)) return;
       p.bounties = newBoard(p);
+      if (p.tracked && !p.bounties.some((x) => x.item === p.tracked)) p.tracked = null;
       this.say(client, "📋 You take down the old notices. New ones are pinned up.");
       this.sendBounties(client, p);
       p.dirty = true;
+    });
+
+    // Drag an item to another bag slot: the two slots swap (locks and uses left go with them).
+    this.onMessage("moveItem", (client, msg: { from: number; to: number }) => {
+      const p = this.state.players.get(client.sessionId);
+      const n = p?.inventory.length ?? 0;
+      if (!p || !Number.isInteger(msg?.from) || !Number.isInteger(msg?.to) || msg.from < 0 || msg.to < 0 || msg.from >= n || msg.to >= n || msg.from === msg.to) return;
+      if (!p.inventory[msg.from]) return;
+      const order = p.inventory.map((_, i) => i);
+      [order[msg.from], order[msg.to]] = [order[msg.to], order[msg.from]];
+      this.reorderSlots(p, order);
+      this.sendInventory(client, p);
+      p.dirty = true;
+    });
+
+    // Sort the bag: tools, weapons, armor, food, potions, bars, logs, ore, fish, then everything else; empty slots last.
+    this.onMessage("sortInventory", (client) => {
+      const p = this.state.players.get(client.sessionId);
+      if (!p) return;
+      const order = p.inventory.map((_, i) => i).sort((a, b) => {
+        const A = p.inventory[a], B = p.inventory[b];
+        if (!A || !B) return (A ? 0 : 1) - (B ? 0 : 1) || a - b;
+        return sortGroup(A) - sortGroup(B) || ITEMS[A].name.localeCompare(ITEMS[B].name) || A.localeCompare(B)
+          || (p.durability[b] ?? 0) - (p.durability[a] ?? 0) || a - b;
+      });
+      this.reorderSlots(p, order);
+      this.sendInventory(client, p);
+      this.say(client, "🎒 Bag sorted.");
+      p.dirty = true;
+    });
+
+    // Pick what the quest tracker shows: a bounty (by its place on the board), or Maren's quest.
+    this.onMessage("track", (client, msg: { bounty?: number }) => {
+      const p = this.state.players.get(client.sessionId);
+      if (!p) return;
+      const b = Number.isInteger(msg?.bounty) ? p.bounties[msg.bounty!] : undefined;
+      p.tracked = b && boardOpen(p.quest) ? b.item : null;
+      p.dirty = true;
+      this.sendTracked(client, p);
+      if (p.tracked) this.questEvent(p, client, { kind: "track" });
+    });
+
+    // ⚙️ Settings: change your character's colour.
+    this.onMessage("setColor", (client, msg: { color: number }) => {
+      const p = this.state.players.get(client.sessionId);
+      if (!p || !isPlayerColor(msg?.color)) return;
+      p.color = msg.color;
+      this.saveSoon(p);
+      this.say(client, `You're ${PLAYER_COLORS.find((c) => c.color === msg.color)!.name.toLowerCase()} now.`);
+    });
+
+    // ⚙️ Settings: change your name (it's also what you log in with).
+    this.onMessage("rename", async (client, msg: { name: string }) => {
+      const p = this.state.players.get(client.sessionId);
+      if (!p) return;
+      const name = String(msg?.name ?? "").trim();
+      const reply = (ok: boolean, text: string) => client.send("account", { ok, text, name: p.name });
+      if (!USERNAME_RE.test(name)) return reply(false, "Names are 1-12 letters, numbers, spaces, _ or -, starting with a letter or number.");
+      if (name === p.name) return reply(false, "That's already your name.");
+      const oldKey = usernameKey(p.name), newKey = usernameKey(name);
+      if (newKey !== oldKey && (online.has(newKey) || waitingToReconnect.has(newKey))) return reply(false, "That name is taken. Try another one.");
+      try {
+        await this.save(p); // so nothing is lost under the old name
+        if (!(await store.rename(p.name, name))) return reply(false, "That name is taken. Try another one.");
+      } catch (err: any) {
+        console.error(`Renaming ${p.name} failed:`, err.message);
+        return reply(false, "Couldn't change your name right now. Try again in a bit.");
+      }
+      console.log(`${p.name} is now called ${name}`);
+      online.delete(oldKey);
+      online.add(newKey);
+      p.name = name;
+      reply(true, `Your name is now ${name}. Use it to log in from now on.`);
+    });
+
+    // ⚙️ Settings: change your password (needs the old one).
+    this.onMessage("setPassword", async (client, msg: { current: string; next: string }) => {
+      const p = this.state.players.get(client.sessionId);
+      if (!p) return;
+      const reply = (ok: boolean, text: string) => client.send("account", { ok, text, name: p.name });
+      const current = String(msg?.current ?? ""), next = String(msg?.next ?? "");
+      if (next.length < MIN_PASSWORD) return reply(false, `Passwords need at least ${MIN_PASSWORD} characters.`);
+      if (next.length > 100) return reply(false, "That password is too long.");
+      try {
+        const account = await store.get(p.name);
+        if (!account || !(await checkPassword(current, account.passwordHash))) return reply(false, "Your current password isn't right.");
+        await store.setPassword(p.name, await hashPassword(next));
+      } catch (err: any) {
+        console.error(`Changing ${p.name}'s password failed:`, err.message);
+        return reply(false, "Couldn't change your password right now. Try again in a bit.");
+      }
+      reply(true, "Password changed. Use the new one next time you log in.");
     });
 
     // Lock or unlock one item (the one in this inventory slot).
@@ -466,6 +577,8 @@ export class WorldRoom extends Room<WorldState> {
       this.sendStamina(client, p);
       this.sendVitals(client, p);
       client.send("combatmastery", p.combatMastery);
+      this.fillBoard(p);
+      this.sendBounties(client, p);
       if (msg?.reconnected) return;
       const step = this.step(p);
       if (!step) this.say(client, "Welcome back!");
@@ -891,21 +1004,39 @@ export class WorldRoom extends Room<WorldState> {
 
   // ---- Bounty board (rules in shared/bounties.ts) ----
 
-  /** Click the board: shut until the tutorial is done, then show your 5 bounties. */
+  /** Click the board: shut until Maren tells you about it, then show your 5 bounties. */
   private openBoard(client: Client, p: Player) {
-    if (!tutorialDone(p.quest)) {
+    if (!boardOpen(p.quest)) {
       return this.say(client, `📋 The bounty board isn't open to you yet. Finish ${GUIDE_NAME}'s lessons first.`);
     }
-    if (p.bounties.length < BOUNTY_COUNT) {
-      p.bounties = newBoard(p);
-      p.dirty = true;
-    }
+    this.fillBoard(p);
     this.sendBounties(client, p, true);
+  }
+
+  /** Pin up a full board of bounties if it's open to you and not full. */
+  private fillBoard(p: Player) {
+    if (!boardOpen(p.quest) || p.bounties.length >= BOUNTY_COUNT) return;
+    p.bounties = newBoard(p);
+    if (p.tracked && !p.bounties.some((x) => x.item === p.tracked)) p.tracked = null;
+    p.dirty = true;
+  }
+
+  /** What the quest tracker shows: a bounty's item, or null for Maren's quest. */
+  private sendTracked(client: Client, p: Player) {
+    client.send("tracked", { item: p.tracked });
+  }
+
+  /** Rearrange the bag: slot i gets what was in slot order[i]. Every per-slot list moves together. */
+  private reorderSlots(p: Player, order: number[]) {
+    for (const list of [p.inventory, p.locked, p.durability] as unknown[][]) {
+      const old = [...list];
+      order.forEach((from, i) => { list[i] = old[from]; });
+    }
   }
 
   /** Can this player use the board right now? Says why not. */
   private boardReady(client: Client, p: Player): boolean {
-    if (!tutorialDone(p.quest)) {
+    if (!boardOpen(p.quest)) {
       this.say(client, `📋 The bounty board isn't open to you yet. Finish ${GUIDE_NAME}'s lessons first.`);
       return false;
     }
@@ -919,6 +1050,7 @@ export class WorldRoom extends Room<WorldState> {
   /** The board's bounties (the client works out rewards and what you have with the same shared code). */
   private sendBounties(client: Client, p: Player, open = false) {
     client.send("bounties", { bounties: p.bounties, open });
+    this.sendTracked(client, p);
   }
 
   // ---- Combat (numbers in shared/combat.ts) ----
@@ -1264,6 +1396,10 @@ export class WorldRoom extends Room<WorldState> {
       if ((!g.monster || ev.monster === g.monster) && (!g.style || ev.style === g.style)) counts = 1;
     } else if (g.kind === "drink" && ev.kind === "drink") {
       counts = 1;
+    } else if (g.kind === "track" && ev.kind === "track") {
+      counts = 1;
+    } else if (g.kind === "bounty" && ev.kind === "bounty") {
+      counts = 1;
     }
     if (!counts) return;
     p.quest.count += counts;
@@ -1285,6 +1421,7 @@ export class WorldRoom extends Room<WorldState> {
     if (g.kind === "equip") return g.tools.every((prefix) => TOOL_TYPE_IDS.some((t) => p.belt[t]?.item.startsWith(prefix)));
     if (g.kind === "have") return Object.entries(g.items).every(([item, n]) => this.countOf(p, item as ItemId) >= n!);
     if (g.kind === "gear") return g.items.every((prefix) => GEAR_SLOTS.some((slot) => p.gear[slot]?.item.startsWith(prefix)));
+    if (g.kind === "track") return !!p.tracked;
     return false;
   }
 
@@ -1388,12 +1525,13 @@ export class WorldRoom extends Room<WorldState> {
       this.say(client, `${GUIDE_NAME} gives you ${names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0]}.`);
     }
     if (step.opensGate) this.say(client, "🚪 The gate to the Dark Forest is open to you now. It's south of the meadow, past the ⚠ sign.");
+    if (step.opensBoard) this.say(client, "📋 The bounty board next to the Merchant is open to you now. Its jobs are in the 📜 Quests tab too.");
     if (finished) {
       this.say(client, `🎉 Quest complete: ${QUESTS[step.quest]}!`);
       client.send("questDone", { quest: QUESTS[step.quest] });
-      if (!STEPS[p.quest.step + 1]) this.say(client, "📋 The bounty board next to the Merchant is open to you now. Click it to see what folk need.");
     }
     this.advance(p, client);
+    if (step.opensBoard) { this.fillBoard(p); this.sendBounties(client, p); }
     // Hand over anything the next step needs that you don't have (e.g. a minnow to cook).
     const extra = this.giveMissing(p, this.step(p)?.ensure);
     if (extra) this.say(client, `${GUIDE_NAME} also gives you ${extra}.`);
@@ -1436,7 +1574,7 @@ export class WorldRoom extends Room<WorldState> {
   /** What the quest tracker shows. */
   private questView(p: Player): QuestView {
     const step = this.step(p);
-    if (!step) return { done: true, quest: "Tutorial complete", number: QUESTS.length, of: QUESTS.length, task: "Check the bounty board next to the Merchant for work.", talk: false };
+    if (!step) return { done: true, quest: "Tutorial complete", number: QUESTS.length, of: QUESTS.length, task: "Tap 📜 Quests to track a bounty from the board.", talk: false };
     const g = step.goal;
     let progress: string | undefined;
     let fraction: number | undefined;
@@ -1650,7 +1788,7 @@ export class WorldRoom extends Room<WorldState> {
     online.add(k);
     const p = new Player();
     p.name = account.username;
-    p.color = COLORS[this.state.players.size % COLORS.length];
+    p.color = isPlayerColor(account.save.color) ? account.save.color : PLAYER_COLORS[this.state.players.size % PLAYER_COLORS.length].color;
     this.restore(p, account.save);
     p.lastSavedAt = Date.now();
     this.state.players.set(client.sessionId, p);
@@ -1717,6 +1855,7 @@ export class WorldRoom extends Room<WorldState> {
       for (let i = 0; i < INVENTORY_SIZE; i++) {
         let item = save.inventory[i];
         if (typeof item === "string" && item in LEGACY_ITEMS) item = LEGACY_ITEMS[item]; // logs -> pine logs, etc.
+        if (typeof item === "string") item = legacyTool(item) ?? item; // metal-headed rods -> wooden rods
         p.inventory[i] = typeof item === "string" && item in ITEMS ? (item as ItemId) : null;
         const it = p.inventory[i];
         if (isTool(it) || isGear(it)) {
@@ -1728,6 +1867,7 @@ export class WorldRoom extends Room<WorldState> {
     }
     for (const type of TOOL_TYPE_IDS) {
       const t = save.belt?.[type];
+      if (t && typeof t.item === "string") t.item = legacyTool(t.item) ?? t.item;
       if (t && isTool(t.item) && parseTool(t.item).type === type && typeof t.durability === "number" && t.durability > 0) {
         p.belt[type] = { item: t.item, durability: Math.min(Math.floor(t.durability), maxDurability(t.item)) };
       }
@@ -1778,12 +1918,13 @@ export class WorldRoom extends Room<WorldState> {
     }
     p.mana = maxMana(levelForXp(p.skillXp.magic));
     if (Array.isArray(save.bounties)) p.bounties = save.bounties.filter(validBounty).slice(0, BOUNTY_COUNT);
+    if (typeof save.tracked === "string" && p.bounties.some((b) => b.item === save.tracked)) p.tracked = save.tracked as ItemId;
   }
 
   private snapshot(p: Player): SaveData {
     // Save where the player is heading, so walking off mid-path doesn't lose the move.
     const dest = p.path.length ? p.path[p.path.length - 1] : p;
-    return { saveVersion: SAVE_VERSION, quest: { ...p.quest }, x: dest.x, y: dest.y, inventory: [...p.inventory], coins: p.coins, skills: { ...p.disciplines }, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: [...p.durability], belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), hp: p.hp, hpAt: Date.now(), gear: { ...p.gear }, spell: p.spell, combatMastery: { ...p.combatMastery }, lockedSlots: p.locked.flatMap((on, i) => (on && p.inventory[i] ? [i] : [])), bounties: p.bounties.map((b) => ({ ...b })) };
+    return { saveVersion: SAVE_VERSION, quest: { ...p.quest }, x: dest.x, y: dest.y, inventory: [...p.inventory], coins: p.coins, skills: { ...p.disciplines }, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: [...p.durability], belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), hp: p.hp, hpAt: Date.now(), gear: { ...p.gear }, spell: p.spell, combatMastery: { ...p.combatMastery }, lockedSlots: p.locked.flatMap((on, i) => (on && p.inventory[i] ? [i] : [])), bounties: p.bounties.map((b) => ({ ...b })), tracked: p.tracked ?? undefined, color: p.color };
   }
 
   private async save(p: Player) {

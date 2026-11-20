@@ -7,7 +7,7 @@ import { RESOURCES, ResourceId, fishAt, isFishingSpot, nodeAt, treeKey } from ".
 
 import { ITEMS, ItemId } from "../../shared/items";
 import { joinWorld, rejoinWorld } from "./network";
-import { closeBounties, setBountyActions, showBounties } from "./ui";
+import { accountResult, closeBounties, renderMe, renderTracked, resetForSignOut, setAccountActions, setBountyActions, setQuestActions, showBounties } from "./ui";
 import type { Bounty } from "../../shared/bounties";
 import { closeDialog, openDialog, renderQuest, renderStamina, renderVitals, renderGear, renderCombatMastery, flashCombatMastery, closeCraft, closeInfo, closeShop, flashDiscipline, flashMastery, flashSkillRow, openCraft, renderBelt, renderDurability, renderMastery, renderSkillXp, openShop, renderCoins, renderDisciplines, renderInventory, renderLocks, setHoverText, setInventoryActions, showMessage } from "./ui";
 import { masteryName } from "../../shared/crafting";
@@ -36,6 +36,7 @@ interface MonsterView {
 interface PlayerView {
   container: Phaser.GameObjects.Container;
   body: Phaser.GameObjects.Arc;
+  label: Phaser.GameObjects.Text;
   tween?: Phaser.Tweens.Tween;
   chopTween?: Phaser.Tweens.Tween;
   line?: Phaser.GameObjects.Container; // fishing line, while fishing
@@ -129,7 +130,18 @@ export class WorldScene extends Phaser.Scene {
       remove: (slot) => room.send("remove", { slot }),
       drink: (slot) => room.send("drink", { slot }),
       spell: (id) => room.send("spell", { id }),
+      sort: () => room.send("sortInventory"),
+      move: (from, to) => room.send("moveItem", { from, to }),
     });
+    setQuestActions({ track: (bounty) => room.send("track", bounty == null ? {} : { bounty }) });
+    setAccountActions({
+      rename: (name) => room.send("rename", { name }),
+      password: (current, next) => room.send("setPassword", { current, next }),
+      color: (color) => room.send("setColor", { color }),
+      signOut: () => void this.signOut(),
+    });
+    room.onMessage("tracked", (msg: { item: ItemId | null }) => renderTracked(msg.item));
+    room.onMessage("account", (msg: { ok: boolean; text: string; name: string }) => accountResult(msg.ok, msg.text, msg.name));
     setBountyActions({
       handIn: (index) => room.send("handIn", { index }),
       refresh: () => room.send("refreshBounties"),
@@ -203,6 +215,18 @@ export class WorldScene extends Phaser.Scene {
       }
     }
     this.clearWorld();
+    this.hud.textContent = "Log in to play";
+    this.attach(await showLogin(joinWorld));
+  }
+
+  /** ⚙️ Settings > Sign out: leave the world and show the login box again. */
+  private async signOut() {
+    const room = this.room;
+    if (!room) return;
+    this.room = undefined; // so onLeave doesn't try to reconnect
+    try { await room.leave(true); } catch { /* already gone */ }
+    this.clearWorld();
+    resetForSignOut();
     this.hud.textContent = "Log in to play";
     this.attach(await showLogin(joinWorld));
   }
@@ -431,7 +455,7 @@ export class WorldScene extends Phaser.Scene {
       }).setOrigin(0.5);
       const bar = this.add.graphics();
       container.add([shadow, body, label, bar]);
-      const view: PlayerView = { container, body, bar };
+      const view: PlayerView = { container, body, label, bar };
       this.players.set(sessionId, view);
 
       if (isMe) this.cameras.main.startFollow(container, true, 0.15, 0.15);
@@ -442,6 +466,9 @@ export class WorldScene extends Phaser.Scene {
       $(player).listen("action", (action: string) => this.setAction(view, player, action));
       $(player).listen("hp", () => this.drawHealth(view.bar, player.hp, player.maxHp, -16));
       $(player).listen("maxHp", () => this.drawHealth(view.bar, player.hp, player.maxHp, -16));
+      // Settings: a new name or colour shows up for everyone.
+      $(player).listen("color", (color: number) => { view.body.setFillStyle(color); if (isMe) renderMe(player.name, color); });
+      $(player).listen("name", (name: string) => { view.label.setText(name); if (isMe) { renderMe(name, player.color); this.updateHud(); } });
       this.updateHud();
     });
 

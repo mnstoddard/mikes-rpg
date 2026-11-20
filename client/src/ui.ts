@@ -8,9 +8,10 @@ import { RESOURCE_FOR_ITEM } from "../../shared/foraging";
 import { CRAFT_MARKUP } from "../../shared/items";
 import {
   BAR_IDS, Belt, MATERIALS, MATERIAL_IDS, Material, METALS, METAL_IDS, Metal, TOOL_TYPES, TOOL_TYPE_IDS, ToolType, WOODS, WOOD_IDS, Wood, barId, emptyBelt,
-  hasHandle, isTool, maxDurability, metalOfBar, parseTool, toolBonus, toolForSkill, toolId,
+  ROD_LOGS, hasHandle, isTool, isWoodTool, maxDurability, metalOfBar, parseTool, toolBonus, toolForSkill, toolId,
 } from "../../shared/tools";
-import type { QuestView } from "../../shared/quests";
+import { GUIDE_NAME, type QuestView } from "../../shared/quests";
+import { PLAYER_COLORS } from "../../shared/colors";
 import {
   ARMOR, ARMOR_TYPES, ArmorType, GEAR_SLOTS, Gear, GearSlot, SLOT_ICONS, SLOT_NAMES, WEAPONS, WEAPON_TYPES, WeaponType,
   armorId, emptyGear, isArmor, isGear, isWeapon, parseWeapon, weaponId,
@@ -36,12 +37,13 @@ const skillListEl = document.getElementById("skill-list")!;
 
 // ---- Side panel tabs (Skills / Inventory): one open at a time, tap again to close ----
 
-type Panel = "inventory" | "skills" | "";
+type Panel = "inventory" | "skills" | "quests" | "";
 const isSmallScreen = () => matchMedia("(max-width: 640px), (max-height: 500px)").matches;
 
 export function openPanel(panel: Panel) {
   document.body.dataset.panel = panel;
   document.querySelectorAll<HTMLElement>(".tab").forEach((b) => b.classList.toggle("active", b.dataset.tab === panel));
+  if (panel === "quests") renderQuestTab();
 }
 
 document.querySelectorAll<HTMLElement>(".tab").forEach((b) => {
@@ -459,12 +461,46 @@ export function flashMastery(type: MasteryId) {
 
 renderDisciplines(lastDisciplines);
 
+// ---- Messages: the last few in the box, and every one since you logged in when you tap it ----
+
+const MAX_HISTORY = 500;
+const history: { at: Date; text: string }[] = [];
+const historyList = document.getElementById("history-list")!;
+
 export function showMessage(text: string) {
   const line = document.createElement("div");
   line.textContent = text;
   messagesEl.appendChild(line);
   while (messagesEl.children.length > MAX_MESSAGES) messagesEl.firstChild!.remove();
+  history.push({ at: new Date(), text });
+  if (history.length > MAX_HISTORY) history.shift();
+  if (document.body.classList.contains("history-open")) renderHistory();
 }
+
+function renderHistory() {
+  // Only jump to the newest message if you were already at the bottom (not while reading back).
+  const atBottom = historyList.scrollHeight - historyList.scrollTop - historyList.clientHeight < 30;
+  historyList.replaceChildren();
+  if (!history.length) historyList.append(el("", "No messages yet."));
+  for (const h of history) {
+    const row = document.createElement("div");
+    const time = document.createElement("span");
+    time.className = "h-time";
+    time.textContent = h.at.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    row.append(time, h.text);
+    historyList.appendChild(row);
+  }
+  if (atBottom || !historyList.dataset.shown) historyList.scrollTop = historyList.scrollHeight;
+  historyList.dataset.shown = "1";
+}
+
+messagesEl.onclick = () => {
+  closeSettings();
+  document.body.classList.add("history-open");
+  delete historyList.dataset.shown;
+  renderHistory();
+};
+document.getElementById("history-close")!.onclick = () => document.body.classList.remove("history-open");
 
 // Clicking an item drops it, or sells it while the Merchant's shop is open.
 // In lock mode (the 🔒 button on the inventory), clicking an item locks or
@@ -486,6 +522,8 @@ let onWear: (slot: number) => void = () => {};
 let onRemove: (slot: GearSlot) => void = () => {};
 let onDrink: (slot: number) => void = () => {};
 let onSpell: (id: SpellId) => void = () => {};
+let onSort: () => void = () => {};
+let onMove: (from: number, to: number) => void = () => {};
 
 export function setInventoryActions(actions: {
   drop: (slot: number) => void;
@@ -501,7 +539,11 @@ export function setInventoryActions(actions: {
   remove: (slot: GearSlot) => void;
   drink: (slot: number) => void;
   spell: (id: SpellId) => void;
+  sort: () => void;
+  move: (from: number, to: number) => void;
 }) {
+  onSort = actions.sort;
+  onMove = actions.move;
   onEat = actions.eat;
   onWear = actions.wear;
   onRemove = actions.remove;
@@ -636,6 +678,71 @@ function setLockMode(on: boolean) {
   renderInventory(invItems);
 }
 lockModeBtn.onclick = () => setLockMode(!lockMode);
+document.getElementById("sort-bag")!.onclick = () => onSort();
+
+// ---- Dragging items around the bag: press on an item and move it onto another slot ----
+// (A short tap still opens the item, sells it, or locks it as before.)
+
+let drag: { from: number; x: number; y: number; ghost: HTMLElement | null; over: HTMLElement | null } | null = null;
+/** A drag just ended: ignore the click that the browser sends right after. */
+let justDragged = false;
+
+const slotAt = (x: number, y: number) => (document.elementFromPoint(x, y) as HTMLElement | null)?.closest<HTMLElement>("#slots .slot") ?? null;
+
+function startDrag(e: PointerEvent, from: number) {
+  if (e.button !== 0) return;
+  drag = { from, x: e.clientX, y: e.clientY, ghost: null, over: null };
+  window.addEventListener("pointermove", onDragMove);
+  window.addEventListener("pointerup", endDrag);
+  window.addEventListener("pointercancel", cancelDrag);
+}
+
+function onDragMove(e: PointerEvent) {
+  if (!drag) return;
+  if (!drag.ghost) {
+    if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 8) return; // still a tap
+    const id = invItems[drag.from];
+    if (!id) return cancelDrag();
+    drag.ghost = icon("", ITEMS[id].icon, ITEMS[id].tint);
+    drag.ghost.id = "drag-ghost";
+    document.body.appendChild(drag.ghost);
+    document.body.classList.add("dragging");
+    slotsEl.children[drag.from]?.classList.add("drag-from");
+    setHoverText(null);
+  }
+  drag.ghost.style.left = `${e.clientX}px`;
+  drag.ghost.style.top = `${e.clientY}px`;
+  const over = slotAt(e.clientX, e.clientY);
+  if (over !== drag.over) {
+    drag.over?.classList.remove("drag-over");
+    over?.classList.add("drag-over");
+    drag.over = over;
+  }
+}
+
+function endDrag(e: PointerEvent) {
+  if (drag?.ghost) {
+    const target = slotAt(e.clientX, e.clientY);
+    const to = target ? Number(target.dataset.slot) : -1;
+    if (to >= 0 && to !== drag.from) onMove(drag.from, to);
+    justDragged = true;
+    setTimeout(() => { justDragged = false; }, 0);
+  }
+  cancelDrag();
+}
+
+function cancelDrag() {
+  if (drag) {
+    drag.ghost?.remove();
+    drag.over?.classList.remove("drag-over");
+    slotsEl.querySelector(".drag-from")?.classList.remove("drag-from");
+  }
+  drag = null;
+  document.body.classList.remove("dragging");
+  window.removeEventListener("pointermove", onDragMove);
+  window.removeEventListener("pointerup", endDrag);
+  window.removeEventListener("pointercancel", cancelDrag);
+}
 
 const shopIsOpen = () => document.body.classList.contains("shop-open");
 
@@ -647,7 +754,8 @@ export function renderInventory(items: (ItemId | null)[]) {
   const selling = shopIsOpen();
   for (let i = 0; i < INVENTORY_SIZE; i++) {
     const slot = document.createElement("div");
-    slot.className = "slot";
+    slot.className = "slot" + (drag?.ghost && drag.from === i ? " drag-from" : "");
+    slot.dataset.slot = String(i);
     const id = items[i];
     if (id) {
       const item = ITEMS[id];
@@ -671,8 +779,10 @@ export function renderInventory(items: (ItemId | null)[]) {
       slot.title = lockMode ? `${isLocked ? "Unlock" : "Lock"} this ${item.single}`
         : isLocked ? `${item.name} (locked)`
         : selling ? `Sell ${item.single} for ${formatMoney(price)}`
-        : `${item.name}: click for details`;
+        : `${item.name}: click for details, or drag to move it`;
+      slot.onpointerdown = (e) => startDrag(e, i);
       slot.onclick = () => {
+        if (justDragged) return;
         if (lockMode) return toggleLock(i);
         if (shopIsOpen() && !shopBuying) {
           if (isLocked) return showMessage(`That ${item.single} is locked. Tap 🔒 on your inventory, then tap it to unlock.`);
@@ -687,6 +797,7 @@ export function renderInventory(items: (ItemId | null)[]) {
   renderBounties();
   renderCraft();
   renderInfo();
+  renderTracker();
 }
 
 // ---- Money: shown under the inventory, doesn't use a slot ----
@@ -903,8 +1014,15 @@ function renderCraft() {
       );
       output = armorId(pick.armor, pick.armorMetal);
     } else {
-      craftBody.append(choices("Tool", TOOL_TYPE_IDS, pick.type, (t) => ({ icon: TOOL_TYPES[t].icon, name: TOOL_TYPES[t].name }), (t) => { pick.type = t; }), head());
-      if (hasHandle(pick.type)) craftBody.append(handle());
+      craftBody.append(choices("Tool", TOOL_TYPE_IDS, pick.type, (t) => ({ icon: TOOL_TYPES[t].icon, name: TOOL_TYPES[t].name }), (t) => { pick.type = t; }));
+      if (isWoodTool(pick.type)) {
+        // Fishing rods are all wood: pick which logs to carve it from.
+        craftBody.append(choices(`Wood (${ROD_LOGS} logs)`, WOOD_IDS, pick.wood, (w) => ({ icon: "🪵", tint: ITEMS[`${w}_logs`].tint, name: WOODS[w].name,
+          lockedAt: level < RESOURCES[w].level ? RESOURCES[w].level : undefined }), (w) => { pick.wood = w; }));
+      } else {
+        craftBody.append(head());
+        if (hasHandle(pick.type)) craftBody.append(handle());
+      }
       output = toolId(pick.type, pick.metal, pick.wood);
     }
   }
@@ -978,6 +1096,7 @@ export function setBountyActions(actions: { handIn: (index: number) => void; ref
 /** The server sent the board's bounties. `open`: the player just clicked the board. */
 export function showBounties(list: Bounty[], open: boolean) {
   bounties = list;
+  renderTracker();
   if (open) {
     closeShop();
     closeCraft();
@@ -1229,28 +1348,99 @@ export function setHoverText(action: string | null, target = "", x = 0, y = 0) {
 
 // ---- Old Maren: the quest tracker and her dialog ----
 
+// ---- The quest tracker (next to your health) and the 📜 Quests tab ----
+// The tracker shows one thing: Maren's current step, or a bounty you picked in the Quests tab.
+
 const questEl = document.getElementById("quest")!;
-let questMin = false;
-questEl.onclick = () => { questMin = !questMin; questEl.classList.toggle("min", questMin); };
+const questListEl = document.getElementById("quest-list")!;
+let lastQuest: QuestView | null = null;
+/** The tracked bounty's item, or null for Maren's quest. */
+let trackedItem: ItemId | null = null;
+let onTrack: (bounty: number | null) => void = () => {};
+
+export function setQuestActions(actions: { track: (bounty: number | null) => void }) {
+  onTrack = actions.track;
+}
+
+questEl.onclick = () => openPanel(document.body.dataset.panel === "quests" ? "" : "quests");
+
+/** How many of a bounty's items you have that count (unlocked, unused). */
+const bountyHave = (b: Bounty) => invItems.filter((id, i) => slotCounts(b.item, id, !!locked[i], durability[i])).length;
+const trackedBounty = () => bounties.find((b) => b.item === trackedItem) ?? null;
+
+export function renderTracked(item: ItemId | null) {
+  trackedItem = item;
+  renderTracker();
+}
 
 export function renderQuest(q: QuestView, flash = false) {
+  lastQuest = q;
+  renderTracker(flash);
+}
+
+function bar(fraction: number) {
+  const b = el("q-bar");
+  const fill = document.createElement("div");
+  fill.style.width = `${Math.floor(Math.min(1, fraction) * 100)}%`;
+  b.appendChild(fill);
+  return b;
+}
+
+function renderTracker(flash = false) {
+  if (document.body.dataset.panel === "quests") renderQuestTab();
+  const b = trackedBounty();
+  const q = lastQuest;
+  if (!b && !q) return;
   document.body.classList.add("has-quest");
   questEl.replaceChildren();
-  questEl.append(el("q-title", q.done ? `📜 ${q.quest}` : `📜 Quest ${q.number}/${q.of}: ${q.quest}`), el("q-task", (q.talk ? "❗ " : "") + q.task));
-  if (q.warning) questEl.append(el("q-warn", `⚠️ ${q.warning}`));
-  if (q.progress) questEl.append(el("q-progress", q.progress));
-  if (q.fraction != null) {
-    const bar = el("q-bar");
-    const fill = document.createElement("div");
-    fill.style.width = `${Math.floor(Math.min(1, q.fraction) * 100)}%`;
-    bar.appendChild(fill);
-    questEl.append(bar);
+  if (b) {
+    const have = bountyHave(b);
+    const item = ITEMS[b.item];
+    questEl.append(el("q-title", "📋 Bounty"), el("q-task", `${b.count} × ${item.name}${isTool(b.item) || isGear(b.item) ? " (unused)" : ""}`),
+      el("q-progress", have >= b.count ? `✓ ${b.count} / ${b.count}: hand it in at the board!` : `${have} / ${b.count}`), bar(have / b.count));
+  } else if (q) {
+    questEl.append(el("q-title", q.done ? `📜 ${q.quest}` : `📜 Quest ${q.number}/${q.of}: ${q.quest}`), el("q-task", (q.talk ? "❗ " : "") + q.task));
+    if (q.warning) questEl.append(el("q-warn", `⚠️ ${q.warning}`));
+    if (q.progress) questEl.append(el("q-progress", q.progress));
+    if (q.fraction != null) questEl.append(bar(q.fraction));
   }
+  if (bounties.length) questEl.append(el("q-switch", "Tap to switch quest or bounty"));
   if (flash) {
     questEl.classList.remove("flash");
     void questEl.offsetWidth; // restart the animation
     questEl.classList.add("flash");
   }
+}
+
+/** The 📜 tab: Maren's quest, then each bounty on the board. Tap one to track it. */
+function renderQuestTab() {
+  questListEl.replaceChildren();
+  const row = (glyph: string, tint: string | undefined, title: string, sub: string, state: string, tracked: boolean, onclick: () => void) => {
+    const r = el("qt-row" + (tracked ? " tracked" : ""));
+    r.append(icon("qt-icon", glyph, tint), el("qt-title", title), el("qt-sub", sub), el("qt-state", tracked ? "📍 Tracking" : state));
+    r.title = tracked ? "Showing next to your health" : "Tap to track this";
+    r.onclick = onclick;
+    return r;
+  };
+  const tb = trackedBounty();
+  questListEl.append(el("qt-head", `${GUIDE_NAME}'s lessons`));
+  if (lastQuest) {
+    const q = lastQuest;
+    questListEl.append(row("📜", undefined, q.done ? q.quest : `Quest ${q.number}/${q.of}: ${q.quest}`, q.task, q.progress ?? (q.done ? "" : "Tap to track"), !tb, () => onTrack(null)));
+  }
+  questListEl.append(el("qt-head", "📋 Bounties"));
+  if (!bounties.length) {
+    questListEl.append(el("qt-note", `The bounty board next to the Merchant opens later in ${GUIDE_NAME}'s lessons.`));
+    return;
+  }
+  bounties.forEach((b, i) => {
+    const item = ITEMS[b.item];
+    const have = bountyHave(b);
+    const reward = bountyReward(b, lastMastery);
+    questListEl.append(row(item.icon, item.tint, `${b.count} × ${item.name}`, `${formatMoney(reward.coins)} · +${reward.xp} ${reward.label} XP`,
+      have >= b.count ? "✓ Ready to hand in" : `You have ${have} / ${b.count}`, tb === b, () => onTrack(i)));
+  });
+  questListEl.append(el("qt-note", "Hand bounties in at the board next to the Merchant."));
 }
 
 const dialogName = document.getElementById("dialog-name")!;
@@ -1286,4 +1476,121 @@ dialogNext.onclick = () => {
 
 export function closeDialog() {
   document.body.classList.remove("dialog-open");
+}
+
+// ---- ⚙️ Settings: change your name, password or colour, or sign out ----
+
+const settingsEl = document.getElementById("settings")!;
+const nameForm = document.getElementById("set-name-form") as HTMLFormElement;
+const nameInput = document.getElementById("set-name") as HTMLInputElement;
+const nameMsg = document.getElementById("set-name-msg")!;
+const pwForm = document.getElementById("set-pw-form") as HTMLFormElement;
+const pwCurrent = document.getElementById("set-pw-current") as HTMLInputElement;
+const pwNew = document.getElementById("set-pw-new") as HTMLInputElement;
+const pwMsg = document.getElementById("set-pw-msg")!;
+const colorsEl = document.getElementById("set-colors")!;
+let myName = "";
+let myColor = 0;
+let pendingAccount: "name" | "password" | null = null;
+let account = {
+  rename: (_name: string) => {},
+  password: (_current: string, _next: string) => {},
+  color: (_color: number) => {},
+  signOut: () => {},
+};
+
+export function setAccountActions(actions: typeof account) {
+  account = actions;
+}
+
+/** Your own name and colour, as the server has them. */
+export function renderMe(name: string, color: number) {
+  myName = name;
+  myColor = color;
+  if (settingsEl.contains(document.activeElement) && document.activeElement === nameInput) return;
+  if (document.body.classList.contains("settings-open")) renderSettings();
+}
+
+function setMsg(box: HTMLElement, ok: boolean, text: string) {
+  box.textContent = text;
+  box.className = "set-msg " + (ok ? "ok" : "bad");
+}
+
+function renderSettings() {
+  colorsEl.replaceChildren();
+  for (const c of PLAYER_COLORS) {
+    const b = document.createElement("button");
+    b.className = "swatch" + (c.color === myColor ? " active" : "");
+    b.style.background = `#${c.color.toString(16).padStart(6, "0")}`;
+    b.title = c.name;
+    b.setAttribute("aria-label", c.name);
+    b.onclick = () => account.color(c.color);
+    colorsEl.appendChild(b);
+  }
+}
+
+export function openSettings() {
+  document.body.classList.remove("history-open");
+  document.body.classList.add("settings-open");
+  nameInput.value = myName;
+  nameMsg.textContent = "";
+  pwMsg.textContent = "";
+  pwCurrent.value = pwNew.value = "";
+  renderSettings();
+}
+
+export function closeSettings() {
+  document.body.classList.remove("settings-open");
+}
+
+/** The server answered a name or password change. */
+export function accountResult(ok: boolean, text: string, name: string) {
+  const box = pendingAccount === "password" ? pwMsg : nameMsg;
+  pendingAccount = null;
+  setMsg(box, ok, text);
+  if (box === pwMsg && ok) pwCurrent.value = pwNew.value = "";
+  if (box === nameMsg) nameInput.value = name;
+  if (ok && name) {
+    myName = name;
+    try { localStorage.setItem("rpg.lastUsername", name); } catch { /* storage blocked */ }
+  }
+}
+
+nameForm.onsubmit = (e) => {
+  e.preventDefault();
+  const name = nameInput.value.trim();
+  if (!name || name === myName) return setMsg(nameMsg, false, name ? "That's already your name." : "Type a new name first.");
+  pendingAccount = "name";
+  setMsg(nameMsg, true, "Saving…");
+  account.rename(name);
+};
+
+pwForm.onsubmit = (e) => {
+  e.preventDefault();
+  if (!pwCurrent.value) return setMsg(pwMsg, false, "Type your current password first.");
+  if (pwNew.value.length < 6) return setMsg(pwMsg, false, "New passwords need at least 6 characters.");
+  pendingAccount = "password";
+  setMsg(pwMsg, true, "Changing…");
+  account.password(pwCurrent.value, pwNew.value);
+};
+
+document.getElementById("settings-btn")!.onclick = () => (document.body.classList.contains("settings-open") ? closeSettings() : openSettings());
+document.getElementById("settings-close")!.onclick = closeSettings;
+document.getElementById("sign-out")!.onclick = () => { closeSettings(); account.signOut(); };
+
+/** After signing out: forget the last character's messages, bounties and tracker. */
+export function resetForSignOut() {
+  closeSettings();
+  closeShop();
+  closeBounties();
+  closeCraft();
+  closeInfo();
+  closeDialog();
+  document.body.classList.remove("history-open", "has-quest");
+  messagesEl.replaceChildren();
+  history.length = 0;
+  bounties = [];
+  trackedItem = null;
+  lastQuest = null;
+  if (lockMode) setLockMode(false);
 }

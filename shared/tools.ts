@@ -3,7 +3,8 @@
 // Gathering tools (axe, pickaxe, fishing rod) make gathering faster. Crafting
 // tools (hammer, tongs, pot) raise the chance that smithing, smelting or
 // cooking works. Most tools are 1 metal bar (or 1 stone) and 1 log; tongs and
-// the pot have no handle and take 3 bars (or 3 stone) instead.
+// the pot have no handle and take 3 bars (or 3 stone) instead. Fishing rods
+// are all wood: 2 logs of one kind, and the wood decides everything.
 // Its material and its wood each add a bonus, e.g. Bronze 5% + Pine 5% = 10%.
 // Stone tools are the easy starter tier: anyone can make one from the start.
 // No imports at runtime, so items.ts can build every tool item from this.
@@ -16,10 +17,12 @@ export type Wood = "pine" | "oak" | "birch" | "maple" | "yew" | "ironwood" | "el
 export type ToolType = "axe" | "pickaxe" | "rod" | "hammer" | "tongs" | "pot";
 /** Tools with no wooden handle: all metal (or stone). */
 export type HandlelessTool = "tongs" | "pot";
-/** Tools with a wooden handle (everything but tongs and the pot). */
-export type HandledTool = Exclude<ToolType, HandlelessTool>;
+/** Tools made only of wood (2 logs, no metal or stone head). */
+export type WoodTool = "rod";
+/** Tools with a head and a wooden handle (everything but tongs, the pot and the rod). */
+export type HandledTool = Exclude<ToolType, HandlelessTool | WoodTool>;
 export type BarId = `${Metal}_bar`;
-export type ToolItemId = `${HandledTool}_${Material}_${Wood}` | `${HandlelessTool}_${Material}`;
+export type ToolItemId = `${HandledTool}_${Material}_${Wood}` | `${HandlelessTool}_${Material}` | `${WoodTool}_${Wood}`;
 
 export interface MaterialDef {
   name: string;
@@ -116,38 +119,65 @@ export const barId = (metal: Metal): BarId => `${metal}_bar`;
 export const BAR_IDS = METAL_IDS.map(barId);
 export const metalOfBar = (bar: BarId) => bar.slice(0, -4) as Metal;
 
-/** Tongs and the pot have no wooden handle. */
-export const hasHandle = (type: ToolType): type is HandledTool => type !== "tongs" && type !== "pot";
-/** How many bars (or stone) go into a tool's head: 3 for tongs and the pot, 1 for the rest. */
-export const headCount = (type: ToolType) => hasHandle(type) ? 1 : 3;
+/** Fishing rods are all wood: no metal or stone at all. */
+export const isWoodTool = (type: ToolType): type is WoodTool => type === "rod";
+/** Logs that go into one fishing rod. */
+export const ROD_LOGS = 2;
+/** Uses a Pine rod has (better wood lasts longer, like handles). */
+export const ROD_DURABILITY = 120;
+/** Tools with a head and a wooden handle (not tongs, the pot or the all-wood rod). */
+export const hasHandle = (type: ToolType): type is HandledTool => type !== "tongs" && type !== "pot" && !isWoodTool(type);
+/** How many bars (or stone) go into a tool's head: 3 for tongs and the pot, none for the rod, 1 for the rest. */
+export const headCount = (type: ToolType) => isWoodTool(type) ? 0 : hasHandle(type) ? 1 : 3;
 
+/** A tool's item id. Rods ignore the metal (they're all wood); tongs and the pot ignore the wood. */
 export function toolId(type: ToolType, metal: Material, wood: Wood): ToolItemId {
-  return hasHandle(type) ? `${type}_${metal}_${wood}` : `${type}_${metal}`;
+  if (isWoodTool(type)) return `${type}_${wood}`;
+  return hasHandle(type) ? `${type}_${metal}_${wood}` : `${type}_${metal as Material}` as ToolItemId;
 }
 
 export const ALL_TOOL_IDS: ToolItemId[] = TOOL_TYPE_IDS.flatMap((type) =>
-  !hasHandle(type) ? MATERIAL_IDS.map((m) => toolId(type, m, "pine"))
+  isWoodTool(type) ? WOOD_IDS.map((w) => toolId(type, "stone", w))
+    : !hasHandle(type) ? MATERIAL_IDS.map((m) => toolId(type, m, "pine"))
     : MATERIAL_IDS.flatMap((m) => WOOD_IDS.map((w) => toolId(type, m, w))));
 const TOOL_SET = new Set<string>(ALL_TOOL_IDS);
 
 export const isTool = (item: string | null | undefined): item is ToolItemId => !!item && TOOL_SET.has(item);
 
-/** "axe_iron_oak" -> { type: "axe", metal: "iron", wood: "oak" }. Tongs and the pot have no wood. */
-export function parseTool(item: ToolItemId): { type: ToolType; metal: Material; wood: Wood | null } {
-  const [type, metal, wood] = item.split("_") as [ToolType, Material, Wood | undefined];
-  return { type, metal, wood: wood ?? null };
+/**
+ * "axe_iron_oak" -> { type: "axe", metal: "iron", wood: "oak" }. Tongs and the
+ * pot have no wood; rods ("rod_oak") have no metal.
+ */
+export function parseTool(item: ToolItemId): { type: ToolType; metal: Material | null; wood: Wood | null } {
+  const [type, a, b] = item.split("_") as [ToolType, string, string | undefined];
+  if (isWoodTool(type)) return { type, metal: null, wood: a as Wood };
+  return { type, metal: a as Material, wood: (b as Wood) ?? null };
 }
 
-/** Bonus as a fraction: 0.10 = 10% faster (gathering) or 10% fewer failures (crafting). Tongs and the pot count their metal twice. */
+/**
+ * Bonus as a fraction: 0.10 = 10% faster (gathering) or 10% fewer failures (crafting).
+ * Tongs and the pot count their metal twice; rods count their wood twice.
+ */
 export function toolBonus(item: ToolItemId): number {
   const { metal, wood } = parseTool(item);
+  if (!metal) return WOODS[wood!].bonus * 2;
   return MATERIALS[metal].bonus + (wood ? WOODS[wood].bonus : MATERIALS[metal].bonus);
 }
 
 /** How many uses a fresh tool has. */
 export function maxDurability(item: ToolItemId): number {
   const { metal, wood } = parseTool(item);
+  if (!metal) return Math.round(ROD_DURABILITY * WOODS[wood!].durability);
   return Math.round(MATERIALS[metal].durability * (wood ? WOODS[wood].durability : 1.5));
+}
+
+/**
+ * Fishing rods used to have a metal (or stone) head, like "rod_bronze_pine".
+ * Old saves turn them into a wooden rod of the same handle wood ("rod_pine").
+ */
+export function legacyTool(item: string): ToolItemId | null {
+  const m = /^rod_(?:stone|bronze|iron|steel|mithril)_([a-z]+)$/.exec(item);
+  return m && (WOOD_IDS as string[]).includes(m[1]) ? `rod_${m[1] as Wood}` : null;
 }
 
 /** Uses a tool loses each time: harder trees, rocks, fish and recipes wear tools faster (1 at level 1-9 ... 8 at level 70+). */
