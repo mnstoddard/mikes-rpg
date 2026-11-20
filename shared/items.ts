@@ -1,6 +1,6 @@
 // Item definitions shared by server and client.
 import {
-  ALL_TOOL_IDS, BAR_IDS, BarId, MATERIALS, METALS, TOOL_TYPES, ToolItemId, WOODS, barId, headCount, metalOfBar, parseTool,
+  ALL_TOOL_IDS, BAR_IDS, BarId, MATERIALS, METALS, ROD_LOGS, TOOL_TYPES, ToolItemId, WOODS, barId, headCount, metalOfBar, parseTool,
 } from "./tools";
 import { ALL_STEW_IDS, StewId, parseStew } from "./cooking";
 import {
@@ -93,6 +93,14 @@ for (const bar of BAR_IDS) {
 }
 for (const tool of ALL_TOOL_IDS) {
   const { type, metal, wood } = parseTool(tool);
+  if (!metal) {
+    // Fishing rods: all wood, 2 logs.
+    const name = `${WOODS[wood!].name} ${TOOL_TYPES[type].name.toLowerCase()}`;
+    const logs = `${wood}_logs` as BaseItemId;
+    ITEMS[tool] = { name, single: name.toLowerCase(), icon: TOOL_TYPES[type].icon, tint: ITEMS[logs].tint, sellPrice: 0, inputs: Array<ItemId>(ROD_LOGS).fill(logs) };
+    ITEMS[tool].sellPrice = Math.floor(exactBase(tool));
+    continue;
+  }
   const name = `${MATERIALS[metal].name} ${TOOL_TYPES[type].name.toLowerCase()}`;
   ITEMS[tool] = {
     name: wood ? `${name} (${WOODS[wood].name})` : name,
