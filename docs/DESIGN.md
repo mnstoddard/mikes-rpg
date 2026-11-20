@@ -31,10 +31,10 @@ Maren's quests arrived. Nobody's old XP, items or coins carry over.
 
 | Discipline | What it raises | Skills in it |
 |---|---|---|
-| 💪 **Strength** | Max **health** | Melee, Ranged, Defense, plus more combat skills *(still being chosen)* |
+| 💪 **Strength** | Max **health** | Melee, Ranged, Defense *(Athletics maybe, not decided)* |
 | 🌿 **Endurance** (was Foraging) | Max **stamina** | Fishing, Woodcutting, Mining, Foraging *(new)*, Farming *(new)*, Hunting *(new)* |
 | 🔮 **Wisdom** | Max **mana** | Spellcasting *(replaces Magic)*, Enchanting *(new)*, Alchemy *(new)* |
-| 🤲 **Dexterity** (was Crafting) | Overall **speed**: walking, gathering and crafting | Cooking, Handicraft, Smithing, Smelting |
+| 🤲 **Dexterity** (was Crafting) | **Weight limit** and **walking speed** | Cooking, Handicraft, Smithing, Smelting |
 | 🤝 **Charisma** | Better **shop prices** and bigger **party size** | Trading *(new)*, Renown *(new)*, Leadership *(new)* |
 
 How a discipline levels: every bit of XP you earn in a skill also goes into
@@ -48,8 +48,9 @@ Mining and Endurance.
 - **Cooking** goes to Dexterity with the other making skills. (It could go to
   Endurance next to Farming instead, since meals give stamina. See open
   questions.)
-- **Melee, Ranged, Defense** go to Strength. Strength will get more skills
-  than these three; which ones is still being decided.
+- **Melee, Ranged, Defense** go to Strength. (Ranged covers bows, slings and
+  darts; there's no separate Archery skill.) An Athletics skill might join them
+  later; that's not decided yet.
 - **Tailoring and Fletching** are not separate skills: both fold into
   **Handicraft**. **Jewelcrafting** is not a separate skill: it folds into
   **Smithing**.
@@ -66,9 +67,11 @@ These are first guesses, picked to feel close to today's numbers at level 1.
 - **Health** = 48 + 2 per Strength level (50 at level 1, about 246 at 99).
 - **Stamina** = 95 + 5 per Endurance level (100 at level 1, about 590 at 99).
 - **Mana** = 48 + 2 per Wisdom level (50 at level 1).
-- **Speed** = +0.5% per Dexterity level, up to +50% at 99. It speeds up walking,
-  gathering and crafting. (Walking speed is capped so players can't zip
-  across the screen faster than the server can follow.)
+- **Weight limit** = 45 kg, plus 0.5 kg per Dexterity level (about 94 kg at 99).
+- **Walking speed** = +0.3% per Dexterity level, up to about +30% at 99. Only
+  walking gets faster; gathering and crafting speed come from tools, Mastery
+  and skill trees as they do today. (Capped so players can't zip across the
+  screen faster than the server can follow.)
 - **Prices** = Charisma raises what shops pay you by 0.3% per level and cuts
   what you pay by the same, up to about 30% at 99.
 - **Party size** = 4, rising to 5 at Charisma 50 and 6 at Charisma 90.
@@ -166,8 +169,47 @@ Monster strength also sets how much **soul energy** it gives when soul trapped
 ## 4. Dexterity: making things
 
 ### Smithing, Smelting, Cooking, Handicraft
-Same as today, now under Dexterity. Smithing also makes the **shovel** and
-**plain metal for inlays** (silver and gold wire, see Enchanting).
+Same as today, now under Dexterity, except for how Smithing unlocks things
+(below). Smithing also makes the **shovel** and the **inlays** used in
+Enchanting.
+
+### Smithing: one item at a time
+Instead of a whole metal unlocking at once, **each item unlocks at its own
+Smithing level**, so there's always something new coming up. Weapons, armor,
+tools and jewellery are all mixed into one ladder. For example:
+
+| Smithing level | Unlocks |
+|---|---|
+| 1 | Bronze dagger, stone tools |
+| 2 | Bronze short sword, tin ring |
+| 3 | Bronze helmet, bronze tools |
+| 4 | Bronze mace, tin amulet |
+| 5 | Bronze shield, bronze boots |
+| 7 | Bronze platelegs, tin inlay |
+| 9 | Bronze platebody, bronze spear |
+| 12 | Silver ring |
+| 15 | Iron dagger, iron tools |
+| 16 to 28 | The rest of the iron items, one or two per level, plus silver amulets and silver inlays |
+| 30 | Steel dagger, then steel items up the levels, with gold jewellery mixed in from about 35 |
+| 50 | Platinum jewellery starts |
+| 60 | Mithril dagger, then mithril items up the levels |
+| 80 | Iridium jewellery starts, up to iridium inlays near 95 |
+
+(Exact levels get tuned when it's built.)
+
+### Two metal ladders
+- **Fighting and tool metals** (Strength gear and tools): stone, bronze, iron,
+  steel, mithril, as today.
+- **Jewellery metals** (rings, amulets and inlays): **tin** (low quality,
+  available right away), then **silver**, **gold**, **platinum**, and
+  **iridium** at very high levels. Better jewellery metal means a stronger
+  ring or amulet and a higher enchanting cap on an inlay. Platinum and iridium
+  need new ore rocks (in the Quarry and deep in the Cave).
+
+### Coins use the same metals
+Money follows the jewellery ladder: **tin, silver, gold, platinum and iridium
+coins**, each worth 100 of the one below. Tin coins replace today's bronze
+coins.
 
 ### Handicraft: bows, staffs, cloth and leather (no Fletching or Tailoring skill)
 Handicraft already makes fishing bait at the workbench. It also takes over
@@ -180,7 +222,7 @@ skill:
   (pine is weakest, elderwood is strongest).
 - **Sewing**: cloth and leather armor from hides, pelts and spider silk.
   Cloth and leather are lighter than metal, so they suit spellcasters and
-  archers (and leave more weight for gathering).
+  Ranged fighters (and leave more weight for gathering).
 
 ### Smithing: jewellery and gems (no Jewelcrafting skill)
 Smithing also does what a Jewelcrafting skill would have done. At the anvil
@@ -188,7 +230,8 @@ Smithing also does what a Jewelcrafting skill would have done. At the anvil
 
 - **Cut** raw gems. Cutting keeps the size; cut gems are worth more and are
   needed for enchanting.
-- **Make settings**: silver and gold rings, amulets and inlays.
+- **Make settings**: rings, amulets and inlays in tin, silver, gold, platinum
+  or iridium (each unlocks at its own Smithing level).
 - **Set gems** into rings and amulets.
 - **Shape soul gems** from raw soul stone.
 
@@ -246,8 +289,9 @@ Guild. Every enchantment uses:
 2. **A filled soul gem**: the power. It's used up.
 3. **A cut gem**: the effect. Gem type picks the effect, and gem size sets how
    strong it is. It's used up.
-4. **Optional silver or gold inlay**: raises the cap on how strong the
-   enchantment can be. Silver raises it some, gold raises it a lot.
+4. **Optional metal inlay** (tin, silver, gold, platinum or iridium): raises
+   the cap on how strong the enchantment can be. Tin raises it a little,
+   iridium the most.
 
 What each gem does:
 
@@ -405,7 +449,7 @@ Planned chapters:
 | Old Maren | Fishing, Cooking, Eating | "Living off the land" (as today) |
 | Forester Holt | Woodcutting | Chop, make a stone axe, sell logs |
 | Miner Greta | Mining | Stone, ore, then find your first gem |
-| Smith Brann | Smithing, Smelting | Bars, tools, armor (today's lessons), then cut a gem and make a silver ring |
+| Smith Brann | Smithing, Smelting | Bars, tools, armor (today's lessons), then cut a gem and make a tin ring |
 | Herbalist Wren | Foraging | Get a shovel, dig 5 finds, find a night herb |
 | Farmer Odo | Farming | Buy a plot (Odo pays for the first), plant, harvest |
 | Huntmaster Kael | Hunting, Melee, Ranged, Defense | Today's combat lesson, then the wolf |
@@ -521,5 +565,8 @@ Stages 10, 11 and 12 can be done in any order once stage 3 is in.
    like.
 9. **Spell books**: should some spells be shop-only, or only from drops and
    quests?
-10. **Speed from Dexterity**: is +50% at level 99 too much? Walking that fast may
-    feel odd next to slower players.
+10. **Walking speed from Dexterity**: is +30% at level 99 about right?
+11. **Athletics**: add it to Strength (climbing, shortcuts, sprinting), or not?
+12. **Coins**: when tin coins replace bronze, should everyone's money convert
+    straight across (1 bronze becomes 1 tin)? Since everyone starts fresh at
+    stage 2, this only matters if coins change before then.
