@@ -12,6 +12,7 @@ import type { ItemId } from "./items";
 import { masteryLevelForXp } from "./mastery";
 import { WOODS } from "./tools";
 import { WOOD_DAMAGE } from "./handicraft";
+import { WORLD_SPAWNS } from "./world";
 import {
   ARMOR, ARMOR_METAL, CLOTH_MANA_PER, CLOTH_SPELL_DAMAGE, CombatStyle, GEAR_SLOTS, Gear, METAL_DAMAGE, METAL_SLOW_PER_BAR, WEAPONS, WeaponType, isArmor, isSoftArmor, isWeapon, isWooden, parseArmor, parseWeapon,
 } from "./gear";
@@ -128,28 +129,8 @@ export const MONSTERS: Record<MonsterId, MonsterDef> = {
 };
 export const MONSTER_IDS = Object.keys(MONSTERS) as MonsterId[];
 
-/** Where monsters live: [type, home x, home y]. They wander a few tiles from home. */
-export const MONSTER_SPAWNS: [MonsterId, number, number][] = [
-  // Chickens in the field north-west of town.
-  ["chicken", 6, 3], ["chicken", 8, 4], ["chicken", 6, 5], ["chicken", 9, 3], ["chicken", 7, 7],
-  // Rats around the quarry rocks, north of Trainer Row.
-  ["rat", 20, 2], ["rat", 25, 1], ["rat", 25, 3], ["rat", 20, 3],
-  // Slimes in the wet meadow by the lake.
-  ["slime", 2, 7], ["slime", 9, 8], ["slime", 2, 13], ["slime", 9, 14],
-  // Cows and boars in the meadow south-east of the square.
-  ["cow", 29, 18], ["cow", 31, 17], ["boar", 34, 17], ["boar", 33, 19],
-  // Giant bats come out at night.
-  ["giant_bat", 36, 9], ["giant_bat", 2, 10], ["giant_bat", 28, 17], ["giant_bat", 24, 23],
-  // Cave spiders in the little cave east of the quarry.
-  ["cave_spider", 29, 1], ["cave_spider", 31, 2],
-  // The Dark Forest, past the gate: wolf packs near the gate, goblins west, spiders east, bandits deep south.
-  ["wolf", 22, 23], ["wolf", 23, 24], ["wolf", 31, 23], ["wolf", 32, 24], ["wolf", 25, 25], ["wolf", 26, 26], ["wolf", 34, 25],
-  ["goblin", 11, 26], ["goblin", 14, 28], ["goblin", 10, 29], ["goblin", 16, 25],
-  ["spider", 40, 27], ["spider", 44, 26], ["spider", 46, 29],
-  ["bandit", 28, 30], ["bandit", 33, 31],
-  // The wolf den, south-west of the gate path: the alpha and its pack.
-  ["alpha_wolf", 19, 31], ["wolf", 17, 30], ["wolf", 21, 30], ["wolf", 18, 32], ["wolf", 20, 32],
-];
+/** Where monsters live: [type, home x, home y]. They wander a few tiles from home. Placed in shared/world.ts. */
+export const MONSTER_SPAWNS: readonly [MonsterId, number, number][] = WORLD_SPAWNS;
 /** How far from home a monster wanders, and chases you before giving up. */
 export const WANDER_RADIUS = 3;
 export const LEASH_RADIUS = 8;

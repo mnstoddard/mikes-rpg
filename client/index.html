@@ -40,6 +40,13 @@
     #login button { flex: 1; font: inherit; font-size: 14px; padding: 7px 0; border: 1px solid #6b5a3e; border-radius: 3px; background: #5a4a2f; color: #fff; cursor: pointer; }
     #login button:hover:not(:disabled) { background: #6e5b3a; }
     #login button:disabled { opacity: .6; cursor: default; }
+    #worldmap { display: none; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 6; padding: 8px; width: min(740px, calc(100vw - 24px)); }
+    body.map-open #worldmap { display: block; }
+    #worldmap h3 { margin: 0 0 6px; font-size: 15px; color: #ffd84a; font-weight: normal; display: flex; justify-content: space-between; align-items: center; }
+    #worldmap h3 .btn { width: 28px; height: 28px; font-size: 14px; background: rgba(0,0,0,.25); border: 1px solid #6b5a3e; border-radius: 3px; }
+    #worldmap-box { overflow: auto; max-height: min(500px, calc(100vh - 110px)); border-radius: 3px; touch-action: pan-x pan-y; }
+    #worldmap-canvas { display: block; }
+    #worldmap-where { margin-top: 5px; font-size: 12px; color: #f2e6c9; }
     #zoom { position: fixed; top: calc(8px + env(safe-area-inset-top)); right: calc(8px + env(safe-area-inset-right)); display: flex; flex-direction: column; gap: 4px; }
     .btn { width: 40px; height: 40px; padding: 0; font-size: 22px; line-height: 1; color: #f2e6c9; cursor: pointer; position: static; touch-action: manipulation; }
     #weight { margin-top: 6px; font-size: 12px; color: #fff; }
@@ -417,7 +424,8 @@
     <div id="dialog-text"></div>
     <div class="buttons"><span id="dialog-page"></span><button id="dialog-next" class="shop-btn">Next</button></div>
   </div>
-  <div id="zoom"><button id="clock" class="panel btn" aria-label="Time of day" title="Day">☀️</button><button id="zoom-in" class="panel btn" aria-label="Zoom in">+</button><button id="zoom-out" class="panel btn" aria-label="Zoom out">−</button><button id="settings-btn" class="panel btn" aria-label="Settings" title="Settings: name, password, colour, sign out">⚙️</button></div>
+  <div id="zoom"><button id="clock" class="panel btn" aria-label="Time of day" title="Day">☀️</button><button id="zoom-in" class="panel btn" aria-label="Zoom in">+</button><button id="zoom-out" class="panel btn" aria-label="Zoom out">−</button><button id="map-btn" class="panel btn" aria-label="World map" title="World map">🗺️</button><button id="settings-btn" class="panel btn" aria-label="Settings" title="Settings: name, password, colour, sign out">⚙️</button></div>
+  <div id="worldmap" class="panel"><h3>🗺️ Heartvale <button id="worldmap-close" class="btn" aria-label="Close map">✕</button></h3><div id="worldmap-box"><canvas id="worldmap-canvas"></canvas></div><div id="worldmap-where"></div></div>
   <div id="tabs">
     <button class="panel btn tab" data-tab="quests" aria-label="Quests and bounties" title="Quests and bounties">📜</button>
     <button class="panel btn tab" data-tab="skills" aria-label="Disciplines and Mastery" title="Disciplines and Mastery">📊</button>

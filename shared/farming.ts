@@ -10,6 +10,7 @@
 // so they're still there to see when you're offline.
 import type { ItemId } from "./items";
 import { BRONZE_PER_GOLD } from "./money";
+import { WORLD_LOTS } from "./world";
 
 export type CropId = "potato" | "carrot" | "onion" | "wheat" | "ginseng" | "blue_lotus";
 export type SeedId = `seed_${CropId}`;
@@ -66,12 +67,9 @@ export const LOT_SIZE = 6;
 
 /**
  * The farm's lots (top-left tile of each 6 × 6 lot). A plot fills the top-left
- * of its lot and grows into the rest. Matches the "f" tiles in shared/map.ts.
+ * of its lot and grows into the rest. Built in shared/world.ts (the "f" tiles).
  */
-export const LOTS: { x: number; y: number }[] = [
-  { x: 68, y: 3 }, { x: 76, y: 3 }, { x: 84, y: 3 },
-  { x: 62, y: 12 }, { x: 70, y: 12 }, { x: 78, y: 12 }, { x: 86, y: 12 },
-];
+export const LOTS: readonly { x: number; y: number }[] = WORLD_LOTS;
 
 /** Which lot (and which tile in it, 0 to 35) a map tile is in, or null. */
 export function lotAt(x: number, y: number): { lot: number; index: number } | null {

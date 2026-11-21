@@ -20,11 +20,19 @@ const scrypt = promisify(scryptCb) as (pw: string, salt: Buffer, len: number) =>
  */
 export const SAVE_VERSION = 3; // 3 = the five Disciplines (Strength, Endurance, Wisdom, Dexterity, Charisma): everyone starts fresh
 
+/**
+ * Bump this when the world map is rearranged, so saved positions from the old
+ * map aren't used (those characters start in the town square instead).
+ * Missing = the first small island map. 2 = the big map of Elderra, with insides.
+ */
+export const MAP_REV = 2;
+
 /** Everything about a character that survives logging out. */
 export interface SaveData {
   saveVersion?: number; // see SAVE_VERSION
   quest?: unknown; // the main quest (shared/quests.ts QuestProgress: per chapter, which step and progress on it). Before rev 3: { step, count } in one list
   questRev?: number; // which version of the quest steps this save uses (shared/quests.ts QUEST_REV)
+  mapRev?: number; // which version of the world map x and y belong to (MAP_REV); older saves start in the town square
   x?: number;
   y?: number;
   inventory?: (string | null)[]; // one per bag entry (shared/bag.ts); saves from before grouped slots had one per slot
