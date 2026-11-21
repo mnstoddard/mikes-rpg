@@ -4,6 +4,7 @@ import { MAP, MAP_HEIGHT, MAP_WIDTH, TICK_MS, isDanger, isWalkable, randomSpawn 
 import { findPath, Point } from "../../shared/pathfinding";
 import {
   RESOURCES, RESOURCE_FOR_ITEM, ROCK_EMPTY_CHANCE, ResourceId, TREE_FALL_CHANCE,
+  PATCH_EMPTY_CHANCE, isDigPatch, rollForageFind,
   fishAt, forageXp, gatherChancePerTick, gatherSuccessChance, masteryIn, nodeAt, resourcesFor, treeKey,
 } from "../../shared/foraging";
 import {
@@ -46,6 +47,8 @@ import {
 } from "../../shared/guild";
 import { findSkill as skillInfo } from "../../shared/disciplines";
 import { formatMoney } from "../../shared/money";
+import { isNight } from "../../shared/daynight";
+import { huntingDrops, huntingXp } from "../../shared/combat";
 import {
   BASE_INGREDIENTS, DISHES, DISH_IDS, MAX_STAMINA, SHOP_STEW, STAMINA_COST, STAMINA_REGEN_MS, foodStamina, isFood, isMeal, legacyStew, parseMeal,
 } from "../../shared/cooking";
@@ -73,6 +76,10 @@ const CRAFT_TICKS = 3; // one smelt, smith or cook every 3 ticks (1.8s); craftin
 const REGEN_TICKS = Math.round(STAMINA_REGEN_MS / TICK_MS); // 50 ticks = 30s per stamina
 // For automated play-tests only (never set on Render): every gathering tick gets an item.
 const FAST_GATHER_FOR_TESTS = process.env.RPG_FAST_GATHER === "1";
+/** For testing day and night: shift the world's clock by this many milliseconds. */
+const CLOCK_SHIFT_MS = Number(process.env.RPG_CLOCK_SHIFT_MS) || 0;
+/** The world's clock (day and night are worked out from it, shared/daynight.ts). */
+const worldNow = () => Date.now() + CLOCK_SHIFT_MS;
 
 // Shared by every room on this server process.
 const online = new Set<string>(); // username keys currently logged in
@@ -159,6 +166,8 @@ export class Monster extends Schema {
   respawnAt = 0; // tick it comes back, while defeated
   sleepUntil = 0;
   frozenUntil = 0;
+  /** Hunting: damage each player has done to it since it last came back (session id -> damage). */
+  hurtBy = new Map<string, number>();
 }
 
 export class WorldState extends Schema {
@@ -216,6 +225,7 @@ function verbFor(id: ResourceId) {
   const r = RESOURCES[id];
   if (r.skill === "woodcutting") return `chop ${r.node}s`;
   if (r.skill === "mining") return `mine ${r.node}s`;
+  if (r.skill === "foraging") return "dig";
   return id === "minnow" ? "catch Minnows" : `fish at ${r.node}s`;
 }
 
@@ -271,6 +281,15 @@ export class WorldRoom extends Room<WorldState> {
       if (!isRock(msg.x, msg.y)) return;
       if (this.state.depleted.has(treeKey(msg.x, msg.y))) return this.say(client, "There's no ore left in that rock right now.");
       this.startGathering(client, p, nodeAt(msg.x, msg.y)!, { x: msg.x, y: msg.y });
+    });
+
+    this.onMessage("dig", (client, msg: { x: number; y: number }) => {
+      const p = this.state.players.get(client.sessionId);
+      if (!p || !Number.isInteger(msg?.x) || !Number.isInteger(msg?.y)) return;
+      if (!isDigPatch(msg.x, msg.y)) return;
+      if (this.state.depleted.has(treeKey(msg.x, msg.y))) return this.say(client, "That patch has been dug out. It'll glint again soon.");
+      if (isDanger(msg.x, msg.y) && !isDanger(p.x, p.y) && !gateOpen(p.quest)) return this.say(client, this.notReady());
+      this.startGathering(client, p, "dig", { x: msg.x, y: msg.y });
     });
 
     this.onMessage("fish", (client, msg: { x: number; y: number }) => {
@@ -673,7 +692,7 @@ export class WorldRoom extends Room<WorldState> {
       client.send("tree", p.tree);
       this.fillBoard(p);
       this.sendBounties(client, p);
-      client.send("clock", { now: Date.now() }); // day and night (shared/daynight.ts)
+      client.send("clock", { now: worldNow() }); // day and night (shared/daynight.ts)
       if (msg?.reconnected) return;
       const step = this.step(p);
       if (!step) this.say(client, tutorialDone(p.quest) ? "Welcome back!" : "Welcome back! Talk to anyone with a ❗ for your next lesson.");
@@ -981,11 +1000,12 @@ export class WorldRoom extends Room<WorldState> {
     const gather = skill as GatherSkill;
     const tool = toolForSkill(skill)!;
     const belt = p.belt[tool];
-    const ACTIONS = { woodcutting: "chopping", fishing: "fishing", mining: "mining" } as const;
+    const ACTIONS = { woodcutting: "chopping", fishing: "fishing", mining: "mining", foraging: "digging" } as const;
     const START = {
       woodcutting: `You swing at the ${res.node.toLowerCase()}.`,
       fishing: "You cast out your line...",
       mining: `You swing your pick at the ${res.node.toLowerCase()}.`,
+      foraging: "You start digging at the patch.",
     };
     const action = ACTIONS[gather];
     const blocked = this.toolBlock(p, skill);
@@ -1020,16 +1040,24 @@ export class WorldRoom extends Room<WorldState> {
       return;
     }
 
-    this.give(p, res.item);
+    // Dig patches: what you turn up is rolled from what your Foraging level can find (moonpetal only at night).
+    const find = skill === "foraging" ? rollForageFind(levelForXp(p.skillXp.foraging), isNight(worldNow())) : null;
+    const gotItem = find ? find.item : res.item;
+    const gotXp = find ? find.xp : res.xp;
+    const got = ITEMS[gotItem];
+    if (!this.give(p, gotItem)) {
+      if (client) this.say(client, this.fullReason(p, gotItem));
+      return this.stopActions(p);
+    }
     if (!treeRoll(p.tree, skill, "staminaSave")) this.useStamina(p, skill);
     this.questEvent(p, client, { kind: "gather", skill: gather, resource, withTool: !!belt });
     this.wearTool(p, client, tool, wearFor(res.level));
     const extras: string[] = [];
     // A second one: the skill tree's "Lucky find", or glow bait.
     const luck = this.tree(p, skill, "double") + (bait?.effect === "double" ? bait.amount : 0);
-    if (Math.random() < luck && this.give(p, res.item)) extras.push(`a second ${item.single}`);
+    if (Math.random() < luck && this.give(p, gotItem)) extras.push(`a second ${got.single}`);
     // Now and then you dig up a worm (for bait) or find a mushroom (for cooking).
-    if (skill !== "fishing" && Math.random() < WORM_CHANCE && this.give(p, "worm")) extras.push("a worm");
+    if (skill !== "fishing" && skill !== "foraging" && Math.random() < WORM_CHANCE && this.give(p, "worm")) extras.push("a worm");
     if (skill === "woodcutting" && Math.random() < MUSHROOM_CHANCE && this.give(p, "mushroom")) extras.push("a mushroom");
     if (bait) this.useBait(p, client, baitSlot);
     if (client) {
@@ -1039,20 +1067,22 @@ export class WorldRoom extends Room<WorldState> {
         woodcutting: `You get some ${item.name.toLowerCase()}.`,
         mining: `You mine some ${item.name.toLowerCase()}.`,
         fishing: `You catch ${aOr(item.single)}!`,
+        foraging: `You dig up ${aOr(got.single)}!` + (find?.night ? " 🌙 It only opens at night." : ""),
       };
       this.say(client, GOT[gather] + (extras.length ? ` You also get ${extras.join(" and ")}!` : ""));
     }
     // Chum bait: more Fishing XP (the skill only, like the tree's "Quick learner").
-    const skillXp = bait?.effect === "xp" ? Math.round(res.xp * (1 + bait.amount)) : res.xp;
-    this.addMasteryXp(p, client, resource, res.xp);
+    const skillXp = bait?.effect === "xp" ? Math.round(gotXp * (1 + bait.amount)) : gotXp;
+    this.addMasteryXp(p, client, resource, gotXp);
     this.addSkillXp(p, client, skill, skillXp); // sends both skill levels and Mastery
     this.saveSoon(p);
 
     if (skill === "fishing") return; // fishing spots never run out
     const isTreeNode = skill === "woodcutting";
-    if (Math.random() < (isTreeNode ? TREE_FALL_CHANCE : ROCK_EMPTY_CHANCE)) {
+    const emptyChance = isTreeNode ? TREE_FALL_CHANCE : skill === "foraging" ? PATCH_EMPTY_CHANCE : ROCK_EMPTY_CHANCE;
+    if (Math.random() < emptyChance) {
       this.state.depleted.set(treeKey(t.x, t.y), this.state.tick + res.respawnTicks);
-      if (client) this.say(client, isTreeNode ? "The tree falls down." : "The rock is out of ore.");
+      if (client) this.say(client, isTreeNode ? "The tree falls down." : skill === "foraging" ? "The patch is dug out. It'll glint again in a while." : "The rock is out of ore.");
       // Everyone working this tree or rock stops.
       this.state.players.forEach((other) => {
         if (other.activity === skill && other.target?.x === t.x && other.target?.y === t.y) this.stopActions(other);
@@ -1696,7 +1726,10 @@ export class WorldRoom extends Room<WorldState> {
     const roll = hit && max ? (1 + Math.floor(Math.random() * max)) * (1 + this.tree(p, style, "damage")) : 0;
     const damage = Math.floor(roll) + (Math.random() < roll % 1 ? 1 : 0);
     const spell = a.spell ? SPELLS[a.spell] : null;
-    if (damage) m.hp = Math.max(0, m.hp - damage);
+    if (damage) {
+      m.hurtBy.set(sessionId, (m.hurtBy.get(sessionId) ?? 0) + Math.min(damage, m.hp));
+      m.hp = Math.max(0, m.hp - damage);
+    }
     if (hit && spell?.freeze) m.frozenUntil = this.state.tick + spell.freeze;
     if (hit && spell?.sleep) { m.sleepUntil = this.state.tick + spell.sleep; m.attackTimer = 0; }
     this.broadcast("hit", { on: "monster", id: p.fighting, damage, miss: !hit, spell: a.spell ?? null, from: sessionId });
@@ -1729,7 +1762,9 @@ export class WorldRoom extends Room<WorldState> {
     m.target = null;
     m.status = "";
     m.respawnAt = this.state.tick + def.respawnTicks;
-    const dropBoost = masteryDrops(combatMasteryIn(p.combatMastery, m.kind));
+    // Hunting: a better hunter gets more drops.
+    const hunter = isUnlocked(p.unlocked, "hunting") ? huntingDrops(levelForXp(p.skillXp.hunting)) : 1;
+    const dropBoost = masteryDrops(combatMasteryIn(p.combatMastery, m.kind)) * hunter;
     const got: string[] = [];
     let lost = 0;
     for (const d of def.drops) {
@@ -1748,14 +1783,47 @@ export class WorldRoom extends Room<WorldState> {
     }
     this.questEvent(p, client, { kind: "kill", monster: m.kind, style });
     this.guildKill(p, client, m.kind, style);
+    this.shareHunting(m);
+  }
+
+  /** Hunting XP for everyone who hurt it, by their share of the damage (at least 1 each). */
+  private shareHunting(m: Monster) {
+    const total = [...m.hurtBy.values()].reduce((a, b) => a + b, 0);
+    if (total > 0) {
+      const xp = huntingXp(m.kind);
+      m.hurtBy.forEach((dmg, sid) => {
+        const hunter = this.state.players.get(sid);
+        if (!hunter) return;
+        this.addSkillXp(hunter, this.clients.getById(sid), "hunting", Math.max(1, Math.round(xp * dmg / total)));
+        this.saveSoon(hunter);
+      });
+    }
+    m.hurtBy.clear();
+  }
+
+  /** A night-only monster at sunrise: it flies off (no drops), and comes back after dark. */
+  private sendAway(m: Monster) {
+    m.alive = false;
+    m.target = null;
+    m.status = "";
+    m.hp = m.maxHp;
+    m.hurtBy.clear();
+    m.respawnAt = this.state.tick;
+    this.state.players.forEach((other) => { if (other.fighting && this.state.monsters.get(other.fighting) === m) this.stopActions(other); });
   }
 
   /** Monsters: come back after being defeated, wander near home, chase and attack. */
   private monsterTick(tick: number) {
+    const night = isNight(worldNow());
     this.state.monsters.forEach((m, id) => {
       const def = MONSTERS[m.kind];
+      if (def.night && !night) {
+        if (m.alive) this.sendAway(m);
+        return;
+      }
       if (!m.alive) {
         if (tick < m.respawnAt) return;
+        m.hurtBy.clear();
         m.alive = true;
         m.hp = m.maxHp;
         m.x = m.homeX;
@@ -1780,6 +1848,12 @@ export class WorldRoom extends Room<WorldState> {
         this.state.players.forEach((pl, sid) => {
           const d = tileDistance(pl, m);
           if (d < best && isDanger(pl.x, pl.y) && tileDistance(pl, home) <= LEASH_RADIUS) { best = d; m.target = sid; target = pl; }
+        });
+      }
+      // Packs: when one goes for you, the rest of the pack nearby joins in.
+      if (target && def.pack) {
+        this.state.monsters.forEach((o) => {
+          if (o !== m && o.alive && o.kind === m.kind && !o.target && tileDistance(o, m) <= 4) o.target = m.target;
         });
       }
       m.status = frozen ? "frozen" : target ? "fighting" : "";

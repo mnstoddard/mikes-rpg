@@ -57,7 +57,7 @@ export const SPELL_IDS = Object.keys(SPELLS) as SpellId[];
 
 // ---- Monsters ----
 
-export type MonsterId = "chicken" | "rat" | "cow" | "wolf" | "goblin" | "spider" | "bandit";
+export type MonsterId = "chicken" | "rat" | "cow" | "slime" | "boar" | "giant_bat" | "wolf" | "cave_spider" | "goblin" | "spider" | "bandit";
 export interface Drop { item: ItemId; chance: number }
 export interface MonsterDef {
   name: string;
@@ -77,6 +77,10 @@ export interface MonsterDef {
   drops: Drop[];
   /** Bronze coins it drops: [least, most]. */
   coins: [number, number];
+  /** Only out at night (it vanishes at sunrise and comes back at dusk). */
+  night?: boolean;
+  /** Runs in a pack: when one goes for you, the others nearby join in. */
+  pack?: boolean;
 }
 
 export const MONSTERS: Record<MonsterId, MonsterDef> = {
@@ -84,8 +88,14 @@ export const MONSTERS: Record<MonsterId, MonsterDef> = {
   chicken: { name: "Chicken",      icon: "🐔", level: 1,  hp: 4,  maxHit: 0, speed: 4, aggressive: false, xp: 1,  respawnTicks: 50,  drops: [{ item: "feather", chance: 0.6 }, { item: "raw_chicken", chance: 0.7 }], coins: [0, 0] },
   rat:     { name: "Rat",          icon: "🐀", level: 2,  hp: 6,  maxHit: 1, speed: 4, aggressive: false, xp: 2,  respawnTicks: 50,  drops: [{ item: "rat_tail", chance: 0.5 }], coins: [0, 2] },
   cow:     { name: "Cow",          icon: "🐄", level: 3,  hp: 12, maxHit: 0, speed: 4, aggressive: false, xp: 4,  respawnTicks: 70,  drops: [{ item: "cowhide", chance: 0.6 }, { item: "raw_beef", chance: 0.7 }], coins: [0, 0] },
+  slime:   { name: "Slime",        icon: "🟢", level: 2,  hp: 8,  maxHit: 1, speed: 5, aggressive: false, xp: 2,  respawnTicks: 50,  drops: [{ item: "slime_goo", chance: 0.7 }], coins: [0, 1] },
+  boar:    { name: "Boar",         icon: "🐗", level: 7,  hp: 22, maxHit: 3, speed: 4, aggressive: false, xp: 7,  respawnTicks: 90,  drops: [{ item: "raw_boar", chance: 0.8 }, { item: "boar_tusk", chance: 0.4 }], coins: [0, 0] },
+  // Out at night only: over the meadows (they only bite back there) and in the forest (they attack on sight).
+  giant_bat: { name: "Giant bat",  icon: "🦇", level: 6,  hp: 14, maxHit: 2, speed: 3, aggressive: true,  xp: 6,  respawnTicks: 80,  drops: [{ item: "bat_wing", chance: 0.6 }], coins: [0, 3], night: true },
   // The Dark Forest: they attack on sight.
-  wolf:    { name: "Wolf",         icon: "🐺", level: 8,  hp: 20, maxHit: 3, speed: 4, aggressive: true,  xp: 8,  respawnTicks: 100, drops: [{ item: "wolf_pelt", chance: 0.5 }], coins: [1, 5] },
+  wolf:    { name: "Wolf",         icon: "🐺", level: 8,  hp: 20, maxHit: 3, speed: 4, aggressive: true,  xp: 8,  respawnTicks: 100, drops: [{ item: "wolf_pelt", chance: 0.5 }, { item: "wolf_fang", chance: 0.4 }], coins: [1, 5], pack: true },
+  // The little cave east of the quarry (it counts as danger, like the forest).
+  cave_spider: { name: "Cave spider", icon: "🕷️", level: 14, hp: 34, maxHit: 5, speed: 3, aggressive: true, xp: 14, respawnTicks: 110, drops: [{ item: "spider_silk", chance: 0.5 }, { item: "venom_sac", chance: 0.3 }], coins: [2, 10] },
   goblin:  { name: "Goblin",       icon: "👺", level: 12, hp: 30, maxHit: 4, speed: 4, aggressive: true,  xp: 12, respawnTicks: 100, drops: [{ item: "goblin_charm", chance: 0.35 }, { item: POTION_ID, chance: 0.1 }], coins: [3, 12] },
   spider:  { name: "Giant spider", icon: "🕷️", level: 18, hp: 42, maxHit: 6, speed: 3, aggressive: true,  xp: 18, respawnTicks: 120, drops: [{ item: "spider_silk", chance: 0.5 }, { item: POTION_ID, chance: 0.1 }], coins: [5, 15] },
   bandit:  { name: "Bandit",       icon: "🦹", level: 25, hp: 60, maxHit: 8, speed: 4, aggressive: true,  xp: 26, respawnTicks: 150, drops: [{ item: "stolen_ring", chance: 0.25 }, { item: POTION_ID, chance: 0.25 }], coins: [15, 45] },
@@ -97,11 +107,17 @@ export const MONSTER_SPAWNS: [MonsterId, number, number][] = [
   // Chickens in the field north-west of town.
   ["chicken", 6, 3], ["chicken", 8, 4], ["chicken", 6, 5], ["chicken", 9, 3], ["chicken", 7, 7],
   // Rats around the quarry rocks, north of Trainer Row.
-  ["rat", 20, 2], ["rat", 25, 1], ["rat", 25, 3], ["rat", 27, 3],
-  // Cows in the meadow south of the road.
-  ["cow", 15, 18], ["cow", 18, 17], ["cow", 31, 17], ["cow", 14, 18],
-  // The Dark Forest, past the gate: wolves near the gate, goblins west, spiders east, bandits deep south.
-  ["wolf", 22, 23], ["wolf", 31, 23], ["wolf", 25, 25], ["wolf", 34, 25],
+  ["rat", 20, 2], ["rat", 25, 1], ["rat", 25, 3], ["rat", 20, 3],
+  // Slimes in the wet meadow by the lake.
+  ["slime", 2, 7], ["slime", 9, 8], ["slime", 2, 13], ["slime", 9, 14],
+  // Cows and boars in the meadow south-east of the square.
+  ["cow", 29, 18], ["cow", 31, 17], ["boar", 34, 17], ["boar", 33, 19],
+  // Giant bats come out at night.
+  ["giant_bat", 36, 9], ["giant_bat", 2, 10], ["giant_bat", 28, 17], ["giant_bat", 24, 23],
+  // Cave spiders in the little cave east of the quarry.
+  ["cave_spider", 29, 1], ["cave_spider", 31, 2],
+  // The Dark Forest, past the gate: wolf packs near the gate, goblins west, spiders east, bandits deep south.
+  ["wolf", 22, 23], ["wolf", 23, 24], ["wolf", 31, 23], ["wolf", 32, 24], ["wolf", 25, 25], ["wolf", 26, 26], ["wolf", 34, 25],
   ["goblin", 11, 26], ["goblin", 14, 28], ["goblin", 10, 29], ["goblin", 16, 25],
   ["spider", 40, 27], ["spider", 44, 26], ["spider", 46, 29],
   ["bandit", 28, 30], ["bandit", 33, 31],
@@ -127,6 +143,15 @@ export const masteryAccuracy = (level: number) => 0.25 * (1 - Math.exp(-0.0436 *
 export const masteryDamage = (level: number) => 1 + (level - 1) * 0.01;
 /** Monster Mastery: each drop is +2% per level more likely (Mastery 51 = twice as likely). */
 export const masteryDrops = (level: number) => 1 + (level - 1) * 0.02;
+
+// ---- Hunting ----
+// Every defeated monster gives Hunting XP to everyone who hurt it, shared out by
+// how much of its health each one took. Hunting makes drops more likely.
+
+/** Hunting XP for a whole kill (split by damage share). */
+export const huntingXp = (monster: MonsterId) => MONSTERS[monster].xp + MONSTERS[monster].level;
+/** Hunting: each drop is +1% per level more likely (Hunting 51 = +50%). */
+export const huntingDrops = (level: number) => 1 + (level - 1) * 0.01;
 
 export const ALL_COMBAT_MASTERY_IDS: CombatMasteryId[] = [...(Object.keys(WEAPONS) as WeaponType[]), "fists", ...SPELL_IDS, ...MONSTER_IDS];
 

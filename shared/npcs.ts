@@ -2,7 +2,7 @@
 // Click one to walk over and use it: trainers teach you their skill (and run a little shop),
 // Old Maren talks to you, the furnace, anvil, stove and workbench open their crafting windows,
 // the bounty board shows its jobs.
-export type NpcId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "bryn"
+export type NpcId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "wren" | "bryn"
   | "furnace" | "anvil" | "stove" | "workbench" | "board"
   | "archmage" | "guildboard" | "repairer" | "chest" | "chest_east" | "chest_forest";
 
@@ -86,6 +86,12 @@ export const NPCS: NpcDef[] = [
     id: "kael", name: "Huntmaster Kael", kind: "person", x: 22, y: 18, color: 0x6e2c00, badge: "🏹",
     greeting: "I buy weapons, armor and what monsters drop, and I sell starter weapons and potions.",
     sign: { x: 24, y: 19, text: "🏹 Huntmaster Kael" },
+  },
+  // ---- Wren's hut (by the lake, east of the Mages' Guild) ----
+  {
+    id: "wren", name: "Herbalist Wren", kind: "person", x: 14, y: 18, color: 0x3d8b37, badge: "🌱",
+    greeting: "I buy roots, herbs, mushrooms and shovels, and I sell stone shovels.",
+    sign: { x: 15, y: 17, text: "🌱 Herbalist Wren" },
   },
   // ---- The Mages' Guild (shared/guild.ts): the hall south-west of town, by the coast ----
   {

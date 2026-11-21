@@ -53,6 +53,8 @@ export const TREES: Record<SkillId, TreeNode[]> = {
   woodcutting: gather("woodcutting", node("woodcutting", "staminaSave", "Light work", "🪶", 0.08)),
   mining: gather("mining", node("mining", "staminaSave", "Light work", "🪶", 0.08)),
   fishing: gather("fishing", node("fishing", "xp", "Quick learner", "📖", 0.1)),
+  foraging: gather("foraging", node("foraging", "staminaSave", "Light work", "🪶", 0.08)),
+  hunting: [node("hunting", "xp", "Quick learner", "📖", 0.1)],
   smelting: [
     node("smelting", "success", "Steady hands", "🎯", 0.06),
     node("smelting", "extra", "Extra bar", "🧈", 0.04),

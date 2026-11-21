@@ -106,7 +106,7 @@ export interface QuestStep {
   unlocks?: SkillId[];
 }
 
-export type ChapterId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "ysolde" | "bryn";
+export type ChapterId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "wren" | "ysolde" | "bryn";
 
 export interface Chapter {
   id: ChapterId;
@@ -132,6 +132,7 @@ const STAFF: Gift = { item: "staff_bronze_pine" };
 const POTION: Gift = { item: "health_potion" };
 const AXE: Gift = { item: "axe_stone_pine" };
 const WORM: Gift = { item: "worm" };
+const SHOVEL: Gift = { item: "shovel_stone_pine" };
 
 const MAREN = "Old Maren";
 const TAM = "Shopkeeper Tam";
@@ -140,6 +141,7 @@ const GRETA = "Miner Greta";
 const BRANN = "Smith Brann";
 const ROOK = "Woodworker Rook";
 const KAEL = "Huntmaster Kael";
+const WREN = "Herbalist Wren";
 const YSOLDE = "Archmage Ysolde";
 const BRYN = "Captain Bryn";
 
@@ -609,14 +611,50 @@ export const CHAPTERS: Chapter[] = [
         fightWith: "weapon",
       },
       {
-        task: `Go back to ${KAEL} for your reward`, goal: { kind: "talk" },
+        task: `Go back to ${KAEL} for your reward`, goal: { kind: "talk" }, unlocks: ["hunting"],
         lines: [
-          "You came back! And in one piece, too.",
+          "You came back! And in one piece, too. You've the makings of a hunter, so I'll teach you Hunting. It's part of Endurance.",
+          "Every monster you defeat now trains Hunting, even if a friend helped: you each get a share, by how much of its health you took. The better a hunter you are, the more often monsters drop things.",
           "Here's a bronze platebody and bronze boots. With those you've a full bronze set: helmet, platebody, platelegs, boots and shield. And some coins.",
           "The forest gets harder the deeper you go, so train up, make better gear, and keep potions handy.",
         ],
         give: [{ item: "platebody_bronze" }, { item: "boots_bronze" }],
         coins: 300,
+      },
+    ],
+  },
+
+  // ---------------- Herbalist Wren: What the ground gives ----------------
+  {
+    id: "wren", title: "What the ground gives", giver: "wren", name: WREN, where: "in the little hut by the lake, east of the Mages' Guild",
+    steps: [
+      {
+        task: `Talk to ${WREN} in the hut by the lake`, goal: { kind: "talk" }, unlocks: ["foraging"],
+        lines: [
+          "Oh! Mind the drying herbs. I'm Wren. Everyone else round here chops and mines and fishes, but the best things grow under your feet.",
+          "See the little patches of turned earth that glint in the grass? Those are dig patches. Dig one with a shovel and you'll turn up roots, worms and mushrooms, and herbs once you know what to look for. That's Foraging, part of Endurance.",
+          "Here's a stone shovel. Put it on your belt like any other tool.",
+        ],
+        give: [SHOVEL],
+      },
+      {
+        task: "Put the shovel on your belt (click it in your bag)", goal: { kind: "equip", tools: ["shovel_"], names: "shovel" },
+        hint: "Click the shovel in your bag, then press \"Put on belt\".",
+        ensure: [SHOVEL], protect: ["shovel_"],
+      },
+      {
+        task: "Dig up 3 things from glinting dig patches", goal: { kind: "gather", skill: "foraging", count: 3, withTool: true },
+        hint: "There's a dig patch just outside my door, and more in the meadows round the lake and the square. Click one that glints. Once it's dug out, it glints again after a while.",
+        ensure: [SHOVEL], protect: ["shovel_"], needsTool: "shovel",
+      },
+      {
+        task: `Show ${WREN} what you found`, goal: { kind: "talk" },
+        lines: [
+          "Not bad for a first dig! Worms make good bait, and roots and mushrooms go in the pot.",
+          "The better you get, the better the finds: sage, ginseng, wild honeycomb, blue lotus, even truffles. And moonpetal only opens at night, so dig after dark.",
+          "I'll buy anything you dig up, and I sell shovels. Smith Brann can make you a better one, just like an axe.",
+        ],
+        coins: 100,
       },
     ],
   },

@@ -8,7 +8,8 @@ import { NO_TOOL_SLOWDOWN } from "./tools";
 export type ResourceId =
   | "pine" | "oak" | "birch" | "maple" | "yew" | "ironwood" | "elderwood"
   | "stone" | "copper" | "tin" | "iron" | "coal" | "silver" | "gold" | "mithril"
-  | "minnow" | "trout" | "perch" | "salmon" | "pike" | "tuna" | "swordfish" | "eel";
+  | "minnow" | "trout" | "perch" | "salmon" | "pike" | "tuna" | "swordfish" | "eel"
+  | "dig";
 
 export interface ResourceDef {
   skill: SkillId;
@@ -58,6 +59,9 @@ export const RESOURCES: Record<ResourceId, ResourceDef> = {
   tuna:      { skill: "fishing", node: "Tuna spot",      item: "tuna",      level: 45, seconds: 12,   xp: 24, respawnTicks: 0, color: 0x4a7bd9 },
   swordfish: { skill: "fishing", node: "Swordfish spot", item: "swordfish", level: 60, seconds: 15,   xp: 36, respawnTicks: 0, color: 0xc0c0ff },
   eel:       { skill: "fishing", node: "Eel spot",       item: "eel",       level: 75, seconds: 18,   xp: 50, respawnTicks: 0, color: 0xb36bff },
+
+  // ---- Foraging: one kind of node, the glinting dig patch. What you find is rolled (FORAGE_FINDS). ----
+  dig: { skill: "foraging", node: "Dig patch", item: "worm", level: 1, seconds: 4, xp: 2, respawnTicks: 70, color: 0xffe27a },
 };
 export const RESOURCE_IDS = Object.keys(RESOURCES) as ResourceId[];
 
@@ -97,8 +101,8 @@ export function forageXp(id: ResourceId): number {
   return r.skill === "fishing" ? Math.max(1, Math.floor(r.xp * FISHING_FORAGE_SHARE)) : r.xp;
 }
 
-/** Which type an item comes from (oak_logs -> oak). */
-export const RESOURCE_FOR_ITEM = Object.fromEntries(RESOURCE_IDS.map((id) => [RESOURCES[id].item, id])) as Partial<Record<ItemId, ResourceId>>;
+/** Which type an item comes from (oak_logs -> oak). Dig patch finds aren't listed: what you dig up is rolled. */
+export const RESOURCE_FOR_ITEM = Object.fromEntries(RESOURCE_IDS.filter((id) => RESOURCES[id].skill !== "foraging").map((id) => [RESOURCES[id].item, id])) as Partial<Record<ItemId, ResourceId>>;
 
 /** Your Mastery level in one type (Pine, Copper, Trout...). */
 export const masteryIn = (mastery: ItemMasteryXp, id: ResourceId) => masteryLevelIn(mastery, id);
@@ -136,3 +140,53 @@ export function fishAt(x: number, y: number): ResourceId | null {
   if (!isFishingSpot(x, y)) return null;
   return MAP_NODES[y][x] ?? "minnow";
 }
+
+// ---- Foraging (dig patches) ----
+
+/** Something you can dig up. Better finds need a higher Foraging level; moonpetal only comes up at night. */
+export interface ForageFind {
+  item: ItemId;
+  /** Foraging level needed to find it. */
+  level: number;
+  /** How often it comes up, compared with the others you can find. */
+  weight: number;
+  /** Foraging XP (and Dig patch Mastery XP) for finding it. */
+  xp: number;
+  /** Only at night (shared/daynight.ts). */
+  night?: boolean;
+}
+
+export const FORAGE_FINDS: ForageFind[] = [
+  { item: "worm",       level: 1,  weight: 30, xp: 2 },
+  { item: "wild_root",  level: 1,  weight: 25, xp: 2 },
+  { item: "red_cap",    level: 2,  weight: 12, xp: 3 },
+  { item: "mushroom",   level: 3,  weight: 15, xp: 3 },
+  { item: "sage",       level: 5,  weight: 10, xp: 5 },
+  { item: "ginseng",    level: 6,  weight: 8,  xp: 6 },
+  { item: "honey",      level: 8,  weight: 6,  xp: 7 },
+  { item: "old_bone",   level: 8,  weight: 6,  xp: 7 },
+  { item: "blue_lotus", level: 10, weight: 6,  xp: 8 },
+  { item: "moonpetal",  level: 10, weight: 14, xp: 9, night: true },
+  { item: "truffle",    level: 15, weight: 3,  xp: 14 },
+];
+
+/** What you could dig up right now at this Foraging level. */
+export const forageFindsFor = (level: number, night: boolean) => FORAGE_FINDS.filter((f) => f.level <= level && (!f.night || night));
+
+/** Roll one find. */
+export function rollForageFind(level: number, night: boolean): ForageFind {
+  const list = forageFindsFor(level, night);
+  let r = Math.random() * list.reduce((sum, f) => sum + f.weight, 0);
+  for (const f of list) if ((r -= f.weight) < 0) return f;
+  return list[0];
+}
+
+export const FORAGE_ITEMS = new Set<string>(FORAGE_FINDS.map((f) => f.item));
+/** The find for an item, if you can dig it up. */
+export const forageFindOf = (item: string) => FORAGE_FINDS.find((f) => f.item === item) ?? null;
+
+/** After each find, chance the patch is dug out (it glints again a while later). */
+export const PATCH_EMPTY_CHANCE = 1 / 3;
+
+/** Is there a dig patch on this tile? */
+export const isDigPatch = (x: number, y: number) => inMap(x, y) && MAP[y][x] === "dig";

@@ -3,7 +3,7 @@ import { formatMoney, toPurse } from "../../shared/money";
 import { CraftSkill, DISCIPLINES, DISCIPLINE_IDS, DisciplineId, DisciplineView, MAX_LEVEL, SkillId, SkillXp, emptySkills, findSkill, isCraftSkill, isUnlocked, levelForXp, newDisciplineView, xpForLevel } from "../../shared/disciplines";
 import { buyWithCharisma, maxHealth, maxMana, maxStamina, sellWithCharisma, walkBonus } from "../../shared/stats";
 import { ItemMasteryXp, MasteryId, craftSuccess, masteryValue, masteryIn, masteryLevelForXp, masterySuccess, masteryXpForLevel, percent, speedBonusPercent, valueBonusPercent } from "../../shared/mastery";
-import { RESOURCES, forageXp, resourcesFor } from "../../shared/foraging";
+import { FORAGE_FINDS, RESOURCES, forageFindOf, forageXp, resourcesFor } from "../../shared/foraging";
 import { beltBonus, buyPriceFor, masteryIdFor, masteryName, recipeFor, sellPriceFor, successFor } from "../../shared/crafting";
 import { RESOURCE_FOR_ITEM } from "../../shared/foraging";
 import { CRAFT_MARKUP } from "../../shared/items";
@@ -21,7 +21,7 @@ import {
   armorId, emptyGear, isArmor, isGear, isWeapon, parseArmor, parseWeapon, weaponId,
 } from "../../shared/gear";
 import {
-  ARMOR_LEVEL, CombatMasteryId, CombatMasteryXp, MONSTERS, MONSTER_IDS, POTION_HEAL, POTION_ID, SPELLS, SPELL_IDS, SpellId, armorPoints, attackFor,
+  huntingDrops, ARMOR_LEVEL, CombatMasteryId, CombatMasteryXp, MONSTERS, MONSTER_IDS, POTION_HEAL, POTION_ID, SPELLS, SPELL_IDS, SpellId, armorPoints, attackFor,
   combatMasteryIn, gearEffect, gearNeeds, masteryAccuracy, masteryDamage, masteryDrops, maxHitWith,
 } from "../../shared/combat";
 import { gearDurability } from "../../shared/crafting";
@@ -260,6 +260,8 @@ function skillDetails(skill: SkillId): HTMLElement {
   box.append(top, bar, treeButton(skill));
   if (skill === "cooking") return cookingDetails(level, box);
   if (skill === "handicraft") return handicraftDetails(level, box);
+  if (skill === "foraging") return forageDetails(level, box);
+  if (skill === "hunting") return huntingDetails(level, box);
   if (skill === "melee" || skill === "ranged") return weaponDetails(skill, level, box);
   if (skill === "magic") return magicDetails(level, box);
   if (skill === "defense") return defenseDetails(level, box);
@@ -373,6 +375,33 @@ function handicraftDetails(level: number, box: HTMLElement) {
       (m) => `${b.description}, for ${b.uses} catches. ${percent(masterySuccess(m, b.start))} base success, ${valueBonusPercent(m)}% more money.`));
   }
   box.appendChild(list);
+  return box;
+}
+
+/** Foraging: what dig patches can turn up at your level (moonpetal only at night), and the Dig patch Mastery. */
+function forageDetails(level: number, box: HTMLElement) {
+  const upcoming = FORAGE_FINDS.find((f) => f.level > level);
+  if (upcoming) box.append(el("m-info", `Next find: ${ITEMS[upcoming.item].name} at level ${upcoming.level}`));
+  if (!expanded.has("foraging")) return box;
+  const m = masteryLevelForXp(lastMastery.dig ?? 0);
+  box.append(el("m-info", `Dig patch Mastery ${m}: ${speedBonusPercent(m)}% faster digging`));
+  const list = el("m-types");
+  for (const f of FORAGE_FINDS) {
+    const item = ITEMS[f.item];
+    const row = el("m-type" + (level >= f.level ? "" : " locked"));
+    row.append(icon("m-type-icon", item.icon, item.tint), el("m-type-name", item.name + (f.night ? " 🌙" : "")),
+      el("m-type-state", level >= f.level ? `${f.xp} XP` : `🔒 Lv ${f.level}`));
+    row.title = `${item.name}: Foraging level ${f.level}, ${f.xp} XP${f.night ? ". Only at night" : ""}. Sells for ${formatMoney(sellPrice(f.item))}.`;
+    list.appendChild(row);
+  }
+  box.appendChild(list);
+  return box;
+}
+
+/** Hunting: how much it raises drop chances. */
+function huntingDetails(level: number, box: HTMLElement) {
+  box.append(el("m-info", `Monsters drop things ${Math.round((huntingDrops(level) - 1) * 100)}% more often`));
+  box.append(el("m-info", "Every monster you help defeat gives Hunting XP, shared by how much damage each hunter did."));
   return box;
 }
 
@@ -1865,6 +1894,9 @@ function renderInfo() {
   if (res) {
     const r = RESOURCES[res];
     infoBody.append(infoLine("Gathered", `${findSkill(r.skill).def.name} level ${r.level}`, `${r.xp} XP each`));
+  } else if (forageFindOf(id)) {
+    const f = forageFindOf(id)!;
+    infoBody.append(infoLine("Dug up", `Foraging level ${f.level}`, `from glinting dig patches, ${f.xp} XP${f.night ? ", only at night" : ""}`));
   } else if (recipe) {
     infoBody.append(infoLine("Made with", `${findSkill(recipe.skill).def.name} level ${recipe.level}`,
       `${percent(chanceFor(recipe))} success for you · ${recipe.xp} XP`));
@@ -1985,7 +2017,7 @@ function renderVitalBars() {
     vitalRow("❤", vitals.hp, vitals.maxHp, hpLow ? "#ff3b30" : "#d6443a",
       `Health ${vitals.hp} of ${vitals.maxHp}. Monsters take it away. Drink a health potion to get it back (it also comes back 1 a minute). At 0 you wake up next to Old Maren.`),
     vitalRow("⚡", staminaNow, staminaMax, staminaNow < 10 ? "#e74c3c" : staminaNow < 30 ? "#f1c40f" : "#f5c542",
-      `Stamina ${staminaNow} of ${staminaMax}. Chopping costs ${c.woodcutting}, mining ${c.mining}, smelting ${c.smelting}, smithing ${c.smithing}, cooking ${c.cooking}, fishing ${c.fishing}, each weapon attack ${c.melee}. ` +
+      `Stamina ${staminaNow} of ${staminaMax}. Chopping costs ${c.woodcutting}, mining ${c.mining}, digging ${c.foraging}, smelting ${c.smelting}, smithing ${c.smithing}, cooking ${c.cooking}, fishing ${c.fishing}, each weapon attack ${c.melee}. ` +
       "It comes back 1 every 30 seconds. Eat fish or a meal (click it in your bag) for more."),
     vitalRow("🔮", vitals.mana, vitals.maxMana, "#4a7bd9", `Mana ${vitals.mana} of ${vitals.maxMana}. Spells use it. It comes back 1 every 6 seconds.`),
   );

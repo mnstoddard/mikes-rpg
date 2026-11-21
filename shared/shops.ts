@@ -3,13 +3,13 @@
 // everywhere (shared/crafting.ts sellPriceFor / buyPriceFor), with Charisma
 // on top (shared/stats.ts).
 import { ITEMS, ItemId } from "./items";
-import { RESOURCES, RESOURCE_FOR_ITEM } from "./foraging";
+import { FORAGE_ITEMS, RESOURCES, RESOURCE_FOR_ITEM } from "./foraging";
 import { BAR_IDS, isTool, parseTool, toolId } from "./tools";
 import { isArmor, isGear, isWeapon, weaponId } from "./gear";
 import { SHOP_STEW } from "./cooking";
 import { isBait } from "./handicraft";
 
-export type ShopId = "tam" | "holt" | "greta" | "brann" | "rook" | "kael";
+export type ShopId = "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "wren";
 
 export interface ShopDef {
   /** What the window's title says. */
@@ -27,7 +27,10 @@ const gathered = (item: ItemId, skill: string) => {
   return !!r && RESOURCES[r].skill === skill;
 };
 const resourcesOf = (skill: string) => (Object.keys(ITEMS) as ItemId[]).filter((i) => gathered(i, skill));
-const LOOT: ItemId[] = ["feather", "rat_tail", "cowhide", "wolf_pelt", "goblin_charm", "spider_silk", "stolen_ring"];
+const LOOT: ItemId[] = [
+  "feather", "rat_tail", "cowhide", "wolf_pelt", "goblin_charm", "spider_silk", "stolen_ring",
+  "slime_goo", "boar_tusk", "wolf_fang", "bat_wing", "venom_sac", "raw_boar",
+];
 
 export const SHOPS: Record<ShopId, ShopDef> = {
   tam: {
@@ -65,6 +68,12 @@ export const SHOPS: Record<ShopId, ShopDef> = {
     stock: [weaponId("dagger", "stone", "pine"), weaponId("sling", "stone", "pine"), weaponId("staff", "stone", "pine"), "health_potion"],
     buys: (i) => isWeapon(i) || isArmor(i) || LOOT.includes(i) || i === "health_potion",
     buysText: "weapons, armor and monster drops",
+  },
+  wren: {
+    title: "🌱 Herbalist Wren",
+    stock: [toolId("shovel", "stone", "pine"), "wild_root"],
+    buys: (i) => FORAGE_ITEMS.has(i) || (isTool(i) && parseTool(i).type === "shovel"),
+    buysText: "roots, herbs, mushrooms, worms and shovels",
   },
 };
 

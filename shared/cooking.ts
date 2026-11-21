@@ -37,6 +37,9 @@ export const STAMINA_COST: Record<SkillId, number> = {
   woodcutting: 10,
   mining: 10,
   fishing: 1,
+  foraging: 4,
+  // Hunting is trained by fighting, which already costs stamina per attack.
+  hunting: 0,
   smelting: 5,
   smithing: 5,
   cooking: 2,
@@ -66,9 +69,9 @@ export const RAW_FISH_STAMINA: Record<FishId, number> = {
 
 /** What sort of food it is. Each dish multiplies each sort differently. */
 export type FoodKind = "fish" | "poultry" | "meat" | "veg";
-export const FOOD_KINDS: Record<FoodKind, string> = { fish: "Fish", poultry: "Chicken", meat: "Beef", veg: "Vegetables" };
+export const FOOD_KINDS: Record<FoodKind, string> = { fish: "Fish", poultry: "Chicken", meat: "Meat", veg: "Vegetables" };
 
-export type OtherIngredient = "raw_chicken" | "raw_beef" | "potato" | "carrot" | "mushroom";
+export type OtherIngredient = "raw_chicken" | "raw_beef" | "raw_boar" | "potato" | "carrot" | "mushroom" | "wild_root" | "truffle";
 export type IngredientId = FishId | OtherIngredient;
 
 export interface IngredientDef {
@@ -90,16 +93,19 @@ export const INGREDIENTS: Record<IngredientId, IngredientDef> = {
   }])) as Record<FishId, IngredientDef>,
   raw_chicken: { kind: "poultry", stamina: 4, level: 1, xp: 3, from: "Chickens drop it" },
   raw_beef:    { kind: "meat",    stamina: 6, level: 5, xp: 5, from: "Cows drop it" },
+  raw_boar:    { kind: "meat",    stamina: 9, level: 8, xp: 7, from: "Boars drop it, in the meadow south-east of the square" },
   potato:      { kind: "veg",     stamina: 2, level: 1, xp: 1, from: "The General Store sells them" },
   carrot:      { kind: "veg",     stamina: 2, level: 1, xp: 1, from: "The General Store sells them" },
-  mushroom:    { kind: "veg",     stamina: 3, level: 3, xp: 2, from: "Found now and then while chopping trees" },
+  mushroom:    { kind: "veg",     stamina: 3, level: 3, xp: 2, from: "Dug up with Foraging, or found now and then while chopping trees" },
+  wild_root:   { kind: "veg",     stamina: 3, level: 1, xp: 1, from: "Dug up with Foraging" },
+  truffle:     { kind: "veg",     stamina: 10, level: 15, xp: 9, from: "Dug up with Foraging (level 15), rarely" },
 };
 export const INGREDIENT_IDS = Object.keys(INGREDIENTS) as IngredientId[];
 export const isIngredient = (item: string | null | undefined): item is IngredientId => !!item && Object.hasOwn(INGREDIENTS, item);
 
 // ---- Dishes ----
 
-export type DishId = "stew" | "stirfry" | "curry" | "roast";
+export type DishId = "stew" | "stirfry" | "curry" | "roast" | "steak";
 
 export interface DishDef {
   name: string;
@@ -122,6 +128,7 @@ export const DISHES: Record<DishId, DishDef> = {
   stew:    { name: "Stew",     icon: "🍲", level: 1, kinds: { fish: 3, poultry: 3, meat: 3, veg: 3 },           fire: 1.5,  start: 0.5,  xp: 2, note: "Takes anything, and gets the most from a good fire" },
   stirfry: { name: "Stir fry", icon: "🥘", level: 3, kinds: { poultry: 4, meat: 4, veg: 3.5 },                  fire: 1,    start: 0.45, xp: 3, note: "Best with chicken and beef. No fish" },
   curry:   { name: "Curry",    icon: "🍛", level: 5, kinds: { fish: 4.5, poultry: 3.5, veg: 3, meat: 3 },        fire: 1,    start: 0.4,  xp: 4, note: "Best with fish" },
+  steak:   { name: "Steak",    icon: "🥩", level: 4, kinds: { meat: 5.5, veg: 2 },                          fire: 1,    start: 0.45, xp: 4, note: "Just meat (beef or boar), with a little veg on the side" },
   roast:   { name: "Roast",    icon: "🍖", level: 7, kinds: { meat: 5, poultry: 4.5, veg: 2.5 },                fire: 1.25, start: 0.35, xp: 5, note: "Best with beef, then chicken. No fish" },
 };
 export const DISH_IDS = Object.keys(DISHES) as DishId[];
