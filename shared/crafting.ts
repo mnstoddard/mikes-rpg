@@ -10,7 +10,8 @@ import { CRAFT_MARKUP, ITEMS, ItemId } from "./items";
 import { RESOURCES, RESOURCE_FOR_ITEM, ResourceId } from "./foraging";
 import { ItemMasteryXp, MAX_SUCCESS, MasteryId, craftSuccess, masteryIn, masteryValue } from "./mastery";
 import type { CraftSkill } from "./disciplines";
-import { POTIONS, POTION_TYPES, PotionId, PotionType, parsePotion, potionInputs } from "./alchemy";
+import { POTIONS, POTION_TYPES, PotionId, PotionType, VIAL, parsePotion, potionInputs } from "./alchemy";
+import { JEWEL_BARS, JEWEL_BAR_IDS, JEWEL_METALS, JEWEL_TYPES, JewelBarId, JewelType, cutId, parseGem } from "./jewelry";
 import {
   ALL_TOOL_IDS, BAR_IDS, BarId, Belt, MATERIALS, MATERIAL_IDS, METALS, METAL_IDS, TOOL_TYPES, TOOL_TYPE_IDS, ToolType, WOODS, WOOD_IDS,
   STONE, headCount, isTool, maxDurability, metalOfBar, parseTool, toolBonus, toolForSkill, toolId, wearFor,
@@ -91,6 +92,8 @@ export interface Recipe {
   start: number;
   /** Without the right crafting tool, is your chance halved? (Not for stone tools.) */
   needsTool: boolean;
+  /** Given back if the try fails (a potion's vial, a ring's gem). */
+  keepOnFail?: ItemId[];
 }
 
 const RECIPES = new Map<ItemId, Recipe>();
@@ -144,6 +147,12 @@ export function gearDurability(item: ItemId): number {
   return 0;
 }
 
+// Silver, gold, platinum and iridium bars (for jewelry), smelted at the furnace.
+for (const bar of JEWEL_BAR_IDS) {
+  const b = JEWEL_BARS[bar];
+  RECIPES.set(bar, { output: bar, skill: "smelting", inputs: b.ores, level: b.level, xp: b.xp, mastery: bar, start: 0.25, needsTool: true });
+}
+
 // Bait (Handicraft): no tool needed.
 for (const bait of BAIT_IDS) {
   const b = BAITS[bait];
@@ -169,10 +178,23 @@ function potionRecipe(item: ItemId): Recipe | undefined {
   const p = parsePotion(item);
   if (!p) return undefined;
   const d = POTIONS[p.type];
-  return { output: item, skill: "alchemy", inputs: potionInputs(item as PotionId), level: d.level, xp: d.xp + (p.bonus ? 2 : 0), mastery: `potion_${p.type}`, start: d.start, needsTool: false };
+  return { output: item, skill: "alchemy", inputs: potionInputs(item as PotionId), level: d.level, xp: d.xp + (p.bonus ? 2 : 0), mastery: `potion_${p.type}`, start: d.start, needsTool: false, keepOnFail: [VIAL] };
 }
 
-export const recipeFor = (item: ItemId): Recipe | undefined => RECIPES.get(item) ?? mealRecipe(item) ?? potionRecipe(item);
+/** Rings and amulets (shared/jewelry.ts): bars, and a cut gem if you set one in. A failed try keeps the gem. */
+function jewelRecipe(item: ItemId): Recipe | undefined {
+  const g = parseGem(item);
+  if (!g || g.kind !== "jewel") return undefined;
+  const m = JEWEL_METALS[g.metal];
+  const bars = JEWEL_TYPES[g.type].bars;
+  const gem = g.gem ? cutId(g.gem, g.size) : null;
+  return {
+    output: item, skill: "smithing", inputs: [...Array<ItemId>(bars).fill(m.bar), ...(gem ? [gem] : [])],
+    level: m.level, xp: m.xp * bars + (gem ? Math.ceil(g.size / 2) : 0), mastery: g.type, start: 0.45, needsTool: true, keepOnFail: gem ? [gem] : undefined,
+  };
+}
+
+export const recipeFor = (item: ItemId): Recipe | undefined => RECIPES.get(item) ?? mealRecipe(item) ?? potionRecipe(item) ?? jewelRecipe(item);
 export const SMELTING_RECIPES = BAR_IDS.map((b) => RECIPES.get(b)!);
 
 /** How much a crafting tool wears down on one try of this recipe. */
@@ -198,14 +220,16 @@ export const failXp = (xp: number) => Math.max(1, Math.floor(xp / 2));
 /** Display name for a Mastery: "Oak logs", "Bronze bar", "Axe", "Stew", "Worm bait". */
 export function masteryName(id: MasteryId): string {
   if (id.startsWith("potion_")) return POTIONS[id.slice(7) as PotionType].name;
+  if (id in JEWEL_TYPES) return JEWEL_TYPES[id as JewelType].name;
+  if (id in JEWEL_BARS) return JEWEL_BARS[id as JewelBarId].name;
   if (id in DISHES) return DISHES[id as DishId].name;
   if (id in BAITS) return BAITS[id as BaitId].name;
   if (id in WEAPONS) return WEAPONS[id as keyof typeof WEAPONS].name;
   if (id in ARMOR) return ARMOR[id as keyof typeof ARMOR].name;
-  if (id in RESOURCES) return ITEMS[RESOURCES[id as ResourceId].item].name;
+  if (id in RESOURCES) { const r = RESOURCES[id as ResourceId]; return r.gem ? r.node : ITEMS[r.item].name; }
   if (id in TOOL_TYPES) return TOOL_TYPES[id as ToolType].name;
   return ITEMS[id as BarId].name;
 }
 
 /** Every Mastery id there is (for loading saves). */
-export const ALL_MASTERY_IDS: MasteryId[] = [...(Object.keys(RESOURCES) as ResourceId[]), ...BAR_IDS, ...TOOL_TYPE_IDS, ...DISH_IDS, ...BAIT_IDS, ...WEAPON_TYPES, ...ARMOR_TYPES, ...POTION_TYPES.map((t) => `potion_${t}` as const)];
+export const ALL_MASTERY_IDS: MasteryId[] = [...(Object.keys(RESOURCES) as ResourceId[]), ...BAR_IDS, ...TOOL_TYPE_IDS, ...DISH_IDS, ...BAIT_IDS, ...WEAPON_TYPES, ...ARMOR_TYPES, ...POTION_TYPES.map((t) => `potion_${t}` as const), ...JEWEL_BAR_IDS, "ring", "amulet"];

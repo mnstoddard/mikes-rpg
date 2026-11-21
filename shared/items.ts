@@ -5,6 +5,7 @@ import {
 import { DISHES, INGREDIENTS, IngredientId, MealId, OtherIngredient, mealTitle, parseMeal } from "./cooking";
 import { BAITS, BAIT_IDS, BaitId, HandicraftMaterial } from "./handicraft";
 import { BONUSES, POTIONS, PotionId, parsePotion, potionInputs } from "./alchemy";
+import { GemItemId, JEWEL_BARS, JEWEL_BAR_IDS, JEWEL_METALS, JEWEL_TYPES, JewelBarId, cutId, gemItemDef, parseGem } from "./jewelry";
 import {
   ARMOR, ARMOR_TYPES, GearItemId, METAL_DAMAGE, WEAPONS, WEAPON_TYPES, armorId, parseArmor, parseWeapon, weaponId,
 } from "./gear";
@@ -14,7 +15,7 @@ export type BaseItemId =
   // Woodcutting
   | "pine_logs" | "oak_logs" | "birch_logs" | "maple_logs" | "yew_logs" | "ironwood_logs" | "elderwood_logs"
   // Mining
-  | "stone" | "copper_ore" | "tin_ore" | "iron_ore" | "coal" | "silver_ore" | "gold_ore" | "mithril_ore"
+  | "stone" | "copper_ore" | "tin_ore" | "iron_ore" | "coal" | "silver_ore" | "gold_ore" | "mithril_ore" | "platinum_ore" | "iridium_ore"
   // Fishing
   | "minnow" | "trout" | "perch" | "salmon" | "pike" | "tuna" | "swordfish" | "eel";
 
@@ -44,7 +45,7 @@ export type WildId = "sage" | "moonpetal" | "old_bone" | "red_cap" | "ginseng" |
  * from ingredients and a log), weapons and armor, loot, cooking ingredients
  * (raw chicken, vegetables...), Handicraft materials (worms, food scraps) and bait.
  */
-export type ItemId = BaseItemId | BarId | ToolItemId | MealId | GearItemId | LootId | WildId | OtherIngredient | HandicraftMaterial | BaitId | PotionId;
+export type ItemId = BaseItemId | BarId | ToolItemId | MealId | GearItemId | LootId | WildId | OtherIngredient | HandicraftMaterial | BaitId | PotionId | GemItemId | JewelBarId;
 
 /** A crafted item is worth what goes into it, plus 25%. */
 export const CRAFT_MARKUP = 1.25;
@@ -65,6 +66,8 @@ const BASE_ITEMS: Record<BaseItemId, ItemDef> = {
   coal: { name: "Coal", single: "coal", icon: "🪨", tint: "grayscale(1) brightness(.35)", sellPrice: 18 },
   silver_ore: { name: "Silver ore", single: "silver ore", icon: "🪨", tint: "grayscale(1) brightness(1.9) contrast(1.2)", sellPrice: 30 },
   gold_ore: { name: "Gold ore", single: "gold ore", icon: "🪨", tint: "sepia(1) saturate(6) brightness(1.3)", sellPrice: 60 },
+  platinum_ore: { name: "Platinum ore", single: "platinum ore", icon: "🪨", tint: "grayscale(1) brightness(1.7) contrast(.8)", sellPrice: 160 },
+  iridium_ore: { name: "Iridium ore", single: "iridium ore", icon: "🪨", tint: "hue-rotate(230deg) saturate(1.2) brightness(1.1)", sellPrice: 220 },
   mithril_ore: { name: "Mithril ore", single: "mithril ore", icon: "🪨", tint: "sepia(1) saturate(5) hue-rotate(170deg)", sellPrice: 120 },
 
   minnow: { name: "Minnow", single: "minnow", icon: "🐟", tint: "grayscale(.6) brightness(1.2)", sellPrice: 3 },
@@ -131,12 +134,12 @@ const TABLE = { ...BASE_ITEMS, ...LOOT, ...WILD, ...FOOD_AND_MATERIALS } as Reco
 export const ITEMS: Record<ItemId, ItemDef> = new Proxy(TABLE, {
   get(table, key) {
     if (typeof key !== "string" || key in table) return Reflect.get(table, key);
-    const def = mealDef(key) ?? potionDef(key);
+    const def = mealDef(key) ?? potionDef(key) ?? gemDef(key);
     if (def) table[key as ItemId] = def;
     return def;
   },
   has(table, key) {
-    return key in table || (typeof key === "string" && (!!parseMeal(key) || !!parsePotion(key)));
+    return key in table || (typeof key === "string" && (!!parseMeal(key) || !!parsePotion(key) || !!parseGem(key)));
   },
 });
 
@@ -205,11 +208,27 @@ for (const type of ARMOR_TYPES) {
     ITEMS[id].sellPrice = Math.floor(exactBase(id));
   }
 }
+// Silver, gold, platinum and iridium bars (for jewelry).
+for (const bar of JEWEL_BAR_IDS) {
+  const b = JEWEL_BARS[bar];
+  ITEMS[bar] = { name: b.name, single: b.name.toLowerCase(), icon: "🧈", tint: b.tint, sellPrice: 0, inputs: b.ores };
+  ITEMS[bar].sellPrice = Math.floor(exactBase(bar));
+}
 // Bait (Handicraft).
 for (const bait of BAIT_IDS) {
   const b = BAITS[bait];
   ITEMS[bait] = { name: b.name, single: b.single, icon: b.icon, tint: b.tint, sellPrice: 0, inputs: b.inputs };
   ITEMS[bait].sellPrice = Math.floor(exactBase(bait));
+}
+
+/** Gems, soul stones and jewelry (shared/jewelry.ts). Jewelry is worth its bars and gem, plus 25%. */
+function gemDef(id: string): ItemDef | undefined {
+  const base = gemItemDef(id);
+  if (!base) return undefined;
+  const g = parseGem(id)!;
+  if (g.kind !== "jewel") return base;
+  const inputs: ItemId[] = [...Array<ItemId>(JEWEL_TYPES[g.type].bars).fill(JEWEL_METALS[g.metal].bar), ...(g.gem ? [cutId(g.gem, g.size)] : [])];
+  return { ...base, inputs, sellPrice: Math.floor(inputs.reduce((sum, i) => sum + ITEMS[i].sellPrice, 0) * CRAFT_MARKUP) };
 }
 
 /** A potion: "Health potion (sage)". Worth its ingredients and vial, plus 25%. */

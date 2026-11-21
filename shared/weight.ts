@@ -17,6 +17,7 @@ import { ARMOR, WEAPONS, isArmor, isWeapon, parseArmor, parseWeapon } from "./ge
 import { isMeal } from "./cooking";
 import { isBait } from "./handicraft";
 import { isPotion } from "./alchemy";
+import { isGemItem, isJewelry } from "./jewelry";
 
 /** What you can carry comes from Dexterity: 45 kg at level 1 (shared/stats.ts). */
 export { carryCapacity } from "./stats";
@@ -60,6 +61,7 @@ export function weightOf(item: ItemId): number {
   if (isMeal(item)) return 10;
   if (isBait(item)) return 1;
   if (isPotion(item)) return 5;
+  if (isGemItem(item)) return isJewelry(item) ? 2 : 1;
   return 10;
 }
 

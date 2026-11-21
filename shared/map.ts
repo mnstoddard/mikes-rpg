@@ -18,12 +18,14 @@ import type { ResourceId } from "./foraging";
 //          Herbalist Wren's hut by the lake)
 // Foraging: * a glinting dig patch (dig it with a shovel)
 // Cave:    C cave floor   K cave wall (the spider cave east of the quarry counts as danger, like the forest)
+//          G crystal cave floor (through the spider cave). Gem rocks: U amethyst  Q topaz  L soul stone
+//          N emerald  Z sapphire  R ruby; deeper ores: P platinum  X iridium
 const RAW = `
-~~~~~~~~~~~~~~~~~~~~~~~~~~~KKKKKKK~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~~~~~~.........T.TT.iikk..KCCCCCK~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~~~~.......TT.T...T.##cc*#KCCCCCK~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~~....T....T....T...##tt.#KKKCKKK~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~.*.......,,,,,,,,,,,,,,,,,,,,,,,~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~KKKKKKKKKKKKKKKKKKKK~~~~~~~~~~~~~
+~~~~~~~.........T.TT.iikk..KCCCCCKUGQGLGNGZGRPK~~~~~~~~~~~~~
+~~~~~.......TT.T...T.##cc*#KCCCCCCGGGGGGGGGGGGK~~~~~~~~~~~~~
+~~~....T....T....T...##tt.#KKKCKKKUGQKLGNKZGRXK~~~~~~~~~~~~~
+~~.*.......,,,,,,,,,,,,,,,,,,,,,,,KKKKKKKKKKKKK~~~~~~~~~~~~~
 ~~..OO.....,.....................,.~~~~~~~~~~~~~77~~~~~~~~~~
 ~...OO...*.,HHHHHHH.HHHHHHH.HHHHH,.MM4~~~~~~~~......~~~~~~~~
 ~..........,HpppppH.HpppppH.HpppH,.MM.4~~~~~...I..I...~~~~~~
@@ -60,12 +62,12 @@ export const TILE_SIZE = 32;
 export const TICK_MS = 600; // one game tick, like old-school RuneScape
 
 export type Tile = "grass" | "path" | "water" | "tree" | "rock" | "bridge" | "fence" | "gate" | "sign" | "wall" | "floor" | "house" | "boards"
-  | "dig" | "cave" | "cavewall";
+  | "dig" | "cave" | "cavewall" | "crystal";
 
 const LEGEND: Record<string, Tile> = {
   ".": "grass", ",": "path", "~": "water", "=": "bridge", ":": "grass", "|": "fence", "+": "gate", "!": "sign",
   W: "wall", _: "floor", H: "house", p: "boards",
-  "*": "dig", C: "cave", K: "cavewall",
+  "*": "dig", C: "cave", K: "cavewall", G: "crystal",
 };
 
 /** Map letters for each type of tree, rock and fishing spot. */
@@ -76,6 +78,9 @@ const NODE_LEGEND: Record<string, [Tile, ResourceId]> = {
   k: ["rock", "coal"], v: ["rock", "silver"], g: ["rock", "gold"], m: ["rock", "mithril"],
   2: ["water", "trout"], 3: ["water", "perch"], 4: ["water", "salmon"], 5: ["water", "pike"],
   6: ["water", "tuna"], 7: ["water", "swordfish"], 8: ["water", "eel"],
+  // The crystal cave: gem rocks, soul stone veins, platinum and iridium.
+  U: ["rock", "amethyst"], Q: ["rock", "topaz"], L: ["rock", "soulstone"], N: ["rock", "emerald"],
+  Z: ["rock", "sapphire"], R: ["rock", "ruby"], P: ["rock", "platinum"], X: ["rock", "iridium"],
 };
 
 const ROWS = RAW.split("\n").map((row) => [...row]);
@@ -94,7 +99,7 @@ export const GATE = (() => {
 })();
 export const DANGER_TOP = GATE.y;
 /** The Dark Forest (and the spider cave by the quarry): monsters there attack on sight. */
-export const isDanger = (x: number, y: number) => y >= DANGER_TOP || MAP[y]?.[x] === "cave";
+export const isDanger = (x: number, y: number) => y >= DANGER_TOP || MAP[y]?.[x] === "cave" || MAP[y]?.[x] === "crystal";
 
 export function isWalkable(x: number, y: number): boolean {
   if (y < 0 || y >= MAP_HEIGHT || x < 0 || x >= MAP_WIDTH) return false;

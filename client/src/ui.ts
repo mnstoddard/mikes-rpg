@@ -1,5 +1,5 @@
 import { INVENTORY_SIZE, ITEMS, ItemId } from "../../shared/items";
-import { formatMoney, toPurse } from "../../shared/money";
+import { COIN_KINDS, formatMoney, toPurse } from "../../shared/money";
 import { CraftSkill, DISCIPLINES, DISCIPLINE_IDS, DisciplineId, DisciplineView, MAX_LEVEL, SkillId, SkillXp, emptySkills, findSkill, isCraftSkill, isUnlocked, levelForXp, newDisciplineView, xpForLevel } from "../../shared/disciplines";
 import { buyWithCharisma, maxHealth, maxMana, maxStamina, sellWithCharisma, walkBonus } from "../../shared/stats";
 import { ItemMasteryXp, MasteryId, craftSuccess, masteryValue, masteryIn, masteryLevelForXp, masterySuccess, masteryXpForLevel, percent, speedBonusPercent, valueBonusPercent } from "../../shared/mastery";
@@ -40,6 +40,10 @@ import { BAITS, BAIT_IDS, BaitId, isBait } from "../../shared/handicraft";
 import { TreeRanks, treeBonus } from "../../shared/skilltree";
 import { setTreeData, treeButton, treeRanks } from "./tree";
 import { toolSvg } from "./toolIcons";
+import {
+  CUT_LEVEL, GEMS, JEWEL_BARS, JEWEL_BAR_IDS, JEWEL_METALS, JEWEL_METAL_IDS, JEWEL_SLOTS, JEWEL_TYPES, JewelMetal, JewelSlot, JewelType, Jewels,
+  cutChances, describeBonus, emptyJewels, isCutGem, isJewelry, isRough, jewelBonus, jewelId, parseGem,
+} from "../../shared/jewelry";
 import {
   ALCHEMY_INGREDIENTS, BONUSES, BONUS_IDS, BUFFS, BUFF_IDS, BonusId, Buffs, POTIONS, POTION_TYPES, PotionType, buffPower, describeEffect, isPotion, parsePotion, potionEffect, potionFrom,
 } from "../../shared/alchemy";
@@ -115,10 +119,44 @@ const pick = {
   /** Stove: the dish, and what's in the pot. Workbench: the bait. */
   dish: "stew" as DishId, pot: [] as IngredientId[], bait: "bait_worm" as BaitId,
   /** Anvil: what kind of thing to make. */
-  category: "tools" as "tools" | "weapons" | "armor", weapon: "dagger" as WeaponType, armor: "helmet" as ArmorType, armorMetal: "bronze" as Metal,
+  category: "tools" as "tools" | "weapons" | "armor" | "jewelry" | "gems", weapon: "dagger" as WeaponType, armor: "helmet" as ArmorType, armorMetal: "bronze" as Metal,
   /** Alchemy table: what's in the mix (2 or 3 ingredients). */
   mix: [] as ItemId[],
+  /** Furnace: which bar (metal bars and the jewelry bars). */
+  furnaceBar: "bronze_bar" as ItemId,
+  /** Anvil, jewelry: ring or amulet, its metal, and the cut gem to set (or none). */
+  jewel: "ring" as JewelType, jewelMetal: "bronze" as JewelMetal, jewelGem: null as ItemId | null,
 };
+/** Gems and jewelry: what the server should do. */
+let onCut: (item: ItemId) => void = () => {};
+let onWearJewel: (slot: number) => void = () => {};
+let onRemoveJewel: (slot: JewelSlot) => void = () => {};
+export function setGemActions(a: { cut: (item: ItemId) => void; wearJewel: (slot: number) => void; removeJewel: (slot: JewelSlot) => void }) {
+  onCut = a.cut; onWearJewel = a.wearJewel; onRemoveJewel = a.removeJewel;
+}
+/** Rings and amulet you're wearing. */
+let lastJewels: Jewels = emptyJewels();
+const SLOT_LABELS: Record<JewelSlot, string> = { ring1: "Ring", ring2: "Ring", amulet: "Amulet" };
+export function renderJewels(j: Jewels) {
+  lastJewels = j;
+  const box = document.getElementById("jewels");
+  if (!box) return;
+  box.replaceChildren();
+  for (const s of JEWEL_SLOTS) {
+    const on = j[s];
+    const slot = el("slot belt-slot" + (on ? " filled" : ""));
+    if (on) {
+      const item = ITEMS[on];
+      slot.append(icon("", item.icon, item.tint));
+      slot.title = `${item.name}: ${describeBonus(jewelBonus(on))}. Click to take it off.`;
+      slot.onclick = () => onRemoveJewel(s);
+    } else {
+      slot.append(icon("empty-tool", s === "amulet" ? "📿" : "💍"));
+      slot.title = `${SLOT_LABELS[s]}: empty. Click ${s === "amulet" ? "an amulet" : "a ring"} in your bag to put it on. Smith them at the anvil.`;
+    }
+    box.appendChild(slot);
+  }
+}
 const STATION_SKILL = { furnace: "smelting", anvil: "smithing", stove: "cooking", workbench: "handicraft", alchemy_table: "alchemy" } as const;
 /** Hidden potion recipes you've found. */
 let discovered: PotionType[] = [];
@@ -286,7 +324,7 @@ function skillDetails(skill: SkillId): HTMLElement {
   if (isCraftSkill(skill)) return craftDetails(skill, level, box);
   const types = resourcesFor(skill);
   const upcoming = types.find((id) => RESOURCES[id].level > level);
-  if (upcoming) box.append(el("m-info", `Next unlock: ${ITEMS[RESOURCES[upcoming].item].name} at level ${RESOURCES[upcoming].level}`));
+  if (upcoming) box.append(el("m-info", `Next unlock: ${masteryName(upcoming)} at level ${RESOURCES[upcoming].level}`));
   if (!expanded.has(skill)) return box;
 
   const list = el("m-types");
@@ -1045,7 +1083,8 @@ export function renderCoins(totalBronze: number) {
   const purse = toPurse(totalBronze);
   moneyEl.replaceChildren();
   moneyEl.title = formatMoney(totalBronze);
-  for (const kind of ["gold", "silver", "bronze"] as const) {
+  // Platinum and iridium only show once you have some.
+  for (const kind of COIN_KINDS.filter((k) => (k !== "iridium" && k !== "platinum") || purse[k] > 0 || (k === "platinum" && purse.iridium > 0))) {
     const span = document.createElement("span");
     const coin = document.createElement("i");
     coin.className = `coin ${kind}`;
@@ -1388,14 +1427,36 @@ function renderCraft() {
     craftBody.append(el("craft-info", BAITS[pick.bait].description + ". Fishing uses the first unlocked bait in your bag."));
     output = pick.bait;
   } else if (station === "furnace") {
-    craftBody.append(choices("Bar", METAL_IDS, pick.bar, (m) => ({ icon: "🧈", tint: METALS[m].tint, name: METALS[m].name, lockedAt: lockedAt(m) }), (m) => { pick.bar = m; }));
-    output = barId(pick.bar);
+    const bars: ItemId[] = [...METAL_IDS.map((m) => barId(m) as ItemId), ...JEWEL_BAR_IDS];
+    craftBody.append(choices("Bar", bars, pick.furnaceBar, (b) => ({ icon: "🧈", tint: ITEMS[b].tint, name: ITEMS[b].name.replace(/ bar$/, ""),
+      lockedAt: level < recipeFor(b)!.level ? recipeFor(b)!.level : undefined }), (b) => { pick.furnaceBar = b; }));
+    output = pick.furnaceBar;
   } else {
-    const CATS = { tools: { icon: "🪓", name: "Tools" }, weapons: { icon: "🗡️", name: "Weapons" }, armor: { icon: "🛡️", name: "Armor" } };
-    craftBody.append(choices("Make", ["tools", "weapons", "armor"] as const as unknown as ("tools" | "weapons" | "armor")[], pick.category, (c) => CATS[c], (c) => { pick.category = c; }));
+    const CATS = { tools: { icon: "🪓", name: "Tools" }, weapons: { icon: "🗡️", name: "Weapons" }, armor: { icon: "🛡️", name: "Armor" }, jewelry: { icon: "💍", name: "Jewelry" }, gems: { icon: "💎", name: "Cut gems" } };
+    craftBody.append(choices("Make", ["tools", "weapons", "armor", "jewelry", "gems"] as ("tools" | "weapons" | "armor" | "jewelry" | "gems")[], pick.category, (c) => CATS[c], (c) => { pick.category = c; }));
     const head = () => choices("Head", MATERIAL_IDS, pick.metal, (m) => ({ icon: m === "stone" ? "🪨" : "🧈", tint: MATERIALS[m].tint, name: MATERIALS[m].name, lockedAt: lockedAt(m) }), (m) => { pick.metal = m; });
     const handle = () => choices("Handle", WOOD_IDS, pick.wood, (w) => ({ icon: "🪵", tint: ITEMS[`${w}_logs`].tint, name: WOODS[w].name }), (w) => { pick.wood = w; });
-    if (pick.category === "weapons") {
+    if (pick.category === "gems") {
+      renderCutting(level);
+      craftOne.disabled = true;
+      craftAll.disabled = true;
+      craftAll.textContent = "Make all";
+      return;
+    }
+    if (pick.category === "jewelry") {
+      craftBody.append(
+        choices("Make", ["ring", "amulet"] as JewelType[], pick.jewel, (t) => ({ icon: JEWEL_TYPES[t].icon, name: `${JEWEL_TYPES[t].name} (${JEWEL_TYPES[t].bars} bar${JEWEL_TYPES[t].bars > 1 ? "s" : ""})` }), (t) => { pick.jewel = t; }),
+        choices("Metal", JEWEL_METAL_IDS, pick.jewelMetal, (m) => ({ icon: "🧈", tint: JEWEL_METALS[m].tint, name: JEWEL_METALS[m].name, lockedAt: level < JEWEL_METALS[m].level ? JEWEL_METALS[m].level : undefined }), (m) => { pick.jewelMetal = m; }),
+      );
+      // A cut gem from your bag to set in it (or none).
+      const gems = [...new Set(invItems.filter((it, i): it is ItemId => !!it && !locked[i] && isCutGem(it)))];
+      if (pick.jewelGem && !gems.includes(pick.jewelGem)) pick.jewelGem = null;
+      const opts = ["none", ...gems] as string[];
+      craftBody.append(choices("Gem to set in it", opts, pick.jewelGem ?? "none", (g) => g === "none" ? { icon: "⭕", name: "No gem" } : { icon: ITEMS[g as ItemId].icon, tint: ITEMS[g as ItemId].tint, name: ITEMS[g as ItemId].name }, (g) => { pick.jewelGem = g === "none" ? null : g as ItemId; }));
+      if (!gems.length) craftBody.append(el("craft-info", "No cut gems in your bag. Mine gems in the crystal cave (through the spider cave by the quarry), then cut them here under Cut gems."));
+      output = jewelId(pick.jewel, pick.jewelMetal, pick.jewelGem as never);
+      craftBody.append(el("craft-info", `Gives: ${describeBonus(jewelBonus(output as never))}. A failed try loses the bars but keeps the gem.`));
+    } else if (pick.category === "weapons") {
       craftBody.append(choices("Weapon", WEAPON_TYPES, pick.weapon, (t) => ({ icon: WEAPONS[t].icon, name: WEAPONS[t].name }), (t) => { pick.weapon = t; }), head(), handle());
       output = weaponId(pick.weapon, pick.metal, pick.wood);
     } else if (pick.category === "armor") {
@@ -1551,6 +1612,32 @@ function renderStove(level: number): ItemId | null {
     return null;
   }
   return mealId(pick.dish, pick.fuel, pick.pot);
+}
+
+/** The anvil's Cut gems tab: every rough gem and soul stone in your bag, with a Cut button, and your odds. */
+function renderCutting(level: number) {
+  const c = cutChances(level);
+  craftBody.append(el("craft-info", `Your cuts at Smithing ${level}: ${percent(c.flawless)} flawless (keeps it all), ${percent(c.good)} good (85%), ${percent(c.clumsy)} clumsy (60%), ${percent(c.shattered)} shatter. Soul stone always cuts cleanly.`));
+  const rough = [...new Set(invItems.filter((it, i): it is ItemId => !!it && !locked[i] && isRough(it)))];
+  if (!rough.length) {
+    craftBody.append(el("craft-warn", "No rough gems or soul stones in your bag. Mine them in the crystal cave, through the spider cave east of the quarry."));
+    return;
+  }
+  const list = el("pick-row");
+  list.append(el("pick-label", "Tap one to cut it"));
+  for (const it of rough) {
+    const g = parseGem(it)!;
+    const need = CUT_LEVEL[g.kind === "soulstone" ? "soul" : (g as { gem: keyof typeof GEMS }).gem];
+    const b = document.createElement("button");
+    const lockedOut = level < need;
+    b.className = "pick" + (lockedOut ? " locked" : "");
+    b.append(icon("pick-icon", ITEMS[it].icon, ITEMS[it].tint), el("pick-name", lockedOut ? `🔒${need}` : `${ITEMS[it].name} (${haveUnlocked(it)})`));
+    b.title = lockedOut ? `Needs Smithing level ${need} to cut.` : `Cut the ${ITEMS[it].single}.`;
+    b.disabled = lockedOut;
+    if (!lockedOut) b.onclick = () => onCut(it);
+    list.appendChild(b);
+  }
+  craftBody.append(list);
 }
 
 /**
@@ -2001,6 +2088,9 @@ function renderInfo() {
   }
   const price = sellPrice(id, uses);
   const buyers = SHOP_IDS.filter((s) => s !== "tam" && SHOPS[s].buys(id)).map((s) => npcById(s)!.name);
+  if (isJewelry(id)) infoBody.append(infoLine("Wear it", describeBonus(jewelBonus(id)), "2 rings and 1 amulet at a time"));
+  else if (isRough(id)) infoBody.append(infoLine("Cut it", "at the anvil", "under Cut gems (Smithing). A cut can go well or badly."));
+  else if (isCutGem(id)) infoBody.append(infoLine("Set it", "in a ring or amulet", `at the anvil: ${describeBonus(jewelBonus(jewelId("ring", "bronze", id)))} in a bronze ring, more in finer metals`));
   infoBody.append(infoLine("Shops pay", formatMoney(price), (isTool(id) && uses != null && uses < maxDurability(id) ? "less because it's worn. " : "") +
     `Tam at the General Store${buyers.length ? `, ${buyers.join(", ")}` : ""}`));
   const sellers = sellersOf(id);
@@ -2100,6 +2190,7 @@ function renderInfo() {
     if (isGear(id)) infoButton(isWeapon(id) ? "Hold" : "Wear", () => { onWear(e); closeInfo(); }, broken);
     if (id === POTION_ID) infoButton(`Drink (+${POTION_HEAL})`, () => { onDrink(e); closeInfo(); });
     if (isPotion(id)) infoButton("Drink", () => { onDrink(e); closeInfo(); });
+    if (isJewelry(id)) infoButton("Put on", () => { onWearJewel(e); closeInfo(); });
     if (isFood(id)) infoButton(`Eat (+${staminaOf(id)})`, () => { onEat(e); done(); }, staminaNow >= staminaMax);
     infoButton(isLocked ? "Unlock" : "Lock", () => onLock(e, !isLocked));
     infoButton(stack > 1 ? `Drop all ${stack}` : "Drop", () => { onDrop(e); done(); }, isLocked);
