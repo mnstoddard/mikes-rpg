@@ -206,7 +206,7 @@ in the shared world, so until then the player has to **hide** what they know.
 | 3.12 | **Celene's Doubt** | Sister Celene | Celene has noticed heroes going grey. Show her the ledger. She's heartbroken, and promises to warn heroes quietly. | Talking | Celene's blessing (an honest one, no tithe) |
 | 3.13 | **Bryn's Choice** | Captain Bryn | Show Bryn the truth. He takes down the Ashbound bounty posters, and gives you the watch's secret passages. | Talking | Bryn's key |
 | 3.14 | **A Voice in the Light** | The High Keeper | 🎬 The Heart Shrine calls you in, alone, at night. A hooded figure speaks from inside the light: the High Keeper. He doesn't lie. "The land is dying whatever we do. Sable would let everyone fade with it. We chose to **live**. Join us, and you'll never be drained again. You'll be the one who drinks." | Talking | An offer |
-| 3.15 | **The Crossroads** | — | 🎬 Sable waits at the Cinders. The High Keeper waits at the Heart Shrine. **You choose**: the Ashbound or the Lightkeepers. This is the biggest choice in the game. | A choice | **Act 4 begins**, on your side's path |
+| 3.15 | **The Crossroads** | — | 🎬 Sable waits at the Cinders. The High Keeper waits at the Heart Shrine. **You choose**: the Ashbound or the Lightkeepers. This is the biggest choice in the game. (Decided: the choice happens here, at the end of Act 3.) | A choice | **Act 4 begins**, on your side's path |
 
 **After Act 3:**
 
@@ -216,6 +216,9 @@ in the shared world, so until then the player has to **hide** what they know.
 - **If you chose the Lightkeepers**, your Lightkeeper rank carries on past
   Radiant. The Ashbound treat you as an enemy, and Maren stops talking to you.
   Act 4 is **Ascension**.
+- **Switching sides later (decided):** allowed **once**, through a long
+  quest (see "Turning your coat" below). Your new faction's rank starts again
+  from the bottom.
 - Both paths are about the same length, end at the Wellspring, free you from
   Soul Debt, and lead into the same endgame zone from opposite sides.
 
@@ -326,8 +329,8 @@ is small:
   respawn point).
 - **Protection for newcomers**: players far below your level can't be attacked
   (for example, more than 10 levels lower).
-- **Dying in the Crown** drops part of the special materials you're carrying
-  (never your gear). Bank them at your camp to keep them safe. Players who
+- **Dying in the Crown** (decided) drops part of the special materials you're
+  carrying (never your gear). Bank them at your camp to keep them safe. Players who
   defeat you can pick them up.
 - **The Crown is the one place that changes.** Who holds each relic site shifts
   all the time and resets every few hours. Everywhere else, the world stays
@@ -403,9 +406,27 @@ little more).
 **The bonus:** flowers bloom where you walk, animals don't run from you, and
 the Rooted love you (Renown rises 10% faster).
 
-My suggestion: the gathering and utility buffs work everywhere, and the combat
-buffs are strongest inside the Crown, so the two sides stay balanced against
-each other.
+**Decided: rank buffs only work inside the Crown.** Outside it, ranks still
+give titles, gear and looks, but no buffs, so the story and the rest of the
+world stay balanced for everyone. (The Ashbound's "no Soul Debt" isn't a rank
+buff: it comes from the story and works everywhere, and so does the
+Lightkeepers' freedom from Soul Debt.)
+
+### Turning your coat (switching sides once)
+
+A player can switch sides **once**, after finishing their Act 4. It's a long
+quest chain on purpose, so it means something:
+
+| # | Quest | What you do |
+|---|---|---|
+| T.1 | **Doubt** | Find a Memory Echo in the Crown that shows your side's darkest moment. Your faction leader notices you've gone quiet. |
+| T.2 | **A Message Across the Lines** | Get a message to the other side's leader inside the Crown without either side seeing you. |
+| T.3 | **Prove It** | The other side doesn't trust you. Bring them 3 relics from your own faction's vault. |
+| T.4 | **No Way Back** | 🎬 Your old faction finds out. Fight your way out of their camp in the Crown. |
+| T.5 | **Sworn Again** | Join the new side. Lightkeepers who switch must cut their thread (a short version of the Ashbound's Act 4); Ashbound who switch have their thread turned by Vael. |
+
+Your new faction rank **starts again at the bottom**. Gear stays, but
+faction gear changes to the new side's look. You can't switch back.
 
 ### Repeatable activities
 
