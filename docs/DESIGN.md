@@ -712,6 +712,37 @@ Wolf Hollow and defeat the **Dire wolf** pack leader. Everyone gets the full XP,
 a wolf-fang amulet setting and coins. It can also be done alone, but it's built
 to be much easier together.
 
+**How stage 13 was built** (decided with Mike's stage 13 notes):
+
+- **Making a party**: click another player to invite them (the hover text
+  says "Invite"). They get a 🚩 panel with Join and No thanks; an invite lasts
+  a minute. Up to 4 people. Whoever invites leads (★); only the leader can
+  invite or take someone out (✕). If the leader leaves, the next member leads,
+  and a party of one ends. Logging out leaves the party.
+- **The 🚩 panel** sits under your health bars: everyone's name and health
+  bar, a party chat box (lines also show in the message log) and Leave party.
+  Party members' names show green over their heads.
+- **Kill XP is shared by damage**: the per-hit XP is unchanged, and the bonus
+  for the kill is split by how much of its health each person took (in their
+  own weapon's skill and Mastery). **Drops and coins go to whoever did the most
+  damage**; everyone else is told who got them. Hunting XP was already shared
+  this way.
+- **Quest kills count for the whole party**: everyone who hurt it, and their
+  party members within 15 tiles, get the kill for their quest (if they're on
+  that step). Quest rewards are per person, so everyone gets them in full.
+- **Leadership** (Charisma): taught by Kael's Wolf Hunt. The leader earns 15
+  XP each time a party member close by finishes a quest step, and 1 XP per
+  nearby member for each monster the party defeats. Members within 15 tiles of
+  the leader get +2% kill XP, plus 1% per 10 Leadership levels (up to +10%).
+- **The Wolf Hunt** (instead of the Howling Hollow): Kael's side quest, which
+  needs Hunting 5 and his lesson done. A wolf den south-west of the Dark Forest
+  path has 4 wolves and an **alpha wolf** (level 22, 160 health, hits up to 9,
+  always drops an alpha wolf pelt). Defeat 4 wolves and the alpha, then Kael
+  gives everyone a leather jerkin and 15 silver. It can be done alone with
+  good gear and potions, but it's much quicker together.
+- **Skills from side quests** (Leadership so far) aren't given away by
+  finishing every lesson, so older characters still do the Wolf Hunt to learn it.
+
 ---
 
 ## 10. The main quest line
@@ -844,7 +875,7 @@ quest chapter as it goes, so the main quest grows with the game.
 | **10. More Handicraft** ✅ built | Cloth and leather armor, bows, arrows and plain staffs, all in Handicraft | Uses hides, silk and logs |
 | **11. Farming** ✅ built | Farm area, buying and expanding plots, seeds, real-time growth | Independent, can move earlier |
 | **12. Trading and Renown** ✅ built | Trading XP, Renown XP, bounty tiers, Renown-gated quests | Builds on the existing boards |
-| **13. Parties and Leadership** | Invites, party UI, shared quest XP and loot, quest level gates, Leadership bonus, The Howling Hollow | Biggest server change, best done last |
+| **13. Parties and Leadership** ✅ built | Invites, party UI, shared quest XP and loot, quest level gates, Leadership bonus, Kael's Wolf Hunt | Biggest server change, best done last |
 
 Stages 10, 11 and 12 can be done in any order once stage 3 is in.
 

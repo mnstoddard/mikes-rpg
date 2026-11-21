@@ -112,6 +112,7 @@ export const TREES: Record<SkillId, TreeNode[]> = {
   // Charisma skills only have "Quick learner" for now; more upgrades come with Trading and Renown's own stage.
   trading: [node("trading", "xp", "Quick learner", "📖", 0.1)],
   renown: [node("renown", "xp", "Quick learner", "📖", 0.1)],
+  leadership: [node("leadership", "xp", "Quick learner", "📖", 0.1)],
   enchanting: [
     node("enchanting", "enchantSlot", "Second slot", "➕", 1, 1),
     node("enchanting", "potency", "Potency", "💥", 0.1),

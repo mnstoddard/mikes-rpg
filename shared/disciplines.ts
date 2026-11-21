@@ -14,7 +14,7 @@ export type WildSkill = "hunting";
 export type CraftSkill = "smelting" | "smithing" | "cooking" | "handicraft" | "alchemy";
 /** "magic" is Spellcasting (its id stays "magic" so spells, staffs and trees keep working). */
 export type CombatSkill = "melee" | "ranged" | "magic" | "defense";
-export type SocialSkill = "trading" | "renown";
+export type SocialSkill = "trading" | "renown" | "leadership";
 /** Enchanting: at the altar in the Mages' Guild (shared/enchanting.ts). */
 export type EnchantSkill = "enchanting";
 /** Farming: your own plot at the farm (shared/farming.ts). */
@@ -83,6 +83,7 @@ export const DISCIPLINES: Record<DisciplineId, DisciplineDef> = {
     description: "Dealing with people. Better shop prices.",
     skills: [
       { id: "trading", name: "Trading", icon: "💰", description: "Trained by selling things to any shop (the more it's worth, the more XP). Each level makes prices a little better, and trainers sell you rarer things as it goes up." },
+      { id: "leadership", name: "Leadership", icon: "🚩", description: "Trained by leading a party (click another player to invite them): the leader earns it when the party finishes quest steps and defeats monsters together. Party members near the leader get a little extra XP from kills. Huntmaster Kael teaches it in his Wolf Hunt." },
       { id: "renown", name: "Renown", icon: "📋", description: "Trained by finishing bounties, on the bounty board and the Mages' Guild board. Bounties get bigger and pay more as it goes up, and Captain Bryn gives you ranks and titles (Wanderer at 5, Trusted at 15, Champion at 30)." },
     ],
   },

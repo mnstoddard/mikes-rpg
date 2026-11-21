@@ -42,7 +42,7 @@ const ITEM_WEIGHT: Partial<Record<string, number>> = {
   sage: 1, moonpetal: 1, red_cap: 2, ginseng: 2, honey: 3, blue_lotus: 1, old_bone: 5, slime_goo: 3, boar_tusk: 5, wolf_fang: 2, bat_wing: 2, venom_sac: 2,
   worm: 1, food_scraps: 2,
   // Monster drops and potions.
-  vial: 2, feather: 1, rat_tail: 2, cowhide: 30, wolf_pelt: 20, goblin_charm: 2, spider_silk: 2, stolen_ring: 1, health_potion: 5,
+  vial: 2, feather: 1, rat_tail: 2, cowhide: 30, wolf_pelt: 20, alpha_pelt: 30, goblin_charm: 2, spider_silk: 2, stolen_ring: 1, health_potion: 5,
 };
 
 /** One of this item's weight, in tenths of a kg. */

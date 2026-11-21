@@ -33,7 +33,7 @@ import { CROPS, LOTS, LOT_SIZE, decodeCrop, growth, inPlot, lotAt, tileOf, timeL
 import { serverNow, setFarm, setFarmActions } from "./ui";
 import type { FarmView } from "../../shared/farming";
 import type { RenownView } from "../../shared/renown";
-import { setRenown, setRenownActions } from "./ui";
+import { setRenown, setRenownActions, renderParty, setPartyActions, showPartyInvite, addPartyChat, PartyMember } from "./ui";
 import { NIGHT_DARKNESS, darkness, isNight, minutesUntilChange } from "../../shared/daynight";
 
 const TILE_COLORS: Record<Tile, number> = {
@@ -220,6 +220,15 @@ export class WorldScene extends Phaser.Scene {
     room.onMessage("vitals", (v: { hp: number; maxHp: number; mana: number; maxMana: number }) => renderVitals(v.hp, v.maxHp, v.mana, v.maxMana));
     room.onMessage("gear", (msg: { gear: Gear; spell: BoltSpellId }) => renderGear(msg.gear, msg.spell));
     room.onMessage("spellbook", (b: Parameters<typeof setSpellbook>[0]) => setSpellbook(b));
+    // Parties (stage 13).
+    room.onMessage("partyInvite", (msg: { from: string }) => showPartyInvite(msg.from));
+    room.onMessage("partyChat", (msg: { from: string; text: string }) => addPartyChat(msg.from, msg.text));
+    setPartyActions({
+      answer: (yes) => room.send("partyAnswer", { yes }),
+      leave: () => room.send("partyLeave"),
+      kick: (id) => room.send("partyKick", { id }),
+      chat: (text) => room.send("partyChat", { text }),
+    });
     // Number keys 1-8 cast the spell in that slot of the spell bar (not while typing in a box).
     window.addEventListener("keydown", (e) => {
       const t = e.target as HTMLElement | null;
@@ -702,14 +711,17 @@ export class WorldScene extends Phaser.Scene {
       $(player).listen("x", () => this.moveTo(view, player, isMe));
       $(player).listen("y", () => this.moveTo(view, player, isMe));
       $(player).listen("action", (action: string) => this.setAction(view, player, action));
-      $(player).listen("hp", () => this.drawHealth(view.bar, player.hp, player.maxHp, -16));
-      $(player).listen("maxHp", () => this.drawHealth(view.bar, player.hp, player.maxHp, -16));
+      $(player).listen("hp", () => { this.drawHealth(view.bar, player.hp, player.maxHp, -16); this.refreshParty(); });
+      $(player).listen("maxHp", () => { this.drawHealth(view.bar, player.hp, player.maxHp, -16); this.refreshParty(); });
+      // Parties (stage 13): party members' names show green, and the 🚩 panel lists everyone's health.
+      $(player).listen("party", () => this.refreshParty());
+      $(player).listen("partyLead", () => this.refreshParty());
       // Settings: a new name or colour shows up for everyone.
       $(player).listen("color", (color: number) => { view.body.setFillStyle(color); if (isMe) renderMe(player.name, color); });
       // Invisibility: you see yourself faded; others barely see you at all.
       $(player).listen("invisible", (inv: boolean) => view.container.setAlpha(inv ? (isMe ? 0.4 : 0.12) : 1));
       $(player).listen("title", (t: string) => title.setText(t ? `« ${t} »` : ""));
-      $(player).listen("name", (name: string) => { view.label.setText(name); if (isMe) { renderMe(name, player.color); this.updateHud(); } });
+      $(player).listen("name", (name: string) => { view.label.setText(name); this.refreshParty(); if (isMe) { renderMe(name, player.color); this.updateHud(); } });
       this.updateHud();
     });
 
@@ -731,6 +743,7 @@ export class WorldScene extends Phaser.Scene {
       this.players.get(sessionId)?.container.destroy();
       this.players.delete(sessionId);
       this.updateHud();
+      this.refreshParty();
     });
   }
 
@@ -965,8 +978,12 @@ export class WorldScene extends Phaser.Scene {
     closeDialog();
     const npc = npcAt(x, y);
     const monster = this.monsterAt(x, y);
+    const other = this.otherPlayerAt(x, y);
     if (monster) {
       this.room?.send("attack", { id: monster });
+      return;
+    } else if (other && !npc) {
+      this.room?.send("partyInvite", { id: other });
       return;
     } else if (npc) {
       this.room?.send("talk", { id: npc.id });
@@ -993,7 +1010,10 @@ export class WorldScene extends Phaser.Scene {
     const key = treeKey(x, y);
     const npc = npcAt(x, y);
     const monster = this.monsterAt(x, y);
-    if (monster) {
+    const other = this.otherPlayerAt(x, y);
+    if (other && !monster && !npc) {
+      setHoverText("Invite", `${this.room!.state.players.get(other).name} to your party`, pointer.x, pointer.y);
+    } else if (monster) {
       const m = this.room!.state.monsters.get(monster);
       const def = MONSTERS[m.kind as MonsterId];
       setHoverText("Attack", `${def.name} (level ${def.level})${def.aggressive ? " ⚠" : ""}`, pointer.x, pointer.y);
@@ -1043,6 +1063,35 @@ export class WorldScene extends Phaser.Scene {
   // ---- Monsters and fighting ----
 
   /** The live monster standing on a tile, if any (its id). */
+  /** Someone else standing on that tile who isn't in your party yet (click to invite them). */
+  private otherPlayerAt(x: number, y: number): string | null {
+    const room = this.room;
+    if (!room) return null;
+    const me = room.state.players.get(room.sessionId);
+    let found: string | null = null;
+    room.state.players.forEach((pl: any, id: string) => {
+      if (id !== room.sessionId && pl.x === x && pl.y === y && !pl.invisible && !(me?.party && pl.party === me.party)) found = id;
+    });
+    return found;
+  }
+
+  /** The 🚩 party panel, and green names for your party. */
+  private refreshParty() {
+    const room = this.room;
+    if (!room) return;
+    const me = room.state.players.get(room.sessionId);
+    const mine = me?.party ?? "";
+    const members: PartyMember[] = [];
+    room.state.players.forEach((pl: any, id: string) => {
+      const view = this.players.get(id);
+      const mate = !!mine && pl.party === mine;
+      if (view && id !== room.sessionId) view.label.setColor(mate ? "#7dff8a" : "#ffffff");
+      if (mate) members.push({ id, name: pl.name, hp: pl.hp, maxHp: pl.maxHp, lead: pl.partyLead, me: id === room.sessionId });
+    });
+    members.sort((a, b) => Number(b.lead) - Number(a.lead) || a.name.localeCompare(b.name));
+    renderParty(members, !!me?.partyLead);
+  }
+
   private monsterAt(x: number, y: number): string | null {
     let found: string | null = null;
     this.room?.state.monsters?.forEach((m: any, id: string) => { if (m.alive && m.x === x && m.y === y) found = id; });
@@ -1054,7 +1103,7 @@ export class WorldScene extends Phaser.Scene {
     const container = this.add.container(...this.tileCenter(m.x, m.y)).setDepth(10 + m.y);
     const shadow = this.add.ellipse(0, 11, 20, 7, 0x000000, 0.3);
     const big = m.kind === "cow" || m.kind === "bandit" || m.kind === "spider";
-    const body = this.add.text(0, 0, def.icon, { fontSize: big ? "24px" : "20px" }).setOrigin(0.5);
+    const body = this.add.text(0, 0, def.icon, { fontSize: m.kind === "alpha_wolf" ? "30px" : big ? "24px" : "20px" }).setOrigin(0.5);
     const bar = this.add.graphics();
     const status = this.add.text(12, -14, "", { fontSize: "12px" }).setOrigin(0.5);
     const glow = this.add.ellipse(0, 0, 34, 34, 0xa25bff, 0.45).setStrokeStyle(2, 0xd6a8ff, 0.9).setVisible(false);
