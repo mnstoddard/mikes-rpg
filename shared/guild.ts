@@ -7,7 +7,7 @@
 // - How big your chest can get depends on your guild rank. Rank goes up with
 //   guild points, which you earn from the guild's bounty board.
 // - The same chest opens from every enchanted chest in the world (the guild
-//   hall, the east island and the Dark Forest).
+//   hall, the inn, the coast, the farm and the Dark Forest).
 //
 // Shared so the client shows the same costs and rewards the server uses.
 import { ITEMS, ItemId } from "./items";

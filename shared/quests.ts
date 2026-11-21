@@ -169,10 +169,10 @@ const ODO = "Farmer Odo";
 export const CHAPTERS: Chapter[] = [
   // ---------------- Old Maren: Living off the land ----------------
   {
-    id: "maren", title: "Living off the land", giver: "maren", name: MAREN, where: "in the town square, by the stove",
+    id: "maren", title: "Living off the land", giver: "maren", name: MAREN, where: "on the Lighthall's steps, in the town square",
     steps: [
       {
-        task: `Talk to ${MAREN} (look for the ❗ in the town square, by the stove)`, goal: { kind: "talk" }, unlocks: ["fishing"],
+        task: `Talk to ${MAREN} (look for the ❗ on the Lighthall's steps, in the town square)`, goal: { kind: "talk" }, unlocks: ["fishing"],
         lines: [
           "Well now, a fresh face! I'm Maren. I fished these waters for forty years before my knees gave out.",
           "Everyone starts with empty hands, so let's begin with the oldest skill there is: fishing.",
@@ -210,13 +210,13 @@ export const CHAPTERS: Chapter[] = [
         protect: ["rod_"],
         lines: [
           "Snapped, did it? Every tool wears down a little each time you use it: tools when you use them, weapons when you hit, armor when you get hit. It works just as well right up until it breaks.",
-          "A broken tool isn't gone, though. It's in your bag, and Oswin the Repairer can fix it. He works at the Mages' Guild, the purple hall south-west of town, by the coast.",
+          "A broken tool isn't gone, though. It's in your bag, and Oswin the Repairer can fix it. He works at the Mages' Guild, the purple hall south-west of town, past the lake. Walk onto its door to go in.",
           "Take my rod to him. He's an old friend, so this first one's free. After that he charges a few coins, more for finer things.",
         ],
       },
       {
         task: "Get your rod repaired at the Mages' Guild (south-west of town)", goal: { kind: "repair" },
-        hint: "Oswin the Repairer is in the Mages' Guild, the purple hall south-west of town. Click him, then Repair. The first one's free.",
+        hint: "Oswin the Repairer is inside the Mages' Guild, the purple hall south-west of town (follow the road west, then the little path south). Click him, then Repair. The first one's free.",
         ensure: [{ item: "rod_pine", durability: 0 }], protect: ["rod_"],
       },
       {
@@ -273,7 +273,7 @@ export const CHAPTERS: Chapter[] = [
           "Now that's a stew! Smells like my mother's kitchen.",
           "See the ⚡ bar at the top left? That's your stamina. Everything you do costs some: a fish costs 1, cooking 2, and chopping or mining 10.",
           "It comes back on its own, 1 every 30 seconds, but food is much faster. A raw minnow gives 2. A stew gives three times what its fish would, plus a bit from the fire. Go on, eat your stew.",
-          "Then sell a fish to Shopkeeper Tam at the General Store, the wooden building at the west end of the square. Tam buys anything.",
+          "Then sell a fish to Shopkeeper Tam at the General Store, just west of the square, on the south side of the road. Walk onto the door to go in. Tam buys anything.",
         ],
       },
       {
@@ -283,7 +283,7 @@ export const CHAPTERS: Chapter[] = [
       },
       {
         task: "Sell a fish to Tam at the General Store (catch one if you have none)", goal: { kind: "sell", what: "fishing", count: 1 },
-        hint: "The General Store is the wooden building at the west end of the square; its door faces the road. Click Tam, then click a fish in your bag to sell it.",
+        hint: "The General Store is just west of the square, on the south side of the road: walk onto its door to go in. Click Tam, then click a fish in your bag to sell it.",
       },
       {
         task: `Go back to ${MAREN} for your reward`, goal: { kind: "talk" },
@@ -323,8 +323,8 @@ export const CHAPTERS: Chapter[] = [
         task: `Go back to ${MAREN}`, goal: { kind: "talk" },
         lines: [
           "Cooking 3! Cooking is Dexterity, which lets you carry more and walk faster. You've learned all I have to teach.",
-          "Now it's time you met the trainers. Forester Holt, Miner Greta and Smith Brann have their workshops on Trainer Row, just north of the road. Shopkeeper Tam and Woodworker Rook are here in the square.",
-          "Huntmaster Kael's lodge is south of the road, by the gate to the Dark Forest. Archmage Ysolde runs the Mages' Guild to the south-west, and Captain Bryn here by the bounty board always has work.",
+          "Now it's time you met the trainers. Forester Holt, Miner Greta and Smith Brann live on Trainer Row, east of the square, on the north side of the road. Shopkeeper Tam and Woodworker Rook are just west of the square. Everyone works indoors: walk onto a door to go in.",
+          "Huntmaster Kael's lodge is down the south road, by the gate to the Dark Forest. Archmage Ysolde runs the Mages' Guild to the south-west, and Captain Bryn here by the bounty board always has work.",
           "Visit them in any order you like. Anyone with a ❗ over their head has a lesson for you, and each one ends with a reward. Your 📜 Quests tab keeps track.",
         ],
         coins: 50,
@@ -334,7 +334,7 @@ export const CHAPTERS: Chapter[] = [
 
   // ---------------- Shopkeeper Tam: Buying and selling ----------------
   {
-    id: "tam", title: "Buying and selling", giver: "tam", name: TAM, where: "in the General Store, west end of the square",
+    id: "tam", title: "Buying and selling", giver: "tam", name: TAM, where: "in the General Store, just west of the square",
     steps: [
       {
         task: `Talk to ${TAM} at the General Store`, goal: { kind: "talk" }, unlocks: ["trading"],
@@ -365,19 +365,19 @@ export const CHAPTERS: Chapter[] = [
 
   // ---------------- Forester Holt: The woodcutter's start ----------------
   {
-    id: "holt", title: "The woodcutter's start", giver: "holt", name: HOLT, where: "on Trainer Row, north of the road",
+    id: "holt", title: "The woodcutter's start", giver: "holt", name: HOLT, where: "on Trainer Row, east of the square",
     steps: [
       {
         task: `Talk to ${HOLT} on Trainer Row`, goal: { kind: "talk" }, unlocks: ["woodcutting"],
         lines: [
           "Come in, come in! Holt's the name, and trees are the game. I'll teach you Woodcutting.",
           "Woodcutting is part of Endurance, like Fishing and Mining. Every kind of log has its own Mastery, so the more of one you chop, the faster it goes.",
-          "Let's start the hard way: chop 3 logs by hand. The pointy pine trees are just north of Trainer Row.",
+          "Let's start the hard way: chop 3 logs by hand. The pointy pine trees grow in the meadow just north of Trainer Row.",
         ],
       },
       {
         task: "Chop 3 logs by hand (no axe on your belt)", goal: { kind: "gather", skill: "woodcutting", count: 3, byHand: true },
-        hint: "Click a tree to chop it. Pine trees are the pointy ones, just north of Trainer Row.",
+        hint: "Click a tree to chop it. Pine trees are the pointy ones, in the meadow just north of Trainer Row.",
       },
       {
         task: `Go back to ${HOLT}`, goal: { kind: "talk" },
@@ -415,13 +415,13 @@ export const CHAPTERS: Chapter[] = [
 
   // ---------------- Miner Greta: Into the rocks ----------------
   {
-    id: "greta", title: "Into the rocks", giver: "greta", name: GRETA, where: "on Trainer Row, north of the road",
+    id: "greta", title: "Into the rocks", giver: "greta", name: GRETA, where: "on Trainer Row, east of the square",
     steps: [
       {
         task: `Talk to ${GRETA} on Trainer Row`, goal: { kind: "talk" }, unlocks: ["mining"],
         lines: [
           "You want to learn Mining? Good. It's hard work, but rocks don't run away. Mining is part of Endurance.",
-          "The quarry is just north of Trainer Row, past the lane. Here's a worn stone pickaxe. Put it on your belt, then mine 5 stone from the plain grey rocks. Eat when you get tired.",
+          "The quarry is up the north road, past the Lighthall: take the road on the Lighthall's west side. Here's a worn stone pickaxe. Put it on your belt, then mine 5 stone from the plain grey rocks. Eat when you get tired.",
         ],
         give: [WORN_PICK],
       },
@@ -432,7 +432,7 @@ export const CHAPTERS: Chapter[] = [
       },
       {
         task: "Mine 5 stone (plain grey rocks in the quarry)", goal: { kind: "gather", skill: "mining", resource: "stone", count: 5 },
-        hint: "Click a plain grey rock in the quarry, north of Trainer Row, with the pickaxe on your belt.",
+        hint: "Click a plain grey rock in the quarry (up the north road, past the Lighthall) with the pickaxe on your belt.",
         ensure: [WORN_PICK], needsTool: "pickaxe", protect: ["pickaxe_"],
       },
       {
@@ -517,7 +517,7 @@ export const CHAPTERS: Chapter[] = [
 
   // ---------------- Woodworker Rook: Handy work ----------------
   {
-    id: "rook", title: "Handy work", giver: "rook", name: ROOK, where: "in the workshop in the square",
+    id: "rook", title: "Handy work", giver: "rook", name: ROOK, where: "in the workshop just west of the square",
     steps: [
       {
         task: `Talk to ${ROOK} at the workshop`, goal: { kind: "talk" }, unlocks: ["handicraft"],
@@ -553,7 +553,7 @@ export const CHAPTERS: Chapter[] = [
         task: `Talk to ${KAEL} at the lodge by the gate`, goal: { kind: "talk" }, unlocks: ["melee", "defense"],
         lines: [
           "So you want to fight? I'm Kael. South of here, past the gate, is the Dark Forest. Wolves, goblins, giant spiders and worse, and they attack anyone who wanders in.",
-          "See the ❤ bar at the top left? That's your health. Fighting skills are Strength, and Strength raises your max health. If it runs out, you'll wake up with Old Maren, a bit shaken but with all your things.",
+          "See the ❤ bar at the top left? That's your health. Fighting skills are Strength, and Strength raises your max health. If it runs out, you'll wake up at the Heart Shrine in the Lighthall, a bit shaken but with all your things.",
           "Let's start small. Here's a bronze dagger. Weapons and armor go in your gear strip, under the tool belt. Click the dagger in your bag and press \"Hold\".",
         ],
         give: [DAGGER],
@@ -564,8 +564,8 @@ export const CHAPTERS: Chapter[] = [
         ensure: [DAGGER], protect: ["dagger_"],
       },
       {
-        task: "Defeat 3 chickens (in the field north-west of town)", goal: { kind: "kill", monster: "chicken", count: 3 },
-        hint: "The chickens peck about in the field north-west of town. Click one to attack it. They never fight back.",
+        task: "Defeat 3 chickens (in the coop west of the square)", goal: { kind: "kill", monster: "chicken", count: 3 },
+        hint: "The chickens peck about in the fenced coop west of the square, by the lake. Click one to attack it. They never fight back.",
         ensure: [DAGGER], protect: ["dagger_"], fightWith: "weapon",
       },
       {
@@ -582,8 +582,8 @@ export const CHAPTERS: Chapter[] = [
         ensure: [{ item: "helmet_bronze" }, { item: "shield_bronze" }], protect: ["helmet_", "shield_"],
       },
       {
-        task: "Defeat 2 rats (around the quarry, north of Trainer Row)", goal: { kind: "kill", monster: "rat", count: 2 },
-        hint: "The rats scurry around the quarry rocks north of Trainer Row. They bite back, so watch your ❤ health.",
+        task: "Defeat 2 rats (around the quarry, up the north road)", goal: { kind: "kill", monster: "rat", count: 2 },
+        hint: "The rats scurry around the quarry rocks, up the north road past the Lighthall. They bite back, so watch your ❤ health.",
         ensure: [DAGGER], protect: ["dagger_", "helmet_", "shield_"], fightWith: "weapon",
       },
       {
@@ -665,7 +665,7 @@ export const CHAPTERS: Chapter[] = [
       },
       {
         task: "Dig up 3 things from glinting dig patches", goal: { kind: "gather", skill: "foraging", count: 3, withTool: true },
-        hint: "There's a dig patch just outside my door, and more in the meadows round the lake and the square. Click one that glints. Once it's dug out, it glints again after a while.",
+        hint: "There's a dig patch just outside my door, and more in the meadows round town and up in the hills. Click one that glints. Once it's dug out, it glints again after a while.",
         ensure: [SHOVEL], protect: ["shovel_"], needsTool: "shovel",
       },
       {
@@ -806,7 +806,7 @@ export const CHAPTERS: Chapter[] = [
 
   // ---------------- Farmer Odo: Something to grow (shared/farming.ts) ----------------
   {
-    id: "odo", title: "Something to grow", giver: "odo", name: ODO, where: "at the farm: cross the bridge to the east island, then the next bridge east",
+    id: "odo", title: "Something to grow", giver: "odo", name: ODO, where: "at the farm: follow the road east, over the river bridge",
     steps: [
       {
         task: `Talk to ${ODO} at the farm`, goal: { kind: "talk" }, unlocks: ["farming"],

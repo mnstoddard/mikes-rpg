@@ -100,7 +100,7 @@ export const INGREDIENTS: Record<IngredientId, IngredientDef> = {
   }])) as Record<FishId, IngredientDef>,
   raw_chicken: { kind: "poultry", stamina: 4, level: 1, xp: 3, from: "Chickens drop it" },
   raw_beef:    { kind: "meat",    stamina: 6, level: 5, xp: 5, from: "Cows drop it" },
-  raw_boar:    { kind: "meat",    stamina: 9, level: 8, xp: 7, from: "Boars drop it, in the meadow south-east of the square" },
+  raw_boar:    { kind: "meat",    stamina: 9, level: 8, xp: 7, from: "Boars drop it, in the fenced pasture south-east of the square" },
   potato:      { kind: "veg",     stamina: 2, level: 1, xp: 1, from: "The General Store sells them" },
   carrot:      { kind: "veg",     stamina: 2, level: 1, xp: 1, from: "The General Store sells them" },
   mushroom:    { kind: "veg",     stamina: 3, level: 3, xp: 2, from: "Dug up with Foraging, or found now and then while chopping trees" },

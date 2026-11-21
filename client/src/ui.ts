@@ -2208,7 +2208,7 @@ function renderGuild() {
   const btn = document.createElement("button");
   btn.className = "shop-btn";
   if (!size) {
-    chestBox.append(el("bounty-note", `Rent ${CHEST_START} spaces for ${formatMoney(CHEST_RENT)}. Each space holds a whole stack. Open it from any enchanted chest: here, on the east island, or in the Dark Forest.`));
+    chestBox.append(el("bounty-note", `Rent ${CHEST_START} spaces for ${formatMoney(CHEST_RENT)}. Each space holds a whole stack. Open it from any enchanted chest: here, at the inn, on the coast, at the farm or in the Dark Forest.`));
     btn.textContent = `Rent (${formatMoney(CHEST_RENT)})`;
   } else {
     chestBox.append(el("bounty-note", `You have ${size} spaces.` + (cost == null ? " That's as big as they get." : "")));
@@ -2583,7 +2583,7 @@ function renderVitalBars() {
   const hpLow = vitals.hp <= vitals.maxHp / 4;
   staminaEl.append(
     vitalRow("❤", vitals.hp, vitals.maxHp, hpLow ? "#ff3b30" : "#d6443a",
-      `Health ${vitals.hp} of ${vitals.maxHp}. Monsters take it away. Drink a health potion to get it back (it also comes back 1 a minute). At 0 you wake up next to Old Maren.`),
+      `Health ${vitals.hp} of ${vitals.maxHp}. Monsters take it away. Drink a health potion to get it back (it also comes back 1 a minute). At 0 you wake up at the Heart Shrine in the Lighthall.`),
     vitalRow("⚡", staminaNow, staminaMax, staminaNow < 10 ? "#e74c3c" : staminaNow < 30 ? "#f1c40f" : "#f5c542",
       `Stamina ${staminaNow} of ${staminaMax}. Chopping costs ${c.woodcutting}, mining ${c.mining}, digging ${c.foraging}, smelting ${c.smelting}, smithing ${c.smithing}, cooking ${c.cooking}, fishing ${c.fishing}, each weapon attack ${c.melee}. ` +
       "It comes back 1 every 30 seconds. Eat fish or a meal (click it in your bag) for more."),

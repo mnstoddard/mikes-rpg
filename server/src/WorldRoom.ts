@@ -1,6 +1,6 @@
 import { Room, Client, ServerError } from "colyseus";
 import { ArraySchema, MapSchema, Schema, type } from "@colyseus/schema";
-import { MAP, MAP_HEIGHT, MAP_WIDTH, TICK_MS, isDanger, isWalkable, randomSpawn } from "../../shared/map";
+import { Door, MAP, MAP_HEIGHT, MAP_WIDTH, TICK_MS, TOWN_SPOT, WAKE_SPOT, areaAt, doorAt, isDanger, isWalkable, randomSpawn, spotNear } from "../../shared/map";
 import { findPath, Point } from "../../shared/pathfinding";
 import {
   RESOURCES, RESOURCE_FOR_ITEM, ROCK_EMPTY_CHANCE, ResourceId, TREE_FALL_CHANCE,
@@ -85,7 +85,7 @@ import {
 import { SHOPS, SHOP_IDS, ShopId, isShop } from "../../shared/shops";
 import { RepairJob, isBroken, isRepairable, maxUses, repairCost } from "../../shared/repair";
 import { BOUNTY_COUNT, Bounty, bountyChoices, bountyName, bountyReward, newBoard, newBounty, slotCounts, validBounty } from "../../shared/bounties";
-import { Account, SAVE_VERSION, SaveData, checkPassword, hashPassword, store, usernameKey } from "./storage";
+import { Account, MAP_REV, SAVE_VERSION, SaveData, checkPassword, hashPassword, store, usernameKey } from "./storage";
 import { PLAYER_COLORS, isPlayerColor } from "../../shared/colors";
 import { RENOWN_RANKS, RenownView, earnedTitles, rankForRenown } from "../../shared/renown";
 import { REROLL_FEE, boardDay } from "../../shared/bounties";
@@ -837,7 +837,7 @@ export class WorldRoom extends Room<WorldState> {
       if (msg?.reconnected) return;
       const step = this.step(p);
       if (!step) this.say(client, tutorialDone(p.quest) ? "Welcome back!" : "Welcome back! Talk to anyone with a ❗ for your next lesson.");
-      else if (p.quest.active === "maren" && p.quest.ch.maren?.step === 0) this.say(client, `Welcome! Go and talk to ${GUIDE_NAME} (the ❗ in the town square, by the stove). She'll show you how to get started.`);
+      else if (p.quest.active === "maren" && p.quest.ch.maren?.step === 0) this.say(client, `Welcome! Go and talk to ${GUIDE_NAME} (the ❗ on the Lighthall's steps${areaAt(p.x, p.y)?.id === "lighthall" ? ": walk out of the big doors at the bottom of this hall" : ", just north of you"}). She'll show you how to get started.`);
       else this.say(client, `Welcome back! Your task: ${step.task}.`);
       for (const note of p.loginNotes.splice(0)) this.say(client, note);
     });
@@ -857,7 +857,7 @@ export class WorldRoom extends Room<WorldState> {
     this.onMessage("attack", (client, msg: { id: string }) => {
       const p = this.state.players.get(client.sessionId);
       const m = this.state.monsters.get(String(msg?.id));
-      if (!p || !m || !m.alive) return;
+      if (!p || !m || !m.alive || areaAt(m.x, m.y) !== areaAt(p.x, p.y)) return;
       if (isDanger(m.x, m.y) && !isDanger(p.x, p.y) && !gateOpen(p.quest)) return this.say(client, this.notReady());
       const blocked = this.fightBlock(p);
       if (blocked) return this.say(client, blocked);
@@ -1074,7 +1074,7 @@ export class WorldRoom extends Room<WorldState> {
       p.chest.slotCount = next;
       this.say(client, size
         ? `🔮 Archmage Ysolde widens your chest's enchantment: ${next} spaces now, for ${formatMoney(cost)}.`
-        : `🔮 You rent space in the enchanted chest for ${formatMoney(cost)}: ${next} spaces. Open it here, on the east island or in the Dark Forest.`);
+        : `🔮 You rent space in the enchanted chest for ${formatMoney(cost)}: ${next} spaces. Open it here, at the Hearthstone Inn, on the coast or in the Dark Forest.`);
       client.send("coins", p.coins);
       this.sendGuild(client, p);
       this.saveSoon(p);
@@ -1232,6 +1232,13 @@ export class WorldRoom extends Room<WorldState> {
       p.x = next.x;
       p.y = next.y;
       p.dirty = true;
+      // Walked onto a door: through it you go.
+      const door = !p.path.length ? doorAt(p.x, p.y) : null;
+      if (door) {
+        this.goThrough(p, door);
+        p.nextStepAt = now + p.stepMs;
+        return;
+      }
       if (!p.path.length && p.talkTo) {
         const npc = p.talkTo;
         p.talkTo = null;
@@ -2032,8 +2039,25 @@ export class WorldRoom extends Room<WorldState> {
 
   // ---- Combat (numbers in shared/combat.ts) ----
 
+  /** Step through a door into another area (a shop, a cave...). Dangerous places stay shut until Kael's lesson. */
+  private goThrough(p: Player, door: Door) {
+    const sid = this.sidOf(p);
+    const client = sid ? this.clients.getById(sid) : undefined;
+    if (isDanger(door.to.x, door.to.y) && !isDanger(p.x, p.y) && !gateOpen(p.quest)) {
+      if (client) this.say(client, this.notReady());
+      return;
+    }
+    this.stopActions(p);
+    p.path = [];
+    p.x = door.to.x;
+    p.y = door.to.y;
+    p.dirty = true;
+    // Monsters chasing you lose track of you.
+    this.state.monsters.forEach((m) => { if (m.target === sid) m.target = null; });
+  }
+
   private notReady() {
-    return `⚠ You're not ready to go in there yet. ${GUIDE_NAME} will tell you when you are.`;
+    return `⚠ You're not ready to go in there yet. Monsters there attack on sight: finish Huntmaster Kael's lesson first (he'll open the gate for you).`;
   }
 
   private twoHanded(item: string | undefined) {
@@ -2477,7 +2501,7 @@ export class WorldRoom extends Room<WorldState> {
         let best = AGGRO_RADIUS + 1;
         this.state.players.forEach((pl, sid) => {
           const d = tileDistance(pl, m);
-          if (d < best && !pl.invisible && isDanger(pl.x, pl.y) && tileDistance(pl, home) <= LEASH_RADIUS) { best = d; m.target = sid; target = pl; }
+          if (d < best && !pl.invisible && isDanger(pl.x, pl.y) && tileDistance(pl, home) <= LEASH_RADIUS && areaAt(pl.x, pl.y) === areaAt(home.x, home.y)) { best = d; m.target = sid; target = pl; }
         });
       }
       // Packs: when one goes for you, the rest of the pack nearby joins in.
@@ -2517,7 +2541,7 @@ export class WorldRoom extends Room<WorldState> {
     let bestD = tileDistance(m, goal);
     for (const d of [...CARDINAL, { x: 1, y: 1 }, { x: 1, y: -1 }, { x: -1, y: 1 }, { x: -1, y: -1 }]) {
       const n = { x: m.x + d.x, y: m.y + d.y };
-      if (!isWalkable(n.x, n.y) || isDanger(n.x, n.y) !== danger || tileDistance(n, home) > LEASH_RADIUS) continue;
+      if (!isWalkable(n.x, n.y) || doorAt(n.x, n.y) || isDanger(n.x, n.y) !== danger || tileDistance(n, home) > LEASH_RADIUS) continue;
       if (d.x && d.y && (!isWalkable(m.x + d.x, m.y) || !isWalkable(m.x, m.y + d.y))) continue;
       let taken = false;
       this.state.monsters.forEach((o) => { if (o !== m && o.alive && o.x === n.x && o.y === n.y) taken = true; });
@@ -2581,20 +2605,19 @@ export class WorldRoom extends Room<WorldState> {
     }
   }
 
-  /** Out of health: you wake up next to Old Maren with half your health, and keep everything. */
+  /** Out of health: you wake up at the Heart Shrine (in the Lighthall) with half your health, and keep everything. */
   private die(p: Player, sessionId: string, killer: string) {
     const client = this.clients.getById(sessionId);
     this.stopActions(p);
     p.path = [];
     p.hp = Math.ceil(p.maxHp / 2);
     this.state.monsters.forEach((m) => { if (m.target === sessionId) m.target = null; });
-    const maren = npcById("maren")!;
-    const spot = [...CARDINAL, { x: 1, y: 1 }, { x: -1, y: 1 }].map((d) => ({ x: maren.x + d.x, y: maren.y + d.y })).find((t) => isWalkable(t.x, t.y)) ?? randomSpawn();
+    const spot = spotNear(WAKE_SPOT);
     p.x = spot.x;
     p.y = spot.y;
     p.dirty = true;
     if (client) {
-      this.say(client, `☠ The ${killer.toLowerCase()} knocked you out! You wake up next to ${GUIDE_NAME} with half your health. You kept all your things.`);
+      this.say(client, `☠ The ${killer.toLowerCase()} knocked you out! You wake up at the Heart Shrine in the Lighthall with half your health. You kept all your things.`);
       client.send("died", {});
       this.sendVitals(client, p);
     }
@@ -3229,7 +3252,7 @@ export class WorldRoom extends Room<WorldState> {
       return true;
     }
     if (!chapterOpen(q, chapter.id)) {
-      this.say(client, `${chapter.name}: Come and see me for a lesson once ${GUIDE_NAME} has shown you the basics. She's in the town square, by the stove.`);
+      this.say(client, `${chapter.name}: Come and see me for a lesson once ${GUIDE_NAME} has shown you the basics. She's on the Lighthall's steps, in the town square.`);
       return false;
     }
     if (q.active !== chapter.id) {
@@ -3274,7 +3297,7 @@ export class WorldRoom extends Room<WorldState> {
       if (step.coins) names.push(formatMoney(step.coins));
       this.say(client, `${chapter.name} gives you ${names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0]}.`);
     }
-    if (step.opensGate) this.say(client, "🚪 The gate to the Dark Forest is open to you now. It's just south of Kael's lodge, past the ⚠ sign.");
+    if (step.opensGate) this.say(client, "🚪 The gate to the Dark Forest is open to you now. It's just south of Kael's lodge on the south road, past the ⚠ signs.");
     if (step.opensBoard) this.say(client, "📋 The bounty board is open to you now. Its jobs are in the 📜 Quests tab too.");
     this.advance(p, client);
     if (step.opensBoard) { this.fillBoard(p); this.sendBounties(client, p); }
@@ -3502,7 +3525,7 @@ export class WorldRoom extends Room<WorldState> {
     }
     p.dirty = true;
     void this.saveFarms();
-    const where = LOTS[lot].y < 10 ? "north of the farm path" : "south of the farm path";
+    const where = LOTS[lot].y < 73 ? "north of the road" : "south of the road";
     this.say(client, mine ? `🌾 Your plot is now ${plot.w} × ${plot.h}.`
       : `🌾 You have a plot! It's ${plot.w} × ${plot.h}, ${where}: look for your name on its sign. Click it to plant${price ? "" : " (Odo paid for this one)"}.`);
     client.send("coins", p.coins);
@@ -3965,18 +3988,24 @@ export class WorldRoom extends Room<WorldState> {
     if (save.saveVersion !== SAVE_VERSION) {
       if (Object.keys(save).length) console.log(`${p.name}: old save (version ${save.saveVersion ?? "none"}), starting over`);
       save = {};
-      // New characters start on the road near Old Maren.
-      const spawn = { x: 27 + Math.floor(Math.random() * 4), y: 11 };
-      if (isWalkable(spawn.x, spawn.y)) { p.x = spawn.x; p.y = spawn.y; return; }
+      // New characters wake up on the steps of the Heart Shrine, inside the Lighthall.
+      const spawn = spotNear(WAKE_SPOT);
+      p.x = spawn.x;
+      p.y = spawn.y;
+      return;
     }
     if (save.quest) p.quest = migrateQuest(save.quest, save.questRev);
-    if (Number.isInteger(save.x) && Number.isInteger(save.y) && isWalkable(save.x!, save.y!)) {
+    if (save.mapRev === MAP_REV && Number.isInteger(save.x) && Number.isInteger(save.y) && isWalkable(save.x!, save.y!) && !doorAt(save.x!, save.y!)) {
       p.x = save.x!;
       p.y = save.y!;
     } else {
+      // From before the world grew (or somewhere that isn't there any more): the town square.
       const spawn = randomSpawn();
       p.x = spawn.x;
       p.y = spawn.y;
+      if (save.mapRev !== MAP_REV) {
+        p.loginNotes.push("🗺️ The world has grown! You're in the town square, by the steps of the Lighthall, the Lightkeepers' great white temple. Shops and trainers work indoors now: walk onto a door to go in. Tap 🗺️ (top right) for a map.");
+      }
     }
     // Load the saved bag as it was (older saves had 28 slots, one entry each), then fit it into today's bag below.
     const grouped = Array.isArray(save.slots);
@@ -4094,7 +4123,7 @@ export class WorldRoom extends Room<WorldState> {
     const dest = p.path.length ? p.path[p.path.length - 1] : p;
     const bag = cloneBag(p);
     compact(bag); // leave out unused entries
-    return { saveVersion: SAVE_VERSION, questRev: QUEST_REV, quest: structuredClone(p.quest), x: dest.x, y: dest.y, inventory: bag.inventory, slots: bag.slotOf, coins: p.coins, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: bag.durability, belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), hp: p.hp, hpAt: Date.now(), gear: { ...p.gear }, spell: p.spell, combatMastery: { ...p.combatMastery }, tree: { ...p.tree }, lockedSlots: bag.locked.flatMap((on, i) => (on ? [i] : [])), bounties: p.bounties.map((b) => ({ ...b })), tracked: p.tracked ?? undefined, color: p.color, counts: bag.counts, jewels: { ...p.jewels }, discovered: [...p.discovered], books: [...p.books], spellBar: p.barFresh ? undefined : [...p.spellBar], buffs: structuredClone(p.buffs), guild: this.guildSave(p), farmChest: p.farmChest || undefined, renownRank: p.renownRank || undefined, title: p.title || undefined, boardDay: p.boardDay || undefined, guildDay: p.guildDay || undefined };
+    return { saveVersion: SAVE_VERSION, mapRev: MAP_REV, questRev: QUEST_REV, quest: structuredClone(p.quest), x: dest.x, y: dest.y, inventory: bag.inventory, slots: bag.slotOf, coins: p.coins, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: bag.durability, belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), hp: p.hp, hpAt: Date.now(), gear: { ...p.gear }, spell: p.spell, combatMastery: { ...p.combatMastery }, tree: { ...p.tree }, lockedSlots: bag.locked.flatMap((on, i) => (on ? [i] : [])), bounties: p.bounties.map((b) => ({ ...b })), tracked: p.tracked ?? undefined, color: p.color, counts: bag.counts, jewels: { ...p.jewels }, discovered: [...p.discovered], books: [...p.books], spellBar: p.barFresh ? undefined : [...p.spellBar], buffs: structuredClone(p.buffs), guild: this.guildSave(p), farmChest: p.farmChest || undefined, renownRank: p.renownRank || undefined, title: p.title || undefined, boardDay: p.boardDay || undefined, guildDay: p.guildDay || undefined };
   }
 
   private async save(p: Player) {

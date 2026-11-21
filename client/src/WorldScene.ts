@@ -1,6 +1,8 @@
 import Phaser from "phaser";
 import { getStateCallbacks, Room } from "colyseus.js";
-import { MAP, MAP_HEIGHT, MAP_WIDTH, TICK_MS, TILE_SIZE, Tile, isDanger, isWalkable } from "../../shared/map";
+import { AREAS, AreaDef, DOORS, MAP, MAP_HEIGHT, MAP_WIDTH, OUTDOORS, TICK_MS, TILE_SIZE, areaAt, doorAt, isWalkable } from "../../shared/map";
+import { buildTileset, emptyRockTexture, fishingSpotsIn, patchTextures, rockTexture, stumpTexture, treeTexture } from "./mapDraw";
+import { setWorldMapActions, setWorldMapMarks, updateWorldMap } from "./worldmap";
 import { CombatMasteryId, CombatMasteryXp, MONSTERS, MonsterId, SpellId, combatMasteryName } from "../../shared/combat";
 import type { Gear } from "../../shared/gear";
 import { RESOURCES, ResourceId, fishAt, isFishingSpot, nodeAt, treeKey } from "../../shared/foraging";
@@ -36,14 +38,6 @@ import type { RenownView } from "../../shared/renown";
 import { setRenown, setRenownActions, renderParty, setPartyActions, showPartyInvite, addPartyChat, PartyMember } from "./ui";
 import { NIGHT_DARKNESS, darkness, isNight, minutesUntilChange } from "../../shared/daynight";
 
-const TILE_COLORS: Record<Tile, number> = {
-  grass: 0x4a8f3c, path: 0xb89b6a, water: 0x2d6fa3, tree: 0x2e5e22, rock: 0x7d7d7d, bridge: 0x8b5a2b,
-  fence: 0x4a8f3c, gate: 0x9a8058, sign: 0x4a8f3c, wall: 0x4b3a6b, floor: 0x6d5a8e,
-  house: 0x7a4f2a, boards: 0xa47a4c, dig: 0x4a8f3c, field: 0x5b8a34, cave: 0x3d3846, cavewall: 0x1f1b24, crystal: 0x33405a,
-};
-/** The Dark Forest's ground is darker and bluer, so you can see where danger starts. */
-const DARK_COLORS: Partial<Record<Tile, number>> = { grass: 0x23432a, path: 0x6b5a42, fence: 0x23432a, gate: 0x6b5a42, dig: 0x23432a };
-
 interface MonsterView {
   container: Phaser.GameObjects.Container;
   body: Phaser.GameObjects.Text;
@@ -69,7 +63,9 @@ const MAX_ZOOM = 3;
 const TAP_SLOP = 12; // px a finger can wobble and still count as a tap
 const ZOOM_KEY = "rpg.zoom";
 
-interface TreeView { tree: Phaser.GameObjects.Graphics; stump: Phaser.GameObjects.Graphics }
+interface TreeView { tree: Phaser.GameObjects.GameObject & { setVisible(v: boolean): unknown }; stump: Phaser.GameObjects.GameObject & { setVisible(v: boolean): unknown } }
+/** Outdoors the sea shows past the map's edge; inside places float in black. */
+const SEA = 0x2d6fa3;
 
 export class WorldScene extends Phaser.Scene {
   private room?: Room;
@@ -94,12 +90,17 @@ export class WorldScene extends Phaser.Scene {
   /** Server clock minus ours, so everyone's day and night match. */
   private clockOffset = 0;
   private wasNight: boolean | null = null;
+  /** One layer per area (the outdoors, each building and cave): only the one you're in is shown. */
+  private areaLayers = new Map<string, Phaser.GameObjects.Layer>();
+  /** The area you're in now. */
+  private here: AreaDef = OUTDOORS;
 
   constructor() { super("world"); }
 
   async create() {
     this.drawMap();
     this.drawNpcs();
+    this.showArea(OUTDOORS);
     this.nightShade = this.add.rectangle(MAP_WIDTH * TILE_SIZE / 2, MAP_HEIGHT * TILE_SIZE / 2, MAP_WIDTH * TILE_SIZE + 8000, MAP_HEIGHT * TILE_SIZE + 8000, 0x0a1238, 1)
       .setDepth(450);
     this.time.addEvent({ delay: 1000, loop: true, callback: () => this.updateDaylight() });
@@ -113,6 +114,7 @@ export class WorldScene extends Phaser.Scene {
     // the background is the same colour as the sea, so the island just floats.
     this.cameras.main.centerOn(MAP_WIDTH * TILE_SIZE / 2, MAP_HEIGHT * TILE_SIZE / 2);
     this.setupZoom();
+    setWorldMapActions();
     renderBag(emptyBag(0));
 
     // A mouse click acts the moment you press. A finger acts on release, so a
@@ -208,6 +210,7 @@ export class WorldScene extends Phaser.Scene {
     });
     room.onMessage("quest", (q: QuestView) => {
       this.alerts.forEach((a, id) => a.setVisible(q.marks.includes(id as never)));
+      setWorldMapMarks(q.marks);
       renderQuest(q);
     });
     room.onMessage("clock", (msg: { now: number }) => {
@@ -375,94 +378,87 @@ export class WorldScene extends Phaser.Scene {
     });
   }
 
+  /** The layer for whatever area a tile is in (things in the gaps between areas go outdoors). */
+  private layerAt(x: number, y: number): Phaser.GameObjects.Layer {
+    return this.areaLayers.get(areaAt(x, y)?.id ?? OUTDOORS.id)!;
+  }
+
+  /** Put a game object on the layer of the area at tile (x, y). */
+  private put<T extends Phaser.GameObjects.GameObject>(obj: T, x: number, y: number): T {
+    this.layerAt(x, y).add(obj);
+    return obj;
+  }
+
+  /**
+   * Draw the world: each area gets its own layer with a tilemap for the ground,
+   * and pictures for trees, rocks, dig patches and fishing spots on top.
+   */
   private drawMap() {
-    const g = this.add.graphics();
-    for (let y = 0; y < MAP_HEIGHT; y++) {
-      for (let x = 0; x < MAP_WIDTH; x++) {
-        const t = MAP[y][x];
-        const px = x * TILE_SIZE, py = y * TILE_SIZE;
-        // Grass underneath trees and rocks (dark forest floor in the danger zone).
-        // (Rocks in the crystal cave sit on the cave floor.)
-        const node = t === "rock" ? nodeAt(x, y) : null;
-        const ground = node && (RESOURCES[node].gem || node === "platinum" || node === "iridium") ? "crystal" : t === "tree" || t === "rock" ? "grass" : t;
-        const base = (isDanger(x, y) ? DARK_COLORS[ground] : undefined) ?? TILE_COLORS[ground];
-        // Slight checkerboard shading so you can see the tile grid.
-        g.fillStyle(base, (x + y) % 2 ? 1 : 0.92);
-        g.fillRect(px, py, TILE_SIZE, TILE_SIZE);
-        if (t === "tree") {
-          this.trees.set(treeKey(x, y), this.makeTree(px, py, y, nodeAt(x, y)!));
-        } else if (t === "rock") {
-          this.rocks.set(treeKey(x, y), this.makeRock(px, py, y, nodeAt(x, y)!));
-        } else if (t === "field") {
-          // A fallow farm lot: rows of rough grass.
-          g.fillStyle(0x4f7a2c, 0.7).fillRect(px + 2, py + 6, TILE_SIZE - 4, 3).fillRect(px + 2, py + 20, TILE_SIZE - 4, 3);
-        } else if (t === "dig") {
-          this.patches.set(treeKey(x, y), this.makeDigPatch(px, py, y));
-        } else if (t === "cavewall") {
-          // Rough rock: a few lighter lumps.
-          g.fillStyle(0x3a3442).fillCircle(px + 9, py + 10, 6).fillCircle(px + 22, py + 20, 7);
-          g.fillStyle(0x4d4657, 0.8).fillCircle(px + 7, py + 8, 2.5).fillCircle(px + 20, py + 17, 3);
-        } else if (t === "crystal") {
-          // Little glowing crystals poking out of the floor.
-          const hue = [0x9b59b6, 0x5dade2, 0x48c9b0, 0xf5b041][(x * 5 + y * 3) % 4];
-          g.fillStyle(hue, 0.85).fillTriangle(px + 6, py + 26, px + 9, py + 16, px + 12, py + 26);
-          if ((x + y) % 2) g.fillStyle(0xd6eaf8, 0.7).fillTriangle(px + 20, py + 12, px + 23, py + 4, px + 25, py + 12);
-        } else if (t === "cave") {
-          // Pebbles on the cave floor, and a cobweb now and then.
-          g.fillStyle(0x58516a, 0.9).fillCircle(px + 8, py + 24, 1.6).fillCircle(px + 24, py + 9, 1.3);
-          if ((x * 7 + y * 3) % 4 === 0) g.lineStyle(1, 0xd8d8e0, 0.35).lineBetween(px, py, px + 12, py + 12).lineBetween(px + 12, py, px, py + 12).strokeCircle(px + 3, py + 3, 5);
-        } else if (t === "water" && fishAt(x, y) && fishAt(x, y) !== "minnow") {
-          this.makeFishingSpot(px, py, fishAt(x, y)!);
-        } else if (t === "fence") {
-          // Wooden posts and two rails.
-          g.fillStyle(0x5c3a1a).fillRect(px + 3, py + 6, 5, 24).fillRect(px + 24, py + 6, 5, 24);
-          g.fillStyle(0x7a5230).fillRect(px, py + 11, TILE_SIZE, 4).fillRect(px, py + 21, TILE_SIZE, 4);
-        } else if (t === "gate") {
-          g.fillStyle(0x5c3a1a).fillRect(px, py + 4, 4, 26).fillRect(px + 28, py + 4, 4, 26);
-          g.lineStyle(2, 0x7a5230, 0.9).lineBetween(px + 4, py + 12, px + 10, py + 12).lineBetween(px + 22, py + 12, px + 28, py + 12);
-        } else if (t === "sign") {
-          this.add.text(px + 16, py + 14, "⚠️", { fontSize: "20px" }).setOrigin(0.5).setDepth(10 + y);
-          g.fillStyle(0x5c3a1a).fillRect(px + 14, py + 22, 4, 9);
-        } else if (t === "wall") {
-          // Purple stone blocks, with a darker line between rows.
-          g.fillStyle(0x3a2c55).fillRect(px, py + 15, TILE_SIZE, 2).fillRect(px + 15, py, 2, 15).fillRect(px + 6, py + 17, 2, 15);
-          g.fillStyle(0x7b67a6, 0.6).fillRect(px, py, TILE_SIZE, 2);
-        } else if (t === "house") {
-          // Wooden walls: planks with a dark beam along the top.
-          g.fillStyle(0x5a3a1e).fillRect(px, py + 10, TILE_SIZE, 2).fillRect(px, py + 21, TILE_SIZE, 2);
-          g.fillStyle(0x3e2712).fillRect(px, py, TILE_SIZE, 4);
-        } else if (t === "boards") {
-          // Floorboards.
-          g.lineStyle(1, 0x7d5a35, 0.8).lineBetween(px, py + 8, px + TILE_SIZE, py + 8).lineBetween(px, py + 16, px + TILE_SIZE, py + 16).lineBetween(px, py + 24, px + TILE_SIZE, py + 24);
-        } else if (t === "floor") {
-          // Rug pattern: a little star in the middle of each tile.
-          g.fillStyle(0x8f78b8, 0.5).fillCircle(px + 16, py + 16, 3);
-        } else if (t === "bridge") {
-          g.lineStyle(2, 0x5c3a1a).lineBetween(px, py + 10, px + TILE_SIZE, py + 10)
-            .lineBetween(px, py + 22, px + TILE_SIZE, py + 22);
+    const tileIndex = buildTileset(this);
+    const [patch, dug] = patchTextures(this);
+    const stump = stumpTexture(this);
+    const emptyRock = emptyRockTexture(this);
+    for (const a of AREAS) {
+      const layer = this.add.layer().setDepth(0).setVisible(false);
+      this.areaLayers.set(a.id, layer);
+      const data: number[][] = [];
+      for (let y = a.y; y < a.y + a.h; y++) {
+        const row: number[] = [];
+        for (let x = a.x; x < a.x + a.w; x++) row.push(tileIndex(x, y));
+        data.push(row);
+      }
+      const map = this.make.tilemap({ data, tileWidth: TILE_SIZE, tileHeight: TILE_SIZE });
+      const tiles = map.addTilesetImage("tiles", "tiles", TILE_SIZE, TILE_SIZE, 0, 0)!;
+      const ground = map.createLayer(0, tiles, a.x * TILE_SIZE, a.y * TILE_SIZE)!;
+      layer.add(ground.setDepth(0));
+      for (let y = a.y; y < a.y + a.h; y++) {
+        for (let x = a.x; x < a.x + a.w; x++) {
+          const t = MAP[y][x];
+          const px = x * TILE_SIZE, py = y * TILE_SIZE;
+          if (t === "tree") {
+            const tree = layer.add(this.make.image({ x: px, y: py, key: treeTexture(this, nodeAt(x, y)!) }, false).setOrigin(0).setDepth(10 + y)) as Phaser.GameObjects.Image;
+            const st = layer.add(this.make.image({ x: px, y: py, key: stump }, false).setOrigin(0).setDepth(10 + y).setVisible(false)) as Phaser.GameObjects.Image;
+            this.trees.set(treeKey(x, y), { tree, stump: st });
+          } else if (t === "rock") {
+            const rock = layer.add(this.make.image({ x: px, y: py, key: rockTexture(this, nodeAt(x, y)!) }, false).setOrigin(0).setDepth(10 + y)) as Phaser.GameObjects.Image;
+            const empty = layer.add(this.make.image({ x: px, y: py, key: emptyRock }, false).setOrigin(0).setDepth(10 + y).setVisible(false)) as Phaser.GameObjects.Image;
+            this.rocks.set(treeKey(x, y), { tree: rock, stump: empty });
+          } else if (t === "dig") {
+            this.patches.set(treeKey(x, y), this.makeDigPatch(layer, px, py, y, patch, dug));
+          }
         }
       }
+      for (const f of fishingSpotsIn(a)) this.makeFishingSpot(layer, f.x * TILE_SIZE, f.y * TILE_SIZE, f.type);
+    }
+    // Name signs over the doors of shops, trainers and caves.
+    for (const d of DOORS) {
+      if (!d.sign) continue;
+      const [sx, sy] = this.tileCenter(d.x, d.y);
+      this.put(this.add.text(sx, sy - 24, d.sign, { fontSize: "11px", color: "#ffe9b8", stroke: "#000", strokeThickness: 3, backgroundColor: "#4a2e14cc", padding: { x: 3, y: 1 } })
+        .setOrigin(0.5).setDepth(12 + d.y), d.x, d.y);
     }
   }
 
+  /** Show only the area you're in (its layer), with the right background and lighting. */
+  private showArea(a: AreaDef) {
+    this.here = a;
+    this.areaLayers.forEach((layer, id) => layer.setVisible(id === a.id));
+    this.cameras.main.setBackgroundColor(a.kind === "outdoor" ? SEA : 0x000000);
+    this.updateDaylight();
+    updateWorldMap(this.myTile(), a);
+  }
+
+  /** Your tile, if you're in the world. */
+  private myTile(): { x: number; y: number } | null {
+    const me = this.room?.state.players.get(this.room.sessionId);
+    return me ? { x: me.x, y: me.y } : null;
+  }
+
   private drawNpcs() {
-    // A sign over the Mages' Guild hall's door.
-    const mage = NPCS.find((n) => n.id === "archmage");
-    if (mage) {
-      const [gx, gy] = this.tileCenter(mage.x, mage.y - 3);
-      this.add.text(gx, gy - 22, "🔮 Mages' Guild", { fontSize: "13px", color: "#e3ccff", stroke: "#000", strokeThickness: 3 }).setOrigin(0.5).setDepth(40);
-    }
-    // Signs over the trainers' doors (on the door tile, so they don't hide the room).
-    for (const npc of NPCS) {
-      if (!npc.sign) continue;
-      const [sx, sy] = this.tileCenter(npc.sign.x, npc.sign.y);
-      this.add.text(sx, sy, npc.sign.text, { fontSize: "11px", color: "#ffe9b8", stroke: "#000", strokeThickness: 3, backgroundColor: "#4a2e14cc", padding: { x: 3, y: 1 } })
-        .setOrigin(0.5).setDepth(40);
-    }
     for (const npc of NPCS) {
       if (npc.kind === "station") { this.drawStation(npc.id, npc.x, npc.y, npc.name); continue; }
       const [cx, cy] = this.tileCenter(npc.x, npc.y);
-      const c = this.add.container(cx, cy).setDepth(10 + npc.y + 0.5);
+      const c = this.put(this.add.container(cx, cy).setDepth(10 + npc.y + 0.5), npc.x, npc.y);
       const shadow = this.add.ellipse(0, 10, 20, 8, 0x000000, 0.3);
       const body = this.add.circle(0, 0, 10, npc.color).setStrokeStyle(2, 0x000000);
       const hat = this.add.graphics();
@@ -471,6 +467,19 @@ export class WorldScene extends Phaser.Scene {
         hat.fillStyle(0xd9d4c7).fillCircle(0, -9, 5);
         hat.fillStyle(0xe8c56a).fillEllipse(0, -11, 24, 5).fillRect(-6, -17, 12, 6);
         hat.fillStyle(0x2e86c1).fillRect(-6, -13, 12, 2);
+      } else if (["aldric", "celene", "oren", "lisette", "tomas", "wynne"].includes(npc.id)) {
+        // The Lightkeepers' white hoods, trimmed with gold.
+        // A hood drawn up over the head, with the face peeking out.
+        hat.fillStyle(0xf7f3e8).fillCircle(0, -3, 11).lineStyle(1.5, 0xd4a640).strokeCircle(0, -3, 11);
+        hat.fillStyle(0xf1c9a0).fillCircle(0, -1, 6);
+        hat.fillStyle(0x3b2410).fillCircle(-2, -2, 1).fillCircle(2, -2, 1);
+        if (npc.id === "aldric") hat.fillStyle(0xffd84a).fillCircle(0, -12, 2.5);
+      } else if (npc.id === "vale") {
+        // A deep violet cowl with a pale gem.
+        hat.fillStyle(0x3b2a6a).fillCircle(0, -3, 11);
+        hat.fillStyle(0xe0b48a).fillCircle(0, -1, 6);
+        hat.fillStyle(0x1b1030).fillCircle(-2, -2, 1).fillCircle(2, -2, 1);
+        hat.fillStyle(0xbfe8ff).fillCircle(0, -11, 2);
       } else if (npc.id === "archmage") {
         // A tall pointed wizard's hat with a star on it.
         hat.fillStyle(0x2d1b5e).fillEllipse(0, -10, 24, 5).fillTriangle(-8, -10, 8, -10, 2, -30);
@@ -496,10 +505,24 @@ export class WorldScene extends Phaser.Scene {
   /** The furnace (glowing fire) and the anvil in Brann's smithy, the stove (pot on top) by Maren, and the other stations. */
   private drawStation(id: string, x: number, y: number, name: string) {
     const [cx, cy] = this.tileCenter(x, y);
-    const c = this.add.container(cx, cy).setDepth(10 + y + 0.5);
+    const c = this.put(this.add.container(cx, cy).setDepth(10 + y + 0.5), x, y);
     const g = this.add.graphics();
     g.fillStyle(0x000000, 0.3).fillEllipse(0, 11, 26, 8);
-    if (id === "furnace") {
+    if (id === "heart_shrine") {
+      // A great crystal on a stone base, pouring out golden light.
+      const halo = this.add.circle(0, -8, 26, 0xffe27a, 0.25);
+      g.fillStyle(0xbdb6a0).fillRect(-14, 0, 28, 10);
+      g.fillStyle(0xd8d2c2).fillRect(-11, -4, 22, 5);
+      g.fillStyle(0xfff2b0).fillTriangle(-8, -2, 0, -30, 8, -2);
+      g.fillStyle(0xffffff, 0.8).fillTriangle(-2, -6, 0, -24, 3, -6);
+      c.add([halo, g]);
+      this.tweens.add({ targets: halo, scale: 1.25, alpha: 0.1, duration: 1600, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+    } else if (id === "plinth") {
+      g.fillStyle(0xbdb6a0).fillRect(-11, -6, 22, 16);
+      g.fillStyle(0xd8d2c2).fillRect(-13, -9, 26, 4);
+      g.lineStyle(1, 0x6a6458).lineBetween(-6, 2, 6, 4).lineBetween(-5, 4, 4, 1);
+      c.add(g);
+    } else if (id === "furnace") {
       g.fillStyle(0x6e3b25).fillRect(-12, -12, 24, 22);
       g.lineStyle(1, 0x3b1f12);
       for (let row = -12; row < 10; row += 5) g.lineBetween(-12, row, 12, row);
@@ -595,76 +618,24 @@ export class WorldScene extends Phaser.Scene {
     c.add(label);
   }
 
-  /** A rock with flecks in its ore's colour (plain for stone), and its emptied look. */
-  private makeRock(px: number, py: number, row: number, type: ResourceId): TreeView {
-    const full = this.add.graphics({ x: px, y: py }).setDepth(10 + row);
-    full.fillStyle(TILE_COLORS.rock).fillEllipse(16, 18, 26, 20);
-    full.fillStyle(0x9a9a9a).fillEllipse(12, 14, 10, 6);
-    if (type === "stone") {
-      full.lineStyle(1, 0x5a5a5a).lineBetween(9, 20, 15, 17).lineBetween(18, 23, 23, 19);
-    } else if (RESOURCES[type].gem) {
-      // Gem rocks: crystals in the gem's colour growing out of the rock.
-      const c = RESOURCES[type].color;
-      full.fillStyle(c).fillTriangle(7, 22, 10, 6, 14, 22).fillTriangle(13, 22, 17, 3, 21, 22).fillTriangle(19, 23, 23, 11, 26, 23);
-      full.fillStyle(0xffffff, 0.55).fillTriangle(10, 9, 11, 18, 12, 18).fillTriangle(17, 6, 18, 17, 19, 17);
-    } else {
-      const fleck = RESOURCES[type].color;
-      full.fillStyle(fleck).fillCircle(10, 19, 2.5).fillCircle(19, 15, 2).fillCircle(21, 22, 2.5).fillCircle(14, 23, 1.5);
-      if (RESOURCES[type].level >= 40) {
-        // Rare ores sparkle.
-        full.fillStyle(0xffffff, 0.9).fillCircle(19, 14, 0.8).fillCircle(9, 18, 0.8);
-      }
-    }
-    const empty = this.add.graphics({ x: px, y: py }).setDepth(10 + row).setVisible(false);
-    empty.fillStyle(0x6a6a6a).fillEllipse(16, 21, 22, 14);
-    empty.fillStyle(0x5a5a5a).fillEllipse(16, 22, 12, 6);
-    return { tree: full, stump: empty };
-  }
-
-  private makeTree(px: number, py: number, row: number, type: ResourceId): TreeView {
-    const tree = this.add.graphics({ x: px, y: py }).setDepth(10 + row);
-    const leaves = RESOURCES[type].color;
-    const highlight = Phaser.Display.Color.ValueToColor(leaves).lighten(18).color;
-    const trunk = type === "birch" ? 0xe8e4d8 : type === "ironwood" ? 0x3a3a3a : 0x5b3a1e;
-    tree.fillStyle(trunk).fillRect(13, 18, 6, 12);
-    if (type === "birch") tree.fillStyle(0x333333).fillRect(14, 21, 3, 1).fillRect(15, 25, 3, 1);
-    if (type === "pine") {
-      // Pines are pointy.
-      tree.fillStyle(leaves).fillTriangle(16, 0, 4, 22, 28, 22);
-      tree.fillStyle(highlight).fillTriangle(16, 3, 10, 14, 18, 14);
-    } else {
-      const big = RESOURCES[type].level >= 35 ? 13 : 11; // the rare ones are bigger
-      tree.fillStyle(leaves).fillCircle(16, 13, big);
-      tree.fillStyle(highlight).fillCircle(13, 10, 5);
-      if (type === "elderwood") tree.fillStyle(0xe0c8ff).fillCircle(20, 8, 1.5).fillCircle(10, 15, 1.5).fillCircle(21, 17, 1.5);
-    }
-    const stump = this.add.graphics({ x: px, y: py }).setDepth(10 + row).setVisible(false);
-    stump.fillStyle(0x5b3a1e).fillEllipse(16, 24, 14, 8);
-    stump.fillStyle(0xc9a26b).fillEllipse(16, 22, 12, 6);
-    return { tree, stump };
-  }
-
   /** A special fishing spot: little ripples in the fish's colour. */
-  private makeFishingSpot(px: number, py: number, type: ResourceId) {
+  private makeFishingSpot(layer: Phaser.GameObjects.Layer, px: number, py: number, type: ResourceId) {
     const color = RESOURCES[type].color;
-    const g = this.add.graphics({ x: px, y: py }).setDepth(5);
+    const g = this.make.graphics({ x: px, y: py }, false).setDepth(5);
     g.lineStyle(1.5, color, 0.9).strokeEllipse(16, 16, 18, 8);
     g.lineStyle(1, color, 0.6).strokeEllipse(16, 16, 26, 12);
     g.fillStyle(0xffffff, 0.8).fillCircle(12, 14, 1.2).fillCircle(20, 17, 1);
+    layer.add(g);
     this.tweens.add({ targets: g, alpha: 0.45, duration: 1100, yoyo: true, repeat: -1, ease: "Sine.easeInOut", delay: (px + py) % 700 });
   }
 
   /** A dig patch: a mound of turned earth with a twinkle on it. Dug out, it's a flat dark hole. */
-  private makeDigPatch(px: number, py: number, row: number): TreeView {
-    const tree = this.add.graphics({ x: px, y: py }).setDepth(5);
-    tree.fillStyle(0x6b4a2b).fillEllipse(16, 19, 22, 11);
-    tree.fillStyle(0x8a6239).fillEllipse(15, 17, 16, 7);
-    tree.fillStyle(0x4f3520).fillCircle(10, 19, 1.4).fillCircle(21, 20, 1.2);
-    const glint = this.add.text(px + 21, py + 9, "✦", { fontSize: "11px", color: "#fff6b0", stroke: "#8a6a10", strokeThickness: 2 }).setOrigin(0.5).setDepth(6 + row);
+  private makeDigPatch(layer: Phaser.GameObjects.Layer, px: number, py: number, row: number, patch: string, dug: string): TreeView {
+    const tree = this.make.image({ x: px, y: py, key: patch }, false).setOrigin(0).setDepth(5);
+    const glint = this.make.text({ x: px + 21, y: py + 9, text: "✦", style: { fontSize: "11px", color: "#fff6b0", stroke: "#8a6a10", strokeThickness: 2 } }, false).setOrigin(0.5).setDepth(6 + row);
     this.tweens.add({ targets: glint, alpha: 0.15, scale: 0.6, duration: 800, yoyo: true, repeat: -1, ease: "Sine.easeInOut", delay: (px * 3 + py) % 900 });
-    const stump = this.add.graphics({ x: px, y: py }).setDepth(5).setVisible(false);
-    stump.fillStyle(0x3e2a18, 0.9).fillEllipse(16, 19, 18, 8);
-    stump.fillStyle(0x6b4a2b).fillCircle(8, 16, 2).fillCircle(24, 17, 2.4);
+    const stump = this.make.image({ x: px, y: py, key: dug }, false).setOrigin(0).setDepth(5).setVisible(false);
+    layer.add([tree, glint, stump]);
     // Hide the glint along with the mound.
     const show = tree.setVisible.bind(tree);
     tree.setVisible = (v: boolean) => { glint.setVisible(v); return show(v); };
@@ -702,10 +673,16 @@ export class WorldScene extends Phaser.Scene {
         fontSize: "10px", color: "#ffd84a", fontStyle: "italic", stroke: "#000", strokeThickness: 3,
       }).setOrigin(0.5);
       container.add([shadow, body, label, bar, title]);
+      this.put(container, player.x, player.y);
       const view: PlayerView = { container, body, label, bar };
       this.players.set(sessionId, view);
 
-      if (isMe) this.cameras.main.startFollow(container, true, 0.15, 0.15);
+      if (isMe) {
+        this.cameras.main.startFollow(container, true, 0.15, 0.15);
+        const a = areaAt(player.x, player.y) ?? OUTDOORS;
+        if (a !== this.here) this.showArea(a);
+        else updateWorldMap({ x: player.x, y: player.y }, a);
+      }
 
       // Positions update once per server tick; glide to the new tile over one tick.
       $(player).listen("x", () => this.moveTo(view, player, isMe));
@@ -751,11 +728,26 @@ export class WorldScene extends Phaser.Scene {
     const [tx, ty] = this.tileCenter(player.x, player.y);
     if (view.container.x === tx && view.container.y === ty) return;
     view.tween?.stop();
-    // A long jump (waking up at Maren's) snaps straight there instead of sliding across the map.
-    if (Math.abs(view.container.x - tx) > TILE_SIZE * 2 || Math.abs(view.container.y - ty) > TILE_SIZE * 2) view.container.setPosition(tx, ty);
+    // Through a door (or waking up at the shrine): onto that area's layer.
+    const layer = this.layerAt(player.x, player.y);
+    if (view.container.displayList !== layer) layer.add(view.container);
+    // A long jump (a door, or waking up at the shrine) snaps straight there instead of sliding across the map.
+    const jump = Math.abs(view.container.x - tx) > TILE_SIZE * 2 || Math.abs(view.container.y - ty) > TILE_SIZE * 2;
+    if (jump) view.container.setPosition(tx, ty);
     else view.tween = this.tweens.add({ targets: view.container, x: tx, y: ty, duration: player.stepMs || TICK_MS, ease: "Linear" });
     view.container.setDepth(10 + player.y + 0.5);
     if (isMe && this.marker.visible && this.marker.x === tx && this.marker.y === ty) this.marker.setVisible(false);
+    if (isMe) {
+      const a = areaAt(player.x, player.y) ?? OUTDOORS;
+      if (a !== this.here) {
+        this.showArea(a);
+        this.marker.setVisible(false);
+        this.cameras.main.centerOn(tx, ty);
+        this.floatText(a.kind === "outdoor" ? a.name : a.name, a.danger ? "#ff9a8a" : "#ffe9a8", true);
+      } else if (jump || (player.x + player.y) % 3 === 0) {
+        updateWorldMap({ x: player.x, y: player.y }, a);
+      }
+    }
   }
 
   /** Animations for what a player is doing: chopping (lunge at the tree) or fishing (line and bobber). */
@@ -847,7 +839,9 @@ export class WorldScene extends Phaser.Scene {
   private updateDaylight() {
     const now = Date.now() + this.clockOffset;
     // A night sight potion lifts the dark.
-    this.nightShade.setAlpha(nightSightOn() ? 0 : darkness(now) * NIGHT_DARKNESS);
+    // Inside it's always lit (caves stay a little dim). A night sight potion lifts the dark.
+    const dark = this.here.kind === "indoor" ? 0 : this.here.kind === "cave" ? 0.25 : darkness(now) * NIGHT_DARKNESS;
+    this.nightShade?.setAlpha(nightSightOn() ? 0 : dark);
     tickBuffs();
     const night = isNight(now);
     if (this.wasNight !== null && night !== this.wasNight && this.room) {
@@ -923,14 +917,16 @@ export class WorldScene extends Phaser.Scene {
     if (!lot) return;
     let view = this.plotViews.get(key);
     if (!view) {
-      const soil = this.add.graphics().setDepth(1);
+      const outdoors = this.areaLayers.get(OUTDOORS.id)!;
+      const soil = outdoors.add(this.make.graphics({}, false).setDepth(1)) as Phaser.GameObjects.Graphics;
       const tiles = Array.from({ length: LOT_SIZE * LOT_SIZE }, (_, i) => {
         const t = tileOf(Number(key), i);
-        return this.add.text(...this.tileCenter(t.x, t.y), "", { fontSize: "18px" }).setOrigin(0.5, 0.6).setDepth(10 + t.y);
+        return outdoors.add(this.make.text({ x: this.tileCenter(t.x, t.y)[0], y: this.tileCenter(t.x, t.y)[1], text: "", style: { fontSize: "18px" } }, false).setOrigin(0.5, 0.6).setDepth(10 + t.y)) as Phaser.GameObjects.Text;
       });
       const sign = this.add.text(lot.x * TILE_SIZE + LOT_SIZE * TILE_SIZE / 2, lot.y * TILE_SIZE - 8, "", {
         fontSize: "11px", color: "#ffe9a8", stroke: "#000", strokeThickness: 3,
-      }).setOrigin(0.5).setDepth(40);
+      }).setOrigin(0.5).setDepth(10 + lot.y);
+      outdoors.add(sign);
       view = { soil, tiles, sign };
       this.plotViews.set(key, view);
     }
@@ -976,6 +972,7 @@ export class WorldScene extends Phaser.Scene {
     closeChest();
     closeInfo();
     closeDialog();
+    if (areaAt(x, y) !== this.here) return; // only what you can see
     const npc = npcAt(x, y);
     const monster = this.monsterAt(x, y);
     const other = this.otherPlayerAt(x, y);
@@ -1007,6 +1004,8 @@ export class WorldScene extends Phaser.Scene {
 
   private onHover(pointer: Phaser.Input.Pointer) {
     const { x, y } = this.tileAt(pointer);
+    if (areaAt(x, y) !== this.here) { setHoverText(null); this.input.setDefaultCursor("default"); return; }
+    const door = doorAt(x, y);
     const key = treeKey(x, y);
     const npc = npcAt(x, y);
     const monster = this.monsterAt(x, y);
@@ -1033,8 +1032,14 @@ export class WorldScene extends Phaser.Scene {
       setHoverText("Dig", "Dig patch" + this.lockNote("dig"), pointer.x, pointer.y);
     } else if (this.patches.has(key)) {
       setHoverText("Examine", "Dug-out patch (it glints again soon)", pointer.x, pointer.y);
-    } else if (MAP[y]?.[x] === "cave" || MAP[y]?.[x] === "cavewall") {
-      setHoverText("⚠ Spider cave:", "cave spiders attack on sight!", pointer.x, pointer.y);
+    } else if (door) {
+      setHoverText(door.label.startsWith("Leave") || door.label.startsWith("Back") || door.label.startsWith("Go") ? door.label : "Enter", door.label.replace(/^Enter /, ""), pointer.x, pointer.y);
+    } else if (this.here.danger && (MAP[y]?.[x] === "cave" || MAP[y]?.[x] === "crystal")) {
+      setHoverText(`⚠ ${this.here.name}:`, "monsters here attack on sight!", pointer.x, pointer.y);
+    } else if (MAP[y]?.[x] === "lockeddoor") {
+      setHoverText("Locked", "a heavy door with a gold lock", pointer.x, pointer.y);
+    } else if (MAP[y]?.[x] === "barricade") {
+      setHoverText("Road closed:", "the Ashen Barrens lie beyond. The Watch has shut the road.", pointer.x, pointer.y);
     } else if (lotAt(x, y)) {
       const at = lotAt(x, y)!;
       const plot = this.plots.get(String(at.lot));
@@ -1049,7 +1054,8 @@ export class WorldScene extends Phaser.Scene {
       const type = fishAt(x, y)!;
       setHoverText("Fish", RESOURCES[type].node + this.lockNote(type), pointer.x, pointer.y);
     } else if (MAP[y]?.[x] === "sign") {
-      setHoverText("⚠ Danger:", "the Dark Forest. Monsters attack on sight!", pointer.x, pointer.y);
+      if (y < 90) setHoverText("⚠ Road closed:", "the Ashen Barrens lie beyond, where the Withering began.", pointer.x, pointer.y);
+      else setHoverText("⚠ Danger:", "the Dark Forest. Monsters attack on sight!", pointer.x, pointer.y);
     } else if (MAP[y]?.[x] === "gate") {
       setHoverText("Walk into", "the Dark Forest ⚠", pointer.x, pointer.y);
     } else if (isWalkable(x, y)) {
@@ -1057,7 +1063,7 @@ export class WorldScene extends Phaser.Scene {
     } else {
       setHoverText(null);
     }
-    this.input.setDefaultCursor(npc || monster || this.isStandingTree(x, y) || this.isFullRock(x, y) || this.isFullPatch(x, y) || isFishingSpot(x, y) ? "pointer" : "default");
+    this.input.setDefaultCursor(npc || monster || door || this.isStandingTree(x, y) || this.isFullRock(x, y) || this.isFullPatch(x, y) || isFishingSpot(x, y) ? "pointer" : "default");
   }
 
   // ---- Monsters and fighting ----
@@ -1100,7 +1106,7 @@ export class WorldScene extends Phaser.Scene {
 
   private addMonster(m: any, id: string, $: ReturnType<typeof getStateCallbacks>) {
     const def = MONSTERS[m.kind as MonsterId];
-    const container = this.add.container(...this.tileCenter(m.x, m.y)).setDepth(10 + m.y);
+    const container = this.put(this.add.container(...this.tileCenter(m.x, m.y)).setDepth(10 + m.y), m.x, m.y);
     const shadow = this.add.ellipse(0, 11, 20, 7, 0x000000, 0.3);
     const big = m.kind === "cow" || m.kind === "bandit" || m.kind === "spider";
     const body = this.add.text(0, 0, def.icon, { fontSize: m.kind === "alpha_wolf" ? "30px" : big ? "24px" : "20px" }).setOrigin(0.5);
@@ -1171,7 +1177,7 @@ export class WorldScene extends Phaser.Scene {
   /** A hit splat: red with the damage, or a blue 0 for a miss. Spells show their icon. */
   private showHit(h: { on: "monster" | "player"; id: string; damage: number; miss: boolean; spell: SpellId | null }) {
     const target = h.on === "monster" ? this.monsters.get(h.id)?.container : this.players.get(h.id)?.container;
-    if (!target) return;
+    if (!target || target.displayList !== this.areaLayers.get(this.here.id)) return;
     const icon = h.spell === "fire_blast" ? "🔥" : h.spell === "frost_bolt" ? "❄️" : h.spell === "sleep" ? "💤" : h.spell === "frost_nova" ? "🌨️" : (h.spell as string) === "poison" ? "☠️" : (h.spell as string) === "lightning" ? "⚡" : "";
     if (icon && !h.miss) {
       const fx = this.add.text(target.x, target.y, icon, { fontSize: "22px" }).setOrigin(0.5).setDepth(998);
