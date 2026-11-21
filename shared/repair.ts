@@ -12,7 +12,7 @@ import { isArmor, isGear, isWeapon, parseArmor, parseWeapon } from "./gear";
 import { gearDurability } from "./crafting";
 
 /** How much more a repair costs for each material (stone and pine are 1). */
-const MATERIAL_COST: Record<Material, number> = { stone: 1, bronze: 2, iron: 4, steel: 8, mithril: 16 };
+const MATERIAL_COST: Record<Material | "leather" | "cloth", number> = { stone: 1, bronze: 2, iron: 4, steel: 8, mithril: 16, leather: 2, cloth: 3 };
 /** Fishing rods are all wood. */
 const WOOD_COST: Record<Wood, number> = { pine: 1, oak: 2, birch: 3, maple: 5, yew: 8, ironwood: 12, elderwood: 16 };
 
@@ -33,7 +33,10 @@ function costTier(item: ItemId): number {
     const { metal, wood } = parseTool(item);
     return metal ? MATERIAL_COST[metal] : WOOD_COST[wood!];
   }
-  if (isWeapon(item)) return MATERIAL_COST[parseWeapon(item).metal];
+  if (isWeapon(item)) {
+    const w = parseWeapon(item);
+    return w.metal === "stone" && (w.type === "bow" || w.type === "staff") ? WOOD_COST[w.wood] : MATERIAL_COST[w.metal];
+  }
   if (isArmor(item)) return MATERIAL_COST[parseArmor(item).metal];
   return 1;
 }

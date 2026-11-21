@@ -24,7 +24,7 @@ import { RESOURCE_FOR_ITEM } from "./foraging";
 import { isTool, parseTool } from "./tools";
 import { isArmor, isGear, isWeapon, parseArmor, parseWeapon } from "./gear";
 import { POTION_ID } from "./combat";
-import { isBait } from "./handicraft";
+import { isArrow, isBait } from "./handicraft";
 import { parseMeal } from "./cooking";
 import { isPotion } from "./alchemy";
 
@@ -51,7 +51,11 @@ export const wearsOut = (item: ItemId) => isTool(item) || isGear(item) || isBait
 export function groupOf(item: ItemId): string {
   if (isTool(item)) return `tool:${parseTool(item).type}`;
   if (isWeapon(item)) return `weapon:${parseWeapon(item).type}`;
-  if (isArmor(item)) return `armor:${parseArmor(item).type}`;
+  if (isArmor(item)) {
+    // Leather and cloth pieces keep to their own slots, apart from metal armor.
+    const { type, metal } = parseArmor(item);
+    return metal === "leather" || metal === "cloth" ? `armor:${metal}:${type}` : `armor:${type}`;
+  }
   const meal = parseMeal(item);
   if (meal) return `meal:${meal.dish}`;
   return item;
@@ -61,7 +65,7 @@ export function groupOf(item: ItemId): string {
 export function stackLimit(item: ItemId): number {
   if (wearsOut(item)) return STACK_LIMITS.gear;
   if (RESOURCE_FOR_ITEM[item]) return STACK_LIMITS.gathered;
-  if (item === "feather") return STACK_LIMITS.feather;
+  if (item === "feather" || isArrow(item)) return STACK_LIMITS.feather;
   if (item === POTION_ID || isPotion(item)) return STACK_LIMITS.potion;
   return STACK_LIMITS.other;
 }

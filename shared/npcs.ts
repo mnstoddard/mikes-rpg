@@ -3,7 +3,7 @@
 // Old Maren talks to you, the furnace, anvil, stove and workbench open their crafting windows,
 // the bounty board shows its jobs.
 export type NpcId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "wren" | "moss" | "bryn"
-  | "furnace" | "anvil" | "stove" | "workbench" | "board"
+  | "furnace" | "anvil" | "stove" | "workbench" | "tanning_rack" | "spinning_wheel" | "board"
   | "archmage" | "altar" | "guildboard" | "repairer" | "alchemy_table" | "chest" | "chest_east" | "chest_forest";
 
 export interface NpcDef {
@@ -73,13 +73,23 @@ export const NPCS: NpcDef[] = [
   // ---- Rook's workshop (in the square) ----
   {
     id: "rook", name: "Woodworker Rook", kind: "person", x: 22, y: 14, color: 0xa0522d, badge: "🪚",
-    greeting: "I buy bait, worms, feathers and hides, and I sell worms.",
+    greeting: "Bows, arrows, staffs, leather and cloth: it all starts at my bench. I buy hides, silk and what you make, and sell worms, feathers and thread.",
     sign: { x: 23, y: 12, text: "🪚 Woodworker Rook" },
   },
   {
     // Handicraft (shared/handicraft.ts): fishing bait for now.
     id: "workbench", name: "Workbench", kind: "station", x: 24, y: 14, color: 0x8b5a2b,
     greeting: "A sturdy workbench. Pick something to make.",
+  },
+  {
+    // Handicraft: hides into leather. It stands outside, by the east wall (tanning smells).
+    id: "tanning_rack", name: "Tanning rack", kind: "station", x: 27, y: 12, color: 0x8b5a2b,
+    greeting: "A frame for stretching and tanning hides into leather.",
+  },
+  {
+    // Handicraft: spider silk into thread, thread into cloth.
+    id: "spinning_wheel", name: "Spinning wheel", kind: "station", x: 21, y: 14, color: 0x8b5a2b,
+    greeting: "Spin spider silk into thread, and weave thread into cloth.",
   },
   // ---- Kael's lodge (by the gate to the Dark Forest) ----
   {

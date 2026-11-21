@@ -14,12 +14,14 @@ import { POTIONS, POTION_TYPES, PotionId, PotionType, VIAL, parsePotion, potionI
 import { JEWEL_BARS, JEWEL_BAR_IDS, JEWEL_METALS, JEWEL_TYPES, JewelBarId, JewelType, cutId, parseGem } from "./jewelry";
 import {
   ALL_TOOL_IDS, BAR_IDS, BarId, Belt, MATERIALS, MATERIAL_IDS, METALS, METAL_IDS, TOOL_TYPES, TOOL_TYPE_IDS, ToolType, WOODS, WOOD_IDS,
-  STONE, headCount, isTool, maxDurability, metalOfBar, parseTool, toolBonus, toolForSkill, toolId, wearFor,
+  STONE, barId, headCount, isTool, maxDurability, metalOfBar, parseTool, toolBonus, toolForSkill, toolId, wearFor,
 } from "./tools";
 import { DISHES, DISH_IDS, DishId, SHOP_STEW, isMeal, mealLevel, mealXp, parseMeal } from "./cooking";
-import { BAITS, BAIT_IDS, BaitId, isBait } from "./handicraft";
 import {
-  ARMOR, ARMOR_TYPES, WEAPONS, WEAPON_TYPES, armorId, gearType, isArmor, isGear, isWeapon, parseArmor, parseWeapon, weaponId,
+  ARROWS_PER_CRAFT, ARROW_LEVEL, BAITS, BAIT_IDS, BaitId, CLOTH_LEVEL, SOFT_LEVEL, TANNING, THREAD_LEVEL, WOOD_LEVEL, arrowId, isArrow, isBait,
+} from "./handicraft";
+import {
+  ARMOR, ARMOR_TYPES, WEAPONS, WEAPON_TYPES, armorId, gearType, isArmor, isGear, isSoftArmor, isWeapon, isWooden, parseArmor, parseWeapon, weaponId,
 } from "./gear";
 
 // ---- Prices ----
@@ -35,6 +37,7 @@ export function masteryIdFor(item: ItemId): MasteryId {
   const meal = parseMeal(item);
   if (meal) return meal.dish;
   if (isGear(item)) return gearType(item);
+  if (isArrow(item)) return "arrows";
   return item as BarId;
 }
 
@@ -94,6 +97,10 @@ export interface Recipe {
   needsTool: boolean;
   /** Given back if the try fails (a potion's vial, a ring's gem). */
   keepOnFail?: ItemId[];
+  /** How many one try makes (arrows: 10). */
+  makes?: number;
+  /** Where it's made, if not the skill's usual station (the tanning rack, the spinning wheel). */
+  station?: "tanning_rack" | "spinning_wheel";
 }
 
 const RECIPES = new Map<ItemId, Recipe>();
@@ -120,6 +127,8 @@ for (const tool of ALL_TOOL_IDS) {
 // Weapons (1 stone or bar + 1 log) and armor (1 to 3 bars) are smithed at the anvil too.
 // Each kind (all swords, all helmets) shares one Smithing Mastery, like tools.
 for (const type of WEAPON_TYPES) {
+  // Bows and staffs are carved at Rook's workbench now (Handicraft, below).
+  if (isWooden(type)) continue;
   for (const metal of MATERIAL_IDS) {
     for (const wood of WOOD_IDS) {
       const id = weaponId(type, metal, wood);
@@ -140,12 +149,51 @@ for (const type of ARMOR_TYPES) {
 /** Uses a new weapon or armor piece has: like tools (metal × handle wood); armor is all metal, so ×1.5. */
 export function gearDurability(item: ItemId): number {
   if (isWeapon(item)) {
-    const { metal, wood } = parseWeapon(item);
+    const { type, metal, wood } = parseWeapon(item);
+    // A wooden bow or staff lasts like an iron tool, more with better wood.
+    if (isWooden(type) && metal === "stone") return Math.round(METALS.iron.durability * WOODS[wood].durability);
     return Math.round(MATERIALS[metal].durability * WOODS[wood].durability);
   }
-  if (isArmor(item)) return Math.round(METALS[parseArmor(item).metal].durability * 1.5);
+  if (isArmor(item)) {
+    const m = parseArmor(item).metal;
+    return Math.round((m === "leather" ? 260 : m === "cloth" ? 160 : METALS[m].durability) * 1.5);
+  }
   return 0;
 }
+
+// Handicraft (stage 10), at Rook's workshop. Things unlock one by one with your Handicraft level.
+// Bows and staffs: 2 logs (a bow also takes a thread for its string). No tool needed.
+for (const type of ["bow", "staff"] as const) {
+  for (const wood of WOOD_IDS) {
+    const id = weaponId(type, "stone", wood);
+    const level = WOOD_LEVEL[wood] + (type === "bow" ? 2 : 0);
+    RECIPES.set(id, { output: id, skill: "handicraft", inputs: ITEMS[id].inputs!, level, xp: 8 + level, mastery: type, start: 0.5, needsTool: false });
+  }
+}
+// Arrows: 10 from a log, a tip and 2 feathers.
+for (const m of MATERIAL_IDS) {
+  const id = arrowId(m);
+  const level = ARROW_LEVEL[m];
+  RECIPES.set(id, { output: id, skill: "handicraft", inputs: ["pine_logs", m === "stone" ? "stone" : barId(m as never), "feather", "feather"], level, xp: 6 + level, mastery: "arrows", start: 0.6, needsTool: false, makes: ARROWS_PER_CRAFT });
+}
+// Tanning at the rack: one hide makes one leather. (Keyed by "tan_<hide>", since every hide makes the same leather.)
+for (const t of TANNING) {
+  RECIPES.set(`tan_${t.hide}` as ItemId, { output: "leather", skill: "handicraft", inputs: [t.hide], level: t.level, xp: t.xp, mastery: "leather", start: 0.6, needsTool: false, station: "tanning_rack" });
+}
+// Spinning at the wheel: spider silk into thread, 2 thread into cloth.
+RECIPES.set("thread", { output: "thread", skill: "handicraft", inputs: ["spider_silk"], level: THREAD_LEVEL, xp: 10, mastery: "thread", start: 0.6, needsTool: false, station: "spinning_wheel" });
+RECIPES.set("cloth", { output: "cloth", skill: "handicraft", inputs: ["thread", "thread"], level: CLOTH_LEVEL, xp: 16, mastery: "cloth", start: 0.55, needsTool: false, station: "spinning_wheel" });
+// Leather and cloth armor, at the workbench.
+for (const soft of ["leather", "cloth"] as const) {
+  for (const type of ARMOR_TYPES) {
+    const level = SOFT_LEVEL[soft][type];
+    if (level == null) continue;
+    const id = armorId(type, soft);
+    RECIPES.set(id, { output: id, skill: "handicraft", inputs: ITEMS[id].inputs!, level, xp: 6 * ARMOR[type].bars + level, mastery: type, start: 0.5, needsTool: false });
+  }
+}
+/** The tanning recipes' ids ("tan_cowhide"), for the tanning rack's window. */
+export const TANNING_IDS = TANNING.map((t) => `tan_${t.hide}` as ItemId);
 
 // Silver, gold, platinum and iridium bars (for jewelry), smelted at the furnace.
 for (const bar of JEWEL_BAR_IDS) {
@@ -228,8 +276,9 @@ export function masteryName(id: MasteryId): string {
   if (id in ARMOR) return ARMOR[id as keyof typeof ARMOR].name;
   if (id in RESOURCES) { const r = RESOURCES[id as ResourceId]; return r.gem ? r.node : ITEMS[r.item].name; }
   if (id in TOOL_TYPES) return TOOL_TYPES[id as ToolType].name;
+  if (id === "arrows") return "Arrows";
   return ITEMS[id as BarId].name;
 }
 
 /** Every Mastery id there is (for loading saves). */
-export const ALL_MASTERY_IDS: MasteryId[] = [...(Object.keys(RESOURCES) as ResourceId[]), ...BAR_IDS, ...TOOL_TYPE_IDS, ...DISH_IDS, ...BAIT_IDS, ...WEAPON_TYPES, ...ARMOR_TYPES, ...POTION_TYPES.map((t) => `potion_${t}` as const), ...JEWEL_BAR_IDS, "ring", "amulet"];
+export const ALL_MASTERY_IDS: MasteryId[] = [...(Object.keys(RESOURCES) as ResourceId[]), ...BAR_IDS, ...TOOL_TYPE_IDS, ...DISH_IDS, ...BAIT_IDS, ...WEAPON_TYPES, ...ARMOR_TYPES, ...POTION_TYPES.map((t) => `potion_${t}` as const), ...JEWEL_BAR_IDS, "ring", "amulet", "arrows", "leather", "thread", "cloth"];

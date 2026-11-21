@@ -11,8 +11,9 @@
 import type { ItemId } from "./items";
 import { masteryLevelForXp } from "./mastery";
 import { WOODS } from "./tools";
+import { WOOD_DAMAGE } from "./handicraft";
 import {
-  ARMOR, ARMOR_METAL, CombatStyle, GEAR_SLOTS, Gear, METAL_DAMAGE, WEAPONS, WeaponType, isArmor, isWeapon, parseArmor, parseWeapon,
+  ARMOR, ARMOR_METAL, CLOTH_MANA_PER, CLOTH_SPELL_DAMAGE, CombatStyle, GEAR_SLOTS, Gear, METAL_DAMAGE, METAL_SLOW_PER_BAR, WEAPONS, WeaponType, isArmor, isSoftArmor, isWeapon, isWooden, parseArmor, parseWeapon,
 } from "./gear";
 
 // ---- Health and mana ----
@@ -112,7 +113,7 @@ export const MONSTERS: Record<MonsterId, MonsterDef> = {
   rat:     { name: "Rat",          icon: "🐀", level: 2,  hp: 6,  maxHit: 1, speed: 4, aggressive: false, xp: 2,  respawnTicks: 50,  drops: [{ item: "rat_tail", chance: 0.5 }], coins: [0, 2] },
   cow:     { name: "Cow",          icon: "🐄", level: 3,  hp: 12, maxHit: 0, speed: 4, aggressive: false, xp: 4,  respawnTicks: 70,  drops: [{ item: "cowhide", chance: 0.6 }, { item: "raw_beef", chance: 0.7 }], coins: [0, 0] },
   slime:   { name: "Slime",        icon: "🟢", level: 2,  hp: 8,  maxHit: 1, speed: 5, aggressive: false, xp: 2,  respawnTicks: 50,  drops: [{ item: "slime_goo", chance: 0.7 }], coins: [0, 1] },
-  boar:    { name: "Boar",         icon: "🐗", level: 7,  hp: 22, maxHit: 3, speed: 4, aggressive: false, xp: 7,  respawnTicks: 90,  drops: [{ item: "raw_boar", chance: 0.8 }, { item: "boar_tusk", chance: 0.4 }], coins: [0, 0] },
+  boar:    { name: "Boar",         icon: "🐗", level: 7,  hp: 22, maxHit: 3, speed: 4, aggressive: false, xp: 7,  respawnTicks: 90,  drops: [{ item: "raw_boar", chance: 0.8 }, { item: "boar_tusk", chance: 0.4 }, { item: "boar_hide", chance: 0.5 }], coins: [0, 0] },
   // Out at night only: over the meadows (they only bite back there) and in the forest (they attack on sight).
   giant_bat: { name: "Giant bat",  icon: "🦇", level: 6,  hp: 14, maxHit: 2, speed: 3, aggressive: true,  xp: 6,  respawnTicks: 80,  drops: [{ item: "bat_wing", chance: 0.6 }], coins: [0, 3], night: true },
   // The Dark Forest: they attack on sight.
@@ -207,12 +208,28 @@ export function attackFor(gear: Gear, spell: BoltSpellId): Attack {
   const { type, metal, wood } = parseWeapon(w);
   const def = WEAPONS[type];
   const accuracy = WOODS[wood].bonus;
+  // Bows and staffs get their strength from the wood; everything else from its metal.
+  const extra = isWooden(type) ? WOOD_DAMAGE[wood] + (metal === "stone" ? 0 : METAL_DAMAGE[metal]) : METAL_DAMAGE[metal];
   if (def.style === "magic") {
     const s = SPELLS[spell];
-    return { style: "magic", mastery: spell, maxHit: s.maxHit ? s.maxHit + METAL_DAMAGE[metal] : 0, speed: def.speed, range: def.range, accuracy, spell, name: s.name };
+    const cloth = 1 + clothPieces(gear) * CLOTH_SPELL_DAMAGE;
+    return { style: "magic", mastery: spell, maxHit: s.maxHit ? Math.round((s.maxHit + extra) * cloth) : 0, speed: def.speed, range: def.range, accuracy, spell, name: s.name };
   }
-  return { style: def.style, mastery: type, maxHit: def.maxHit + METAL_DAMAGE[metal], speed: def.speed, range: def.range, accuracy, name: def.name.toLowerCase() };
+  return { style: def.style, mastery: type, maxHit: def.maxHit + extra, speed: def.speed, range: def.range, accuracy, name: def.name.toLowerCase() };
 }
+
+/** Cloth pieces you're wearing (they make spells stronger). */
+export const clothPieces = (gear: Gear) => GEAR_SLOTS.filter((s) => { const it = gear[s]?.item; return isArmor(it) && parseArmor(it).metal === "cloth"; }).length;
+/** Extra max mana from cloth. */
+export const clothMana = (gear: Gear) => GEAR_SLOTS.reduce((sum, s) => {
+  const it = gear[s]?.item;
+  return sum + (isArmor(it) && parseArmor(it).metal === "cloth" ? ARMOR[parseArmor(it).type].bars * CLOTH_MANA_PER : 0);
+}, 0);
+/** How much metal armor slows your walking (0.05 = 5% slower). */
+export const metalSlow = (gear: Gear) => GEAR_SLOTS.reduce((sum, s) => {
+  const it = gear[s]?.item;
+  return sum + (isArmor(it) && !isSoftArmor(parseArmor(it).metal) ? ARMOR[parseArmor(it).type].bars * METAL_SLOW_PER_BAR : 0);
+}, 0);
 
 /** Your biggest hit after Mastery. */
 export const maxHitWith = (a: Attack, masteryLevel: number) => a.maxHit ? Math.max(1, Math.floor(a.maxHit * masteryDamage(masteryLevel))) : 0;
@@ -262,14 +279,18 @@ export function gearEffect(item: string): string {
     const { type, metal, wood } = parseWeapon(item);
     const def = WEAPONS[type];
     const acc = Math.round(WOODS[wood].bonus * 100);
-    if (def.style === "magic") return `Spells hit up to ${METAL_DAMAGE[metal]} harder, +${acc}% to hit`;
-    return `Hits up to ${def.maxHit + METAL_DAMAGE[metal]}, every ${(def.speed * 0.6).toFixed(1)}s, +${acc}% to hit` +
+    const extra = isWooden(type) ? WOOD_DAMAGE[wood] + (metal === "stone" ? 0 : METAL_DAMAGE[metal]) : METAL_DAMAGE[metal];
+    if (def.style === "magic") return `Spells hit up to ${extra} harder, +${acc}% to hit`;
+    return `Hits up to ${def.maxHit + extra}${type === "bow" ? " (plus the arrow's tip)" : ""}, every ${(def.speed * 0.6).toFixed(1)}s, +${acc}% to hit` +
       (def.range > 1 ? `, from ${def.range} tiles away` : "") + (def.twoHanded ? ", two hands (no shield)" : "");
   }
   if (isArmor(item)) {
     const { type, metal } = parseArmor(item);
     const pts = ARMOR[type].points * ARMOR_METAL[metal];
-    return `+${pts} armor: monsters hit you ${pts}% less often`;
+    const bars = ARMOR[type].bars;
+    const more = metal === "cloth" ? `, +${bars * CLOTH_MANA_PER} max mana, spells ${Math.round(CLOTH_SPELL_DAMAGE * 100)}% stronger`
+      : metal === "leather" ? "" : `, walk ${bars}% slower`;
+    return `+${pts} armor: monsters hit you ${pts}% less often${more}`;
   }
   return "";
 }
@@ -284,4 +305,4 @@ export function gearNeeds(item: string): { skill: "melee" | "ranged" | "magic" |
   return null;
 }
 /** Defense level to wear each metal (the same as the Smithing level to make it). */
-export const ARMOR_LEVEL = { bronze: 1, iron: 15, steel: 30, mithril: 60 } as const;
+export const ARMOR_LEVEL = { bronze: 1, iron: 15, steel: 30, mithril: 60, leather: 1, cloth: 1 } as const;

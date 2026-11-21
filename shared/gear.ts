@@ -13,7 +13,10 @@ export type ArmorType = "helmet" | "platebody" | "platelegs" | "boots" | "shield
 export type GearType = WeaponType | ArmorType;
 export type GearSlot = "weapon" | "offhand" | "head" | "body" | "legs" | "feet";
 export type WeaponItemId = `${WeaponType}_${Material}_${Wood}`;
-export type ArmorItemId = `${ArmorType}_${Metal}`;
+/** Armor is metal (Smithing), or leather or cloth (Handicraft). */
+export type SoftArmor = "leather" | "cloth";
+export type ArmorMaterial = Metal | SoftArmor;
+export type ArmorItemId = `${ArmorType}_${ArmorMaterial}`;
 export type GearItemId = WeaponItemId | ArmorItemId;
 
 export interface WeaponDef {
@@ -67,8 +70,23 @@ export const ARMOR: Record<ArmorType, ArmorDef> = {
 };
 export const ARMOR_TYPES = Object.keys(ARMOR) as ArmorType[];
 
-/** Armor points per piece: points × this. A full bronze set is 18, full mithril 54. */
-export const ARMOR_METAL: Record<Metal, number> = { bronze: 2, iron: 3, steel: 4, mithril: 6 };
+/**
+ * Armor points per piece: points × this. A full bronze set is 18, full mithril 54.
+ * Leather is a bit better than bronze and doesn't slow you down; cloth is thin
+ * but helps spellcasters (more mana, stronger spells).
+ */
+export const ARMOR_METAL: Record<ArmorMaterial, number> = { bronze: 2, iron: 3, steel: 4, mithril: 6, leather: 2.5, cloth: 1 };
+export const isSoftArmor = (m: ArmorMaterial): m is SoftArmor => m === "leather" || m === "cloth";
+/** Leather and cloth pieces have their own names. Cloth has no shield. */
+export const SOFT_NAMES: Record<SoftArmor, Partial<Record<ArmorType, string>>> = {
+  leather: { helmet: "Leather cap", platebody: "Leather jerkin", platelegs: "Leather chaps", boots: "Leather boots", shield: "Hide buckler" },
+  cloth: { helmet: "Cloth hood", platebody: "Robe top", platelegs: "Robe skirt", boots: "Cloth shoes" },
+};
+/** Cloth: max mana per piece (5 per cloth it takes), and spells hit this much harder per piece. */
+export const CLOTH_MANA_PER = 5;
+export const CLOTH_SPELL_DAMAGE = 0.03;
+/** Metal armor slows your walking a little: 1% per bar that went into what you wear. */
+export const METAL_SLOW_PER_BAR = 0.01;
 
 export const GEAR_SLOTS: GearSlot[] = ["weapon", "offhand", "head", "body", "legs", "feet"];
 export const SLOT_NAMES: Record<GearSlot, string> = { weapon: "Weapon", offhand: "Shield", head: "Head", body: "Body", legs: "Legs", feet: "Feet" };
@@ -77,7 +95,7 @@ export const SLOT_ICONS: Record<GearSlot, string> = { weapon: "🗡️", offhand
 const WEAPON_SET = new Set<string>(WEAPON_TYPES);
 const ARMOR_SET = new Set<string>(ARMOR_TYPES);
 const MATERIAL_NAMES = new Set(["stone", "bronze", "iron", "steel", "mithril"]);
-const METAL_NAMES = new Set(["bronze", "iron", "steel", "mithril"]);
+const METAL_NAMES = new Set(["bronze", "iron", "steel", "mithril", "leather", "cloth"]);
 const WOOD_NAMES = new Set(["pine", "oak", "birch", "maple", "yew", "ironwood", "elderwood"]);
 
 /** The plain id of an enchanted item (see shared/tools.ts baseItem). */
@@ -91,7 +109,7 @@ export function isWeapon(item: string | null | undefined): item is WeaponItemId 
 export function isArmor(item: string | null | undefined): item is ArmorItemId {
   if (!item) return false;
   const [t, m, extra] = plain(item).split("_");
-  return ARMOR_SET.has(t) && METAL_NAMES.has(m) && extra === undefined;
+  return ARMOR_SET.has(t) && METAL_NAMES.has(m) && extra === undefined && !(m === "cloth" && t === "shield");
 }
 export const isGear = (item: string | null | undefined): item is GearItemId => isWeapon(item) || isArmor(item);
 
@@ -99,15 +117,17 @@ export function parseWeapon(item: WeaponItemId): { type: WeaponType; metal: Mate
   const [type, metal, wood] = plain(item).split("_");
   return { type: type as WeaponType, metal: metal as Material, wood: wood as Wood };
 }
-export function parseArmor(item: ArmorItemId): { type: ArmorType; metal: Metal } {
+export function parseArmor(item: ArmorItemId): { type: ArmorType; metal: ArmorMaterial } {
   const [type, metal] = plain(item).split("_");
-  return { type: type as ArmorType, metal: metal as Metal };
+  return { type: type as ArmorType, metal: metal as ArmorMaterial };
 }
 export const gearType = (item: GearItemId): GearType => plain(item).split("_")[0] as GearType;
 export const gearSlot = (item: GearItemId): GearSlot => isWeapon(item) ? "weapon" : ARMOR[parseArmor(item).type].slot;
 
 export const weaponId = (type: WeaponType, metal: Material, wood: Wood): WeaponItemId => `${type}_${metal}_${wood}`;
-export const armorId = (type: ArmorType, metal: Metal): ArmorItemId => `${type}_${metal}`;
+export const armorId = (type: ArmorType, metal: ArmorMaterial): ArmorItemId => `${type}_${metal}`;
+/** Bows and staffs are carved from wood (Handicraft): their id says "stone", which means no metal. */
+export const isWooden = (type: WeaponType) => type === "bow" || type === "staff";
 
 /** One piece of gear being worn, with how many uses it has left. */
 export interface WornGear { item: GearItemId; durability: number }

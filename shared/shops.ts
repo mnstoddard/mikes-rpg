@@ -5,9 +5,9 @@
 import { ITEMS, ItemId } from "./items";
 import { FORAGE_ITEMS, RESOURCES, RESOURCE_FOR_ITEM } from "./foraging";
 import { BAR_IDS, isTool, parseTool, toolId } from "./tools";
-import { isArmor, isGear, isWeapon, weaponId } from "./gear";
+import { isArmor, isGear, isSoftArmor, isWeapon, isWooden, parseArmor, parseWeapon, weaponId } from "./gear";
 import { SHOP_STEW } from "./cooking";
-import { isBait } from "./handicraft";
+import { isArrow, isBait } from "./handicraft";
 import { ALCHEMY_INGREDIENTS, VIAL, isPotion } from "./alchemy";
 
 export type ShopId = "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "wren" | "moss";
@@ -60,13 +60,14 @@ export const SHOPS: Record<ShopId, ShopDef> = {
   },
   rook: {
     title: "🪚 Woodworker Rook",
-    stock: ["worm"],
-    buys: (i) => isBait(i) || i === "worm" || i === "food_scraps" || i === "feather" || i === "cowhide" || i === "wolf_pelt" || i === "spider_silk",
-    buysText: "bait, worms, scraps, feathers, hides and silk",
+    stock: ["worm", "feather", "thread"],
+    buys: (i) => isBait(i) || i === "worm" || i === "food_scraps" || i === "feather" || i === "cowhide" || i === "wolf_pelt" || i === "spider_silk"
+      || i === "boar_hide" || i === "leather" || i === "thread" || i === "cloth" || isArrow(i) || (isWeapon(i) && isWooden(parseWeapon(i).type)) || (isArmor(i) && isSoftArmor(parseArmor(i).metal)),
+    buysText: "bait, worms, feathers, hides, silk, leather, cloth, arrows, bows, staffs and leather or cloth armor",
   },
   kael: {
     title: "🏹 Huntmaster Kael",
-    stock: [weaponId("dagger", "stone", "pine"), weaponId("sling", "stone", "pine"), weaponId("staff", "stone", "pine"), "health_potion"],
+    stock: [weaponId("dagger", "stone", "pine"), weaponId("sling", "stone", "pine"), weaponId("staff", "stone", "pine"), weaponId("bow", "stone", "pine"), "arrows_stone", "health_potion"],
     buys: (i) => isWeapon(i) || isArmor(i) || LOOT.includes(i) || i === "health_potion",
     buysText: "weapons, armor and monster drops",
   },

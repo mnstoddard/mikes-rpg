@@ -51,7 +51,9 @@ export const masteryValue = (level: number) => 1 + (level - 1) * MASTERY_VALUE_P
 export const valueBonusPercent = (level: number) => Math.round((masteryValue(level) - 1) * 100);
 
 /** What can have Mastery: a gathered type (oak), a bar (bronze_bar), a kind of tool (axe), a dish (stew), a bait, or a kind of weapon or armor you smith (sword). */
-export type MasteryId = ResourceId | BarId | ToolType | DishId | BaitId | GearType | PotionMastery | JewelBarId | JewelType;
+/** Handicraft (stage 10): arrows of every tip share one Mastery; leather, thread and cloth have their own. */
+export type HandicraftMastery = "arrows" | "leather" | "thread" | "cloth";
+export type MasteryId = ResourceId | BarId | ToolType | DishId | BaitId | GearType | PotionMastery | JewelBarId | JewelType | HandicraftMastery;
 
 /** Mastery XP per type. Types you've never gathered or made aren't listed. */
 export type ItemMasteryXp = Partial<Record<MasteryId, number>>;
