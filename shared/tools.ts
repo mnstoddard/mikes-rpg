@@ -143,14 +143,21 @@ export const ALL_TOOL_IDS: ToolItemId[] = TOOL_TYPE_IDS.flatMap((type) =>
     : MATERIAL_IDS.flatMap((m) => WOOD_IDS.map((w) => toolId(type, m, w))));
 const TOOL_SET = new Set<string>(ALL_TOOL_IDS);
 
-export const isTool = (item: string | null | undefined): item is ToolItemId => !!item && TOOL_SET.has(item);
+/**
+ * An enchanted tool, weapon or armor piece keeps its plain id and adds its
+ * enchantments after a "+" (shared/enchanting.ts): "axe_iron_oak+swift.20".
+ * This gives the plain id back.
+ */
+export const baseItem = (item: string) => { const i = item.indexOf("+"); return i < 0 ? item : item.slice(0, i); };
+
+export const isTool = (item: string | null | undefined): item is ToolItemId => !!item && TOOL_SET.has(baseItem(item));
 
 /**
  * "axe_iron_oak" -> { type: "axe", metal: "iron", wood: "oak" }. Tongs and the
  * pot have no wood; rods ("rod_oak") have no metal.
  */
 export function parseTool(item: ToolItemId): { type: ToolType; metal: Material | null; wood: Wood | null } {
-  const [type, a, b] = item.split("_") as [ToolType, string, string | undefined];
+  const [type, a, b] = baseItem(item).split("_") as [ToolType, string, string | undefined];
   if (isWoodTool(type)) return { type, metal: null, wood: a as Wood };
   return { type, metal: a as Material, wood: (b as Wood) ?? null };
 }

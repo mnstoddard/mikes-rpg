@@ -26,7 +26,10 @@ export type TreeEffect =
   | "damage"       // combat: hit harder
   | "manaSave"     // magic: chance a spell costs no mana
   | "health"       // defense: more max health
-  | "dodge";       // defense: monsters hit you less often
+  | "dodge"        // defense: monsters hit you less often
+  | "enchantSlot"  // enchanting: items take a second enchantment
+  | "potency"      // enchanting: stronger enchantments
+  | "reenchant";   // enchanting: enchant an item again after taking one off
 
 export interface TreeNode {
   /** e.g. "cooking.slots". */
@@ -103,6 +106,11 @@ export const TREES: Record<SkillId, TreeNode[]> = {
   // Charisma skills only have "Quick learner" for now; more upgrades come with Trading and Renown's own stage.
   trading: [node("trading", "xp", "Quick learner", "📖", 0.1)],
   renown: [node("renown", "xp", "Quick learner", "📖", 0.1)],
+  enchanting: [
+    node("enchanting", "enchantSlot", "Second slot", "➕", 1, 1),
+    node("enchanting", "potency", "Potency", "💥", 0.1),
+    node("enchanting", "reenchant", "Re-enchant", "♻️", 1, 1),
+  ],
 };
 
 export const ALL_TREE_NODES = Object.values(TREES).flat();
@@ -157,6 +165,9 @@ export function nodeEffect(n: TreeNode, rank: number, skillName: string): string
     case "manaSave": return `${pct} chance a spell costs no mana`;
     case "health": return `+${v} max health`;
     case "dodge": return `monsters hit you ${pct} less often`;
+    case "enchantSlot": return "items can hold a second enchantment (a different kind)";
+    case "potency": return `enchantments are ${pct} stronger`;
+    case "reenchant": return "enchant an item again after its enchantment was taken off";
   }
 }
 

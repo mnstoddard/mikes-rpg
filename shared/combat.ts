@@ -38,7 +38,7 @@ export const ATTACK_STAMINA = 1;
 
 /** Spells you fire from a staff. */
 export type BoltSpellId = "fire_blast" | "frost_bolt" | "sleep";
-export type SpellId = BoltSpellId | "ward" | "soul_trap" | "heal" | "haste" | "invisibility" | "frost_nova";
+export type SpellId = BoltSpellId | "ward" | "soul_trap" | "heal" | "mend" | "haste" | "invisibility" | "frost_nova";
 export interface SpellDef {
   name: string;
   icon: string;
@@ -69,6 +69,7 @@ export const SPELLS: Record<SpellId, SpellDef> = {
   soul_trap:    { name: "Soul trap",    icon: "👻", kind: "target", level: 6,  mana: 8,  maxHit: 0, seconds: 60, description: "Traps a monster's soul. Defeat it before the glow fades and its soul fills one of your soul gems." },
   heal:         { name: "Heal",         icon: "💚", kind: "self",   level: 8,  mana: 12, maxHit: 0, power: 12, description: "Heals you." },
   sleep:        { name: "Sleep",        icon: "💤", kind: "bolt",   level: 10, mana: 12, maxHit: 0, sleep: 10, description: "No damage, but the monster falls asleep for 6 seconds: it can't move or attack." },
+  mend:         { name: "Mend",         icon: "🪡", kind: "self",   level: 18, mana: 20, maxHit: 0, description: "Repairs your most worn tool, weapon or armor piece good as new. It also uses 1 of what it's made of (a bar, a stone or a log)." },
   haste:        { name: "Haste",        icon: "💨", kind: "self",   level: 12, book: true, mana: 15, maxHit: 0, power: 20, seconds: 60, description: "You walk faster for a while." },
   invisibility: { name: "Invisibility", icon: "🫥", kind: "self",   level: 15, book: true, mana: 20, maxHit: 0, seconds: 15, description: "Monsters can't see you. It breaks when you attack or gather." },
   frost_nova:   { name: "Frost nova",   icon: "🌨️", kind: "area",   level: 20, book: true, mana: 18, maxHit: 6, freeze: 8, description: "Hits every monster next to you (2 tiles) and freezes them." },

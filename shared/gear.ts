@@ -80,27 +80,30 @@ const MATERIAL_NAMES = new Set(["stone", "bronze", "iron", "steel", "mithril"]);
 const METAL_NAMES = new Set(["bronze", "iron", "steel", "mithril"]);
 const WOOD_NAMES = new Set(["pine", "oak", "birch", "maple", "yew", "ironwood", "elderwood"]);
 
+/** The plain id of an enchanted item (see shared/tools.ts baseItem). */
+const plain = (item: string) => { const i = item.indexOf("+"); return i < 0 ? item : item.slice(0, i); };
+
 export function isWeapon(item: string | null | undefined): item is WeaponItemId {
   if (!item) return false;
-  const [t, m, w, extra] = item.split("_");
+  const [t, m, w, extra] = plain(item).split("_");
   return WEAPON_SET.has(t) && MATERIAL_NAMES.has(m) && WOOD_NAMES.has(w) && extra === undefined;
 }
 export function isArmor(item: string | null | undefined): item is ArmorItemId {
   if (!item) return false;
-  const [t, m, extra] = item.split("_");
+  const [t, m, extra] = plain(item).split("_");
   return ARMOR_SET.has(t) && METAL_NAMES.has(m) && extra === undefined;
 }
 export const isGear = (item: string | null | undefined): item is GearItemId => isWeapon(item) || isArmor(item);
 
 export function parseWeapon(item: WeaponItemId): { type: WeaponType; metal: Material; wood: Wood } {
-  const [type, metal, wood] = item.split("_");
+  const [type, metal, wood] = plain(item).split("_");
   return { type: type as WeaponType, metal: metal as Material, wood: wood as Wood };
 }
 export function parseArmor(item: ArmorItemId): { type: ArmorType; metal: Metal } {
-  const [type, metal] = item.split("_");
+  const [type, metal] = plain(item).split("_");
   return { type: type as ArmorType, metal: metal as Metal };
 }
-export const gearType = (item: GearItemId): GearType => item.split("_")[0] as GearType;
+export const gearType = (item: GearItemId): GearType => plain(item).split("_")[0] as GearType;
 export const gearSlot = (item: GearItemId): GearSlot => isWeapon(item) ? "weapon" : ARMOR[parseArmor(item).type].slot;
 
 export const weaponId = (type: WeaponType, metal: Material, wood: Wood): WeaponItemId => `${type}_${metal}_${wood}`;

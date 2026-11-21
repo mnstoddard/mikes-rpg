@@ -34,6 +34,7 @@ import {
 import { MONSTERS as MONSTER_DEFS, BoltSpellId, isBoltSpell } from "../../shared/combat";
 import { BAR_SLOT_MASTERY, describeSpell, isSpellBook, SPELL_BOOKS, spellMana } from "../../shared/spells";
 import { isSoulGem, soulCapacity, soulFill } from "../../shared/jewelry";
+import { ENCHANTS, ENCHANT_IDS, EnchantId, INLAYS, Inlay, cappedGem, describeEnchant, enchantForGem, enchantKind, enchantsOf, fits, isSpent, soulPower } from "../../shared/enchanting";
 import {
   BASE_INGREDIENTS, DISHES, DISH_IDS, DishId, FOOD_KINDS, FUEL_STAMINA, INGREDIENTS, IngredientId, MAX_STAMINA, RAW_FISH_STAMINA, STAMINA_COST,
   fireStamina, fitsDish, foodStamina, ingredientStamina, isFood, isIngredient, isMeal, mealBaseStamina, mealId, parseMeal,
@@ -110,6 +111,9 @@ let flashType: MasteryId | undefined;
 let lastBelt: Belt = emptyBelt();
 let lastGear: Gear = emptyGear();
 let lastSpell: BoltSpellId = "fire_blast";
+/** The enchanting altar uses the craft window too, with its own buttons. */
+let altarOpen = false;
+const altarPick: { item: number | null; soul: number | null; gem: number | null; effect: EnchantId | null; inlay: Inlay } = { item: null, soul: null, gem: null, effect: null, inlay: "none" };
 /** The spell bar (shared/spells.ts), from the server. */
 interface Spellbook { bar: (SpellId | null)[]; known: SpellId[]; books: SpellId[]; bolt: BoltSpellId }
 let spellbook: Spellbook = { bar: [], known: [], books: [], bolt: "fire_blast" };
@@ -1435,7 +1439,23 @@ const craftBody = document.getElementById("craft-body")!;
 const craftOne = document.getElementById("craft-one") as HTMLButtonElement;
 const craftAll = document.getElementById("craft-all") as HTMLButtonElement;
 
+let onEnchant: (msg: { slot: number; soul: number; effect?: string; gem?: number; inlay?: string }) => void = () => {};
+let onDisenchant: (slot: number) => void = () => {};
+export function setAltarActions(a: { enchant: typeof onEnchant; disenchant: typeof onDisenchant }) {
+  onEnchant = a.enchant;
+  onDisenchant = a.disenchant;
+}
+
 export function openCraft(id: string) {
+  altarOpen = id === "altar";
+  if (altarOpen) {
+    closeDialog(); closeShop(); closeBounties(); closeGuild(); closeChest(); closeInfo();
+    station = null;
+    document.body.classList.add("craft-open");
+    openPanel("inventory");
+    renderCraft();
+    return;
+  }
   if (!(id in STATION_SKILL)) return;
   closeDialog();
   closeShop();
@@ -1451,7 +1471,100 @@ export function openCraft(id: string) {
 
 export function closeCraft() {
   station = null;
+  altarOpen = false;
   document.body.classList.remove("craft-open");
+}
+
+/** The enchanting altar: pick an item, a soul gem, and (for a staff) a gem and inlay, or (otherwise) an effect. */
+function renderAltar() {
+  const level = levelForXp(lastSkillXp.enchanting ?? 0);
+  craftTitle.textContent = `Enchanting altar · Enchanting level ${level}`;
+  craftBody.replaceChildren();
+  if (!isUnlocked(lastDisciplines.unlocked, "enchanting")) {
+    craftBody.append(el("craft-warn", `You haven't learned Enchanting yet. ${teachNote("enchanting")}`));
+    return;
+  }
+  const entries = invItems.map((it, i) => ({ it, i })).filter((x) => x.it && !locked[x.i]);
+  const items = entries.filter((x) => enchantKind(x.it));
+  const souls = entries.filter((x) => isSoulGem(x.it) && (parseGem(x.it) as { souls: number }).souls > 0);
+  // Keep picks valid as the bag changes.
+  if (altarPick.item != null && !enchantKind(invItems[altarPick.item])) altarPick.item = null;
+  if (altarPick.soul != null && !souls.some((x) => x.i === altarPick.soul)) altarPick.soul = null;
+  if (altarPick.item == null && items[0]) altarPick.item = items[0].i;
+  if (altarPick.soul == null && souls[0]) altarPick.soul = souls[0].i;
+  const row = (label: string, list: { i: number; it: ItemId | null }[], current: number | null, choose: (i: number) => void, empty: string) => {
+    const wrap = el("pick-row");
+    wrap.append(el("pick-label", label));
+    if (!list.length) wrap.append(el("craft-info", empty));
+    for (const { i, it } of list) {
+      const d = ITEMS[it!];
+      const b = document.createElement("button");
+      b.className = "pick" + (i === current ? " active" : "");
+      b.append(icon("pick-icon", d.icon, d.tint), el("pick-name", d.short ?? d.name));
+      b.title = d.name;
+      b.onclick = () => { choose(i); renderCraft(); };
+      wrap.appendChild(b);
+    }
+    craftBody.appendChild(wrap);
+  };
+  row("Item", items, altarPick.item, (i) => { altarPick.item = i; altarPick.effect = null; }, "Put a staff, a piece of armor or a tool in your bag (take it off first).");
+  const item = altarPick.item != null ? invItems[altarPick.item] : null;
+  if (!item) return;
+  const kind = enchantKind(item)!;
+  const current = enchantsOf(item);
+  for (const e of current) craftBody.append(el("craft-info", `On it now: ${describeEnchant(e)}`));
+  if (current.length) {
+    const off = document.createElement("button");
+    off.className = "shop-btn";
+    off.textContent = "Take the enchantment off (it's lost)";
+    off.onclick = () => onDisenchant(altarPick.item!);
+    craftBody.appendChild(off);
+  }
+  const slots = 1 + treeBonus(treeRanks(), "enchanting", "enchantSlot");
+  if (isSpent(item) && !current.length && !treeBonus(treeRanks(), "enchanting", "reenchant")) {
+    craftBody.append(el("craft-warn", "This one had an enchantment taken off, so it won't take another. Re-enchant in the Enchanting tree lets you."));
+    return;
+  }
+  if (current.length >= slots) {
+    craftBody.append(el("craft-warn", slots === 1 ? "One enchantment per item. Take it off first, or learn Second slot in the Enchanting tree." : "It can't hold any more enchantments."));
+    return;
+  }
+  row("Soul gem", souls, altarPick.soul, (i) => { altarPick.soul = i; }, "No soul gem with souls in it. Cast 👻 Soul trap on a monster, then defeat it.");
+  let effect: EnchantId | null = null;
+  let gemSize = 0;
+  if (kind === "staff") {
+    const gems = entries.filter((x) => parseGem(x.it)?.kind === "cut");
+    if (altarPick.gem != null && !gems.some((x) => x.i === altarPick.gem)) altarPick.gem = null;
+    if (altarPick.gem == null && gems[0]) altarPick.gem = gems[0].i;
+    row("Gem", gems, altarPick.gem, (i) => { altarPick.gem = i; }, "A staff needs a cut gem too (cut one at Brann's anvil).");
+    const inlays = (Object.keys(INLAYS) as Inlay[]).filter((k) => k === "none" || invItems.some((it, i) => it === k && !locked[i]));
+    if (!inlays.includes(altarPick.inlay)) altarPick.inlay = "none";
+    craftBody.append(choices("Inlay", inlays, altarPick.inlay, (k) => ({ icon: k === "none" ? "⭕" : "🧈", tint: k === "none" ? undefined : ITEMS[k as ItemId].tint,
+      name: k === "none" ? "None (2 ct)" : `${ITEMS[k as ItemId].name.replace(/ bar$/, "")} (${INLAYS[k] / 10} ct)` }), (k) => { altarPick.inlay = k; }));
+    const g = altarPick.gem != null ? parseGem(invItems[altarPick.gem]) : null;
+    if (g?.kind === "cut") {
+      effect = enchantForGem(g.gem);
+      gemSize = cappedGem(g.size, altarPick.inlay);
+      if (g.size > gemSize) craftBody.append(el("craft-info", `The staff only uses ${gemSize / 10} ct of this ${g.size / 10} ct gem. A silver or gold inlay raises that.`));
+    }
+  } else {
+    const options = ENCHANT_IDS.filter((e) => fits(item, e) && !current.some((c) => c.id === e));
+    if (!altarPick.effect || !options.includes(altarPick.effect)) altarPick.effect = options[0] ?? null;
+    craftBody.append(choices("Magic", options, altarPick.effect ?? options[0], (e) => ({ icon: ENCHANTS[e].icon, name: ENCHANTS[e].name }), (e) => { altarPick.effect = e; }));
+    effect = altarPick.effect;
+  }
+  const soulGem = altarPick.soul != null ? parseGem(invItems[altarPick.soul]) : null;
+  if (!effect || soulGem?.kind !== "soulgem") return;
+  const power = soulPower(soulGem.souls, level, treeBonus(treeRanks(), "enchanting", "potency"));
+  const detail = el("craft-detail");
+  detail.append(el("craft-info", `Gives: ${describeEnchant({ id: effect, power, gem: gemSize })}`),
+    el("craft-info", `Uses up the soul gem${kind === "staff" ? ", the gem" + (altarPick.inlay !== "none" ? " and the inlay bar" : "") : ""}. A fuller, bigger soul gem makes it stronger.`));
+  const go = document.createElement("button");
+  go.className = "shop-btn";
+  go.textContent = "✨ Enchant";
+  go.onclick = () => onEnchant({ slot: altarPick.item!, soul: altarPick.soul!, effect: kind === "staff" ? undefined : effect!, gem: kind === "staff" ? altarPick.gem! : undefined, inlay: altarPick.inlay });
+  detail.appendChild(go);
+  craftBody.appendChild(detail);
 }
 
 /** How many of this item you have that aren't locked (crafting never uses locked items). */
@@ -1474,6 +1587,9 @@ function choices<T extends string>(label: string, ids: T[], current: T, show: (i
 }
 
 function renderCraft() {
+  if (!altarOpen && !station) return;
+  craftOne.style.display = craftAll.style.display = altarOpen ? "none" : "";
+  if (altarOpen) return renderAltar();
   if (!station) return;
   const skill: CraftSkill = STATION_SKILL[station];
   const level = levelForXp(lastSkillXp[skill] ?? 0);
@@ -2173,6 +2289,7 @@ function renderInfo() {
   }
   const price = sellPrice(id, uses);
   const buyers = SHOP_IDS.filter((s) => s !== "tam" && SHOPS[s].buys(id)).map((s) => npcById(s)!.name);
+  for (const e of enchantsOf(id)) infoBody.append(infoLine("Enchanted", describeEnchant(e)));
   if (isSpellBook(id)) {
     const sp = SPELLS[SPELL_BOOKS[id]];
     infoBody.append(infoLine("Read it", `learn ${sp.icon} ${sp.name}`, `needs Spellcasting ${sp.level}. ${sp.description}`));

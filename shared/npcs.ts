@@ -4,7 +4,7 @@
 // the bounty board shows its jobs.
 export type NpcId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "wren" | "moss" | "bryn"
   | "furnace" | "anvil" | "stove" | "workbench" | "board"
-  | "archmage" | "guildboard" | "repairer" | "alchemy_table" | "chest" | "chest_east" | "chest_forest";
+  | "archmage" | "altar" | "guildboard" | "repairer" | "alchemy_table" | "chest" | "chest_east" | "chest_forest";
 
 export interface NpcDef {
   id: NpcId;
@@ -106,6 +106,11 @@ export const NPCS: NpcDef[] = [
   {
     id: "alchemy_table", name: "Alchemy table", kind: "station", x: 10, y: 17, color: 0x4a3a6a,
     greeting: "Bottles, burners and a pestle. Pick two ingredients (and maybe a third) to brew.",
+  },
+  {
+    // Enchanting (shared/enchanting.ts): soul gems add magic to staffs, armor and tools.
+    id: "altar", name: "Enchanting altar", kind: "station", x: 7, y: 17, color: 0x8e44ad,
+    greeting: "Runes glow on the stone. Place an item and a soul gem to enchant it.",
   },
   {
     // Fixes worn and broken tools, weapons and armor (shared/repair.ts), for anyone.
