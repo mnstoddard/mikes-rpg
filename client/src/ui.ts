@@ -25,6 +25,8 @@ import {
   combatMasteryIn, gearEffect, gearNeeds, masteryAccuracy, masteryDamage, masteryDrops, maxHitWith,
 } from "../../shared/combat";
 import { TANNING_IDS, gearDurability } from "../../shared/crafting";
+import { RENOWN_RANKS, RenownView } from "../../shared/renown";
+import { isJob, jobIcon } from "../../shared/guild";
 import { CROPS, CROP_IDS, FARM_CHEST_PRICE, FarmView, PLOT_SIZES, isSeed, plotPrice } from "../../shared/farming";
 import { Bounty, bountyReward, slotCounts } from "../../shared/bounties";
 import { Bag, emptyBag, entriesIn, slotTotal, stackLimit, usedSlots } from "../../shared/bag";
@@ -84,9 +86,20 @@ openPanel(isSmallScreen() ? "" : "inventory");
 
 let lastDisciplines: DisciplineView = newDisciplineView();
 /** What a shop pays you for one, with your Mastery and Charisma. */
-const sellPrice = (id: ItemId, uses?: number | null) => sellWithCharisma(sellPriceFor(id, lastMastery, uses), lastDisciplines.levels.charisma);
-/** What a shop charges you for one, with your Charisma. */
-const buyPrice = (id: ItemId) => buyWithCharisma(buyPriceFor(id), lastDisciplines.levels.charisma);
+const sellPrice = (id: ItemId, uses?: number | null) => sellWithCharisma(sellPriceFor(id, lastMastery, uses), lastDisciplines.levels.charisma, tradingLv());
+/** What a shop charges you for one, with your Charisma and Trading. */
+const buyPrice = (id: ItemId) => buyWithCharisma(buyPriceFor(id), lastDisciplines.levels.charisma, tradingLv());
+/** Your Trading and Renown levels (1 until taught). */
+function tradingLv() { return isUnlocked(lastDisciplines.unlocked, "trading") ? levelForXp(lastSkillXp.trading ?? 0) : 1; }
+function renownLv() { return isUnlocked(lastDisciplines.unlocked, "renown") ? levelForXp(lastSkillXp.renown ?? 0) : 1; }
+// ---- Captain Bryn: Renown ranks and titles (shared/renown.ts) ----
+let renown: RenownView = { level: 1, rank: 0, title: "", titles: [] };
+let onTitle: (title: string) => void = () => {};
+export function setRenownActions(a: { title: (title: string) => void }) { onTitle = a.title; }
+export function setRenown(view: RenownView) {
+  renown = view;
+  if (document.body.classList.contains("shop-open") && shopId === "bryn") renderShop();
+}
 
 /** "Forester Holt teaches it, on Trainer Row (📜 Quests)." */
 function teachNote(skill: SkillId): string {
@@ -1277,7 +1290,7 @@ let shopId: ShopId = "tam";
 
 export function openShop(id: ShopId) {
   shopId = SHOPS[id] ? id : "tam";
-  if (shopId === "odo") shopBuying = true; // his plots and seeds are on the Buy tab
+  if (shopId === "odo" || shopId === "bryn") shopBuying = true; // plots and seeds, ranks and titles are on the Buy tab
   document.getElementById("shop-title")!.textContent = SHOPS[shopId].title;
   closeCraft();
   closeBounties();
@@ -1355,6 +1368,7 @@ function renderShop() {
 function renderBuy() {
   shopBody.replaceChildren();
   if (shopId === "odo") renderFarmOffer();
+  if (shopId === "bryn") renderRenownOffer();
   shopBody.append(el("", `Never runs out. You have ${formatMoney(coins)}.`));
   const list = el("");
   list.id = "buy-list";
@@ -1373,7 +1387,49 @@ function renderBuy() {
     row.append(one);
     list.appendChild(row);
   }
+  // Rarer stock (Trading level) and Bryn's specials (Renown rank): shown locked until you can buy them.
+  const extra = [
+    ...(SHOPS[shopId].rare ?? []).map((r) => ({ item: r.item, ok: tradingLv() >= r.trading, need: `Trading ${r.trading}` })),
+    ...(SHOPS[shopId].renown ?? []).map((r) => ({ item: r.item, ok: renown.rank >= r.rank, need: RENOWN_RANKS[r.rank].title })),
+  ];
+  for (const x of extra) {
+    const item = ITEMS[x.item];
+    const price = buyPrice(x.item);
+    const row = el("buy-row" + (!x.ok ? " locked-stock" : coins < price ? " poor" : ""));
+    const one = document.createElement("button");
+    one.className = "buy-btn";
+    one.append(icon("buy-icon", item.icon, item.tint), el("buy-name", item.name + (x.ok ? "" : ` 🔒 ${x.need}`)), el("buy-price", formatMoney(price)));
+    one.title = x.ok ? `Buy ${item.name.toLowerCase()}` : `Needs ${x.need}`;
+    one.disabled = !x.ok;
+    const most = Math.max(1, Math.min(BUY_MAX, Math.floor(coins / price)));
+    one.onclick = () => askAmount({ title: `Buy ${item.name.toLowerCase()}`, glyph: item.icon, tint: item.tint, max: most, start: 1, each: price, verb: "Buy", ok: (k) => onBuy(x.item, k) });
+    row.append(one);
+    list.appendChild(row);
+  }
   shopBody.appendChild(list);
+}
+
+/** Captain Bryn: your Renown rank, the next one, and which title to show. */
+function renderRenownOffer() {
+  const box = el("farm-offer");
+  const next = RENOWN_RANKS[renown.rank + 1];
+  box.append(el("", `🏅 Renown level ${renown.level}. ` + (renown.rank ? `Bryn has named you ${RENOWN_RANKS[renown.rank].title}.` : "No rank yet.")
+    + (next ? ` Next: ${next.title} at Renown ${next.level}.` : " That's the highest rank there is.")));
+  if (renown.titles.length) {
+    box.append(el("craft-info", "Title over your head:"));
+    const row = el("title-row");
+    for (const t of ["", ...renown.titles]) {
+      const b = document.createElement("button");
+      b.className = "buy-btn farm-btn" + (renown.title === t ? " picked" : "");
+      b.textContent = t || "None";
+      b.onclick = () => onTitle(t);
+      row.append(b);
+    }
+    box.append(row);
+  } else {
+    box.append(el("craft-info", "Finish bounties to earn Renown. At Renown 5 I'll name you Wanderer, and you can wear the title."));
+  }
+  shopBody.append(box);
 }
 
 /** Farmer Odo: get a plot, make it bigger, or link the farm chest. */
@@ -2059,7 +2115,7 @@ function renderBounties() {
     const item = ITEMS[b.item];
     const have = invItems.reduce((sum, id, i) => sum + (slotCounts(b.item, id, !!locked[i], durability[i]) ? countAt(i) : 0), 0);
     const ready = have >= b.count;
-    const reward = bountyReward(b, lastMastery);
+    const reward = bountyReward(b, lastMastery, renownLv());
     const row = el("bounty-row" + (ready ? " ready" : ""));
     const btn = document.createElement("button");
     btn.className = "shop-btn";
@@ -2174,25 +2230,25 @@ function renderGuild() {
   // Magic bounties.
   const list = el("guild-section");
   list.append(el("guild-head", "📜 Guild bounties"),
-    el("bounty-note", "Defeat monsters with spells (hold a staff), or bring things the guild enchants with. Each one earns guild points."));
+    el("bounty-note", "Defeat monsters with spells (hold a staff), bring things the guild enchants with, trap souls, brew potions or enchant things. Each one earns guild points. New jobs every day."));
   g.bounties.forEach((b, index) => list.appendChild(guildBountyRow(b, index)));
   guildBody.appendChild(list);
 }
 
 function guildBountyRow(b: GuildBounty, index: number) {
   const reward = guildReward(b);
-  const icon_ = b.kind === "slay" ? MONSTER_DEFS[b.monster].icon : ITEMS[b.item].icon;
+  const icon_ = isJob(b) ? jobIcon(b.kind) : b.kind === "slay" ? MONSTER_DEFS[b.monster].icon : ITEMS[b.item].icon;
   const tint = b.kind === "reagent" ? ITEMS[b.item].tint : undefined;
   let done: number;
   let ready = false;
   const row = el("bounty-row");
   const btn = document.createElement("button");
   btn.className = "shop-btn";
-  if (b.kind === "slay") {
+  if (b.kind === "slay" || isJob(b)) {
     done = b.progress;
     btn.textContent = "🔮";
     btn.disabled = true;
-    btn.title = "Counts up by itself each time you defeat one with a spell.";
+    btn.title = b.kind === "slay" ? "Counts up by itself each time you defeat one with a spell." : "Counts up by itself as you go.";
   } else {
     done = invItems.reduce((sum, id, i) => sum + (id === b.item && !locked[i] ? countAt(i) : 0), 0);
     ready = done >= b.count;
@@ -2202,7 +2258,7 @@ function guildBountyRow(b: GuildBounty, index: number) {
   }
   if (ready) row.classList.add("ready");
   row.append(icon("bounty-icon", icon_, tint), el("bounty-what", guildBountyName(b)), btn,
-    el("bounty-have", `${b.kind === "slay" ? "Done" : "You have"} ${Math.min(done, b.count)} / ${b.count}`),
+    el("bounty-have", `${b.kind === "reagent" ? "You have" : "Done"} ${Math.min(done, b.count)} / ${b.count}`),
     el("bounty-reward", `Reward: +${reward.points} guild point${reward.points === 1 ? "" : "s"} · ${formatMoney(reward.coins)} · +${reward.magicXp} Spellcasting XP`));
   return row;
 }
@@ -2659,7 +2715,7 @@ function renderQuestTab() {
     questListEl.append(row("📜", undefined, q.giver ? `${q.quest} · ${q.giver}` : q.quest, q.task, q.progress ?? (q.done ? "" : "Tap to track"), !tb, () => onTrack(null)));
     const glyph: Record<ChapterView["state"], string> = { done: "✅", active: "📍", started: "⏸️", open: "❗", locked: "🔒" };
     for (const c of q.chapters) {
-      const sub = c.state === "done" ? "Done" : c.state === "locked" ? `Opens after ${GUIDE_NAME}'s lessons` : c.task ? `${c.task} (step ${c.step + 1} of ${c.of})` : `Talk to ${c.name}, ${c.where}`;
+      const sub = c.state === "done" ? "Done" : c.state === "locked" ? (c.needs ? `Needs ${c.needs}` : `Opens after ${GUIDE_NAME}'s lessons`) : c.task ? `${c.task} (step ${c.step + 1} of ${c.of})` : `Talk to ${c.name}, ${c.where}`;
       const r = el("qt-row qt-chapter" + (c.state === "done" ? " done" : ""));
       r.append(el("qt-icon", glyph[c.state]), el("qt-title", `${c.title} · ${c.name}`), el("qt-sub", sub));
       questListEl.append(r);
@@ -2673,7 +2729,7 @@ function renderQuestTab() {
   bounties.forEach((b, i) => {
     const item = ITEMS[b.item];
     const have = bountyHave(b);
-    const reward = bountyReward(b, lastMastery);
+    const reward = bountyReward(b, lastMastery, renownLv());
     questListEl.append(row(item.icon, item.tint, `${b.count} × ${item.name}`, `${formatMoney(reward.coins)} · +${reward.xp} ${reward.label} XP · +${reward.renown} Renown`,
       have >= b.count ? "✓ Ready to hand in" : `You have ${have} / ${b.count}`, tb === b, () => onTrack(i)));
   });

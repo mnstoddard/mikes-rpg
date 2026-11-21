@@ -588,6 +588,37 @@ Mages' Guild board).
 - The Mages' Guild board gives magic bounties. Its old "guild rank" becomes a
   Renown requirement for chest upgrades (see open questions).
 
+**How stage 12 was built** (decided with Mike's stage 12 notes):
+
+- **Trading**: XP still comes only from selling. Each Trading level makes
+  prices 0.2% better (on top of Charisma's 0.3% a level; buying never goes
+  below 60% of the price). Trainers have **rarer stock** that unlocks with
+  Trading level: better axes and pickaxes at Holt's and Greta's (10, 25, 40),
+  silver and gold bars, an iron sword and a steel platebody at Brann's, leather,
+  iron arrows and good bows and staffs at Rook's, a bronze sword, bronze
+  arrows and iron platelegs at Kael's, and sage, an iron shovel, ginseng and
+  truffles at Wren's. Locked ones show in the shop with a 🔒 and the level.
+- **Renown**: XP still comes from bounties. Each Renown level makes board
+  bounties ask for 2% more and pay 2% more (about 3x a shop's price at 99
+  instead of 2x).
+- **Captain Bryn's ranks**: Wanderer (Renown 5), Trusted (15) and Champion
+  (30). Talk to him and he names you the new rank. Each rank is a **title**:
+  pick one (or a Mages' Guild rank from Apprentice up, or none) in his shop
+  window, and everyone sees it in gold over your head. Bryn now has a shop:
+  a steel shield for Wanderers, a steel spear and the Invisibility book for
+  the Trusted, and a mithril two-handed sword and mithril platebody for
+  Champions.
+- **A Renown side quest**: "Highway robbery" from Bryn needs Renown 10.
+  Defeat 4 bandits and bring 2 stolen rings, for a steel helmet and 30 silver.
+  Side quests don't count toward "all lessons done", and chapters can now
+  need a level in any skill (Stage 13 uses this too).
+- **The Mages' Guild board** also asks you to trap souls (if you know Soul
+  trap), brew potions (if you know Alchemy) or enchant things (if you know
+  Enchanting); these count up by themselves. Guild rank still sets how big
+  your enchanted chest can be, separate from Renown.
+- **Daily boards**: both boards put up a whole new set of jobs each day
+  (UTC). Refreshing early costs 50 bronze.
+
 ### Leadership (new)
 You earn Leadership XP by **leading a party** that finishes quests or defeats
 monsters together. Higher Leadership gives the whole party a small bonus (for
@@ -812,7 +843,7 @@ quest chapter as it goes, so the main quest grows with the game.
 | **9. Enchanting** ✅ built | Enchanting altar, staffs, armor and tool enchants, the Mend spell, Enchanting tree unlocks | Needs stages 4, 7 and 8 |
 | **10. More Handicraft** ✅ built | Cloth and leather armor, bows, arrows and plain staffs, all in Handicraft | Uses hides, silk and logs |
 | **11. Farming** ✅ built | Farm area, buying and expanding plots, seeds, real-time growth | Independent, can move earlier |
-| **12. Trading and Renown** | Trading XP, Renown XP, bounty tiers, Renown-gated quests | Builds on the existing boards |
+| **12. Trading and Renown** ✅ built | Trading XP, Renown XP, bounty tiers, Renown-gated quests | Builds on the existing boards |
 | **13. Parties and Leadership** | Invites, party UI, shared quest XP and loot, quest level gates, Leadership bonus, The Howling Hollow | Biggest server change, best done last |
 
 Stages 10, 11 and 12 can be done in any order once stage 3 is in.

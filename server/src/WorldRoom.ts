@@ -86,6 +86,11 @@ import { RepairJob, isBroken, isRepairable, maxUses, repairCost } from "../../sh
 import { BOUNTY_COUNT, Bounty, bountyChoices, bountyName, bountyReward, newBoard, newBounty, slotCounts, validBounty } from "../../shared/bounties";
 import { Account, SAVE_VERSION, SaveData, checkPassword, hashPassword, store, usernameKey } from "./storage";
 import { PLAYER_COLORS, isPlayerColor } from "../../shared/colors";
+import { RENOWN_RANKS, RenownView, earnedTitles, rankForRenown } from "../../shared/renown";
+import { REROLL_FEE, boardDay } from "../../shared/bounties";
+import { MagicJob, isJob } from "../../shared/guild";
+import { canBuyHere } from "../../shared/shops";
+import { gateMet } from "../../shared/quests";
 import {
   CROPS, CROP_IDS, CropId, FARM_CHEST_PRICE, FarmView, LOTS, LOT_SIZE, MASTERY_EXTRA, PLANT_XP, PLOT_SIZES, SEED_BACK, SEED_BACK_PER_LEVEL, SeedId,
   cropOfSeed, decodeCrop, encodeCrop, inPlot, isSeed, lotAt, plotPrice, seedId, tileOf, timeLeft,
@@ -127,7 +132,8 @@ export class Player extends Schema {
   @type("number") hp = 50; // health (others see your health bar)
   @type("number") maxHp = 50;
   @type("number") stepMs = TICK_MS; // how long each step takes (Dexterity makes you walk faster), so others see you slide at the right speed
-  @type("boolean") invisible = false; // the Invisibility spell: others see you faded, monsters don't see you at all
+  @type("boolean") invisible = false;
+  @type("string") title = ""; // an earned title everyone sees over your head (shared/renown.ts) // the Invisibility spell: others see you faded, monsters don't see you at all
 
   // Server-only (not synced to everyone):
   path: Point[] = [];
@@ -179,6 +185,9 @@ export class Player extends Schema {
   guildBounties: GuildBounty[] = []; // the guild board's 3 magic jobs (filled the first time they look)
   chest: Bag = emptyBag(0); // the enchanted chest; 0 spaces until you rent it
   farmChest = false; // paid Farmer Odo to link the farm chest (shared/farming.ts)
+  renownRank = 0; // Captain Bryn's Renown rank (shared/renown.ts)
+  boardDay = 0; // the day the bounty board was filled; a new day, a new board
+  guildDay = 0;
   seedPick: ItemId | null = null; // the seed to plant first (picked on a seed's card)
   farmTimer = 0; // ticks since the last thing done on the farm
   loginNotes: string[] = []; // things to tell the player when they arrive (e.g. what happened to an old, bigger bag)
@@ -380,6 +389,18 @@ export class WorldRoom extends Room<WorldState> {
       this.say(client, `🌱 You'll plant ${ITEMS[p.seedPick].name.toLowerCase()} first. Click your plot to plant.`);
     });
 
+    // Pick one of your earned titles to show over your head ("" for none).
+    this.onMessage("title", (client, msg: { title: string }) => {
+      const p = this.state.players.get(client.sessionId);
+      if (!p) return;
+      const title = String(msg?.title ?? "");
+      if (title && !this.titlesOf(p).includes(title)) return;
+      p.title = title;
+      p.dirty = true;
+      this.say(client, title ? `🏅 Your title is now "${title}". Everyone can see it over your head.` : "🏅 You put your title away.");
+      this.sendRenown(client, p);
+    });
+
     this.onMessage("talk", (client, msg: { id: string }) => {
       const p = this.state.players.get(client.sessionId);
       const npc = npcById(String(msg?.id));
@@ -407,7 +428,7 @@ export class WorldRoom extends Room<WorldState> {
       if (!SHOPS[shop].buys(item)) return this.say(client, `${npcById(shop)!.name} only buys ${SHOPS[shop].buysText}. Shopkeeper Tam at the General Store buys anything.`);
       // Sell `count` of the stack (all of it if left out).
       const n = Math.min(countIn(p, msg.slot), wantCount(msg.count));
-      const price = sellWithCharisma(sellPriceFor(item, p.mastery, p.durability[msg.slot]), p.levels.charisma) * n;
+      const price = sellWithCharisma(sellPriceFor(item, p.mastery, p.durability[msg.slot]), p.levels.charisma, this.tradingLevel(p)) * n;
       takeFromEntry(p, msg.slot, n);
       p.coins += price;
       this.say(client, `You sell ${stackName(item, n)} for ${formatMoney(price)}.`);
@@ -434,7 +455,7 @@ export class WorldRoom extends Room<WorldState> {
         if (isProtected(p.quest, item)) { kept.add(item); continue; }
         if (!SHOPS[shop].buys(item)) continue;
         const n = countIn(p, i);
-        total += sellWithCharisma(sellPriceFor(item, p.mastery, p.durability[i]), p.levels.charisma) * n;
+        total += sellWithCharisma(sellPriceFor(item, p.mastery, p.durability[i]), p.levels.charisma, this.tradingLevel(p)) * n;
         clearEntry(p, i);
         for (let k = 0; k < n; k++) sold.push(item);
         count += n;
@@ -456,9 +477,15 @@ export class WorldRoom extends Room<WorldState> {
       if (!p || !ITEMS[item]) return;
       const shop = this.nearShop(p);
       if (!shop) return this.say(client, "You need to be next to a shopkeeper to buy.");
-      if (!SHOPS[shop].stock.includes(item)) return;
+      if (!canBuyHere(SHOPS[shop], item, this.tradingLevel(p), p.renownRank)) {
+        const rare = SHOPS[shop].rare?.find((r) => r.item === item);
+        const special = SHOPS[shop].renown?.find((r) => r.item === item);
+        if (rare) return this.say(client, `You need Trading level ${rare.trading} to buy that here. Trading goes up as you sell things.`);
+        if (special) return this.say(client, `Captain Bryn only sells that to those he's named ${RENOWN_RANKS[special.rank].title}.`);
+        return;
+      }
       const want = Math.max(1, Math.min(28, Math.floor(Number(msg.count) || 1)));
-      const price = buyWithCharisma(buyPriceFor(item), p.levels.charisma);
+      const price = buyWithCharisma(buyPriceFor(item), p.levels.charisma, this.tradingLevel(p));
       let bought = 0;
       while (bought < want) {
         if (!this.fits(p, item) || p.coins < price) break;
@@ -598,7 +625,7 @@ export class WorldRoom extends Room<WorldState> {
         const unused = isTool(b.item) || isGear(b.item) ? " unused" : "";
         return this.say(client, `You need ${b.count}${unused} ${b.count === 1 ? ITEMS[b.item].single : ITEMS[b.item].name.toLowerCase()} for that bounty (you have ${have}). Locked items don't count.`);
       }
-      const reward = bountyReward(b, p.mastery);
+      const reward = bountyReward(b, p.mastery, this.renownLevel(p));
       takeItem(p, b.item, b.count, ok);
       p.coins += reward.coins;
       this.say(client, `📋 Bounty done: ${bountyName(b).toLowerCase()}! You get ${formatMoney(reward.coins)}, ${reward.xp} ${reward.label} XP and ${reward.renown} Renown XP.`);
@@ -620,6 +647,9 @@ export class WorldRoom extends Room<WorldState> {
     this.onMessage("refreshBounties", (client) => {
       const p = this.state.players.get(client.sessionId);
       if (!p || !this.boardReady(client, p)) return;
+      if (p.coins < REROLL_FEE) return this.say(client, `📋 New notices cost ${formatMoney(REROLL_FEE)} (for the notice writer). The board changes by itself every day.`);
+      p.coins -= REROLL_FEE;
+      client.send("coins", p.coins);
       p.bounties = newBoard(p);
       if (p.tracked && !p.bounties.some((x) => x.item === p.tracked)) p.tracked = null;
       this.say(client, "📋 You take down the old notices. New ones are pinned up.");
@@ -1079,6 +1109,9 @@ export class WorldRoom extends Room<WorldState> {
     this.onMessage("refreshGuild", (client) => {
       const p = this.state.players.get(client.sessionId);
       if (!p || !this.nearGuild(client, p)) return;
+      if (p.coins < REROLL_FEE) return this.say(client, `🔮 New guild bounties cost ${formatMoney(REROLL_FEE)}. The board changes by itself every day.`);
+      p.coins -= REROLL_FEE;
+      client.send("coins", p.coins);
       p.guildBounties = newGuildBoard(this.guildPlayer(p));
       this.say(client, "🔮 The guild board shimmers, and new jobs appear.");
       this.sendGuild(client, p);
@@ -1395,6 +1428,7 @@ export class WorldRoom extends Room<WorldState> {
     this.addMasteryXp(p, client, recipe.mastery, xp);
     this.addSkillXp(p, client, recipe.skill, xp);
     this.questEvent(p, client, { kind: "craft", item: recipe.output, worked });
+    if (worked && recipe.skill === "alchemy") this.guildJob(p, client, "brew");
     this.saveSoon(p);
 
     if (--job.remaining <= 0) return this.stopActions(p);
@@ -1697,6 +1731,7 @@ export class WorldRoom extends Room<WorldState> {
   private openShop(client: Client, p: Player, npc: NpcDef) {
     p.faceX = npc.x;
     p.faceY = npc.y;
+    if (npc.id === "bryn") this.renownTalk(client, p); // a new rank, if you've earned one
     if (this.talkQuest(client, p, npc)) return;
     if (npc.id === "maren") return;
     if (npc.id === "board") return this.openBoard(client, p);
@@ -1709,6 +1744,7 @@ export class WorldRoom extends Room<WorldState> {
     this.say(client, `${npc.name}: ${npc.greeting}`);
     if (npc.kind === "station") return client.send("station", { npc: npc.id });
     if (npc.id === "odo") this.sendFarm(client, p);
+
     if (isShop(npc.id)) client.send("shop", { npc: npc.id });
   }
 
@@ -1726,7 +1762,11 @@ export class WorldRoom extends Room<WorldState> {
 
   /** Pin up a full board of bounties if it's open to you and not full. */
   private fillBoard(p: Player) {
-    if (!boardOpen(p.quest) || p.bounties.length >= BOUNTY_COUNT) return;
+    if (!boardOpen(p.quest)) return;
+    // A new day: a whole new board.
+    const today = boardDay();
+    if (p.boardDay !== today) { p.boardDay = today; p.bounties = []; }
+    if (p.bounties.length >= BOUNTY_COUNT) return;
     p.bounties = newBoard(p);
     if (p.tracked && !p.bounties.some((x) => x.item === p.tracked)) p.tracked = null;
     p.dirty = true;
@@ -1761,7 +1801,11 @@ export class WorldRoom extends Room<WorldState> {
   private guildPlayer(p: Player) {
     // Reagents: the ones the normal bounty board could ask you for (things you can gather, or have seen drop).
     const reachable = new Set(bountyChoices(p).flat());
-    return { magicLevel: levelForXp(p.skillXp.magic), reagents: REAGENTS.filter((r) => reachable.has(r)) };
+    const jobs: MagicJob[] = [];
+    if (this.known(p).includes("soul_trap")) jobs.push("trap");
+    if (isUnlocked(p.unlocked, "alchemy")) jobs.push("brew");
+    if (isUnlocked(p.unlocked, "enchanting")) jobs.push("enchant");
+    return { magicLevel: levelForXp(p.skillXp.magic), reagents: REAGENTS.filter((r) => reachable.has(r)), jobs };
   }
 
   private guildView(p: Player): GuildView {
@@ -1778,7 +1822,9 @@ export class WorldRoom extends Room<WorldState> {
   /** Click the Archmage or the guild board: the guild window (rank, chest, magic bounties). */
   private openGuild(client: Client, p: Player, npc: NpcDef) {
     if (!this.guildOpen(client, p)) return;
-    if (p.guildBounties.length < GUILD_BOUNTY_COUNT) {
+    const today = boardDay();
+    if (p.guildDay !== today || p.guildBounties.length < GUILD_BOUNTY_COUNT) {
+      p.guildDay = today;
       p.guildBounties = newGuildBoard(this.guildPlayer(p));
       p.dirty = true;
     }
@@ -1844,6 +1890,21 @@ export class WorldRoom extends Room<WorldState> {
       this.sendGuild(client, p);
     }
     p.dirty = true;
+  }
+
+  /** Soul trapping, brewing and enchanting count toward guild bounties that ask for them. */
+  private guildJob(p: Player, client: Client | undefined, kind: MagicJob) {
+    if ((p.quest.ch.ysolde?.step ?? -1) < YSOLDE_GUILD_STEP) return;
+    const i = p.guildBounties.findIndex((b) => b.kind === kind);
+    const b = p.guildBounties[i];
+    if (!b || !isJob(b)) return;
+    b.progress++;
+    p.dirty = true;
+    if (b.progress >= b.count) this.finishGuildBounty(client, p, i);
+    else if (client) {
+      this.say(client, `🔮 Guild bounty: ${b.progress}/${b.count}.`);
+      this.sendGuild(client, p);
+    }
   }
 
   /** A monster fell: count it toward "defeat with spells" guild bounties. */
@@ -2643,6 +2704,7 @@ export class WorldRoom extends Room<WorldState> {
     this.addSkillXp(p, client, "enchanting", 10 + Math.ceil(soul.souls / 2));
     this.sendInventory(client, p);
     this.questEvent(p, client, { kind: "enchant" });
+    this.guildJob(p, client, "enchant");
     this.saveSoon(p);
   }
 
@@ -2737,6 +2799,7 @@ export class WorldRoom extends Room<WorldState> {
       this.say(client, `👻 The ${name}'s soul flows into your soul gem (${carats(g.size)}): ${pct >= 100 ? "it's full! ✨" : `${pct}% full.`}`);
       this.sendInventory(client, p);
     }
+    this.guildJob(p, client ?? undefined, "trap");
     p.dirty = true;
   }
 
@@ -2944,8 +3007,13 @@ export class WorldRoom extends Room<WorldState> {
    * shop, the guild), e.g. when the step is "buy something from me".
    */
   private talkQuest(client: Client, p: Player, npc: NpcDef): boolean {
-    const chapter = chapterOf(npc.id);
     const q = p.quest;
+    let chapter: Chapter | null = chapterOf(npc.id, q);
+    // A side quest that needs a level you don't have yet (e.g. Renown 10): not offered yet.
+    if (chapter && !q.ch[chapter.id] && !gateMet(chapter, this.levelOf(p))) {
+      if (chapter.side && chapter.requires) this.say(client, `${chapter.name}: Come back when you're better known (${skillInfo(chapter.requires.skill).def.name} ${chapter.requires.level}). I might have a job for you then.`);
+      chapter = null;
+    }
     if (npc.id === "maren") this.marenHelps(client, p);
     if (!chapter || chapterDone(q, chapter.id)) {
       if (npc.id !== "maren") return false;
@@ -3060,9 +3128,9 @@ export class WorldRoom extends Room<WorldState> {
   /** What the quest tracker shows. */
   private questView(p: Player): QuestView {
     const step = this.step(p);
-    const chapters = chapterViews(p.quest);
+    const chapters = chapterViews(p.quest, this.levelOf(p));
     const finished = chapters.filter((c) => c.state === "done").length;
-    const base = { number: finished, of: chapters.length, marks: questMarks(p.quest), chapters };
+    const base = { number: finished, of: chapters.length, marks: questMarks(p.quest, this.levelOf(p)), chapters };
     if (!step) {
       return tutorialDone(p.quest)
         ? { ...base, done: true, quest: "All lessons done", giver: "", task: "Tap 📜 Quests to track a bounty from the board.", talk: false }
@@ -3116,6 +3184,36 @@ export class WorldRoom extends Room<WorldState> {
   private nearNpc(p: Player, id: string) {
     const npc = NPCS.find((n) => n.id === id)!;
     return Math.max(Math.abs(p.x - npc.x), Math.abs(p.y - npc.y)) <= 1;
+  }
+
+  // ---- Trading and Renown (stage 12: shared/renown.ts, shared/shops.ts) ----
+
+  private tradingLevel = (p: Player) => (isUnlocked(p.unlocked, "trading") ? levelForXp(p.skillXp.trading) : 1);
+  private renownLevel = (p: Player) => (isUnlocked(p.unlocked, "renown") ? levelForXp(p.skillXp.renown) : 1);
+  /** A skill's level (0 if you haven't been taught it), for quests that need one. */
+  private levelOf = (p: Player) => (skill: SkillId) => (isUnlocked(p.unlocked, skill) ? levelForXp(p.skillXp[skill]) : 0);
+  private titlesOf = (p: Player) => earnedTitles(p.renownRank, rankFor(p.guildPoints));
+
+  private renownView(p: Player): RenownView {
+    return { level: this.renownLevel(p), rank: p.renownRank, title: p.title, titles: this.titlesOf(p) };
+  }
+
+  private sendRenown(client: Client, p: Player) {
+    client.send("renown", this.renownView(p));
+  }
+
+  /** Talking to Captain Bryn: he names you a new rank if your Renown is high enough. */
+  private renownTalk(client: Client, p: Player) {
+    if (!boardOpen(p.quest)) return this.sendRenown(client, p);
+    const earned = rankForRenown(this.renownLevel(p));
+    if (earned > p.renownRank) {
+      p.renownRank = earned;
+      const title = RENOWN_RANKS[earned].title;
+      if (!p.title) p.title = title;
+      p.dirty = true;
+      this.say(client, `🏅 Captain Bryn: Folk all over town know your name now. From today, you're ${title}! Wear it with pride: everyone sees it over your head (pick another in my shop window). And I've some special things for sale to those I've named.`);
+    }
+    this.sendRenown(client, p);
   }
 
   // ---- Farming (shared/farming.ts) ----
@@ -3475,8 +3573,15 @@ export class WorldRoom extends Room<WorldState> {
         }
       } else if (skill === "foraging") {
         for (const f of FORAGE_FINDS) if (f.level > before && f.level <= after) this.say(client, `🌱 You can now dig up ${ITEMS[f.item].name.toLowerCase()}${f.night ? " (at night)" : ""}!`);
-      } else if (skill === "trading" || skill === "renown") {
-        // Nothing new to unlock yet; the Charisma level-up message says what it does.
+      } else if (skill === "renown") {
+        for (let r = 1; r < RENOWN_RANKS.length; r++) {
+          if (RENOWN_RANKS[r].level > before && RENOWN_RANKS[r].level <= after) this.say(client, `🏅 Your Renown is ${after}: Captain Bryn has a new rank for you (${RENOWN_RANKS[r].title}). Go and see him!`);
+        }
+        this.say(client, "📋 Bounties ask for a little more now, and pay more too.");
+      } else if (skill === "trading") {
+        const now = (lv: number) => lv > before && lv <= after;
+        for (const id of SHOP_IDS) for (const r of SHOPS[id].rare ?? []) if (now(r.trading)) this.say(client, `💰 ${SHOPS[id].title.replace(/^\S+ /, "")} will sell you ${ITEMS[r.item].name.toLowerCase()} now.`);
+        this.say(client, "💰 Shops pay you a little more and charge a little less.");
       } else if (isCraftSkill(skill)) {
         for (const m of Object.values(METALS)) {
           if (m.level > before && m.level <= after) {
@@ -3715,6 +3820,10 @@ export class WorldRoom extends Room<WorldState> {
     }
     this.restoreGuild(p, save.guild);
     p.farmChest = save.farmChest === true;
+    if (Number.isInteger(save.renownRank)) p.renownRank = Math.max(0, Math.min(RENOWN_RANKS.length - 1, save.renownRank!));
+    if (Number.isInteger(save.boardDay)) p.boardDay = save.boardDay!;
+    if (Number.isInteger(save.guildDay)) p.guildDay = save.guildDay!;
+    if (typeof save.title === "string") p.title = save.title;
     this.fitOldBag(p, old);
     const ok = (xp: unknown): xp is number => typeof xp === "number" && Number.isFinite(xp) && xp >= 0;
     for (const id of Object.keys(p.skillXp) as SkillId[]) {
@@ -3778,7 +3887,7 @@ export class WorldRoom extends Room<WorldState> {
     const dest = p.path.length ? p.path[p.path.length - 1] : p;
     const bag = cloneBag(p);
     compact(bag); // leave out unused entries
-    return { saveVersion: SAVE_VERSION, questRev: QUEST_REV, quest: structuredClone(p.quest), x: dest.x, y: dest.y, inventory: bag.inventory, slots: bag.slotOf, coins: p.coins, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: bag.durability, belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), hp: p.hp, hpAt: Date.now(), gear: { ...p.gear }, spell: p.spell, combatMastery: { ...p.combatMastery }, tree: { ...p.tree }, lockedSlots: bag.locked.flatMap((on, i) => (on ? [i] : [])), bounties: p.bounties.map((b) => ({ ...b })), tracked: p.tracked ?? undefined, color: p.color, counts: bag.counts, jewels: { ...p.jewels }, discovered: [...p.discovered], books: [...p.books], spellBar: p.barFresh ? undefined : [...p.spellBar], buffs: structuredClone(p.buffs), guild: this.guildSave(p), farmChest: p.farmChest || undefined };
+    return { saveVersion: SAVE_VERSION, questRev: QUEST_REV, quest: structuredClone(p.quest), x: dest.x, y: dest.y, inventory: bag.inventory, slots: bag.slotOf, coins: p.coins, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: bag.durability, belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), hp: p.hp, hpAt: Date.now(), gear: { ...p.gear }, spell: p.spell, combatMastery: { ...p.combatMastery }, tree: { ...p.tree }, lockedSlots: bag.locked.flatMap((on, i) => (on ? [i] : [])), bounties: p.bounties.map((b) => ({ ...b })), tracked: p.tracked ?? undefined, color: p.color, counts: bag.counts, jewels: { ...p.jewels }, discovered: [...p.discovered], books: [...p.books], spellBar: p.barFresh ? undefined : [...p.spellBar], buffs: structuredClone(p.buffs), guild: this.guildSave(p), farmChest: p.farmChest || undefined, renownRank: p.renownRank || undefined, title: p.title || undefined, boardDay: p.boardDay || undefined, guildDay: p.guildDay || undefined };
   }
 
   private async save(p: Player) {

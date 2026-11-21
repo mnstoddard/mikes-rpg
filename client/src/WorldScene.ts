@@ -32,6 +32,8 @@ import { TRAP_BLINK_SECONDS } from "../../shared/spells";
 import { CROPS, LOTS, LOT_SIZE, decodeCrop, growth, inPlot, lotAt, tileOf, timeLeft } from "../../shared/farming";
 import { serverNow, setFarm, setFarmActions } from "./ui";
 import type { FarmView } from "../../shared/farming";
+import type { RenownView } from "../../shared/renown";
+import { setRenown, setRenownActions } from "./ui";
 import { NIGHT_DARKNESS, darkness, isNight, minutesUntilChange } from "../../shared/daynight";
 
 const TILE_COLORS: Record<Tile, number> = {
@@ -270,6 +272,8 @@ export class WorldScene extends Phaser.Scene {
       repairAll: () => this.room?.send("repairAll"),
     });
     room.onMessage("farm", (view: FarmView) => setFarm(view));
+    room.onMessage("renown", (view: RenownView) => setRenown(view));
+    setRenownActions({ title: (title) => room.send("title", { title }) });
     setFarmActions({
       buy: () => room.send("farmBuy"),
       chest: () => room.send("farmChest"),
@@ -684,7 +688,11 @@ export class WorldScene extends Phaser.Scene {
         fontSize: "12px", color: isMe ? "#ffeb3b" : "#ffffff", stroke: "#000", strokeThickness: 3,
       }).setOrigin(0.5);
       const bar = this.add.graphics();
-      container.add([shadow, body, label, bar]);
+      // An earned title (shared/renown.ts), small and gold, over the name.
+      const title = this.add.text(0, -37, player.title ? `« ${player.title} »` : "", {
+        fontSize: "10px", color: "#ffd84a", fontStyle: "italic", stroke: "#000", strokeThickness: 3,
+      }).setOrigin(0.5);
+      container.add([shadow, body, label, bar, title]);
       const view: PlayerView = { container, body, label, bar };
       this.players.set(sessionId, view);
 
@@ -700,6 +708,7 @@ export class WorldScene extends Phaser.Scene {
       $(player).listen("color", (color: number) => { view.body.setFillStyle(color); if (isMe) renderMe(player.name, color); });
       // Invisibility: you see yourself faded; others barely see you at all.
       $(player).listen("invisible", (inv: boolean) => view.container.setAlpha(inv ? (isMe ? 0.4 : 0.12) : 1));
+      $(player).listen("title", (t: string) => title.setText(t ? `« ${t} »` : ""));
       $(player).listen("name", (name: string) => { view.label.setText(name); if (isMe) { renderMe(name, player.color); this.updateHud(); } });
       this.updateHud();
     });

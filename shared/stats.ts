@@ -21,9 +21,11 @@ export const WALK_BONUS_CAP = 0.3;
 export const walkBonus = (dexterity: number) => Math.min(WALK_BONUS_CAP, 0.01 * Math.max(0, dexterity - 1));
 /** Prices: 0.3% better per Charisma level above 1 (about 29% at 99), both selling and buying. */
 export const priceBonus = (charisma: number) => 0.003 * Math.max(0, charisma - 1);
-/** What a shop pays you for something worth `price`, with your Charisma. */
-export const sellWithCharisma = (price: number, charisma: number) => Math.floor(price * (1 + priceBonus(charisma)));
-/** What a shop charges you for something priced `price`, with your Charisma (never under 1 bronze). */
-export const buyWithCharisma = (price: number, charisma: number) => Math.max(1, Math.ceil(price * (1 - priceBonus(charisma))));
+/** Trading (a Charisma skill): another 0.2% better per level above 1 (about 20% at 99), on top of Charisma. */
+export const tradingBonus = (trading: number) => 0.002 * Math.max(0, trading - 1);
+/** What a shop pays you for something worth `price`, with your Charisma (and Trading level). */
+export const sellWithCharisma = (price: number, charisma: number, trading = 1) => Math.floor(price * (1 + priceBonus(charisma) + tradingBonus(trading)));
+/** What a shop charges you for something priced `price`, with your Charisma and Trading (never under 1 bronze, and never below 60%). */
+export const buyWithCharisma = (price: number, charisma: number, trading = 1) => Math.max(1, Math.ceil(price * Math.max(0.6, 1 - priceBonus(charisma) - tradingBonus(trading))));
 /** Trading XP for a sale worth this much (in bronze): 1 XP per 5 bronze, at least 1. Buying gives none. */
 export const tradingXp = (bronze: number) => Math.max(1, Math.floor(bronze / 5));

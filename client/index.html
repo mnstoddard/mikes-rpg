@@ -175,6 +175,10 @@
     .buy-btn { flex: 1; display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 4px; padding: 3px 6px; text-align: left; }
     .farm-offer { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; padding: 6px; border: 1px solid #6b8f3a; border-radius: 4px; background: rgba(90, 130, 50, 0.15); }
     .farm-offer .farm-btn { display: block; text-align: center; }
+    .title-row { display: flex; flex-wrap: wrap; gap: 4px; }
+    .title-row .farm-btn { flex: 0 0 auto; padding: 3px 8px; }
+    .farm-btn.picked { border-color: #ffd84a; color: #ffd84a; }
+    .locked-stock .buy-btn { opacity: .55; cursor: default; }
     .buy-five { width: 38px; }
     .buy-btn:hover, .buy-five:hover { background: rgba(255,255,255,.1); }
     .buy-price { color: #ffd84a; font-size: 12px; }
@@ -440,7 +444,7 @@
     <div class="bounty-note">Bring the full amount from your bag. They pay double what a shop would, plus XP. Locked items don't count.</div>
     <div id="bounty-list"></div>
     <div class="buttons">
-      <button id="bounty-refresh" class="shop-btn" title="Swap all 5 for new bounties (free)">🔄 Refresh</button>
+      <button id="bounty-refresh" class="shop-btn" title="Swap all 5 for new bounties (50 bronze). The board changes by itself every day.">🔄 Refresh (50 bronze)</button>
       <button id="bounty-close" class="shop-btn">Close</button>
     </div>
   </div>
@@ -448,7 +452,7 @@
     <h3>🔮 Mages' Guild</h3>
     <div id="guild-body"></div>
     <div class="buttons">
-      <button id="guild-refresh" class="shop-btn" title="Swap the guild's bounties for new ones (free). Spell progress is lost.">🔄 New bounties</button>
+      <button id="guild-refresh" class="shop-btn" title="Swap the guild's bounties for new ones (50 bronze). Progress is lost. The board changes by itself every day.">🔄 New bounties (50 bronze)</button>
       <button id="guild-close" class="shop-btn">Close</button>
     </div>
   </div>

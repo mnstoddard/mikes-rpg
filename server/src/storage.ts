@@ -57,6 +57,10 @@ export interface SaveData {
   discovered?: string[]; // hidden potion recipes found by brewing them, e.g. ["restore"] (shared/alchemy.ts)
   buffs?: Record<string, { until: number; power: number }>; // potion buffs still running, e.g. { strength: { until: 1795..., power: 12 } }
   guild?: GuildSave; // the Mages' Guild: rank points, magic bounties and the enchanted chest
+  renownRank?: number; // Captain Bryn's Renown rank (shared/renown.ts): 0 none, 1 Wanderer, 2 Trusted, 3 Champion
+  title?: string; // the earned title shown over your head ("" for none)
+  boardDay?: number; // the day the bounty board was last filled (it changes daily)
+  guildDay?: number; // the same for the guild's board
   farmChest?: boolean; // paid Farmer Odo to link the farm chest to the enchanted chest (shared/farming.ts)
   // Add more here later (skills, bank, quests...). Stored as JSON, so no
   // database migration is needed for new fields.
