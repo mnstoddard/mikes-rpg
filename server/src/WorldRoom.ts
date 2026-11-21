@@ -53,6 +53,12 @@ import {
 } from "../../shared/spells";
 import { BoltSpellId, isBoltSpell } from "../../shared/combat";
 import {
+  ENCHANTS, EnchantId, GUARD_CAP, Inlay, INLAYS, addEnchant, cappedGem, chainPercent, describeEnchant, enchantForGem, enchantKind, enchantTotal, enchantsOf,
+  fireDamage, fits, frostTicks, guardPercent, isEnchantId, isSpent, lifeStealPercent, manaFlowPercent, poisonDamage, soulPower, staffHit, stripEnchants,
+  thornsDamage, vitalityHp, swiftPercent, bountyPercent, tirelessPercent, wisdomPercent,
+} from "../../shared/enchanting";
+import { Metal, barId, baseItem, isWoodTool } from "../../shared/tools";
+import {
   GemId, CUT_KEEPS, CUT_LEVEL, GEMS, isSoulGem, soulCapacity, JEWEL_BARS, JEWEL_METALS, JEWEL_SLOTS, JewelSlot, Jewels, carats, cutId, cutXp, describeBonus, emptyJewels, isJewelry, jewelBonus, jewelTotals,
   parseGem, rollCut, rollGemSize, roughId, soulGemId, soulStoneId,
 } from "../../shared/jewelry";
@@ -66,7 +72,7 @@ import {
 import { BAITS, BaitId, MUSHROOM_CHANCE, SCRAPS_CHANCE, WORM_CHANCE, isBait } from "../../shared/handicraft";
 import { TREES, TreeEffect, TreeRanks, cleanRanks, earnedPoints, rankCost, spentPoints, treeBonus, treeNode, treeRoll } from "../../shared/skilltree";
 import {
-  GUIDE_NAME, Gift, QUEST_REV, boardOpen, migrateQuest, teacherOf, unlockedSkills, isProtected, QuestProgress, QuestStep, QuestView,
+  GUIDE_NAME, Gift, QUEST_REV, YSOLDE_GUILD_STEP, boardOpen, migrateQuest, teacherOf, unlockedSkills, isProtected, QuestProgress, QuestStep, QuestView,
   gateOpen, giftItems, newQuestProgress, tutorialDone, currentStep, chapterById, chapterOf, chapterDone, chapterOpen, chapterViews,
   questMarks, marenDone, stewsBurn, ChapterProgress, Chapter,
 } from "../../shared/quests";
@@ -187,6 +193,7 @@ export class Monster extends Schema {
   respawnAt = 0; // tick it comes back, while defeated
   sleepUntil = 0;
   frozenUntil = 0;
+  poison: { left: number; damage: number; by: string } | null = null; // an emerald staff's poison: hits left, damage each, who did it
   trappedBy: string | null = null; // Soul trap: session id of whoever cast it (only their soul gem fills)
   /** Hunting: damage each player has done to it since it last came back (session id -> damage). */
   hurtBy = new Map<string, number>();
@@ -213,6 +220,7 @@ type QuestEvent =
   | { kind: "repair" }
   | { kind: "kill"; monster: MonsterId; style: CombatStyle }
   | { kind: "drink" }
+  | { kind: "enchant" }
   | { kind: "track" }
   | { kind: "bounty" };
 
@@ -788,6 +796,7 @@ export class WorldRoom extends Room<WorldState> {
       const verb = slot === "weapon" ? "hold" : "put on";
       this.say(client, `You ${verb} the ${ITEMS[item].single}. ${gearEffect(item)}.` + (old ? ` Your ${ITEMS[old.item].single} goes in your bag.` : "") + moved);
       this.sendInventory(client, p);
+      this.gearStatsChanged(client, p); // Vitality armor
       this.saveSoon(p);
     });
 
@@ -804,6 +813,7 @@ export class WorldRoom extends Room<WorldState> {
       const blocked = this.fightBlock(p);
       if (blocked && slot === "weapon") this.say(client, blocked);
       this.sendInventory(client, p);
+      this.gearStatsChanged(client, p);
       this.saveSoon(p);
     });
 
@@ -886,6 +896,18 @@ export class WorldRoom extends Room<WorldState> {
       const id = msg?.id as SpellId;
       if (!p || !SPELL_IDS.includes(id)) return;
       this.castSpell(client, p, id, client.sessionId);
+    });
+
+    // The enchanting altar (shared/enchanting.ts).
+    this.onMessage("enchant", (client, msg: { slot: number; soul: number; effect?: string; gem?: number; inlay?: string }) => {
+      const p = this.state.players.get(client.sessionId);
+      if (!p || !Number.isInteger(msg?.slot) || !Number.isInteger(msg?.soul) || (msg.gem != null && !Number.isInteger(msg.gem))) return;
+      this.enchant(client, p, msg);
+    });
+    this.onMessage("disenchant", (client, msg: { slot: number }) => {
+      const p = this.state.players.get(client.sessionId);
+      if (!p || !Number.isInteger(msg?.slot)) return;
+      this.disenchant(client, p, msg.slot);
     });
 
     // Rearrange the spell bar: a list of spell ids (or null for an empty slot).
@@ -1071,7 +1093,8 @@ export class WorldRoom extends Room<WorldState> {
       let vitals = false;
       if (p.hp < p.maxHp && ++p.healthTicks >= HEALTH_REGEN_TICKS) { p.healthTicks = 0; p.hp++; vitals = true; }
       const mMax = this.maxManaOf(p);
-      if (p.mana < mMax && ++p.manaTicks >= MANA_REGEN_TICKS) { p.manaTicks = 0; p.mana++; vitals = true; }
+      const manaEvery = MANA_REGEN_TICKS / (1 + manaFlowPercent(enchantTotal(this.armorItems(p), "manaflow")) / 100);
+      if (p.mana < mMax && ++p.manaTicks >= manaEvery) { p.manaTicks = 0; p.mana++; vitals = true; }
       if (vitals && client) this.sendVitals(client, p);
       if (p.fighting) return this.combatTick(p, sessionId);
       if (p.path.length || !p.target) return;
@@ -1203,7 +1226,7 @@ export class WorldRoom extends Room<WorldState> {
       if (client) this.say(client, this.fullReason(p, gotItem));
       return this.stopActions(p);
     }
-    if (!treeRoll(p.tree, skill, "staminaSave")) this.useStamina(p, skill);
+    if (!this.roll(p, skill, "staminaSave")) this.useStamina(p, skill);
     this.questEvent(p, client, { kind: "gather", skill: gather, resource, withTool: !!belt });
     this.wearTool(p, client, tool, wearFor(res.level));
     const extras: string[] = [];
@@ -1270,7 +1293,7 @@ export class WorldRoom extends Room<WorldState> {
       if (client) this.say(client, roomFor(after, recipe.output) < 1 ? "Your bag is full. Make room first." : this.fullReason(p, recipe.output));
       return this.stopActions(p);
     }
-    if (!treeRoll(p.tree, recipe.skill, "staminaSave")) this.useStamina(p, recipe.skill);
+    if (!this.roll(p, recipe.skill, "staminaSave")) this.useStamina(p, recipe.skill);
     // Use the inputs (never locked ones).
     for (const input of recipe.inputs) takeItem(p, input, 1, (i) => !p.locked[i]);
     const output = ITEMS[recipe.output];
@@ -1293,7 +1316,7 @@ export class WorldRoom extends Room<WorldState> {
     if (tool) this.wearTool(p, client, tool, recipeWear(recipe));
     const extras: string[] = [];
     // The skill tree's "Extra bar" / "Bait bundle": sometimes you make two.
-    if (worked && treeRoll(p.tree, recipe.skill, "extra") && this.give(p, recipe.output)) extras.push(`a second ${output.single}`);
+    if (worked && this.roll(p, recipe.skill, "extra") && this.give(p, recipe.output)) extras.push(`a second ${output.single}`);
     // Cooking leaves food scraps behind now and then (for chum bait).
     if (worked && recipe.skill === "cooking" && Math.random() < SCRAPS_CHANCE && this.give(p, "food_scraps")) extras.push("some food scraps");
     if (client) {
@@ -1449,7 +1472,32 @@ export class WorldRoom extends Room<WorldState> {
 
   /** What a skill's tree gives this player for one effect (0.1 = 10%). */
   private tree(p: Player, skill: SkillId, effect: TreeEffect) {
-    return treeBonus(p.tree, skill, effect);
+    return treeBonus(p.tree, skill, effect) + this.toolEnchant(p, skill, effect);
+  }
+
+  /** A chance from the skill tree plus the tool's enchantment (e.g. "does this cost no stamina?"). */
+  private roll(p: Player, skill: SkillId, effect: TreeEffect) {
+    return Math.random() < this.tree(p, skill, effect);
+  }
+
+  /** What the enchantment on this skill's belt tool adds (Swiftness, Bounty, Tireless, Wisdom), as a fraction. */
+  private toolEnchant(p: Player, skill: SkillId, effect: TreeEffect): number {
+    const type = toolForSkill(skill);
+    const item = type ? p.belt[type]?.item : null;
+    if (!item) return 0;
+    const total = (id: EnchantId) => enchantTotal([item], id);
+    switch (effect) {
+      case "speed": return swiftPercent(total("swift")) / 100;
+      case "double": case "extra": return bountyPercent(total("bounty")) / 100;
+      case "staminaSave": return tirelessPercent(total("tireless")) / 100;
+      case "xp": return wisdomPercent(total("wisdom")) / 100;
+      default: return 0;
+    }
+  }
+
+  /** Armor you're wearing (not your weapon), for armor enchantments. */
+  private armorItems(p: Player) {
+    return GEAR_SLOTS.filter((sl) => sl !== "weapon").map((sl) => p.gear[sl]?.item ?? null);
   }
 
   /** Mastery points earned (1 per Mastery level, everywhere) minus those spent. */
@@ -1464,7 +1512,7 @@ export class WorldRoom extends Room<WorldState> {
 
   /** Max health: from your Strength level, plus the Defense tree's "Toughness". */
   private maxHpOf(p: Player) {
-    return maxHealth(p.levels.strength) + this.tree(p, "defense", "health") + jewelTotals(p.jewels).health;
+    return maxHealth(p.levels.strength) + this.tree(p, "defense", "health") + jewelTotals(p.jewels).health + vitalityHp(enchantTotal(this.armorItems(p), "vitality"));
   }
 
   /** Max mana: from your Wisdom level. */
@@ -1666,7 +1714,7 @@ export class WorldRoom extends Room<WorldState> {
 
   /** Not until Old Maren's lessons are done. Says why not. */
   private guildOpen(client: Client, p: Player): boolean {
-    if (chapterDone(p.quest, "ysolde")) return true;
+    if ((p.quest.ch.ysolde?.step ?? -1) >= YSOLDE_GUILD_STEP) return true;
     this.say(client, "🔮 The Mages' Guild only takes members who have finished Archmage Ysolde's lesson.");
     return false;
   }
@@ -1741,7 +1789,7 @@ export class WorldRoom extends Room<WorldState> {
 
   /** A monster fell: count it toward "defeat with spells" guild bounties. */
   private guildKill(p: Player, client: Client | undefined, monster: MonsterId, style: CombatStyle) {
-    if (style !== "magic" || !chapterDone(p.quest, "ysolde")) return;
+    if (style !== "magic" || (p.quest.ch.ysolde?.step ?? -1) < YSOLDE_GUILD_STEP) return;
     p.guildBounties.forEach((b, i) => {
       if (b.kind !== "slay" || b.monster !== monster) return;
       b.progress++;
@@ -1913,7 +1961,8 @@ export class WorldRoom extends Room<WorldState> {
     if (a.spell) {
       const spell = SPELLS[a.spell];
       if (levelForXp(p.skillXp.magic) < spell.level) p.spell = "fire_blast";
-      const mana = spellMana(a.spell, combatMasteryIn(p.combatMastery, a.spell));
+      const staffMagic = this.staffEnchant(p);
+      const mana = staffMagic ? 1 : spellMana(a.spell, combatMasteryIn(p.combatMastery, a.spell));
       if (p.mana < mana) {
         if (client) this.say(client, `You're out of mana: ${spell.name} needs ${mana} and you have ${p.mana}. It comes back 1 every 6 seconds.`);
         return this.stopActions(p);
@@ -1933,18 +1982,21 @@ export class WorldRoom extends Room<WorldState> {
     const monsterM = combatMasteryIn(p.combatMastery, m.kind);
     const chance = hitChance(levelForXp(p.skillXp[style]), m.kind, a, weaponM, monsterM, this.tree(p, style, "accuracy") + jewelTotals(p.jewels).accuracy / 100);
     const hit = Math.random() < chance;
-    const max = maxHitWith(a, weaponM);
+    const staffMagic = a.spell ? this.staffEnchant(p) : null;
+    const max = maxHitWith(a, weaponM) + (staffMagic && a.maxHit ? staffHit(staffMagic.power) : 0);
     // The skill tree's damage bonus: +5% is a 5% chance of +1 on a hit of 1, and so on.
     // Weapons (not spells) hit harder with a strength potion.
     const strength = a.spell ? 0 : buffPower(p.buffs, "strength", worldNow()) / 100;
     const roll = hit && max ? (1 + Math.floor(Math.random() * max)) * (1 + this.tree(p, style, "damage") + strength) : 0;
-    const damage = Math.floor(roll) + (Math.random() < roll % 1 ? 1 : 0);
+    let damage = Math.floor(roll) + (Math.random() < roll % 1 ? 1 : 0);
+    if (staffMagic?.id === "fire" && damage) damage += fireDamage(staffMagic.gem / 10);
     const spell = a.spell ? SPELLS[a.spell] : null;
     if (damage) {
       m.hurtBy.set(sessionId, (m.hurtBy.get(sessionId) ?? 0) + Math.min(damage, m.hp));
       m.hp = Math.max(0, m.hp - damage);
     }
     if (hit && spell?.freeze) m.frozenUntil = this.state.tick + spell.freeze;
+    if (hit && staffMagic) this.staffEffect(p, client, sessionId, m, staffMagic, damage);
     if (hit && spell?.sleep) { m.sleepUntil = this.state.tick + spell.sleep; m.attackTimer = 0; }
     this.broadcast("hit", { on: "monster", id: p.fighting, damage, miss: !hit, spell: a.spell ?? null, from: sessionId });
     // It fights back now (if it ever does).
@@ -1979,6 +2031,7 @@ export class WorldRoom extends Room<WorldState> {
     if (m.trappedBy && m.trappedUntil > this.state.tick) this.fillSoulGem(m);
     m.trappedUntil = 0;
     m.trappedBy = null;
+    m.poison = null;
     // Hunting: a better hunter gets more drops.
     const hunter = isUnlocked(p.unlocked, "hunting") ? huntingDrops(levelForXp(p.skillXp.hunting)) : 1;
     const dropBoost = masteryDrops(combatMasteryIn(p.combatMastery, m.kind)) * hunter;
@@ -2049,9 +2102,24 @@ export class WorldRoom extends Room<WorldState> {
         m.y = m.homeY;
         m.sleepUntil = m.frozenUntil = 0;
         m.attackTimer = 0;
+        m.poison = null;
         return;
       }
       if (m.trappedUntil && m.trappedUntil <= tick) { m.trappedUntil = 0; m.trappedBy = null; }
+      if (m.poison && tick % 3 === 0) {
+        const { damage, by } = m.poison;
+        if (--m.poison.left <= 0) m.poison = null;
+        const pl = this.state.players.get(by);
+        m.hurtBy.set(by, (m.hurtBy.get(by) ?? 0) + Math.min(damage, m.hp));
+        m.hp = Math.max(0, m.hp - damage);
+        this.broadcast("hit", { on: "monster", id, damage, miss: false, spell: "poison", from: by });
+        if (m.hp <= 0) {
+          m.poison = null;
+          if (pl) this.killMonster(m, pl, this.clients.getById(by), "magic");
+          else { m.alive = false; m.target = null; m.respawnAt = tick + def.respawnTicks; }
+          return;
+        }
+      }
       if (m.sleepUntil > tick) { m.status = "asleep"; return; }
       const frozen = m.frozenUntil > tick;
       const home = { x: m.homeX, y: m.homeY };
@@ -2137,9 +2205,21 @@ export class WorldRoom extends Room<WorldState> {
       }
       if (client) this.sendBuffs(client, p);
     }
+    const armor = this.armorItems(p);
+    if (damage) {
+      const guard = Math.min(GUARD_CAP, guardPercent(enchantTotal(armor, "guard")));
+      if (guard) damage = Math.max(1, Math.round(damage * (1 - guard / 100)));
+    }
     p.hp = Math.max(0, p.hp - damage);
     p.dirty = true;
     this.broadcast("hit", { on: "player", id: sessionId, damage, miss: !hit, from: monsterId });
+    const thorns = hit ? thornsDamage(enchantTotal(armor, "thorns")) : 0;
+    if (thorns && enchantTotal(armor, "thorns") > 0) {
+      m.hurtBy.set(sessionId, (m.hurtBy.get(sessionId) ?? 0) + Math.min(thorns, m.hp));
+      m.hp = Math.max(0, m.hp - thorns);
+      this.broadcast("hit", { on: "monster", id: monsterId, damage: thorns, miss: false, spell: null, from: sessionId });
+      if (m.hp <= 0) { this.killMonster(m, p, client, "melee"); return; }
+    }
     // Armor wears down: one piece you're wearing takes the blow.
     const worn = GEAR_SLOTS.filter((s) => s !== "weapon" && p.gear[s]);
     if (worn.length) this.wearGear(p, client, worn[Math.floor(Math.random() * worn.length)], wearFor(def.level));
@@ -2188,6 +2268,7 @@ export class WorldRoom extends Room<WorldState> {
     g.durability = Math.max(0, g.durability - amount);
     if (g.durability <= 0) {
       p.gear[slot] = null;
+      if (client) this.gearStatsChanged(client, p);
       const kept = this.give(p, g.item, 1, 0, true) > 0;
       if (client) {
         this.say(client, kept ? `Your ${ITEMS[g.item].single} breaks! It goes in your bag. The Repairer at the Mages' Guild can fix it.`
@@ -2339,6 +2420,10 @@ export class WorldRoom extends Room<WorldState> {
       const before = p.hp;
       p.hp = Math.min(p.maxHp, p.hp + spellPower(id, level, mastery));
       msg = `💚 You heal ${p.hp - before} (${p.hp}/${p.maxHp}).`;
+    } else if (id === "mend") {
+      const problem = this.mend(client, p);
+      if (problem) return this.say(client, problem);
+      msg = "🪡 Threads of light knit your gear back together: good as new.";
     } else if (id === "haste") {
       const power = spellPower(id, level, mastery);
       p.buffs.haste = { until: world + spellSeconds(id, mastery) * 1000, power };
@@ -2394,6 +2479,138 @@ export class WorldRoom extends Room<WorldState> {
     this.sendVitals(client, p);
     this.sendBuffs(client, p);
     this.saveSoon(p);
+  }
+
+  /** The staff enchantment on the staff in your hand, if any. */
+  private staffEnchant(p: Player) {
+    const item = p.gear.weapon?.item;
+    return enchantsOf(item).find((e) => ENCHANTS[e.id].on === "staff") ?? null;
+  }
+
+  /** What an enchanted staff's bolt does when it lands. */
+  private staffEffect(p: Player, client: Client | undefined, sessionId: string, m: Monster, e: { id: EnchantId; gem: number }, damage: number) {
+    const ct = e.gem / 10;
+    if (e.id === "frost") m.frozenUntil = Math.max(m.frozenUntil, this.state.tick + frostTicks(ct));
+    if (e.id === "poison") m.poison = { left: 4, damage: poisonDamage(ct), by: sessionId };
+    if (e.id === "lifesteal" && damage) {
+      const heal = Math.round(damage * lifeStealPercent(ct) / 100);
+      if (heal && p.hp < p.maxHp) { p.hp = Math.min(p.maxHp, p.hp + heal); if (client) this.sendVitals(client, p); }
+    }
+    if (e.id === "lightning" && damage) {
+      let other: Monster | null = null;
+      let otherId = "";
+      this.state.monsters.forEach((o, oid) => { if (!other && o !== m && o.alive && tileDistance(o, m) <= 3) { other = o; otherId = oid; } });
+      const o = other as Monster | null;
+      if (o) {
+        const jump = Math.max(1, Math.round(damage * chainPercent(ct) / 100));
+        o.hurtBy.set(sessionId, (o.hurtBy.get(sessionId) ?? 0) + Math.min(jump, o.hp));
+        o.hp = Math.max(0, o.hp - jump);
+        this.broadcast("hit", { on: "monster", id: otherId, damage: jump, miss: false, spell: "lightning", from: sessionId });
+        if (MONSTERS[o.kind].maxHit > 0 && !o.target) o.target = sessionId;
+        if (o.hp <= 0) this.killMonster(o, p, client, "magic");
+      }
+    }
+  }
+
+  /** How many enchantments an item may hold: 1, or 2 with the tree's Second slot. */
+  private enchantSlots(p: Player) {
+    return 1 + this.tree(p, "enchanting", "enchantSlot");
+  }
+
+  /** At the altar: put an enchantment on a bag item, using up a soul gem (and a cut gem and inlay for a staff). */
+  private enchant(client: Client, p: Player, msg: { slot: number; soul: number; effect?: string; gem?: number; inlay?: string }) {
+    if (!this.nearNpc(p, "altar")) return this.say(client, "You need to be at the enchanting altar in the Mages' Guild.");
+    if (!isUnlocked(p.unlocked, "enchanting")) return this.say(client, this.notTaught("enchanting"));
+    const item = p.inventory[msg.slot];
+    const kind = enchantKind(item);
+    if (!item || !kind) return this.say(client, "Only a staff, a piece of armor or a tool can be enchanted.");
+    if (p.locked[msg.slot]) return this.say(client, "That's locked. Unlock it first.");
+    const soulItem = p.inventory[msg.soul];
+    const soul = parseGem(soulItem);
+    if (!soulItem || soul?.kind !== "soulgem" || soul.souls <= 0) return this.say(client, "Pick a soul gem with souls in it. Cast 👻 Soul trap on a monster, then defeat it, to fill one.");
+    // Which enchantment: a staff's comes from its gem; armor and tools pick one.
+    let effect: EnchantId;
+    let gemSize = 0;
+    let inlay: Inlay = "none";
+    if (kind === "staff") {
+      const gemItem = msg.gem != null ? p.inventory[msg.gem] : null;
+      const g = parseGem(gemItem);
+      if (!gemItem || g?.kind !== "cut") return this.say(client, "A staff needs a cut gem too: ruby (fire), sapphire (frost), emerald (poison), topaz (lightning) or amethyst (life steal).");
+      effect = enchantForGem(g.gem);
+      if (msg.inlay === "silver_bar" || msg.inlay === "gold_bar") {
+        if (!p.inventory.some((it, i) => it === msg.inlay && !p.locked[i])) return this.say(client, `You don't have a ${ITEMS[msg.inlay as ItemId].single} for the inlay.`);
+        inlay = msg.inlay;
+      }
+      gemSize = cappedGem(g.size, inlay);
+    } else {
+      if (!msg.effect || !isEnchantId(msg.effect) || !fits(item, msg.effect)) return this.say(client, "That enchantment doesn't fit that item.");
+      effect = msg.effect;
+    }
+    const current = enchantsOf(item);
+    if (current.some((e) => e.id === effect)) return this.say(client, `It already has ${ENCHANTS[effect].name}. Take it off first.`);
+    if (current.length >= this.enchantSlots(p)) {
+      return this.say(client, current.length === 1 && this.enchantSlots(p) === 1
+        ? "It already holds an enchantment. Take it off first (the old one is lost), or learn Second slot in the Enchanting tree."
+        : "It can't hold any more enchantments.");
+    }
+    if (isSpent(item) && !current.length && !this.tree(p, "enchanting", "reenchant")) {
+      return this.say(client, "This one had an enchantment taken off, and the magic won't take again. Re-enchant in the Enchanting tree lets you.");
+    }
+    const level = levelForXp(p.skillXp.enchanting);
+    const power = soulPower(soul.souls, level, this.tree(p, "enchanting", "potency"));
+    const out = addEnchant(item, { id: effect, power, gem: gemSize });
+    // Use up the soul gem, the cut gem and the inlay (highest entries first, so slots don't shift under us).
+    const gemSlot = kind === "staff" ? msg.gem! : -1;
+    p.inventory[msg.slot] = out as ItemId;
+    for (const e of [msg.soul, gemSlot].filter((x) => x >= 0).sort((a, b) => b - a)) takeFromEntry(p, e, 1);
+    if (inlay !== "none") takeItem(p, inlay as ItemId, 1, (e) => !p.locked[e]);
+    const desc = describeEnchant({ id: effect, power, gem: gemSize });
+    this.say(client, `✨ The altar flares. Your ${ITEMS[baseItem(item) as ItemId].single} is enchanted with ${desc}.`);
+    this.addSkillXp(p, client, "enchanting", 10 + Math.ceil(soul.souls / 2));
+    this.sendInventory(client, p);
+    this.questEvent(p, client, { kind: "enchant" });
+    this.saveSoon(p);
+  }
+
+  /** Take every enchantment off a bag item. The magic is lost. */
+  private disenchant(client: Client, p: Player, slot: number) {
+    if (!this.nearNpc(p, "altar")) return this.say(client, "You need to be at the enchanting altar in the Mages' Guild.");
+    const item = p.inventory[slot];
+    if (!item || !enchantsOf(item).length) return;
+    p.inventory[slot] = stripEnchants(item) as ItemId;
+    this.say(client, `The enchantment on your ${ITEMS[baseItem(item) as ItemId].single} fades away. Its magic (and its soul gem) are gone.`);
+    this.sendInventory(client, p);
+    this.saveSoon(p);
+  }
+
+  /** Mend: fix your most worn tool, weapon or armor piece, using 1 of what it's made of. */
+  private mend(client: Client, p: Player): string | null {
+    type Worn = { where: "belt" | "gear"; key: string; item: ItemId; left: number; max: number };
+    const worn: Worn[] = [];
+    for (const t of TOOL_TYPE_IDS) { const b = p.belt[t]; if (b) worn.push({ where: "belt", key: t, item: b.item, left: b.durability, max: maxDurability(b.item) }); }
+    for (const sl of GEAR_SLOTS) { const g = p.gear[sl]; if (g) worn.push({ where: "gear", key: sl, item: g.item, left: g.durability, max: gearDurability(g.item) }); }
+    const target = worn.filter((w) => w.left < w.max).sort((a, b) => a.left / a.max - b.left / b.max)[0];
+    if (!target) return "Nothing you're using is worn. (Mend fixes tools on your belt and gear you're wearing.)";
+    // What it's made of: its metal's bar, stone, or (for a fishing rod) a log of its wood.
+    let material: ItemId;
+    if (isTool(target.item)) {
+      const t = parseTool(target.item);
+      material = isWoodTool(t.type) ? `${t.wood!}_logs` as ItemId : t.metal === "stone" ? "stone" : barId(t.metal as Metal);
+    } else if (isWeapon(target.item)) {
+      const w = parseWeapon(target.item);
+      material = w.metal === "stone" ? "stone" : barId(w.metal as Metal);
+    } else {
+      material = barId(parseArmor(target.item as never).metal);
+    }
+    if (!p.inventory.some((it, i) => it === material && !p.locked[i])) {
+      return `Mend needs 1 ${ITEMS[material].single} to fix your ${ITEMS[baseItem(target.item) as ItemId].single}.`;
+    }
+    takeItem(p, material, 1, (e) => !p.locked[e]);
+    if (target.where === "belt") p.belt[target.key as ToolType]!.durability = target.max;
+    else p.gear[target.key as GearSlot]!.durability = target.max;
+    this.sendInventory(client, p);
+    if (target.where === "belt") client.send("belt", p.belt); else this.sendGear(client, p);
+    return null;
   }
 
   /** Soul trap's target: the monster you're fighting, or the closest one in reach. */
@@ -2471,6 +2688,15 @@ export class WorldRoom extends Room<WorldState> {
   }
 
   /** Rings or amulet changed: new stats, and tell the client. */
+  /** Armor went on or off: max health may change (Vitality). New health starts empty, like a ring's. */
+  private gearStatsChanged(client: Client, p: Player) {
+    const max = this.maxHpOf(p);
+    if (max === p.maxHp) return;
+    p.maxHp = max;
+    p.hp = Math.min(p.hp, max);
+    this.sendVitals(client, p);
+  }
+
   private jewelsChanged(client: Client, p: Player) {
     // Extra max health or stamina from a jewel starts empty and fills up over
     // time, so taking a ring off and on again can't heal you.
@@ -2530,6 +2756,8 @@ export class WorldRoom extends Room<WorldState> {
     } else if (g.kind === "kill" && ev.kind === "kill") {
       if ((!g.monster || ev.monster === g.monster) && (!g.style || ev.style === g.style)) counts = 1;
     } else if (g.kind === "drink" && ev.kind === "drink") {
+      counts = 1;
+    } else if (g.kind === "enchant" && ev.kind === "enchant") {
       counts = 1;
     } else if (g.kind === "track" && ev.kind === "track") {
       counts = 1;

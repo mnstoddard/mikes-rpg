@@ -66,6 +66,8 @@ export type Goal =
   | { kind: "kill"; monster?: MonsterId; count: number; style?: CombatStyle }
   /** Drink a health potion. */
   | { kind: "drink" }
+  /** Enchant something at the altar. */
+  | { kind: "enchant" }
   /** Track a bounty (tap it in the 📜 Quests tab or on the board). */
   | { kind: "track" }
   /** Hand in bounties at the board. */
@@ -692,6 +694,29 @@ export const CHAPTERS: Chapter[] = [
         ],
         coins: 150,
       },
+      // Enchanting (shared/enchanting.ts) came later: these steps follow on.
+      {
+        task: `Ask ${YSOLDE} about the altar`, goal: { kind: "talk" }, unlocks: ["enchanting"],
+        lines: [
+          "You've seen the altar by the door? That's for Enchanting. Soul trap a monster, defeat it, and its soul fills a soul gem. The altar pours that soul into a staff, armor or a tool.",
+          "A staff also takes a cut gem: ruby burns, sapphire chills, emerald poisons, topaz throws lightning and amethyst drinks life. Armor and tools pick their own magic.",
+          "Here's a small soul gem, already full. Enchant something with it: a tool on your belt is a fine start (take it off your belt first, so it's in your bag).",
+        ],
+        give: [{ item: "soulgem_5_25" }],
+      },
+      {
+        task: "Enchant something at the altar (click the altar in the guild)", goal: { kind: "enchant" },
+        hint: "Put the item in your bag, click the altar, pick it and the soul gem, then Enchant.",
+        ensure: [{ item: "soulgem_5_25" }],
+      },
+      {
+        task: `Show ${YSOLDE} your enchantment`, goal: { kind: "talk" },
+        lines: [
+          "Beautiful. Bigger, fuller soul gems make stronger magic. Brann cuts soul stone into gems, and the Crystal Cave has plenty.",
+          "One more thing: once your Spellcasting reaches 18 you'll know Mend, to fix your own gear with a little of what it's made of.",
+        ],
+        coins: 200,
+      },
     ],
   },
 
@@ -817,6 +842,8 @@ export function questMarks(q: QuestProgress): NpcId[] {
 const KAEL_CH = chapterById("kael");
 const BRYN_CH = chapterById("bryn");
 /** The Dark Forest's gate opens once you're past this step of Kael's chapter. */
+/** Ysolde's first lesson ends here; the guild opens after it (her Enchanting lessons follow). */
+export const YSOLDE_GUILD_STEP = 4;
 export const GATE_STEP = KAEL_CH.steps.findIndex((s) => s.opensGate);
 export const gateOpen = (q: QuestProgress) => !!q.gate || chapterDone(q, "kael") || (q.ch.kael?.step ?? -1) > GATE_STEP;
 

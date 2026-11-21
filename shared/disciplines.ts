@@ -15,7 +15,9 @@ export type CraftSkill = "smelting" | "smithing" | "cooking" | "handicraft" | "a
 /** "magic" is Spellcasting (its id stays "magic" so spells, staffs and trees keep working). */
 export type CombatSkill = "melee" | "ranged" | "magic" | "defense";
 export type SocialSkill = "trading" | "renown";
-export type SkillId = GatherSkill | WildSkill | CraftSkill | CombatSkill | SocialSkill;
+/** Enchanting: at the altar in the Mages' Guild (shared/enchanting.ts). */
+export type EnchantSkill = "enchanting";
+export type SkillId = GatherSkill | WildSkill | CraftSkill | CombatSkill | SocialSkill | EnchantSkill;
 
 export interface SkillDef {
   id: SkillId;
@@ -58,7 +60,8 @@ export const DISCIPLINES: Record<DisciplineId, DisciplineDef> = {
     name: "Wisdom", icon: "🔮",
     description: "Magic. Raises your max mana.",
     skills: [
-      { id: "magic", name: "Spellcasting", icon: "🪄", description: "Hold a staff, pick a spell, and click a monster. Spells use mana." },
+      { id: "magic", name: "Spellcasting", icon: "🪄", description: "Cast spells from your spell bar (bolts fly from a staff in your hand). Spells use mana." },
+      { id: "enchanting", name: "Enchanting", icon: "✨", description: "Use the enchanting altar in the Mages' Guild: a soul gem with souls in it adds magic to a staff, a piece of armor or a tool. Archmage Ysolde teaches it." },
       { id: "alchemy", name: "Alchemy", icon: "⚗️", description: "Brew potions at the alchemy table in the Mages' Guild: pick 2 ingredients (and maybe a third for a bonus) and an empty vial. Alchemist Moss teaches it." },
     ],
   },

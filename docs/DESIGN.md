@@ -420,6 +420,37 @@ staffs). Harder and better things unlock in the Enchanting Mastery tree:
 enchanting armor, using gold inlays, two effects on one item, and repairing
 enchanted items.
 
+**How stage 9 was built** (simpler than the plan above, and decided with Mike's
+stage 9 notes):
+
+- **Learning it**: Archmage Ysolde's chapter goes on after her first lesson.
+  Ask her about the altar, and she teaches Enchanting (a Wisdom skill) and gives
+  you a small full soul gem to try it with. The altar stands by the guild door.
+- **Every enchantment uses up a soul gem with souls in it.** Power grows with
+  the square root of its souls (a full 0.5 ct gem is about 10, a full 3.1 ct one
+  about 25), +1% per Enchanting level. Enchanting XP is 10 plus half the souls.
+- **Staffs** (any staff) also take a **cut gem**, which picks the effect:
+  ruby fire (extra damage), sapphire frost (slows), emerald poison (4 hits over
+  time), topaz lightning (jumps to a second monster) and amethyst life steal.
+  A bigger gem is stronger, capped at 2 ct, 4 ct with a **silver inlay** or 7 ct
+  with a **gold inlay** (1 bar, used up). An enchanted staff's bolts cost just
+  **1 mana**, hit harder by a sixth of the power, and wear the staff as before.
+- **Armor** picks one: Vitality (+max health), Mana flow (mana comes back
+  faster), Guard (less damage, up to 50% from all armor) or Thorns (monsters
+  that hit you get hurt back).
+- **Tools** pick one: Swiftness (faster gathering, gathering tools only),
+  Bounty (extra finds, or extra makes for crafting tools), Tireless (less
+  stamina) or Wisdom (more XP).
+- **One enchantment per item.** Taking it off is free, but the magic (and its
+  soul gem) is lost, and the item is "spent": it won't take another.
+- **Enchanting tree**: Second slot (items hold 2 different enchantments),
+  Potency (+10% power a rank) and Re-enchant (enchant a spent item again).
+- **Mend** (Spellcasting 18, 20 mana): fixes your most worn tool or piece of
+  gear good as new, using 1 of what it's made of (its metal bar, stone, or a log
+  for a fishing rod).
+- **Not built yet**: enchanting other weapons, bronze/platinum/iridium inlays,
+  and plain staffs from Handicraft (stage 10).
+
 ### Wear and repair
 *Built in stage 4 (decided with Mike):*
 - Tools wear per use, weapons per hit, armor as you take hits. Everything works
@@ -712,7 +743,7 @@ quest chapter as it goes, so the main quest grows with the game.
 | **6. Alchemy** ✅ built | Alchemy table, vials, the potion list | Uses stage 5's ingredients |
 | **7. Gems and soul stone** ✅ built | Gem and soul stone rocks with continuous sizes, and Smithing's gem cutting, rings, amulets, inlays and soul gems | Needed for enchanting |
 | **8. Spellcasting** ✅ built | Spell bar, new spell list, learning by level and books, Invisibility, Soul trap with the glow and blink, filling soul gems | Needed for enchanting |
-| **9. Enchanting** | Enchanting altar, staffs, armor and tool enchants, the Mend spell, Enchanting tree unlocks | Needs stages 4, 7 and 8 |
+| **9. Enchanting** ✅ built | Enchanting altar, staffs, armor and tool enchants, the Mend spell, Enchanting tree unlocks | Needs stages 4, 7 and 8 |
 | **10. More Handicraft** | Cloth and leather armor, bows, arrows and plain staffs, all in Handicraft | Uses hides, silk and logs |
 | **11. Farming** | Farm area, buying and expanding plots, seeds, real-time growth | Independent, can move earlier |
 | **12. Trading and Renown** | Trading XP, Renown XP, bounty tiers, Renown-gated quests | Builds on the existing boards |

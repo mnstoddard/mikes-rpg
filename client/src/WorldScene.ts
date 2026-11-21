@@ -26,7 +26,7 @@ import type { ShopId } from "../../shared/shops";
 import type { RepairJob } from "../../shared/repair";
 import type { Buffs, PotionType } from "../../shared/alchemy";
 import type { Jewels } from "../../shared/jewelry";
-import { renderJewels, setGemActions, setSpellbook, castSlot } from "./ui";
+import { renderJewels, setGemActions, setSpellbook, castSlot, setAltarActions } from "./ui";
 import type { BoltSpellId } from "../../shared/combat";
 import { TRAP_BLINK_SECONDS } from "../../shared/spells";
 import { NIGHT_DARKNESS, darkness, isNight, minutesUntilChange } from "../../shared/daynight";
@@ -174,6 +174,10 @@ export class WorldScene extends Phaser.Scene {
     room.onMessage("discovered", (list: PotionType[]) => setDiscovered(list));
     room.onMessage("buffs", (b: Buffs) => { setBuffs(b); this.updateDaylight(); });
     room.onMessage("jewels", (j: Jewels) => renderJewels(j));
+    setAltarActions({
+      enchant: (msg) => room.send("enchant", msg),
+      disenchant: (slot) => room.send("disenchant", { slot }),
+    });
     setGemActions({
       cut: (item) => room.send("cut", { item }),
       wearJewel: (slot) => room.send("wearJewel", { slot }),
@@ -500,6 +504,16 @@ export class WorldScene extends Phaser.Scene {
       const bubble = this.add.circle(-7, -18, 1.6, 0xc8ffd8);
       c.add([g, bubble]);
       this.tweens.add({ targets: bubble, y: -26, alpha: 0, duration: 1200, repeat: -1 });
+    } else if (id === "altar") {
+      // A stone altar with a glowing purple rune on top.
+      g.fillStyle(0x4a4458).fillRect(-11, -6, 22, 16);
+      g.fillStyle(0x6a6378).fillRect(-14, -10, 28, 5);
+      g.fillStyle(0x2e2a38).fillRect(-11, 4, 22, 2);
+      const rune = this.add.star(0, -15, 5, 2.5, 6, 0xc39bff);
+      const halo = this.add.circle(0, -15, 8, 0xa25bff, 0.35);
+      c.add([g, halo, rune]);
+      this.tweens.add({ targets: [rune, halo], alpha: 0.4, duration: 1100, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+      this.tweens.add({ targets: rune, angle: 360, duration: 6000, repeat: -1 });
     } else if (id === "workbench") {
       // A wooden bench on legs, with a jar of worms and a little bundle of thread.
       g.fillStyle(0x5c3a1a).fillRect(-12, -2, 3, 12).fillRect(9, -2, 3, 12); // legs
@@ -535,7 +549,7 @@ export class WorldScene extends Phaser.Scene {
       c.add(g);
     }
     // In the guild hall the stations stand close to the Archmage, so their names go underneath.
-    const below = id === "chest" || id === "guildboard" || id === "alchemy_table" || id === "furnace" || id === "anvil" || id === "workbench";
+    const below = id === "chest" || id === "guildboard" || id === "alchemy_table" || id === "altar" || id === "furnace" || id === "anvil" || id === "workbench";
     const label = this.add.text(0, below ? 22 : id === "board" ? -32 : -28, name, { fontSize: "12px", color: "#ffd84a", stroke: "#000", strokeThickness: 3 }).setOrigin(0.5);
     c.add(label);
   }
@@ -995,7 +1009,7 @@ export class WorldScene extends Phaser.Scene {
   private showHit(h: { on: "monster" | "player"; id: string; damage: number; miss: boolean; spell: SpellId | null }) {
     const target = h.on === "monster" ? this.monsters.get(h.id)?.container : this.players.get(h.id)?.container;
     if (!target) return;
-    const icon = h.spell === "fire_blast" ? "🔥" : h.spell === "frost_bolt" ? "❄️" : h.spell === "sleep" ? "💤" : h.spell === "frost_nova" ? "🌨️" : "";
+    const icon = h.spell === "fire_blast" ? "🔥" : h.spell === "frost_bolt" ? "❄️" : h.spell === "sleep" ? "💤" : h.spell === "frost_nova" ? "🌨️" : (h.spell as string) === "poison" ? "☠️" : (h.spell as string) === "lightning" ? "⚡" : "";
     if (icon && !h.miss) {
       const fx = this.add.text(target.x, target.y, icon, { fontSize: "22px" }).setOrigin(0.5).setDepth(998);
       this.tweens.add({ targets: fx, scale: 1.8, alpha: 0, duration: 500, onComplete: () => fx.destroy() });

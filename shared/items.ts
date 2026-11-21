@@ -5,6 +5,7 @@ import {
 import { DISHES, INGREDIENTS, IngredientId, MealId, OtherIngredient, mealTitle, parseMeal } from "./cooking";
 import { BAITS, BAIT_IDS, BaitId, HandicraftMaterial } from "./handicraft";
 import { BONUSES, POTIONS, PotionId, parsePotion, potionInputs } from "./alchemy";
+import { enchantedName, enchantsOf } from "./enchanting";
 import { GemItemId, JEWEL_BARS, JEWEL_BAR_IDS, JEWEL_METALS, JEWEL_TYPES, JewelBarId, cutId, gemItemDef, parseGem } from "./jewelry";
 import {
   ARMOR, ARMOR_TYPES, GearItemId, METAL_DAMAGE, WEAPONS, WEAPON_TYPES, armorId, parseArmor, parseWeapon, weaponId,
@@ -45,7 +46,9 @@ export type WildId = "sage" | "moonpetal" | "old_bone" | "red_cap" | "ginseng" |
  * from ingredients and a log), weapons and armor, loot, cooking ingredients
  * (raw chicken, vegetables...), Handicraft materials (worms, food scraps) and bait.
  */
-export type ItemId = BaseItemId | BarId | ToolItemId | MealId | GearItemId | LootId | WildId | OtherIngredient | HandicraftMaterial | BaitId | PotionId | GemItemId | JewelBarId | SpellBookId;
+export type ItemId = BaseItemId | BarId | ToolItemId | MealId | GearItemId | LootId | WildId | OtherIngredient | HandicraftMaterial | BaitId | PotionId | GemItemId | JewelBarId | SpellBookId | EnchantedItemId;
+/** An enchanted tool, weapon or armor piece: "axe_iron_oak+swift.20" (shared/enchanting.ts). */
+export type EnchantedItemId = `${string}+${string}`;
 
 /** A crafted item is worth what goes into it, plus 25%. */
 export const CRAFT_MARKUP = 1.25;
@@ -142,12 +145,12 @@ const TABLE = { ...BASE_ITEMS, ...LOOT, ...WILD, ...FOOD_AND_MATERIALS, ...BOOKS
 export const ITEMS: Record<ItemId, ItemDef> = new Proxy(TABLE, {
   get(table, key) {
     if (typeof key !== "string" || key in table) return Reflect.get(table, key);
-    const def = mealDef(key) ?? potionDef(key) ?? gemDef(key);
+    const def = mealDef(key) ?? potionDef(key) ?? gemDef(key) ?? enchantedDef(key, table);
     if (def) table[key as ItemId] = def;
     return def;
   },
   has(table, key) {
-    return key in table || (typeof key === "string" && (!!parseMeal(key) || !!parsePotion(key) || !!parseGem(key)));
+    return key in table || (typeof key === "string" && (!!parseMeal(key) || !!parsePotion(key) || !!parseGem(key) || !!enchantedDef(key, table)));
   },
 });
 
@@ -230,6 +233,25 @@ for (const bait of BAIT_IDS) {
 }
 
 /** Gems, soul stones and jewelry (shared/jewelry.ts). Jewelry is worth its bars and gem, plus 25%. */
+/** An enchanted (or once-enchanted) tool, weapon or armor piece: the plain one's def, renamed, and worth more. */
+function enchantedDef(id: string, table: Record<string, ItemDef>): ItemDef | undefined {
+  const plus = id.indexOf("+");
+  if (plus < 0) return undefined;
+  const base = table[id.slice(0, plus)];
+  if (!base) return undefined;
+  const list = enchantsOf(id);
+  const parts = id.slice(plus + 1).split("+");
+  if (parts.length !== list.length + (parts.includes("spent") ? 1 : 0) || parts.filter((x) => x === "spent").length > 1) return undefined;
+  const power = list.reduce((a, e) => a + e.power, 0);
+  return {
+    ...base,
+    name: enchantedName(base.name, id),
+    short: base.short ? enchantedName(base.short, id) : undefined,
+    single: enchantedName(base.single, id),
+    sellPrice: Math.round(base.sellPrice * (1 + (list.length ? 0.5 + power / 20 : 0))),
+  };
+}
+
 function gemDef(id: string): ItemDef | undefined {
   const base = gemItemDef(id);
   if (!base) return undefined;
