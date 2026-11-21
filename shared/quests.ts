@@ -115,7 +115,7 @@ export interface QuestStep {
   unlocks?: SkillId[];
 }
 
-export type ChapterId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "wren" | "ysolde" | "moss" | "bryn" | "odo" | "bryn_bandits";
+export type ChapterId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "wren" | "ysolde" | "moss" | "bryn" | "odo" | "bryn_bandits" | "kael_hunt";
 
 export interface Chapter {
   id: ChapterId;
@@ -842,6 +842,42 @@ export const CHAPTERS: Chapter[] = [
     ],
   },
 
+  // ---------------- Group quest: Kael's Wolf Hunt (needs Hunting 5; best with a party) ----------------
+  {
+    id: "kael_hunt", title: "The Wolf Hunt", giver: "kael", name: KAEL, where: "in the lodge by the gate",
+    side: true, requires: { skill: "hunting", level: 5 },
+    steps: [
+      {
+        task: `Talk to ${KAEL} about the wolf den`, goal: { kind: "talk" }, unlocks: ["leadership"],
+        lines: [
+          "You've got the hang of hunting. Now I need help with something bigger.",
+          "A pack has dug a den in the Dark Forest, south-west of the gate path, and its alpha is the biggest wolf I've ever seen. It's too much for one hunter.",
+          "Get some friends together: click another player to invite them to a party. Whoever leads learns Leadership, part of Charisma. Kills count for everyone in the party who's close by.",
+          "Clear 4 wolves from the den, then bring down the alpha. You can try it alone, but take every potion you have.",
+        ],
+      },
+      {
+        task: "Defeat 4 wolves at the den (south-west of the gate path)", goal: { kind: "kill", monster: "wolf", count: 4 },
+        hint: "The den is south-west of the path through the Dark Forest. Bring friends: party kills count for everyone close by.",
+        fightWith: "weapon",
+      },
+      {
+        task: "Defeat the alpha wolf", goal: { kind: "kill", monster: "alpha_wolf", count: 1 },
+        hint: "The alpha's in the middle of the den. It hits hard and takes a lot of beating, so go with a party if you can, and keep potions handy.",
+        fightWith: "weapon",
+      },
+      {
+        task: `Go back to ${KAEL}`, goal: { kind: "talk" },
+        lines: [
+          "The alpha's down? The farm and the road will be safer for it. Well hunted!",
+          "Everyone who hunted it with you gets the same from me: here's a leather jerkin and your pay. The pack will find a new alpha in time, so keep your bow strung.",
+        ],
+        give: [{ item: "platebody_leather" }],
+        coins: 1500,
+      },
+    ],
+  },
+
   // ---------------- Side quest: Captain Bryn's bandit trouble (needs Renown 10) ----------------
   {
     id: "bryn_bandits", title: "Highway robbery", giver: "bryn", name: BRYN, where: "by the bounty board in the square",
@@ -1015,8 +1051,9 @@ export const giftItems = (gifts: Gift[] = []) => gifts.flatMap((g) => Array<Gift
 
 /** Skills taught so far: every talk step you've finished teaches its `unlocks`. Finishing every chapter opens everything. */
 export function unlockedSkills(q: QuestProgress): SkillId[] {
-  if (tutorialDone(q)) return [...SKILL_IDS];
   const out = new Set<SkillId>(q.taught ?? []);
+  // All lessons done teaches every skill, except ones only a side quest teaches.
+  if (tutorialDone(q)) for (const id of SKILL_IDS) if (!CHAPTERS.some((c) => c.side && c.steps.some((s) => s.unlocks?.includes(id)))) out.add(id);
   for (const c of CHAPTERS) {
     const at = q.ch[c.id]?.step ?? 0;
     c.steps.forEach((s, i) => { if (i < at) for (const id of s.unlocks ?? []) out.add(id); });

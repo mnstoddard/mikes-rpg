@@ -39,7 +39,7 @@ export interface ItemDef {
 
 /** Things monsters drop (a shop buys them), and the health potion. */
 export type LootId = "feather" | "rat_tail" | "cowhide" | "wolf_pelt" | "goblin_charm" | "spider_silk" | "stolen_ring" | "health_potion"
-  | "slime_goo" | "boar_tusk" | "wolf_fang" | "bat_wing" | "venom_sac" | "vial";
+  | "slime_goo" | "boar_tusk" | "wolf_fang" | "bat_wing" | "venom_sac" | "vial" | "alpha_pelt";
 /** Herbs and other things you dig up with Foraging (shared/foraging.ts FORAGE_FINDS). Alchemy will use them. */
 export type WildId = "sage" | "moonpetal" | "old_bone" | "red_cap" | "ginseng" | "honey" | "blue_lotus";
 
@@ -90,6 +90,7 @@ const LOOT: Record<LootId, ItemDef> = {
   rat_tail: { name: "Rat tails", single: "rat tail", icon: "🐁", tint: "grayscale(.7)", sellPrice: 2 },
   cowhide: { name: "Cowhides", single: "cowhide", icon: "🐮", sellPrice: 4 },
   wolf_pelt: { name: "Wolf pelts", single: "wolf pelt", icon: "🐺", tint: "grayscale(.5) brightness(.9)", sellPrice: 12 },
+  alpha_pelt: { name: "Alpha wolf pelts", single: "alpha wolf pelt", icon: "🐺", tint: "grayscale(.6) brightness(1.4)", sellPrice: 150 },
   goblin_charm: { name: "Goblin charms", single: "goblin charm", icon: "🧿", sellPrice: 20 },
   spider_silk: { name: "Spider silk", single: "spider silk", icon: "🕸️", sellPrice: 30 },
   stolen_ring: { name: "Stolen rings", single: "stolen ring", icon: "💍", sellPrice: 60 },

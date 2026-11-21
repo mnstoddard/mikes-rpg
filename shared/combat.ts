@@ -81,7 +81,7 @@ export const SPELL_IDS = Object.keys(SPELLS) as SpellId[];
 
 // ---- Monsters ----
 
-export type MonsterId = "chicken" | "rat" | "cow" | "slime" | "boar" | "giant_bat" | "wolf" | "cave_spider" | "goblin" | "spider" | "bandit";
+export type MonsterId = "chicken" | "rat" | "cow" | "slime" | "boar" | "giant_bat" | "wolf" | "cave_spider" | "goblin" | "spider" | "bandit" | "alpha_wolf";
 export interface Drop { item: ItemId; chance: number }
 export interface MonsterDef {
   name: string;
@@ -122,6 +122,8 @@ export const MONSTERS: Record<MonsterId, MonsterDef> = {
   cave_spider: { name: "Cave spider", icon: "🕷️", level: 14, hp: 34, maxHit: 5, speed: 3, aggressive: true, xp: 14, respawnTicks: 110, drops: [{ item: "spider_silk", chance: 0.5 }, { item: "venom_sac", chance: 0.3 }], coins: [2, 10] },
   goblin:  { name: "Goblin",       icon: "👺", level: 12, hp: 30, maxHit: 4, speed: 4, aggressive: true,  xp: 12, respawnTicks: 100, drops: [{ item: "goblin_charm", chance: 0.35 }, { item: POTION_ID, chance: 0.1 }, { item: "book_haste", chance: 0.02 }], coins: [3, 12] },
   spider:  { name: "Giant spider", icon: "🕷️", level: 18, hp: 42, maxHit: 6, speed: 3, aggressive: true,  xp: 18, respawnTicks: 120, drops: [{ item: "spider_silk", chance: 0.5 }, { item: POTION_ID, chance: 0.1 }, { item: "book_frost_nova", chance: 0.02 }], coins: [5, 15] },
+  // The wolf den (Kael's Wolf Hunt): a big, tough pack leader. Best fought as a party.
+  alpha_wolf: { name: "Alpha wolf", icon: "🐺", level: 22, hp: 160, maxHit: 9, speed: 4, aggressive: true, xp: 90, respawnTicks: 500, drops: [{ item: "alpha_pelt", chance: 1 }, { item: "wolf_fang", chance: 1 }, { item: POTION_ID, chance: 0.3 }], coins: [40, 90], pack: true },
   bandit:  { name: "Bandit",       icon: "🦹", level: 25, hp: 60, maxHit: 8, speed: 4, aggressive: true,  xp: 26, respawnTicks: 150, drops: [{ item: "stolen_ring", chance: 0.25 }, { item: POTION_ID, chance: 0.25 }, { item: "book_invisibility", chance: 0.03 }], coins: [15, 45] },
 };
 export const MONSTER_IDS = Object.keys(MONSTERS) as MonsterId[];
@@ -145,6 +147,8 @@ export const MONSTER_SPAWNS: [MonsterId, number, number][] = [
   ["goblin", 11, 26], ["goblin", 14, 28], ["goblin", 10, 29], ["goblin", 16, 25],
   ["spider", 40, 27], ["spider", 44, 26], ["spider", 46, 29],
   ["bandit", 28, 30], ["bandit", 33, 31],
+  // The wolf den, south-west of the gate path: the alpha and its pack.
+  ["alpha_wolf", 19, 31], ["wolf", 17, 30], ["wolf", 21, 30], ["wolf", 18, 32], ["wolf", 20, 32],
 ];
 /** How far from home a monster wanders, and chases you before giving up. */
 export const WANDER_RADIUS = 3;
