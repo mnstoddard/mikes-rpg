@@ -7,6 +7,7 @@
 import type { ResourceId } from "./foraging";
 import type { BarId, ToolType } from "./tools";
 import type { GearType } from "./gear";
+import type { CropId } from "./farming";
 import type { DishId } from "./cooking";
 import type { BaitId } from "./handicraft";
 import type { PotionMastery } from "./alchemy";
@@ -53,7 +54,9 @@ export const valueBonusPercent = (level: number) => Math.round((masteryValue(lev
 /** What can have Mastery: a gathered type (oak), a bar (bronze_bar), a kind of tool (axe), a dish (stew), a bait, or a kind of weapon or armor you smith (sword). */
 /** Handicraft (stage 10): arrows of every tip share one Mastery; leather, thread and cloth have their own. */
 export type HandicraftMastery = "arrows" | "leather" | "thread" | "cloth";
-export type MasteryId = ResourceId | BarId | ToolType | DishId | BaitId | GearType | PotionMastery | JewelBarId | JewelType | HandicraftMastery;
+/** Farming: one Mastery per crop ("crop_potato"). */
+export type CropMastery = `crop_${CropId}`;
+export type MasteryId = ResourceId | BarId | ToolType | DishId | BaitId | GearType | PotionMastery | JewelBarId | JewelType | HandicraftMastery | CropMastery;
 
 /** Mastery XP per type. Types you've never gathered or made aren't listed. */
 export type ItemMasteryXp = Partial<Record<MasteryId, number>>;

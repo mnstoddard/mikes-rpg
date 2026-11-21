@@ -610,6 +610,42 @@ example +1% XP per 10 Leadership levels, up to +10%), and unlocks group quests.
   herbs like ginseng and fairy moss (a farmed source for potions).
 - Your plot is **just yours**. Nobody else can harvest it.
 
+**How stage 11 was built** (decided with Mike's stage 11 notes):
+
+- **The farm** is its own little island east of the east island: follow the
+  path across the east island and over the second bridge. Farmer Odo lives in
+  the farmhouse at its west end, with the farm chest outside his door.
+- **Odo's lesson** ("Something to grow") teaches Farming (an Endurance skill)
+  and gives 4 seed potatoes. Odo pays for your first plot, then you plant them,
+  harvest them about 10 minutes later, and get 200 coins.
+- **Plots**: there are 7 lots, each 6 × 6. A plot starts 2 × 2 (2 gold, free in
+  the lesson) and grows 3 × 2, 3 × 3, 4 × 4, 5 × 5, 6 × 5, 6 × 6 for 3, 5, 8, 12,
+  18 and 25 gold (buy it in Odo's shop, Buy tab). One plot each. If every lot
+  is taken, more lots can be added to the map.
+- **Planting and harvesting**: click your plot. You walk over and work tile by
+  tile, planting every empty one (the seed you picked with "Plant these first"
+  on a seed's card, or the first seed in your bag) and harvesting everything
+  ripe. 2 stamina a tile. No watering.
+- **Crops** (Farming level, time to ripen, harvest): potatoes (1, 10 min, 3 to 5),
+  carrots (4, 15 min, 3 to 5), onions (8, 25 min, 2 to 4), wheat (12, 40 min,
+  3 to 5), ginseng (20, 2 hours, 1 or 2) and blue lotus (30, 3 hours, 1 or 2).
+  A harvest gives a seed back 30% of the time (+0.5% per Farming level). Odo
+  sells every seed and buys seeds and crops.
+- **Mastery** per crop: +2% chance of an extra one per level. The Farming tree
+  has Green thumb (crops ripen 5% sooner a rank), Bumper crop and Light work.
+- **Growing in real time**: crops are stored with when they were planted and
+  when they'll be ripe, so they keep growing while you're logged out (and while
+  the server restarts). Everyone sees everyone's farm, with its owner's name
+  on a sign, but only the owner can plant or harvest.
+- **Farm chest**: for 5 gold Odo links the chest outside to your enchanted
+  chest (you need to rent space in it from Ysolde first).
+- **Offline health** already came back 1 a minute while logged out.
+- **Saved in the world**: plots are kept in a "world" table (or
+  server/data/world.json when playing locally), not in a character's save, so
+  they're there to see even when their owner is offline.
+- **Not built yet**: animals, wool, cabbages and pumpkins, and cooking with
+  onions and wheat.
+
 Offline rules: health, stamina and mana all come back while you're offline, and
 crops keep growing. Nothing can hurt you or touch your stuff while you're
 offline, because you're not in the game.
@@ -775,7 +811,7 @@ quest chapter as it goes, so the main quest grows with the game.
 | **8. Spellcasting** ✅ built | Spell bar, new spell list, learning by level and books, Invisibility, Soul trap with the glow and blink, filling soul gems | Needed for enchanting |
 | **9. Enchanting** ✅ built | Enchanting altar, staffs, armor and tool enchants, the Mend spell, Enchanting tree unlocks | Needs stages 4, 7 and 8 |
 | **10. More Handicraft** ✅ built | Cloth and leather armor, bows, arrows and plain staffs, all in Handicraft | Uses hides, silk and logs |
-| **11. Farming** | Farm area, buying and expanding plots, seeds, real-time growth | Independent, can move earlier |
+| **11. Farming** ✅ built | Farm area, buying and expanding plots, seeds, real-time growth | Independent, can move earlier |
 | **12. Trading and Renown** | Trading XP, Renown XP, bounty tiers, Renown-gated quests | Builds on the existing boards |
 | **13. Parties and Leadership** | Invites, party UI, shared quest XP and loot, quest level gates, Leadership bonus, The Howling Hollow | Biggest server change, best done last |
 

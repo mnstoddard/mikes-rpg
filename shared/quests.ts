@@ -74,6 +74,12 @@ export type Goal =
   | { kind: "bounty"; count: number }
   /** Get something fixed by the Repairer. */
   | { kind: "repair" }
+  /** Farming: get a plot from Farmer Odo. */
+  | { kind: "plot" }
+  /** Farming: plant seeds. */
+  | { kind: "plant"; count: number }
+  /** Farming: harvest ripe crops (one tile counts as one). */
+  | { kind: "harvest"; count: number }
   /** Spend a Mastery point in any skill's tree (done once any upgrade has a rank). */
   | { kind: "spendPoint" };
 
@@ -108,7 +114,7 @@ export interface QuestStep {
   unlocks?: SkillId[];
 }
 
-export type ChapterId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "wren" | "ysolde" | "moss" | "bryn";
+export type ChapterId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "wren" | "ysolde" | "moss" | "bryn" | "odo";
 
 export interface Chapter {
   id: ChapterId;
@@ -148,6 +154,7 @@ const MOSS = "Alchemist Moss";
 const VIAL_GIFT: Gift = { item: "vial" };
 const YSOLDE = "Archmage Ysolde";
 const BRYN = "Captain Bryn";
+const ODO = "Farmer Odo";
 
 export const CHAPTERS: Chapter[] = [
   // ---------------- Old Maren: Living off the land ----------------
@@ -783,6 +790,44 @@ export const CHAPTERS: Chapter[] = [
           "The board always has 5 jobs, and a new one goes up for every one you finish. Tap a quest or a bounty in the 📜 tab any time to switch what you're tracking.",
         ],
         coins: 100,
+      },
+    ],
+  },
+
+  // ---------------- Farmer Odo: Something to grow (shared/farming.ts) ----------------
+  {
+    id: "odo", title: "Something to grow", giver: "odo", name: ODO, where: "at the farm: cross the bridge to the east island, then the next bridge east",
+    steps: [
+      {
+        task: `Talk to ${ODO} at the farm`, goal: { kind: "talk" }, unlocks: ["farming"],
+        lines: [
+          "Visitors! Not many make it out this far. I'm Odo. I grow things, and I'll teach you to grow them too. That's Farming, part of Endurance.",
+          "See those fallow lots? Each one can be somebody's plot. A plot starts small, 2 by 2, and I'll let it grow to 6 by 6 if you pay me for the land.",
+          "Here are 4 seed potatoes. I'll give you your first plot for free: open my shop and press Get a plot.",
+        ],
+        give: [{ item: "seed_potato", count: 4 }],
+      },
+      {
+        task: `Get a plot from ${ODO} (talk to him, then press Get a plot)`, goal: { kind: "plot" },
+        hint: "Open my shop's Buy tab and press Get a plot. Your first one's on me.",
+      },
+      {
+        task: "Plant 4 seed potatoes in your plot", goal: { kind: "plant", count: 4 },
+        hint: "Click your plot (the brown soil with your name on it). You'll plant a seed on each empty patch, one after another.",
+        ensure: [{ item: "seed_potato" }],
+      },
+      {
+        task: "Harvest your potatoes when they're ripe (about 10 minutes)", goal: { kind: "harvest", count: 1 },
+        hint: "Potatoes take about 10 minutes, even if you go off and do something else, or log out. When they're ripe, click your plot to dig them up.",
+      },
+      {
+        task: `Go back to ${ODO}`, goal: { kind: "talk" },
+        lines: [
+          "Look at those! Now you're a farmer.",
+          "Sometimes a harvest gives you a seed back. Better seeds unlock as your Farming goes up: carrots, onions, wheat, and even ginseng and blue lotus for the alchemists.",
+          "Your crops grow while you're away, and so does your health. When you want more room, come and pay me to make your plot bigger. And for a few gold I can link the chest outside to your enchanted chest at the Mages' Guild.",
+        ],
+        coins: 200,
       },
     ],
   },

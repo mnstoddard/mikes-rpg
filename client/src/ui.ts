@@ -25,6 +25,7 @@ import {
   combatMasteryIn, gearEffect, gearNeeds, masteryAccuracy, masteryDamage, masteryDrops, maxHitWith,
 } from "../../shared/combat";
 import { TANNING_IDS, gearDurability } from "../../shared/crafting";
+import { CROPS, CROP_IDS, FARM_CHEST_PRICE, FarmView, PLOT_SIZES, isSeed, plotPrice } from "../../shared/farming";
 import { Bounty, bountyReward, slotCounts } from "../../shared/bounties";
 import { Bag, emptyBag, entriesIn, slotTotal, stackLimit, usedSlots } from "../../shared/bag";
 import { carriedWeight, carryCapacity, kg, weightOf } from "../../shared/weight";
@@ -735,6 +736,18 @@ let onSpell: (id: SpellId) => void = () => {};
 let onCast: (id: SpellId) => void = () => {};
 let onSpellBar: (bar: (SpellId | null)[]) => void = () => {};
 let onRead: (slot: number) => void = () => {};
+// ---- Farming (shared/farming.ts): Farmer Odo's window shows your plot, and seeds can be picked to plant first ----
+let farmView: FarmView | null = null;
+let onFarmBuy = () => {};
+let onFarmChest = () => {};
+let onSeed: (item: ItemId) => void = () => {};
+export function setFarmActions(a: { buy: () => void; chest: () => void; seed: (item: ItemId) => void }) {
+  onFarmBuy = a.buy; onFarmChest = a.chest; onSeed = a.seed;
+}
+export function setFarm(view: FarmView) {
+  farmView = view;
+  if (document.body.classList.contains("shop-open") && shopId === "odo") renderShop();
+}
 let onSort: () => void = () => {};
 let onMove: (from: number, to: number) => void = () => {};
 
@@ -1264,6 +1277,7 @@ let shopId: ShopId = "tam";
 
 export function openShop(id: ShopId) {
   shopId = SHOPS[id] ? id : "tam";
+  if (shopId === "odo") shopBuying = true; // his plots and seeds are on the Buy tab
   document.getElementById("shop-title")!.textContent = SHOPS[shopId].title;
   closeCraft();
   closeBounties();
@@ -1340,6 +1354,7 @@ function renderShop() {
 /** The shop's goods: click one to pick how many to buy. */
 function renderBuy() {
   shopBody.replaceChildren();
+  if (shopId === "odo") renderFarmOffer();
   shopBody.append(el("", `Never runs out. You have ${formatMoney(coins)}.`));
   const list = el("");
   list.id = "buy-list";
@@ -1359,6 +1374,37 @@ function renderBuy() {
     list.appendChild(row);
   }
   shopBody.appendChild(list);
+}
+
+/** Farmer Odo: get a plot, make it bigger, or link the farm chest. */
+function renderFarmOffer() {
+  const f = farmView;
+  if (!f) return;
+  const box = el("farm-offer");
+  const button = (text: string, onClick: () => void, off = false) => {
+    const b = document.createElement("button");
+    b.className = "buy-btn farm-btn";
+    b.textContent = text;
+    b.disabled = off;
+    b.onclick = onClick;
+    return b;
+  };
+  if (f.lot == null) {
+    const price = f.firstFree ? 0 : plotPrice(0);
+    box.append(el("", f.free ? `🌾 Get a ${PLOT_SIZES[0][0]} × ${PLOT_SIZES[0][1]} plot of your own. Crops grow even while you're away.` : "🌾 Every lot is taken right now."));
+    if (f.free) box.append(button(price ? `Get a plot (${formatMoney(price)})` : "Get a plot (free, Odo pays)", onFarmBuy, coins < price));
+  } else {
+    const next = PLOT_SIZES[f.step + 1];
+    box.append(el("", `🌾 Your plot is ${f.w} × ${f.h}.` + (next ? "" : " That's as big as it gets.")));
+    if (next) box.append(button(`Make it ${next[0]} × ${next[1]} (${formatMoney(plotPrice(f.step + 1))})`, onFarmBuy, coins < plotPrice(f.step + 1)));
+  }
+  box.append(f.chest ? el("", "📦 The farm chest opens your enchanted chest.")
+    : button(`Link the farm chest to your enchanted chest (${formatMoney(FARM_CHEST_PRICE)})`, onFarmChest, coins < FARM_CHEST_PRICE));
+  const level = levelForXp(lastSkillXp.farming ?? 0);
+  const next = CROP_IDS.find((c) => CROPS[c].level > level);
+  box.append(el("craft-info", `Seeds you can plant now: ${CROP_IDS.filter((c) => CROPS[c].level <= level).map((c) => ITEMS[CROPS[c].produce].name.toLowerCase()).join(", ") || "none yet"}.`
+    + (next ? ` ${ITEMS[CROPS[next].produce].name} at Farming level ${CROPS[next].level}.` : "")));
+  shopBody.append(box);
 }
 
 document.getElementById("shop-close")!.onclick = closeShop;
@@ -2445,6 +2491,7 @@ function renderInfo() {
     if (isPotion(id)) infoButton("Drink", () => { onDrink(e); closeInfo(); });
     if (isJewelry(id)) infoButton("Put on", () => { onWearJewel(e); closeInfo(); });
     if (isSpellBook(id)) infoButton("Read", () => { onRead(e); closeInfo(); });
+    if (isSeed(id)) infoButton("Plant these first", () => { onSeed(id); closeInfo(); });
     if (isFood(id)) infoButton(`Eat (+${staminaOf(id)})`, () => { onEat(e); done(); }, staminaNow >= staminaMax);
     infoButton(isLocked ? "Unlock" : "Lock", () => onLock(e, !isLocked));
     infoButton(stack > 1 ? `Drop all ${stack}` : "Drop", () => { onDrop(e); done(); }, isLocked);

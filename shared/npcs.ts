@@ -2,9 +2,9 @@
 // Click one to walk over and use it: trainers teach you their skill (and run a little shop),
 // Old Maren talks to you, the furnace, anvil, stove and workbench open their crafting windows,
 // the bounty board shows its jobs.
-export type NpcId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "wren" | "moss" | "bryn"
+export type NpcId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "wren" | "moss" | "bryn" | "odo"
   | "furnace" | "anvil" | "stove" | "workbench" | "tanning_rack" | "spinning_wheel" | "board"
-  | "archmage" | "altar" | "guildboard" | "repairer" | "alchemy_table" | "chest" | "chest_east" | "chest_forest";
+  | "archmage" | "altar" | "guildboard" | "repairer" | "alchemy_table" | "chest" | "chest_east" | "chest_forest" | "chest_farm";
 
 export interface NpcDef {
   id: NpcId;
@@ -71,6 +71,12 @@ export const NPCS: NpcDef[] = [
     greeting: "Pick a tool, weapon, armor or jewelry to make at the anvil, or cut a gem.",
   },
   // ---- Rook's workshop (in the square) ----
+  {
+    // Farming (shared/farming.ts): the farm east of the island, over the second bridge.
+    id: "odo", name: "Farmer Odo", kind: "person", x: 63, y: 5, color: 0x7a8c3a, badge: "🌾",
+    greeting: "Seeds for sale, and land if you want it. Everyone's crops grow while they sleep!",
+    sign: { x: 63, y: 3, text: "🌾 Farmer Odo" },
+  },
   {
     id: "rook", name: "Woodworker Rook", kind: "person", x: 22, y: 14, color: 0xa0522d, badge: "🪚",
     greeting: "Bows, arrows, staffs, leather and cloth: it all starts at my bench. I buy hides, silk and what you make, and sell worms, feathers and thread.",
@@ -142,13 +148,18 @@ export const NPCS: NpcDef[] = [
     greeting: "The chest hums with magic.",
   },
   {
+    // The farm (shared/farming.ts): opens the same storage, once Farmer Odo has linked it for you.
+    id: "chest_farm", name: "Farm chest", kind: "station", x: 65, y: 9, color: 0x6a3fb5,
+    greeting: "A sturdy chest, humming faintly. Farmer Odo can link it to your enchanted chest.",
+  },
+  {
     id: "chest_forest", name: "Enchanted chest", kind: "station", x: 28, y: 22, color: 0x6a3fb5,
     greeting: "The chest hums with magic.",
   },
 ];
 
 /** Every enchanted chest opens the same storage. */
-export const CHEST_IDS: NpcId[] = ["chest", "chest_east", "chest_forest"];
+export const CHEST_IDS: NpcId[] = ["chest", "chest_east", "chest_forest", "chest_farm"];
 export const isChest = (id: string) => (CHEST_IDS as string[]).includes(id);
 
 export const npcAt = (x: number, y: number) => NPCS.find((n) => n.x === x && n.y === y);

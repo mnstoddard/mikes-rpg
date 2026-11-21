@@ -42,6 +42,8 @@ export const STAMINA_COST: Record<SkillId, number> = {
   hunting: 0,
   // Enchanting uses up a soul gem instead.
   enchanting: 0,
+  // Planting or harvesting one tile.
+  farming: 2,
   smelting: 5,
   smithing: 5,
   cooking: 2,

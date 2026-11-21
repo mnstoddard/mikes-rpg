@@ -29,12 +29,15 @@ import type { Jewels } from "../../shared/jewelry";
 import { renderJewels, setGemActions, setSpellbook, castSlot, setAltarActions } from "./ui";
 import type { BoltSpellId } from "../../shared/combat";
 import { TRAP_BLINK_SECONDS } from "../../shared/spells";
+import { CROPS, LOTS, LOT_SIZE, decodeCrop, growth, inPlot, lotAt, tileOf, timeLeft } from "../../shared/farming";
+import { serverNow, setFarm, setFarmActions } from "./ui";
+import type { FarmView } from "../../shared/farming";
 import { NIGHT_DARKNESS, darkness, isNight, minutesUntilChange } from "../../shared/daynight";
 
 const TILE_COLORS: Record<Tile, number> = {
   grass: 0x4a8f3c, path: 0xb89b6a, water: 0x2d6fa3, tree: 0x2e5e22, rock: 0x7d7d7d, bridge: 0x8b5a2b,
   fence: 0x4a8f3c, gate: 0x9a8058, sign: 0x4a8f3c, wall: 0x4b3a6b, floor: 0x6d5a8e,
-  house: 0x7a4f2a, boards: 0xa47a4c, dig: 0x4a8f3c, cave: 0x3d3846, cavewall: 0x1f1b24, crystal: 0x33405a,
+  house: 0x7a4f2a, boards: 0xa47a4c, dig: 0x4a8f3c, field: 0x5b8a34, cave: 0x3d3846, cavewall: 0x1f1b24, crystal: 0x33405a,
 };
 /** The Dark Forest's ground is darker and bluer, so you can see where danger starts. */
 const DARK_COLORS: Partial<Record<Tile, number>> = { grass: 0x23432a, path: 0x6b5a42, fence: 0x23432a, gate: 0x6b5a42, dig: 0x23432a };
@@ -98,6 +101,7 @@ export class WorldScene extends Phaser.Scene {
     this.nightShade = this.add.rectangle(MAP_WIDTH * TILE_SIZE / 2, MAP_HEIGHT * TILE_SIZE / 2, MAP_WIDTH * TILE_SIZE + 8000, MAP_HEIGHT * TILE_SIZE + 8000, 0x0a1238, 1)
       .setDepth(450);
     this.time.addEvent({ delay: 1000, loop: true, callback: () => this.updateDaylight() });
+    this.time.addEvent({ delay: 5000, loop: true, callback: () => this.redrawPlots() });
     const clock = document.getElementById("clock");
     if (clock) clock.onclick = () => showMessage(clock.title);
     this.updateDaylight();
@@ -265,6 +269,12 @@ export class WorldScene extends Phaser.Scene {
       repair: (where, key) => this.room?.send("repair", { where, key }),
       repairAll: () => this.room?.send("repairAll"),
     });
+    room.onMessage("farm", (view: FarmView) => setFarm(view));
+    setFarmActions({
+      buy: () => room.send("farmBuy"),
+      chest: () => room.send("farmChest"),
+      seed: (item) => room.send("seed", { item }),
+    });
     room.onMessage("shop", (msg: { npc: ShopId }) => {
       this.marker.setVisible(false);
       openShop(msg.npc);
@@ -370,6 +380,9 @@ export class WorldScene extends Phaser.Scene {
           this.trees.set(treeKey(x, y), this.makeTree(px, py, y, nodeAt(x, y)!));
         } else if (t === "rock") {
           this.rocks.set(treeKey(x, y), this.makeRock(px, py, y, nodeAt(x, y)!));
+        } else if (t === "field") {
+          // A fallow farm lot: rows of rough grass.
+          g.fillStyle(0x4f7a2c, 0.7).fillRect(px + 2, py + 6, TILE_SIZE - 4, 3).fillRect(px + 2, py + 20, TILE_SIZE - 4, 3);
         } else if (t === "dig") {
           this.patches.set(treeKey(x, y), this.makeDigPatch(px, py, y));
         } else if (t === "cavewall") {
@@ -693,6 +706,18 @@ export class WorldScene extends Phaser.Scene {
 
     $(room.state).monsters.onAdd((m: any, id: string) => this.addMonster(m, id, $));
 
+    // Farm plots (shared/farming.ts): everyone sees everyone's.
+    $(room.state).plots.onAdd((plot: any, key: string) => {
+      this.plots.set(key, plot);
+      const redraw = () => this.drawPlot(key);
+      $(plot).listen("w", redraw);
+      $(plot).listen("h", redraw);
+      $(plot).listen("owner", redraw);
+      $(plot).crops.onChange(redraw);
+      redraw();
+    });
+    $(room.state).plots.onRemove((_plot: any, key: string) => { this.plots.delete(key); this.drawPlot(key); });
+
     $(room.state).players.onRemove((_player: any, sessionId: string) => {
       this.players.get(sessionId)?.container.destroy();
       this.players.delete(sessionId);
@@ -722,7 +747,7 @@ export class WorldScene extends Phaser.Scene {
     if (view === this.players.get(this.room?.sessionId ?? "")) this.marker.setVisible(false);
     const dx = Math.sign(player.faceX - player.x), dy = Math.sign(player.faceY - player.y);
 
-    if (action === "chopping" || action === "mining" || action === "digging" || action === "smelting" || action === "smithing" || action === "cooking" || action === "fighting") {
+    if (action === "chopping" || action === "mining" || action === "digging" || action === "farming" || action === "smelting" || action === "smithing" || action === "cooking" || action === "fighting") {
       view.chopTween = this.tweens.add({
         targets: view.body, x: dx * 6, y: dy * 6,
         duration: TICK_MS / 4, yoyo: true, hold: 30, repeatDelay: TICK_MS / 2 - 30, repeat: -1,
@@ -866,6 +891,59 @@ export class WorldScene extends Phaser.Scene {
     return this.rocks.has(treeKey(x, y)) && !this.room?.state.depleted.has(treeKey(x, y));
   }
 
+  // ---- Farm plots ----
+  private plots = new Map<string, any>();
+  private plotViews = new Map<string, { soil: Phaser.GameObjects.Graphics; tiles: Phaser.GameObjects.Text[]; sign: Phaser.GameObjects.Text }>();
+
+  /** The soil, the crops at their stage, and the sign with the owner's name. */
+  private drawPlot(key: string) {
+    const lot = LOTS[Number(key)];
+    if (!lot) return;
+    let view = this.plotViews.get(key);
+    if (!view) {
+      const soil = this.add.graphics().setDepth(1);
+      const tiles = Array.from({ length: LOT_SIZE * LOT_SIZE }, (_, i) => {
+        const t = tileOf(Number(key), i);
+        return this.add.text(...this.tileCenter(t.x, t.y), "", { fontSize: "18px" }).setOrigin(0.5, 0.6).setDepth(10 + t.y);
+      });
+      const sign = this.add.text(lot.x * TILE_SIZE + LOT_SIZE * TILE_SIZE / 2, lot.y * TILE_SIZE - 8, "", {
+        fontSize: "11px", color: "#ffe9a8", stroke: "#000", strokeThickness: 3,
+      }).setOrigin(0.5).setDepth(40);
+      view = { soil, tiles, sign };
+      this.plotViews.set(key, view);
+    }
+    const plot = this.plots.get(key);
+    const now = serverNow();
+    view.soil.clear();
+    view.sign.setText(plot ? `${plot.owner}'s farm` : "Free lot: ask Farmer Odo");
+    view.sign.setAlpha(plot ? 1 : 0.6);
+    view.tiles.forEach((text, i) => {
+      const t = tileOf(Number(key), i);
+      if (!plot || !inPlot(i, plot.w, plot.h)) { text.setText(""); return; }
+      const px = t.x * TILE_SIZE, py = t.y * TILE_SIZE;
+      view!.soil.fillStyle(0x6b4423).fillRect(px + 1, py + 1, TILE_SIZE - 2, TILE_SIZE - 2);
+      view!.soil.fillStyle(0x553518).fillRect(px + 3, py + 8, TILE_SIZE - 6, 2).fillRect(px + 3, py + 18, TILE_SIZE - 6, 2);
+      const c = decodeCrop(plot.crops[i]);
+      if (!c) { text.setText(""); return; }
+      const g = growth(c, now);
+      if (g >= 1) {
+        text.setText(ITEMS[CROPS[c.crop].produce].icon).setScale(1);
+      } else {
+        // Growing: a sprout that gets bigger.
+        text.setText(g < 0.34 ? "🌱" : "🌿").setScale(0.45 + g * 0.5);
+      }
+    });
+  }
+
+  private myName(): string {
+    return this.room?.state.players.get(this.room.sessionId)?.name ?? "";
+  }
+
+  /** Crops grow on their own, so redraw the plots now and then. */
+  private redrawPlots() {
+    for (const key of this.plotViews.keys()) this.drawPlot(key);
+  }
+
   private onClick(pointer: Phaser.Input.Pointer) {
     const { x, y } = this.tileAt(pointer);
     closeShop(); // clicking the map walks away from the shop
@@ -891,6 +969,8 @@ export class WorldScene extends Phaser.Scene {
       this.room?.send("dig", { x, y });
     } else if (isFishingSpot(x, y)) {
       this.room?.send("fish", { x, y });
+    } else if (lotAt(x, y) && this.plots.has(String(lotAt(x, y)!.lot))) {
+      this.room?.send("farm", { x, y });
     } else if (isWalkable(x, y)) {
       this.room?.send("move", { x, y });
     } else {
@@ -926,6 +1006,16 @@ export class WorldScene extends Phaser.Scene {
       setHoverText("Examine", "Dug-out patch (it glints again soon)", pointer.x, pointer.y);
     } else if (MAP[y]?.[x] === "cave" || MAP[y]?.[x] === "cavewall") {
       setHoverText("⚠ Spider cave:", "cave spiders attack on sight!", pointer.x, pointer.y);
+    } else if (lotAt(x, y)) {
+      const at = lotAt(x, y)!;
+      const plot = this.plots.get(String(at.lot));
+      const c = plot && inPlot(at.index, plot.w, plot.h) ? decodeCrop(plot.crops[at.index]) : null;
+      const now = serverNow();
+      if (!plot) setHoverText("Walk here", "Free farm lot (Farmer Odo sells plots)", pointer.x, pointer.y);
+      else if (!inPlot(at.index, plot.w, plot.h)) setHoverText("Examine", `${plot.owner}'s lot (not planted yet)`, pointer.x, pointer.y);
+      else if (!c) setHoverText(plot.owner === this.myName() ? "Plant" : "Examine", `Empty soil in ${plot.owner}'s farm`, pointer.x, pointer.y);
+      else if (now >= c.ripeAt) setHoverText(plot.owner === this.myName() ? "Harvest" : "Examine", `Ripe ${ITEMS[CROPS[c.crop].produce].name.toLowerCase()}`, pointer.x, pointer.y);
+      else setHoverText("Examine", `${ITEMS[CROPS[c.crop].produce].name}, ripe in ${timeLeft(c.ripeAt - now)}`, pointer.x, pointer.y);
     } else if (isFishingSpot(x, y)) {
       const type = fishAt(x, y)!;
       setHoverText("Fish", RESOURCES[type].node + this.lockNote(type), pointer.x, pointer.y);
