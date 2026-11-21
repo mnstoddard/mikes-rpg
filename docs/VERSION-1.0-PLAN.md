@@ -231,11 +231,14 @@ failing. The land grows heroes, the **Kindled**, who wake at shrines with no
 past and no family, and come back at a shrine when they fall. That explains
 why there are so many heroes, why you respawn and why you have no backstory.
 
-STORY.md has the regions, factions, where every trainer fits, the main quest
-acts, and how the mechanics tie in. **The twist (decided):** the heroes are
-what's draining the land, and a hidden group of Kindled, **the Undying**, opened
-the shrines wide to steal extra life. The goal is to **restore the balance** so
-every hero gives back what they take.
+STORY.md has the regions, factions, where every trainer fits and how the
+mechanics tie in. **The twist (decided):** the kind order that runs the shrines,
+**the Lightkeepers**, are really **the Undying**, who grow heroes strong so they
+can harvest them. The shrine-smashing **Ashbound** are the real good guys. Every
+death leaves **Soul Debt**. You can't cleanse the shrines, but you can break
+your own spark free, then fight the Lightkeepers as the endgame.
+
+The full main quest line, act by act, is in [QUESTLINE.md](QUESTLINE.md).
 
 Story work can happen now, in the 2D game, and carries straight into 1.0.
 
