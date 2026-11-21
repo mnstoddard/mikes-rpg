@@ -57,6 +57,7 @@ export interface SaveData {
   discovered?: string[]; // hidden potion recipes found by brewing them, e.g. ["restore"] (shared/alchemy.ts)
   buffs?: Record<string, { until: number; power: number }>; // potion buffs still running, e.g. { strength: { until: 1795..., power: 12 } }
   guild?: GuildSave; // the Mages' Guild: rank points, magic bounties and the enchanted chest
+  farmChest?: boolean; // paid Farmer Odo to link the farm chest to the enchanted chest (shared/farming.ts)
   // Add more here later (skills, bank, quests...). Stored as JSON, so no
   // database migration is needed for new fields.
 }
@@ -85,6 +86,9 @@ interface Store {
   /** Change an account's name (it's also the login). Returns false if the new name is taken. */
   rename(oldName: string, newName: string): Promise<boolean>;
   setPassword(username: string, passwordHash: string): Promise<void>;
+  /** Things that belong to the world, not one character (e.g. "farms": everyone's plots). */
+  getWorld(key: string): Promise<unknown>;
+  setWorld(key: string, data: unknown): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -108,6 +112,21 @@ class PostgresStore implements Store {
         last_login_at TIMESTAMPTZ,
         saved_at      TIMESTAMPTZ
       )`);
+    await this.pool.query(`
+      CREATE TABLE IF NOT EXISTS world (
+        key        TEXT PRIMARY KEY,
+        data       JSONB NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )`);
+  }
+  async getWorld(key: string) {
+    const { rows } = await this.pool.query("SELECT data FROM world WHERE key = $1", [key]);
+    return rows[0]?.data ?? null;
+  }
+  async setWorld(key: string, data: unknown) {
+    await this.pool.query(
+      `INSERT INTO world (key, data) VALUES ($1, $2)
+       ON CONFLICT (key) DO UPDATE SET data = $2, updated_at = now()`, [key, JSON.stringify(data)]);
   }
   async get(username: string) {
     const { rows } = await this.pool.query(
@@ -146,14 +165,34 @@ class PostgresStore implements Store {
 
 class FileStore implements Store {
   private accounts: Record<string, Account> = {};
+  private world: Record<string, unknown> = {};
   private writing: Promise<void> = Promise.resolve();
+  private worldWriting: Promise<void> = Promise.resolve();
   constructor(private file: string) {}
+  /** World data sits next to the accounts, in world.json. */
+  private get worldFile() { return path.join(path.dirname(this.file), "world.json"); }
   async init() {
     try {
       this.accounts = JSON.parse(await fs.readFile(this.file, "utf8"));
     } catch (err: any) {
       if (err.code !== "ENOENT") throw err;
     }
+    try {
+      this.world = JSON.parse(await fs.readFile(this.worldFile, "utf8"));
+    } catch (err: any) {
+      if (err.code !== "ENOENT") throw err;
+    }
+  }
+  async getWorld(key: string) { return this.world[key] ?? null; }
+  async setWorld(key: string, data: unknown) {
+    this.world[key] = data;
+    this.worldWriting = this.worldWriting.catch(() => {}).then(async () => {
+      await fs.mkdir(path.dirname(this.worldFile), { recursive: true });
+      const tmp = `${this.worldFile}.tmp`;
+      await fs.writeFile(tmp, JSON.stringify(this.world, null, 2));
+      await fs.rename(tmp, this.worldFile);
+    });
+    return this.worldWriting;
   }
   async get(username: string) { return this.accounts[usernameKey(username)] ?? null; }
   async create(username: string, passwordHash: string) {
@@ -184,7 +223,7 @@ class FileStore implements Store {
     acct.passwordHash = passwordHash;
     await this.flush();
   }
-  async close() { await this.writing; }
+  async close() { await this.writing; await this.worldWriting; }
   private flush() {
     // Write one at a time, to a temp file first, so a crash can't leave half a file.
     this.writing = this.writing.catch(() => {}).then(async () => {

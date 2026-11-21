@@ -8,9 +8,10 @@ import { BAR_IDS, isTool, parseTool, toolId } from "./tools";
 import { isArmor, isGear, isSoftArmor, isWeapon, isWooden, parseArmor, parseWeapon, weaponId } from "./gear";
 import { SHOP_STEW } from "./cooking";
 import { isArrow, isBait } from "./handicraft";
+import { SEED_IDS, isSeed } from "./farming";
 import { ALCHEMY_INGREDIENTS, VIAL, isPotion } from "./alchemy";
 
-export type ShopId = "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "wren" | "moss";
+export type ShopId = "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "wren" | "moss" | "odo";
 
 export interface ShopDef {
   /** What the window's title says. */
@@ -70,6 +71,12 @@ export const SHOPS: Record<ShopId, ShopDef> = {
     stock: [weaponId("dagger", "stone", "pine"), weaponId("sling", "stone", "pine"), weaponId("staff", "stone", "pine"), weaponId("bow", "stone", "pine"), "arrows_stone", "health_potion"],
     buys: (i) => isWeapon(i) || isArmor(i) || LOOT.includes(i) || i === "health_potion",
     buysText: "weapons, armor and monster drops",
+  },
+  odo: {
+    title: "🌾 Farmer Odo",
+    stock: SEED_IDS,
+    buys: (i) => isSeed(i) || i === "potato" || i === "carrot" || i === "onion" || i === "wheat",
+    buysText: "seeds, potatoes, carrots, onions and wheat",
   },
   wren: {
     title: "🌱 Herbalist Wren",

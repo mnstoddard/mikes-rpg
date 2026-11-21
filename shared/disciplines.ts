@@ -17,7 +17,9 @@ export type CombatSkill = "melee" | "ranged" | "magic" | "defense";
 export type SocialSkill = "trading" | "renown";
 /** Enchanting: at the altar in the Mages' Guild (shared/enchanting.ts). */
 export type EnchantSkill = "enchanting";
-export type SkillId = GatherSkill | WildSkill | CraftSkill | CombatSkill | SocialSkill | EnchantSkill;
+/** Farming: your own plot at the farm (shared/farming.ts). */
+export type FarmSkill = "farming";
+export type SkillId = GatherSkill | WildSkill | CraftSkill | CombatSkill | SocialSkill | EnchantSkill | FarmSkill;
 
 export interface SkillDef {
   id: SkillId;
@@ -53,6 +55,7 @@ export const DISCIPLINES: Record<DisciplineId, DisciplineDef> = {
       { id: "woodcutting", name: "Woodcutting", icon: "🪓", description: "Click a tree to chop logs." },
       { id: "mining", name: "Mining", icon: "⛏️", description: "Click a rock to mine ore." },
       { id: "foraging", name: "Foraging", icon: "🌱", description: "Click a glinting dig patch to dig it up with a shovel: roots, mushrooms, worms, herbs, old bones, truffles, and moonpetal at night. Herbalist Wren teaches it." },
+      { id: "farming", name: "Farming", icon: "🌾", description: "Buy a plot at the farm (east of the island, over the second bridge) from Farmer Odo, plant his seeds, and come back to harvest. Crops grow even while you're logged out. Farmer Odo teaches it." },
       { id: "hunting", name: "Hunting", icon: "🐾", description: "Trained by defeating monsters. Everyone who hurt it shares the XP by how much damage they did. Higher Hunting makes monsters drop things more often." },
     ],
   },
@@ -70,7 +73,7 @@ export const DISCIPLINES: Record<DisciplineId, DisciplineDef> = {
     description: "Making things. Raises how much you can carry and how fast you walk.",
     skills: [
       { id: "cooking", name: "Cooking", icon: "🍲", description: "Use the stove in the town square, by Old Maren, to cook meals (stew, stir fry, curry, roast) from fish, meat and vegetables. Meals give back lots of stamina." },
-      { id: "handicraft", name: "Handicraft", icon: "🧵", description: "Use the workbench in Woodworker Rook's workshop to make fishing bait from worms, food scraps and feathers." },
+      { id: "handicraft", name: "Handicraft", icon: "🧵", description: "Use Woodworker Rook's workshop: fishing bait, bows, arrows and staffs at the workbench, leather at the tanning rack (outside), thread and cloth at the spinning wheel, and leather and cloth armor." },
       { id: "smithing", name: "Smithing", icon: "🔨", description: "Use the anvil in Smith Brann's smithy to make tools from stone or a metal bar, plus a log." },
       { id: "smelting", name: "Smelting", icon: "🔥", description: "Use the furnace in Smith Brann's smithy to turn ore into bars." },
     ],

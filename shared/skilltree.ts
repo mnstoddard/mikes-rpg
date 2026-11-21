@@ -29,7 +29,8 @@ export type TreeEffect =
   | "dodge"        // defense: monsters hit you less often
   | "enchantSlot"  // enchanting: items take a second enchantment
   | "potency"      // enchanting: stronger enchantments
-  | "reenchant";   // enchanting: enchant an item again after taking one off
+  | "reenchant"    // enchanting: enchant an item again after taking one off
+  | "growth";      // farming: crops ripen sooner
 
 export interface TreeNode {
   /** e.g. "cooking.slots". */
@@ -58,6 +59,11 @@ export const TREES: Record<SkillId, TreeNode[]> = {
   fishing: gather("fishing", node("fishing", "xp", "Quick learner", "📖", 0.1)),
   foraging: gather("foraging", node("foraging", "staminaSave", "Light work", "🪶", 0.08)),
   hunting: [node("hunting", "xp", "Quick learner", "📖", 0.1)],
+  farming: [
+    node("farming", "growth", "Green thumb", "🌱", 0.05),
+    node("farming", "double", "Bumper crop", "🍀", 0.05),
+    node("farming", "staminaSave", "Light work", "🪶", 0.1),
+  ],
   smelting: [
     node("smelting", "success", "Steady hands", "🎯", 0.06),
     node("smelting", "extra", "Extra bar", "🧈", 0.04),
@@ -168,6 +174,7 @@ export function nodeEffect(n: TreeNode, rank: number, skillName: string): string
     case "enchantSlot": return "items can hold a second enchantment (a different kind)";
     case "potency": return `enchantments are ${pct} stronger`;
     case "reenchant": return "enchant an item again after its enchantment was taken off";
+    case "growth": return `crops ripen ${pct} sooner`;
   }
 }
 

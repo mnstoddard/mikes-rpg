@@ -6,6 +6,7 @@
 //
 // Crafting isn't about speed: each try takes the same time, and either works or
 // fails. A failed try loses its inputs and gives half the XP (at least 1).
+import { CROPS, CROP_IDS, CropId } from "./farming";
 import { CRAFT_MARKUP, ITEMS, ItemId } from "./items";
 import { RESOURCES, RESOURCE_FOR_ITEM, ResourceId } from "./foraging";
 import { ItemMasteryXp, MAX_SUCCESS, MasteryId, craftSuccess, masteryIn, masteryValue } from "./mastery";
@@ -277,8 +278,9 @@ export function masteryName(id: MasteryId): string {
   if (id in RESOURCES) { const r = RESOURCES[id as ResourceId]; return r.gem ? r.node : ITEMS[r.item].name; }
   if (id in TOOL_TYPES) return TOOL_TYPES[id as ToolType].name;
   if (id === "arrows") return "Arrows";
+  if (id.startsWith("crop_")) return ITEMS[CROPS[id.slice(5) as CropId].produce].name;
   return ITEMS[id as BarId].name;
 }
 
 /** Every Mastery id there is (for loading saves). */
-export const ALL_MASTERY_IDS: MasteryId[] = [...(Object.keys(RESOURCES) as ResourceId[]), ...BAR_IDS, ...TOOL_TYPE_IDS, ...DISH_IDS, ...BAIT_IDS, ...WEAPON_TYPES, ...ARMOR_TYPES, ...POTION_TYPES.map((t) => `potion_${t}` as const), ...JEWEL_BAR_IDS, "ring", "amulet", "arrows", "leather", "thread", "cloth"];
+export const ALL_MASTERY_IDS: MasteryId[] = [...(Object.keys(RESOURCES) as ResourceId[]), ...BAR_IDS, ...TOOL_TYPE_IDS, ...DISH_IDS, ...BAIT_IDS, ...WEAPON_TYPES, ...ARMOR_TYPES, ...POTION_TYPES.map((t) => `potion_${t}` as const), ...JEWEL_BAR_IDS, "ring", "amulet", "arrows", "leather", "thread", "cloth", ...CROP_IDS.map((c) => `crop_${c}` as const)];

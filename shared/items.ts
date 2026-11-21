@@ -7,6 +7,7 @@ import { ARROWS_PER_CRAFT, ArrowId, BAITS, BAIT_IDS, BaitId, HandicraftMaterial,
 import { SOFT_NAMES, isWooden } from "./gear";
 import { BONUSES, POTIONS, PotionId, parsePotion, potionInputs } from "./alchemy";
 import { enchantedName, enchantsOf } from "./enchanting";
+import { CROPS, CROP_IDS, CropId, FarmProduce, SeedId, seedId } from "./farming";
 import { GemItemId, JEWEL_BARS, JEWEL_BAR_IDS, JEWEL_METALS, JEWEL_TYPES, JewelBarId, cutId, gemItemDef, parseGem } from "./jewelry";
 import {
   ARMOR, ARMOR_TYPES, GearItemId, METAL_DAMAGE, WEAPONS, WEAPON_TYPES, armorId, parseArmor, parseWeapon, weaponId,
@@ -47,7 +48,7 @@ export type WildId = "sage" | "moonpetal" | "old_bone" | "red_cap" | "ginseng" |
  * from ingredients and a log), weapons and armor, loot, cooking ingredients
  * (raw chicken, vegetables...), Handicraft materials (worms, food scraps) and bait.
  */
-export type ItemId = BaseItemId | BarId | ToolItemId | MealId | GearItemId | LootId | WildId | OtherIngredient | HandicraftMaterial | BaitId | PotionId | GemItemId | JewelBarId | SpellBookId | EnchantedItemId | ArrowId;
+export type ItemId = BaseItemId | BarId | ToolItemId | MealId | GearItemId | LootId | WildId | OtherIngredient | HandicraftMaterial | BaitId | PotionId | GemItemId | JewelBarId | SpellBookId | EnchantedItemId | ArrowId | SeedId | FarmProduce;
 /** An enchanted tool, weapon or armor piece: "axe_iron_oak+swift.20" (shared/enchanting.ts). */
 export type EnchantedItemId = `${string}+${string}`;
 
@@ -141,7 +142,18 @@ const BOOKS: Record<SpellBookId, ItemDef> = {
   book_frost_nova: { name: "Spell book: Frost nova", single: "Frost nova spell book", icon: "📘", sellPrice: 350 },
 };
 
-const TABLE = { ...BASE_ITEMS, ...LOOT, ...WILD, ...FOOD_AND_MATERIALS, ...BOOKS } as Record<ItemId, ItemDef>;
+/** Farming (shared/farming.ts): seeds from Farmer Odo, and what only the farm grows. */
+const FARM: Record<FarmProduce, ItemDef> = {
+  onion: { name: "Onions", single: "onion", icon: "🧅", sellPrice: 2 },
+  wheat: { name: "Wheat", single: "sheaf of wheat", icon: "🌾", sellPrice: 2 },
+};
+const CROP_NAMES: Record<CropId, [string, string]> = {
+  potato: ["Seed potatoes", "seed potato"], carrot: ["Carrot seeds", "carrot seed"], onion: ["Onion sets", "onion set"],
+  wheat: ["Wheat seeds", "wheat seed"], ginseng: ["Ginseng seeds", "ginseng seed"], blue_lotus: ["Blue lotus seeds", "blue lotus seed"],
+};
+const SEEDS = Object.fromEntries(CROP_IDS.map((c) => [seedId(c), { name: CROP_NAMES[c][0], single: CROP_NAMES[c][1], icon: "🌱", tint: CROPS[c].tint, sellPrice: CROPS[c].seedPrice }])) as Record<SeedId, ItemDef>;
+
+const TABLE = { ...BASE_ITEMS, ...LOOT, ...WILD, ...FOOD_AND_MATERIALS, ...BOOKS, ...FARM, ...SEEDS } as Record<ItemId, ItemDef>;
 
 /**
  * Every item's definition. Meals ("meal_curry_oak_potato-trout") are built the
