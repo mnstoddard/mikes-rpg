@@ -4,6 +4,7 @@ import {
 } from "./tools";
 import { DISHES, INGREDIENTS, IngredientId, MealId, OtherIngredient, mealTitle, parseMeal } from "./cooking";
 import { BAITS, BAIT_IDS, BaitId, HandicraftMaterial } from "./handicraft";
+import { BONUSES, POTIONS, PotionId, parsePotion, potionInputs } from "./alchemy";
 import {
   ARMOR, ARMOR_TYPES, GearItemId, METAL_DAMAGE, WEAPONS, WEAPON_TYPES, armorId, parseArmor, parseWeapon, weaponId,
 } from "./gear";
@@ -34,7 +35,7 @@ export interface ItemDef {
 
 /** Things monsters drop (a shop buys them), and the health potion. */
 export type LootId = "feather" | "rat_tail" | "cowhide" | "wolf_pelt" | "goblin_charm" | "spider_silk" | "stolen_ring" | "health_potion"
-  | "slime_goo" | "boar_tusk" | "wolf_fang" | "bat_wing" | "venom_sac";
+  | "slime_goo" | "boar_tusk" | "wolf_fang" | "bat_wing" | "venom_sac" | "vial";
 /** Herbs and other things you dig up with Foraging (shared/foraging.ts FORAGE_FINDS). Alchemy will use them. */
 export type WildId = "sage" | "moonpetal" | "old_bone" | "red_cap" | "ginseng" | "honey" | "blue_lotus";
 
@@ -43,7 +44,7 @@ export type WildId = "sage" | "moonpetal" | "old_bone" | "red_cap" | "ginseng" |
  * from ingredients and a log), weapons and armor, loot, cooking ingredients
  * (raw chicken, vegetables...), Handicraft materials (worms, food scraps) and bait.
  */
-export type ItemId = BaseItemId | BarId | ToolItemId | MealId | GearItemId | LootId | WildId | OtherIngredient | HandicraftMaterial | BaitId;
+export type ItemId = BaseItemId | BarId | ToolItemId | MealId | GearItemId | LootId | WildId | OtherIngredient | HandicraftMaterial | BaitId | PotionId;
 
 /** A crafted item is worth what goes into it, plus 25%. */
 export const CRAFT_MARKUP = 1.25;
@@ -88,6 +89,8 @@ const LOOT: Record<LootId, ItemDef> = {
   boar_tusk: { name: "Boar tusks", single: "boar tusk", icon: "🦷", tint: "sepia(.5)", sellPrice: 8 },
   wolf_fang: { name: "Wolf fangs", single: "wolf fang", icon: "🦷", sellPrice: 10 },
   bat_wing: { name: "Bat wings", single: "bat wing", icon: "🦇", sellPrice: 9 },
+  // Alchemy: every potion uses up one (Alchemist Moss sells them).
+  vial: { name: "Empty vials", single: "empty vial", icon: "🫙", sellPrice: 2 },
   venom_sac: { name: "Venom sacs", single: "venom sac", icon: "🧪", tint: "hue-rotate(60deg) saturate(3)", sellPrice: 35 },
   // Drink it for health (shared/combat.ts). A shop sells them.
   health_potion: { name: "Health potion", single: "health potion", icon: "🧪", tint: "hue-rotate(230deg) saturate(2.5)", sellPrice: 10 },
@@ -128,12 +131,12 @@ const TABLE = { ...BASE_ITEMS, ...LOOT, ...WILD, ...FOOD_AND_MATERIALS } as Reco
 export const ITEMS: Record<ItemId, ItemDef> = new Proxy(TABLE, {
   get(table, key) {
     if (typeof key !== "string" || key in table) return Reflect.get(table, key);
-    const def = mealDef(key);
+    const def = mealDef(key) ?? potionDef(key);
     if (def) table[key as ItemId] = def;
     return def;
   },
   has(table, key) {
-    return key in table || (typeof key === "string" && !!parseMeal(key));
+    return key in table || (typeof key === "string" && (!!parseMeal(key) || !!parsePotion(key)));
   },
 });
 
@@ -207,6 +210,19 @@ for (const bait of BAIT_IDS) {
   const b = BAITS[bait];
   ITEMS[bait] = { name: b.name, single: b.single, icon: b.icon, tint: b.tint, sellPrice: 0, inputs: b.inputs };
   ITEMS[bait].sellPrice = Math.floor(exactBase(bait));
+}
+
+/** A potion: "Health potion (sage)". Worth its ingredients and vial, plus 25%. */
+function potionDef(id: string): ItemDef | undefined {
+  const p = parsePotion(id);
+  if (!p) return undefined;
+  const d = POTIONS[p.type];
+  const name = p.bonus ? `${d.name} (${BONUSES[p.bonus].name})` : d.name;
+  const inputs = potionInputs(id as PotionId);
+  return {
+    name, single: name.charAt(0).toLowerCase() + name.slice(1), icon: d.icon, tint: d.tint, inputs,
+    sellPrice: Math.floor(inputs.reduce((sum, i) => sum + TABLE[i].sellPrice, 0) * CRAFT_MARKUP),
+  };
 }
 
 /** A meal's name and price: "Trout curry (2 trout, potato · oak)". */

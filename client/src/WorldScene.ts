@@ -19,11 +19,12 @@ import { DISCIPLINES, DisciplineId, DisciplineView, SkillId, SkillXp, emptySkill
 import { ItemMasteryXp, MasteryId } from "../../shared/mastery";
 import { showLogin } from "./login";
 import { setTreeActions } from "./tree";
-import { renderTreeRanks } from "./ui";
+import { nightSightOn, renderTreeRanks, setBuffs, setDiscovered, setServerOffset, tickBuffs } from "./ui";
 import type { TreeRanks } from "../../shared/skilltree";
 import type { QuestView } from "../../shared/quests";
 import type { ShopId } from "../../shared/shops";
 import type { RepairJob } from "../../shared/repair";
+import type { Buffs, PotionType } from "../../shared/alchemy";
 import { NIGHT_DARKNESS, darkness, isNight, minutesUntilChange } from "../../shared/daynight";
 
 const TILE_COLORS: Record<Tile, number> = {
@@ -161,6 +162,8 @@ export class WorldScene extends Phaser.Scene {
       reset: (skill) => room.send("treeReset", { skill }),
     });
     room.onMessage("tree", (ranks: TreeRanks) => renderTreeRanks(ranks));
+    room.onMessage("discovered", (list: PotionType[]) => setDiscovered(list));
+    room.onMessage("buffs", (b: Buffs) => { setBuffs(b); this.updateDaylight(); });
     setQuestActions({ track: (bounty) => room.send("track", bounty == null ? {} : { bounty }) });
     setAccountActions({
       rename: (name) => room.send("rename", { name }),
@@ -184,6 +187,7 @@ export class WorldScene extends Phaser.Scene {
     });
     room.onMessage("clock", (msg: { now: number }) => {
       this.clockOffset = msg.now - Date.now();
+      setServerOffset(this.clockOffset);
       this.wasNight = null;
       this.updateDaylight();
     });
@@ -384,7 +388,7 @@ export class WorldScene extends Phaser.Scene {
     // A sign over the Mages' Guild hall's door.
     const mage = NPCS.find((n) => n.id === "archmage");
     if (mage) {
-      const [gx, gy] = this.tileCenter(mage.x, mage.y - 2);
+      const [gx, gy] = this.tileCenter(mage.x, mage.y - 3);
       this.add.text(gx, gy - 22, "🔮 Mages' Guild", { fontSize: "13px", color: "#e3ccff", stroke: "#000", strokeThickness: 3 }).setOrigin(0.5).setDepth(40);
     }
     // Signs over the trainers' doors (on the door tile, so they don't hide the room).
@@ -455,6 +459,16 @@ export class WorldScene extends Phaser.Scene {
       c.add([g, fire, steam]);
       this.tweens.add({ targets: fire, alpha: 0.5, duration: 350, yoyo: true, repeat: -1 });
       this.tweens.add({ targets: steam, y: -30, alpha: 0, scaleX: 1.8, duration: 1400, repeat: -1 });
+    } else if (id === "alchemy_table") {
+      // A dark table with bubbling flasks.
+      g.fillStyle(0x3b2a4a).fillRect(-12, -2, 3, 12).fillRect(9, -2, 3, 12);
+      g.fillStyle(0x5a4470).fillRect(-14, -8, 28, 7);
+      g.fillStyle(0x7fe0a0, 0.9).fillCircle(-7, -12, 4).fillRect(-8, -19, 2, 5);
+      g.fillStyle(0xd6443a, 0.9).fillTriangle(1, -9, 9, -9, 5, -17);
+      g.fillStyle(0x9ad1ff, 0.9).fillRect(10, -16, 3, 8);
+      const bubble = this.add.circle(-7, -18, 1.6, 0xc8ffd8);
+      c.add([g, bubble]);
+      this.tweens.add({ targets: bubble, y: -26, alpha: 0, duration: 1200, repeat: -1 });
     } else if (id === "workbench") {
       // A wooden bench on legs, with a jar of worms and a little bundle of thread.
       g.fillStyle(0x5c3a1a).fillRect(-12, -2, 3, 12).fillRect(9, -2, 3, 12); // legs
@@ -490,7 +504,7 @@ export class WorldScene extends Phaser.Scene {
       c.add(g);
     }
     // In the guild hall the stations stand close to the Archmage, so their names go underneath.
-    const below = id === "chest" || id === "guildboard" || id === "furnace" || id === "anvil" || id === "workbench";
+    const below = id === "chest" || id === "guildboard" || id === "alchemy_table" || id === "furnace" || id === "anvil" || id === "workbench";
     const label = this.add.text(0, below ? 22 : id === "board" ? -32 : -28, name, { fontSize: "12px", color: "#ffd84a", stroke: "#000", strokeThickness: 3 }).setOrigin(0.5);
     c.add(label);
   }
@@ -718,7 +732,9 @@ export class WorldScene extends Phaser.Scene {
   /** Darken the world at night (a gentle dark for now), and say when night falls or the sun comes up. */
   private updateDaylight() {
     const now = Date.now() + this.clockOffset;
-    this.nightShade.setAlpha(darkness(now) * NIGHT_DARKNESS);
+    // A night sight potion lifts the dark.
+    this.nightShade.setAlpha(nightSightOn() ? 0 : darkness(now) * NIGHT_DARKNESS);
+    tickBuffs();
     const night = isNight(now);
     if (this.wasNight !== null && night !== this.wasNight && this.room) {
       showMessage(night ? "🌙 Night falls over the town." : "☀️ The sun comes up.");

@@ -11,7 +11,7 @@ export type DisciplineId = "strength" | "endurance" | "wisdom" | "dexterity" | "
 export type GatherSkill = "woodcutting" | "fishing" | "mining" | "foraging";
 /** Hunting: trained by defeating monsters (shared by everyone who hurt it). */
 export type WildSkill = "hunting";
-export type CraftSkill = "smelting" | "smithing" | "cooking" | "handicraft";
+export type CraftSkill = "smelting" | "smithing" | "cooking" | "handicraft" | "alchemy";
 /** "magic" is Spellcasting (its id stays "magic" so spells, staffs and trees keep working). */
 export type CombatSkill = "melee" | "ranged" | "magic" | "defense";
 export type SocialSkill = "trading" | "renown";
@@ -59,6 +59,7 @@ export const DISCIPLINES: Record<DisciplineId, DisciplineDef> = {
     description: "Magic. Raises your max mana.",
     skills: [
       { id: "magic", name: "Spellcasting", icon: "🪄", description: "Hold a staff, pick a spell, and click a monster. Spells use mana." },
+      { id: "alchemy", name: "Alchemy", icon: "⚗️", description: "Brew potions at the alchemy table in the Mages' Guild: pick 2 ingredients (and maybe a third for a bonus) and an empty vial. Alchemist Moss teaches it." },
     ],
   },
   dexterity: {
@@ -114,7 +115,7 @@ export type SkillXp = Record<SkillId, number>;
 export const SKILL_IDS: SkillId[] = DISCIPLINE_IDS.flatMap((d) => DISCIPLINES[d].skills.map((s) => s.id));
 export const emptySkills = (): SkillXp => Object.fromEntries(SKILL_IDS.map((id) => [id, 0])) as SkillXp;
 export const isCombatSkill = (skill: SkillId): skill is CombatSkill => skill === "melee" || skill === "ranged" || skill === "magic" || skill === "defense";
-export const isCraftSkill = (skill: SkillId): skill is CraftSkill => skill === "smelting" || skill === "smithing" || skill === "cooking" || skill === "handicraft";
+export const isCraftSkill = (skill: SkillId): skill is CraftSkill => skill === "smelting" || skill === "smithing" || skill === "cooking" || skill === "handicraft" || skill === "alchemy";
 
 /** A Discipline's level for each Discipline. */
 export type DisciplineLevels = Record<DisciplineId, number>;

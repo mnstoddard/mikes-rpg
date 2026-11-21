@@ -8,8 +8,9 @@ import { BAR_IDS, isTool, parseTool, toolId } from "./tools";
 import { isArmor, isGear, isWeapon, weaponId } from "./gear";
 import { SHOP_STEW } from "./cooking";
 import { isBait } from "./handicraft";
+import { ALCHEMY_INGREDIENTS, VIAL, isPotion } from "./alchemy";
 
-export type ShopId = "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "wren";
+export type ShopId = "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "wren" | "moss";
 
 export interface ShopDef {
   /** What the window's title says. */
@@ -74,6 +75,12 @@ export const SHOPS: Record<ShopId, ShopDef> = {
     stock: [toolId("shovel", "stone", "pine"), "wild_root"],
     buys: (i) => FORAGE_ITEMS.has(i) || (isTool(i) && parseTool(i).type === "shovel"),
     buysText: "roots, herbs, mushrooms, worms and shovels",
+  },
+  moss: {
+    title: "⚗️ Alchemist Moss",
+    stock: [VIAL],
+    buys: (i) => isPotion(i) || i === VIAL || i === "health_potion" || ALCHEMY_INGREDIENTS.has(i),
+    buysText: "potions, vials, herbs and monster parts",
   },
 };
 

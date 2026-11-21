@@ -390,6 +390,37 @@ The original plan, for later stages:
   repairing enchanted items is a later tree unlock.
 
 ### Alchemy (new)
+*Built in stage 6 (decided with Mike):* **Alchemist Moss** stands in the
+Mages' Guild (the hall is one row bigger now) next to the **alchemy table**.
+Moss teaches Alchemy (Wisdom) in a 4-step chapter and sells **empty vials**;
+every potion uses one (a spoiled brew loses the ingredients but keeps the
+vial). At the table you tap 2 ingredients from your bag into the mix (things
+alchemy can't use are grayed out); a third from a short list adds a bonus:
+sage (30% stronger), moonpetal (60% stronger), honey (+15 stamina), mushroom
+(+10 health) or old bones (buffs last 1.5 times as long). Potions stack 10 to a
+slot and are drunk from the bag, with a **10-second wait** between potions
+(the shop health potion too). Strength is worked out when you drink: +3% per
+Alchemy level, times the bonus. Each potion kind has its own Mastery (fewer
+spoiled brews).
+
+| Potion | Ingredients | Level | Effect |
+|---|---|---|---|
+| Health | Red cap + slime goo | 1 | Heals 30 |
+| Stamina | Ginseng + wild honeycomb | 3 | +40 stamina |
+| Mana | Blue lotus + bat wing | 5 | +30 mana |
+| *Restoration draught (hidden)* | Slime goo + blue lotus | 8 | Some health and some mana |
+| Strength | Wolf fang + sage | 10 | +10% weapon damage, 5 minutes |
+| Swiftness | Boar tusk + ginseng | 15 | Walk 15% faster, 5 minutes |
+| *Hunter's brew (hidden)* | Wolf fang + boar tusk | 18 | A little of both, 5 minutes |
+| Night sight | Moonpetal + blue lotus | 20 | No darkness at night, 5 minutes |
+| Soul trap | Venom sac + moonpetal | 25 | Soul trap lasts 50% longer (for stage 8) |
+
+Hidden recipes show as ❓ until you brew one; the table hints "something
+stirs" when your mix makes one. Running buffs show under the mana bar with
+the minutes left. Farm crops, glass vials from sand and fire resistance are
+still for later.
+
+*The original plan:*
 Brew potions at an alchemy table from foraged herbs, farm crops and monster
 parts. A potion needs 2 or 3 ingredients plus a vial (bought from the alchemist,
 or made later by Smelting sand into glass).
@@ -617,7 +648,7 @@ quest chapter as it goes, so the main quest grows with the game.
 | **3. Bigger town and trainers** ✅ built | Trainer Row buildings, Merchant split into trainer shops plus General Store, Maren's hub quest for existing skills, day and night cycle | Gives new skills a place to live |
 | **4. Wear and repair** ✅ built | Worn-out gear becomes Broken instead of vanishing, armor wears from damage, the paid Repairer | Needed before enchanting |
 | **5. Foraging, Hunting and new monsters** ✅ built | Shovel, forage spots, ingredients, night herbs; slimes, bats, boars, beetles, spiders and night monsters; kill XP split by damage share; Hunting drop bonus | Ingredients for potions and crafting |
-| **6. Alchemy** | Alchemy table, vials, the potion list | Uses stage 5's ingredients |
+| **6. Alchemy** ✅ built | Alchemy table, vials, the potion list | Uses stage 5's ingredients |
 | **7. Gems and soul stone** | Gem and soul stone rocks with continuous sizes, and Smithing's gem cutting, rings, amulets, inlays and soul gems | Needed for enchanting |
 | **8. Spellcasting** | Spell bar, new spell list, learning by level and books, Invisibility, Soul trap with the glow and blink, filling soul gems | Needed for enchanting |
 | **9. Enchanting** | Enchanting altar, staffs, armor and tool enchants, the Mend spell, Enchanting tree unlocks | Needs stages 4, 7 and 8 |

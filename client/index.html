@@ -266,6 +266,8 @@
     }
     /* Health, stamina and mana */
     .vital + .vital { margin-top: 3px; }
+    .buff-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+    .buff { font-size: 11px; background: rgba(0,0,0,.35); border: 1px solid #6b5a3e; border-radius: 4px; padding: 0 4px; }
     #stamina.hurt { border-color: #ff3b30; animation: hurt 1s ease-in-out infinite alternate; }
     @keyframes hurt { from { box-shadow: 0 0 0 rgba(255, 59, 48, 0); } to { box-shadow: 0 0 10px rgba(255, 59, 48, .8); } }
     /* Gear strip (weapon and armor) under the tool belt, and spells when holding a staff */

@@ -40,6 +40,9 @@ import { BAITS, BAIT_IDS, BaitId, isBait } from "../../shared/handicraft";
 import { TreeRanks, treeBonus } from "../../shared/skilltree";
 import { setTreeData, treeButton, treeRanks } from "./tree";
 import { toolSvg } from "./toolIcons";
+import {
+  ALCHEMY_INGREDIENTS, BONUSES, BONUS_IDS, BUFFS, BUFF_IDS, BonusId, Buffs, POTIONS, POTION_TYPES, PotionType, buffPower, describeEffect, isPotion, parsePotion, potionEffect, potionFrom,
+} from "../../shared/alchemy";
 
 const MAX_MESSAGES = 6;
 const messagesEl = document.getElementById("messages")!;
@@ -113,8 +116,23 @@ const pick = {
   dish: "stew" as DishId, pot: [] as IngredientId[], bait: "bait_worm" as BaitId,
   /** Anvil: what kind of thing to make. */
   category: "tools" as "tools" | "weapons" | "armor", weapon: "dagger" as WeaponType, armor: "helmet" as ArmorType, armorMetal: "bronze" as Metal,
+  /** Alchemy table: what's in the mix (2 or 3 ingredients). */
+  mix: [] as ItemId[],
 };
-const STATION_SKILL = { furnace: "smelting", anvil: "smithing", stove: "cooking", workbench: "handicraft" } as const;
+const STATION_SKILL = { furnace: "smelting", anvil: "smithing", stove: "cooking", workbench: "handicraft", alchemy_table: "alchemy" } as const;
+/** Hidden potion recipes you've found. */
+let discovered: PotionType[] = [];
+export function setDiscovered(list: PotionType[]) { discovered = list; renderCraft(); }
+/** Potion buffs running, and the server's clock (buffs end by it). */
+let buffs: Buffs = {};
+let serverOffset = 0;
+export const serverNow = () => Date.now() + serverOffset;
+export function setServerOffset(offset: number) { serverOffset = offset; }
+export function setBuffs(b: Buffs) { buffs = b; renderVitalBars(); }
+/** Called every second: the buff timers count down. */
+export function tickBuffs() { if (Object.keys(buffs).length) renderVitalBars(); }
+/** Is a night sight potion working right now? */
+export const nightSightOn = () => buffPower(buffs, "nightsight", serverNow()) > 0;
 type Station = keyof typeof STATION_SKILL;
 
 /** What a skill's tree gives you for one effect (from the ranks you've bought). */
@@ -1295,6 +1313,7 @@ const craftAll = document.getElementById("craft-all") as HTMLButtonElement;
 
 export function openCraft(id: string) {
   if (!(id in STATION_SKILL)) return;
+  closeDialog();
   closeShop();
   closeBounties();
   closeGuild();
@@ -1334,7 +1353,7 @@ function renderCraft() {
   if (!station) return;
   const skill: CraftSkill = STATION_SKILL[station];
   const level = levelForXp(lastSkillXp[skill] ?? 0);
-  craftTitle.textContent = `${{ furnace: "Furnace", anvil: "Anvil", stove: "Stove", workbench: "Workbench" }[station]} · ${findSkill(skill).def.name} level ${level}`;
+  craftTitle.textContent = `${{ furnace: "Furnace", anvil: "Anvil", stove: "Stove", workbench: "Workbench", alchemy_table: "Alchemy table" }[station]} · ${findSkill(skill).def.name} level ${level}`;
   craftBody.replaceChildren();
   const lockedAt = (m: Material) => (level < MATERIALS[m].level ? MATERIALS[m].level : undefined);
   const { def: skillDef } = findSkill(skill);
@@ -1355,6 +1374,15 @@ function renderCraft() {
       return;
     }
     output = meal;
+  } else if (station === "alchemy_table") {
+    const potion = renderAlchemy(level);
+    if (!potion) {
+      craftOne.disabled = true;
+      craftAll.disabled = true;
+      craftAll.textContent = "Make all";
+      return;
+    }
+    output = potion;
   } else if (station === "workbench") {
     craftBody.append(choices("Make", BAIT_IDS, pick.bait, (b) => ({ icon: BAITS[b].icon, tint: BAITS[b].tint, name: BAITS[b].name, lockedAt: level < BAITS[b].level ? BAITS[b].level : undefined }), (b) => { pick.bait = b; }));
     craftBody.append(el("craft-info", BAITS[pick.bait].description + ". Fishing uses the first unlocked bait in your bag."));
@@ -1394,7 +1422,10 @@ function renderCraft() {
   const item = ITEMS[output];
   const detail = el("craft-detail");
   const head = el("craft-head");
-  head.append(icon("craft-icon", item.icon, item.tint), el("craft-name", item.name));
+  // A hidden potion you haven't found yet stays a mystery until you brew it.
+  const brew = parsePotion(output);
+  const secret = !!brew && !!POTIONS[brew.type].hidden && !discovered.includes(brew.type);
+  head.append(icon("craft-icon", secret ? "❓" : item.icon, secret ? undefined : item.tint), el("craft-name", secret ? "Unknown potion" : item.name));
   detail.appendChild(head);
 
   // What it takes, and how many you have.
@@ -1422,7 +1453,7 @@ function renderCraft() {
     el("craft-info", `Mastery ${m}` + (!tool ? " · no tool needed" : lastBelt[tool] ? ` · ${ITEMS[lastBelt[tool]!.item].name} on your belt`
       : recipe.needsTool ? ` · no ${TOOL_TYPES[tool].name.toLowerCase()} on your belt (half chance)` : ` · no ${TOOL_TYPES[tool].name.toLowerCase()} needed`) +
       (steady ? ` · skill tree: ${Math.round(steady * 100)}% fewer failures` : "")));
-  const facts = [`Sells for ${formatMoney(sellPrice(output))}`, `${recipe.xp} XP`, `costs ${STAMINA_COST[skill]} stamina`];
+  const facts = secret ? [`costs ${STAMINA_COST[skill]} stamina`] : [`Sells for ${formatMoney(sellPrice(output))}`, `${recipe.xp} XP`, `costs ${STAMINA_COST[skill]} stamina`];
   if (isTool(output)) facts.unshift(`${toolEffect(output)}, ${maxDurability(output)} uses`);
   if (isGear(output)) {
     const needs = gearNeeds(output)!;
@@ -1430,10 +1461,11 @@ function renderCraft() {
   }
   if (isMeal(output)) facts.unshift(`Gives ${staminaOf(output)} stamina`);
   if (isBait(output)) facts.unshift(`Lasts ${BAITS[output].uses} catches`);
+  if (isPotion(output) && !secret) facts.unshift(describeEffect(potionEffect(output, level)) + " (stronger as your Alchemy goes up)");
   detail.append(el("craft-info", facts.join(" · ")));
   if (level < recipe.level) detail.append(el("craft-warn", `Needs ${findSkill(skill).def.name} level ${recipe.level}.`));
-  else if (!canMake) detail.append(el("craft-warn", station === "stove" ? "You don't have all of that (and the log) unlocked in your bag." : station === "workbench" ? "You don't have the materials. Worms turn up while chopping and mining (or Rook and Tam sell them); cooking leaves food scraps." : "You don't have the materials. Miner Greta sells ore and stone, Smith Brann sells bars, and Forester Holt sells logs."));
-  else detail.append(el("craft-info", `You have enough for ${canMake}. A failed try loses the materials.`));
+  else if (!canMake) detail.append(el("craft-warn", station === "stove" ? "You don't have all of that (and the log) unlocked in your bag." : station === "alchemy_table" ? "You need an empty vial for each potion. Alchemist Moss sells them." : station === "workbench" ? "You don't have the materials. Worms turn up while chopping and mining (or Rook and Tam sell them); cooking leaves food scraps." : "You don't have the materials. Miner Greta sells ore and stone, Smith Brann sells bars, and Forester Holt sells logs."));
+  else detail.append(el("craft-info", `You have enough for ${canMake}. ${station === "alchemy_table" ? "A spoiled brew loses the ingredients, but you keep the vial." : "A failed try loses the materials."}`));
   craftBody.appendChild(detail);
 
   const ok = level >= recipe.level && canMake > 0;
@@ -1519,6 +1551,92 @@ function renderStove(level: number): ItemId | null {
     return null;
   }
   return mealId(pick.dish, pick.fuel, pick.pot);
+}
+
+/**
+ * The alchemy table: the recipes you know (tap one to fill the mix), then your
+ * bag (tap to add; things alchemy can't use are grayed out). Two ingredients
+ * make a potion, a third adds a bonus. Returns the potion, or null.
+ */
+function renderAlchemy(level: number): ItemId | null {
+  // Keep only what's still in your bag.
+  pick.mix = pick.mix.filter((i, n) => pick.mix.slice(0, n + 1).filter((x) => x === i).length <= haveUnlocked(i)).slice(0, 3);
+  const inMix = (i: ItemId) => pick.mix.filter((x) => x === i).length;
+
+  // Recipes: the ones you know, and ??? for hidden ones you haven't found.
+  const book = el("pick-row");
+  book.append(el("pick-label", "Recipes (tap to use)"));
+  for (const t of POTION_TYPES) {
+    const d = POTIONS[t];
+    const known = !d.hidden || discovered.includes(t);
+    const b = document.createElement("button");
+    const locked = level < d.level;
+    b.className = "pick" + (locked || !known ? " locked" : "");
+    b.append(icon("pick-icon", known ? d.icon : "❓", known ? d.tint : undefined), el("pick-name", !known ? "hidden" : locked ? `🔒${d.level}` : d.name.replace(/ potion$/, "")));
+    b.title = !known ? "A hidden recipe. Mix things at the table to find it."
+      : `${d.name}: ${ITEMS[d.pair[0]].single} + ${ITEMS[d.pair[1]].single}. ${d.description}. Alchemy level ${d.level}.`;
+    if (known) b.onclick = () => { pick.mix = [...d.pair]; renderCraft(); };
+    book.appendChild(b);
+  }
+  craftBody.append(book);
+
+  // The mix: what's in it (tap to take out).
+  const mixRow = el("pick-row");
+  mixRow.append(el("pick-label", `In the mix (${pick.mix.length}/3): tap to take out`));
+  pick.mix.forEach((i, n) => {
+    const b = document.createElement("button");
+    b.className = "pick active";
+    b.append(icon("pick-icon", ITEMS[i].icon, ITEMS[i].tint), el("pick-name", ITEMS[i].single));
+    b.onclick = () => { pick.mix.splice(n, 1); renderCraft(); };
+    mixRow.appendChild(b);
+  });
+  for (let n = pick.mix.length; n < 3; n++) {
+    const b = document.createElement("button");
+    b.className = "pick locked";
+    b.disabled = true;
+    b.append(icon("pick-icon", "·"), el("pick-name", n === 2 ? "bonus" : "empty"));
+    mixRow.appendChild(b);
+  }
+  craftBody.append(mixRow);
+
+  // Your bag: tap to add. A third ingredient has to be a bonus one.
+  const bagRow = el("pick-row");
+  bagRow.append(el("pick-label", "Your bag: tap to add"));
+  const seen = new Set<ItemId>();
+  const mine = invItems.filter((it, i): it is ItemId => !!it && !locked[i] && !seen.has(it) && !!seen.add(it) && it !== "vial" && !isPotion(it) && it !== POTION_ID);
+  mine.sort((a, b) => Number(ALCHEMY_INGREDIENTS.has(b)) - Number(ALCHEMY_INGREDIENTS.has(a)));
+  for (const it of mine) {
+    const usable = ALCHEMY_INGREDIENTS.has(it);
+    const left = haveUnlocked(it) - inMix(it);
+    const asBonus = pick.mix.length === 2;
+    const ok = usable && left > 0 && pick.mix.length < 3 && (!asBonus || (BONUS_IDS as string[]).includes(it));
+    const b = document.createElement("button");
+    b.className = "pick" + (ok ? "" : " locked");
+    b.append(icon("pick-icon", ITEMS[it].icon, ITEMS[it].tint), el("pick-name", !usable ? "no use" : asBonus && !(BONUS_IDS as string[]).includes(it) ? "not a bonus" : `${ITEMS[it].single} (${left})`));
+    const bonus = BONUSES[it as BonusId];
+    b.title = !usable ? `${ITEMS[it].name} can't be used in alchemy.` : bonus ? `${ITEMS[it].name}. As a third ingredient: ${bonus.note}.` : `${ITEMS[it].name}.`;
+    b.disabled = !ok;
+    if (ok) b.onclick = () => { pick.mix.push(it); renderCraft(); };
+    bagRow.appendChild(b);
+  }
+  if (!mine.some((it) => ALCHEMY_INGREDIENTS.has(it))) bagRow.append(el("craft-warn", "Nothing in your bag goes in a potion. Dig up herbs with Foraging (Herbalist Wren), and get slime goo, bat wings and fangs from monsters."));
+  craftBody.append(bagRow);
+
+  if (pick.mix.length < 2) {
+    craftBody.append(el("craft-detail", "Put two ingredients in the mix (and a third for a bonus). Each potion also uses an empty vial."));
+    return null;
+  }
+  const potion = potionFrom(pick.mix);
+  const known = potion && (!POTIONS[parsePotion(potion)!.type].hidden || discovered.includes(parsePotion(potion)!.type));
+  if (!potion) {
+    craftBody.append(el("craft-warn", "Those don't make anything. Try a different mix."));
+    return null;
+  }
+  if (!known) {
+    // A hidden recipe: you can brew it, but you won't know what it is until you do.
+    craftBody.append(el("craft-info", "✨ Something stirs in the mix... you don't know this one. Brew it and see!"));
+  }
+  return potion;
 }
 
 document.getElementById("craft-close")!.onclick = closeCraft;
@@ -1981,6 +2099,7 @@ function renderInfo() {
     if (isTool(id)) infoButton("Put on belt", () => { onEquip(e); closeInfo(); }, broken);
     if (isGear(id)) infoButton(isWeapon(id) ? "Hold" : "Wear", () => { onWear(e); closeInfo(); }, broken);
     if (id === POTION_ID) infoButton(`Drink (+${POTION_HEAL})`, () => { onDrink(e); closeInfo(); });
+    if (isPotion(id)) infoButton("Drink", () => { onDrink(e); closeInfo(); });
     if (isFood(id)) infoButton(`Eat (+${staminaOf(id)})`, () => { onEat(e); done(); }, staminaNow >= staminaMax);
     infoButton(isLocked ? "Unlock" : "Lock", () => onLock(e, !isLocked));
     infoButton(stack > 1 ? `Drop all ${stack}` : "Drop", () => { onDrop(e); done(); }, isLocked);
@@ -2021,6 +2140,19 @@ function renderVitalBars() {
       "It comes back 1 every 30 seconds. Eat fish or a meal (click it in your bag) for more."),
     vitalRow("🔮", vitals.mana, vitals.maxMana, "#4a7bd9", `Mana ${vitals.mana} of ${vitals.maxMana}. Spells use it. It comes back 1 every 6 seconds.`),
   );
+  // Potion buffs: an icon and the minutes (or seconds) left for each.
+  const now = serverNow();
+  const running = BUFF_IDS.filter((id) => (buffs[id]?.until ?? 0) > now);
+  if (running.length) {
+    const row = el("buff-row");
+    for (const id of running) {
+      const left = Math.ceil((buffs[id]!.until - now) / 1000);
+      const chip = el("buff", `${BUFFS[id].icon} ${left >= 60 ? `${Math.ceil(left / 60)}m` : `${left}s`}`);
+      chip.title = `${BUFFS[id].name}: ${BUFFS[id].describe(buffs[id]!.power)}. ${left >= 60 ? `About ${Math.ceil(left / 60)} minutes` : `${left} seconds`} left.`;
+      row.appendChild(chip);
+    }
+    staminaEl.append(row);
+  }
   staminaEl.classList.toggle("hurt", hpLow);
 }
 

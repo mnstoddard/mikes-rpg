@@ -16,6 +16,7 @@ import { BAR_IDS, TOOL_TYPES, ToolType, isTool, parseTool } from "./tools";
 import { ARMOR, WEAPONS, isArmor, isWeapon, parseArmor, parseWeapon } from "./gear";
 import { isMeal } from "./cooking";
 import { isBait } from "./handicraft";
+import { isPotion } from "./alchemy";
 
 /** What you can carry comes from Dexterity: 45 kg at level 1 (shared/stats.ts). */
 export { carryCapacity } from "./stats";
@@ -40,7 +41,7 @@ const ITEM_WEIGHT: Partial<Record<string, number>> = {
   sage: 1, moonpetal: 1, red_cap: 2, ginseng: 2, honey: 3, blue_lotus: 1, old_bone: 5, slime_goo: 3, boar_tusk: 5, wolf_fang: 2, bat_wing: 2, venom_sac: 2,
   worm: 1, food_scraps: 2,
   // Monster drops and potions.
-  feather: 1, rat_tail: 2, cowhide: 30, wolf_pelt: 20, goblin_charm: 2, spider_silk: 2, stolen_ring: 1, health_potion: 5,
+  vial: 2, feather: 1, rat_tail: 2, cowhide: 30, wolf_pelt: 20, goblin_charm: 2, spider_silk: 2, stolen_ring: 1, health_potion: 5,
 };
 
 /** One of this item's weight, in tenths of a kg. */
@@ -58,6 +59,7 @@ export function weightOf(item: ItemId): number {
   if ((BAR_IDS as string[]).includes(item)) return 20;
   if (isMeal(item)) return 10;
   if (isBait(item)) return 1;
+  if (isPotion(item)) return 5;
   return 10;
 }
 
