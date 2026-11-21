@@ -45,7 +45,7 @@ export type WildId = "sage" | "moonpetal" | "old_bone" | "red_cap" | "ginseng" |
  * from ingredients and a log), weapons and armor, loot, cooking ingredients
  * (raw chicken, vegetables...), Handicraft materials (worms, food scraps) and bait.
  */
-export type ItemId = BaseItemId | BarId | ToolItemId | MealId | GearItemId | LootId | WildId | OtherIngredient | HandicraftMaterial | BaitId | PotionId | GemItemId | JewelBarId;
+export type ItemId = BaseItemId | BarId | ToolItemId | MealId | GearItemId | LootId | WildId | OtherIngredient | HandicraftMaterial | BaitId | PotionId | GemItemId | JewelBarId | SpellBookId;
 
 /** A crafted item is worth what goes into it, plus 25%. */
 export const CRAFT_MARKUP = 1.25;
@@ -124,7 +124,15 @@ const FOOD_AND_MATERIALS: Record<OtherIngredient | HandicraftMaterial, ItemDef> 
   food_scraps: { name: "Food scraps", single: "food scraps", icon: "🦴", tint: "sepia(.6)", sellPrice: 1 },
 };
 
-const TABLE = { ...BASE_ITEMS, ...LOOT, ...WILD, ...FOOD_AND_MATERIALS } as Record<ItemId, ItemDef>;
+/** Spell books: read one to learn its spell (shared/spells.ts SPELL_BOOKS). */
+export type SpellBookId = "book_haste" | "book_invisibility" | "book_frost_nova";
+const BOOKS: Record<SpellBookId, ItemDef> = {
+  book_haste: { name: "Spell book: Haste", single: "Haste spell book", icon: "📗", sellPrice: 150 },
+  book_invisibility: { name: "Spell book: Invisibility", single: "Invisibility spell book", icon: "📘", tint: "grayscale(.6) brightness(1.2)", sellPrice: 500 },
+  book_frost_nova: { name: "Spell book: Frost nova", single: "Frost nova spell book", icon: "📘", sellPrice: 350 },
+};
+
+const TABLE = { ...BASE_ITEMS, ...LOOT, ...WILD, ...FOOD_AND_MATERIALS, ...BOOKS } as Record<ItemId, ItemDef>;
 
 /**
  * Every item's definition. Meals ("meal_curry_oak_potato-trout") are built the

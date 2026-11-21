@@ -275,8 +275,17 @@
     @keyframes hurt { from { box-shadow: 0 0 0 rgba(255, 59, 48, 0); } to { box-shadow: 0 0 10px rgba(255, 59, 48, .8); } }
     /* Gear strip (weapon and armor) under the tool belt, and spells when holding a staff */
     #gear { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid #6b5a3e; }
-    #spells { display: flex; gap: 3px; margin: -2px 0 6px; padding-bottom: 6px; border-bottom: 1px solid #6b5a3e; }
-    #spells .pick { flex: 1; }
+    #spells { margin: -2px 0 6px; padding-bottom: 6px; border-bottom: 1px solid #6b5a3e; }
+    #spells .spell-head { display: flex; align-items: center; justify-content: space-between; }
+    #spells .spell-edit { background: none; border: 1px solid #6b5a3e; color: #f4e4bc; border-radius: 4px; font-size: 11px; padding: 1px 6px; cursor: pointer; }
+    #spells .spell-edit.active { border-color: #ffd84a; color: #ffd84a; }
+    #spells .spell-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; }
+    #spells .spell-bar.wrap { grid-template-columns: repeat(3, 1fr); margin-top: 3px; }
+    #spells .pick { position: relative; min-width: 0; }
+    #spells .pick.dim { opacity: .55; }
+    #spells .pick.empty { opacity: .6; }
+    #spells .spell-key { position: absolute; top: 1px; left: 3px; font-size: 9px; color: #c9b88f; }
+    #spells .spell-list .m-info { font-size: 11px; margin-top: 4px; }
     #login-error { min-height: 1.3em; font-size: 13px; color: #ff9a8a; text-align: center; }
     /* Quest tracker: right of the health, stamina and mana bars. Shows the tracked quest step or bounty. */
     #quest { display: none; top: calc(42px + env(safe-area-inset-top)); left: calc(182px + env(safe-area-inset-left)); width: 230px; max-width: calc(100vw - 240px); padding: 6px 9px; font-size: 12px; color: #f2e6c9; cursor: pointer; box-sizing: border-box; }

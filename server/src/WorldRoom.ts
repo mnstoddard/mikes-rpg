@@ -49,7 +49,11 @@ import { findSkill as skillInfo } from "../../shared/disciplines";
 import { formatMoney } from "../../shared/money";
 import { isNight } from "../../shared/daynight";
 import {
-  GemId, CUT_KEEPS, CUT_LEVEL, GEMS, JEWEL_BARS, JEWEL_METALS, JEWEL_SLOTS, JewelSlot, Jewels, carats, cutId, cutXp, describeBonus, emptyJewels, isJewelry, jewelBonus, jewelTotals,
+  NOVA_RADIUS, SPELL_BOOKS, TARGET_RANGE, barSlots, isSpellBook, knownSpells, novaMaxHit, soulsOf, spellMana, spellPower, spellSeconds,
+} from "../../shared/spells";
+import { BoltSpellId, isBoltSpell } from "../../shared/combat";
+import {
+  GemId, CUT_KEEPS, CUT_LEVEL, GEMS, isSoulGem, soulCapacity, JEWEL_BARS, JEWEL_METALS, JEWEL_SLOTS, JewelSlot, Jewels, carats, cutId, cutXp, describeBonus, emptyJewels, isJewelry, jewelBonus, jewelTotals,
   parseGem, rollCut, rollGemSize, roughId, soulGemId, soulStoneId,
 } from "../../shared/jewelry";
 import {
@@ -108,6 +112,7 @@ export class Player extends Schema {
   @type("number") hp = 50; // health (others see your health bar)
   @type("number") maxHp = 50;
   @type("number") stepMs = TICK_MS; // how long each step takes (Dexterity makes you walk faster), so others see you slide at the right speed
+  @type("boolean") invisible = false; // the Invisibility spell: others see you faded, monsters don't see you at all
 
   // Server-only (not synced to everyone):
   path: Point[] = [];
@@ -137,7 +142,11 @@ export class Player extends Schema {
   nextStepAt = 0; // time (ms) this player may take their next step
   gear: Gear = emptyGear(); // weapon and armor being worn (don't use bag space)
   mana = 50;
-  spell: SpellId = "fire_blast"; // the spell cast when holding a staff
+  spell: BoltSpellId = "fire_blast"; // the spell cast when holding a staff
+  books: SpellId[] = []; // spells learned from spell books (shared/spells.ts)
+  spellBar: (SpellId | null)[] = []; // the spell bar's slots
+  castReadyAt = 0; // can't cast another bar spell until then (ms)
+  barFresh = false; // an old save with no spell bar: fill it with what you know
   combatMastery: CombatMasteryXp = {}; // Mastery XP per weapon type, spell and monster
   fighting: string | null = null; // id of the monster being attacked
   attackTimer = 0; // ticks since the last attack
@@ -168,6 +177,7 @@ export class Monster extends Schema {
   @type("number") maxHp = 1;
   @type("boolean") alive = true;
   @type("string") status = ""; // "" | "asleep" | "frozen" | "fighting"
+  @type("number") trappedUntil = 0; // Soul trap: the tick its glow ends (0 = not trapped)
 
   // Server-only:
   homeX = 0;
@@ -177,6 +187,7 @@ export class Monster extends Schema {
   respawnAt = 0; // tick it comes back, while defeated
   sleepUntil = 0;
   frozenUntil = 0;
+  trappedBy: string | null = null; // Soul trap: session id of whoever cast it (only their soul gem fills)
   /** Hunting: damage each player has done to it since it last came back (session id -> damage). */
   hurtBy = new Map<string, number>();
 }
@@ -703,6 +714,7 @@ export class WorldRoom extends Room<WorldState> {
       client.send("tree", p.tree);
       client.send("discovered", p.discovered);
       client.send("jewels", p.jewels);
+      this.sendSpellbook(client, p);
       this.sendBuffs(client, p);
       this.fillBoard(p);
       this.sendBounties(client, p);
@@ -863,14 +875,54 @@ export class WorldRoom extends Room<WorldState> {
     // Pick which spell to cast with a staff.
     this.onMessage("spell", (client, msg: { id: string }) => {
       const p = this.state.players.get(client.sessionId);
+      const id = msg?.id;
+      if (!p || !id || !isBoltSpell(id)) return;
+      this.pickBolt(client, p, id);
+    });
+
+    // Cast a spell from the spell bar (bolts just pick what your staff fires).
+    this.onMessage("cast", (client, msg: { id: string }) => {
+      const p = this.state.players.get(client.sessionId);
       const id = msg?.id as SpellId;
       if (!p || !SPELL_IDS.includes(id)) return;
-      const level = levelForXp(p.skillXp.magic);
-      if (level < SPELLS[id].level) return this.say(client, `You need Magic level ${SPELLS[id].level} to cast ${SPELLS[id].name}. (You're level ${level}.)`);
-      p.spell = id;
-      this.say(client, `Your staff will cast ${SPELLS[id].icon} ${SPELLS[id].name} (${SPELLS[id].mana} mana).`);
-      this.sendGear(client, p);
+      this.castSpell(client, p, id, client.sessionId);
+    });
+
+    // Rearrange the spell bar: a list of spell ids (or null for an empty slot).
+    this.onMessage("spellBar", (client, msg: { bar: (string | null)[] }) => {
+      const p = this.state.players.get(client.sessionId);
+      if (!p || !Array.isArray(msg?.bar)) return;
+      const known = this.known(p);
+      const slots = barSlots(p.combatMastery);
+      const bar: (SpellId | null)[] = [];
+      for (let i = 0; i < slots; i++) {
+        const id = msg.bar[i] as SpellId;
+        bar.push(known.includes(id) && !bar.includes(id) ? id : null);
+      }
+      p.spellBar = bar;
       p.dirty = true;
+      this.sendSpellbook(client, p);
+    });
+
+    // Read a spell book from your bag: learn its spell (the book is used up).
+    this.onMessage("read", (client, msg: { slot: number }) => {
+      const p = this.state.players.get(client.sessionId);
+      if (!p || !Number.isInteger(msg?.slot)) return;
+      const item = p.inventory[msg.slot];
+      if (!isSpellBook(item)) return;
+      const spell = SPELL_BOOKS[item];
+      const d = SPELLS[spell];
+      if (!isUnlocked(p.unlocked, "magic")) return this.say(client, this.notTaught("magic"));
+      if (p.books.includes(spell)) return this.say(client, `You already know ${d.name}. You could sell the book.`);
+      const level = levelForXp(p.skillXp.magic);
+      if (level < d.level) return this.say(client, `The words swim on the page. You need Spellcasting level ${d.level} to learn ${d.name}. (You're level ${level}.)`);
+      takeFromEntry(p, msg.slot, 1);
+      p.books.push(spell);
+      const placed = this.addToBar(p, spell);
+      this.say(client, `📖 You learn ${d.icon} ${d.name}! ${placed ? "It's on your spell bar." : "Your spell bar is full: press ✎ on it to swap a spell in."}`);
+      this.sendInventory(client, p);
+      this.sendSpellbook(client, p);
+      this.saveSoon(p);
     });
 
     // ---- Mages' Guild ----
@@ -1068,6 +1120,7 @@ export class WorldRoom extends Room<WorldState> {
     }
     const blocked = this.toolBlock(p, skill);
     if (blocked) return this.say(client, blocked);
+    this.breakInvisible(p, client, "gather");
     if (!this.hasStamina(client, p, skill)) return;
     this.stopActions(p);
     p.target = target;
@@ -1277,7 +1330,8 @@ export class WorldRoom extends Room<WorldState> {
 
   /** How long each step takes: Dexterity, and a swiftness potion. */
   private stepMsOf(p: Player) {
-    return Math.round(TICK_MS / (1 + walkBonus(p.levels.dexterity) + buffPower(p.buffs, "swift", worldNow()) / 100));
+    const now = worldNow();
+    return Math.round(TICK_MS / (1 + walkBonus(p.levels.dexterity) + (buffPower(p.buffs, "swift", now) + buffPower(p.buffs, "haste", now)) / 100));
   }
 
   /** Potion buffs that are running, for the bar under your health. */
@@ -1294,9 +1348,13 @@ export class WorldRoom extends Room<WorldState> {
       if (b && b.until <= now) {
         delete p.buffs[id];
         changed = true;
-        if (client) this.say(client, `${BUFFS[id].icon} Your ${BUFFS[id].name.toLowerCase()} potion wears off.`);
+        if (client) {
+          const spell = id === "ward" ? "ward fades" : id === "haste" ? "haste wears off" : id === "invisible" ? "invisibility wears off: monsters can see you again" : null;
+          this.say(client, spell ? `${BUFFS[id].icon} Your ${spell}.` : `${BUFFS[id].icon} Your ${BUFFS[id].name.toLowerCase()} potion wears off.`);
+        }
       }
     }
+    p.invisible = buffPower(p.buffs, "invisible", now) > 0;
     if (!changed) return;
     p.stepMs = this.stepMsOf(p);
     p.dirty = true;
@@ -1469,6 +1527,7 @@ export class WorldRoom extends Room<WorldState> {
     this.sendDisciplines(client, p);
     this.sendVitals(client, p);
     this.sendStamina(client, p);
+    if (!taught.has("magic") && p.unlocked.includes("magic")) this.sendSpellbook(client, p); // Ysolde just taught you: Firebolt goes on the bar
   }
 
   /** What a Discipline level-up did for you: "Max health 60." */
@@ -1667,6 +1726,11 @@ export class WorldRoom extends Room<WorldState> {
       const rank = rankFor(p.guildPoints);
       if (rank > rankBefore) {
         this.say(client, `🎉 You are now a guild ${RANKS[rank].name}! Your enchanted chest can grow to ${RANKS[rank].maxChest} spaces.`);
+        if (rankBefore < 2 && rank >= 2) {
+          const got = this.give(p, "book_invisibility", 1, null, true) > 0;
+          if (got) this.say(client, "Archmage Ysolde: \"Well done, Adept. Take this: a spell book of Invisibility. Read it when your Spellcasting is ready.\"");
+          this.sendInventory(client, p);
+        }
         client.send("guildRank", { rank: RANKS[rank].name });
       }
       client.send("coins", p.coins);
@@ -1849,11 +1913,12 @@ export class WorldRoom extends Room<WorldState> {
     if (a.spell) {
       const spell = SPELLS[a.spell];
       if (levelForXp(p.skillXp.magic) < spell.level) p.spell = "fire_blast";
-      if (p.mana < spell.mana) {
-        if (client) this.say(client, `You're out of mana: ${spell.name} needs ${spell.mana} and you have ${p.mana}. It comes back 1 every 6 seconds.`);
+      const mana = spellMana(a.spell, combatMasteryIn(p.combatMastery, a.spell));
+      if (p.mana < mana) {
+        if (client) this.say(client, `You're out of mana: ${spell.name} needs ${mana} and you have ${p.mana}. It comes back 1 every 6 seconds.`);
         return this.stopActions(p);
       }
-      if (!treeRoll(p.tree, "magic", "manaSave")) p.mana -= spell.mana;
+      if (!treeRoll(p.tree, "magic", "manaSave")) p.mana -= mana;
     } else {
       if (p.stamina < ATTACK_STAMINA) {
         if (client) this.say(client, "You're too tired to fight. Eat something, or rest (1 stamina every 30 seconds).");
@@ -1862,6 +1927,7 @@ export class WorldRoom extends Room<WorldState> {
       if (!treeRoll(p.tree, a.style, "staminaSave")) p.stamina -= ATTACK_STAMINA;
     }
     p.attackTimer = 0;
+    this.breakInvisible(p, client, "attack");
     const style = a.style;
     const weaponM = combatMasteryIn(p.combatMastery, a.mastery);
     const monsterM = combatMasteryIn(p.combatMastery, m.kind);
@@ -1910,6 +1976,9 @@ export class WorldRoom extends Room<WorldState> {
     m.target = null;
     m.status = "";
     m.respawnAt = this.state.tick + def.respawnTicks;
+    if (m.trappedBy && m.trappedUntil > this.state.tick) this.fillSoulGem(m);
+    m.trappedUntil = 0;
+    m.trappedBy = null;
     // Hunting: a better hunter gets more drops.
     const hunter = isUnlocked(p.unlocked, "hunting") ? huntingDrops(levelForXp(p.skillXp.hunting)) : 1;
     const dropBoost = masteryDrops(combatMasteryIn(p.combatMastery, m.kind)) * hunter;
@@ -1956,6 +2025,8 @@ export class WorldRoom extends Room<WorldState> {
     m.status = "";
     m.hp = m.maxHp;
     m.hurtBy.clear();
+    m.trappedUntil = 0;
+    m.trappedBy = null;
     m.respawnAt = this.state.tick;
     this.state.players.forEach((other) => { if (other.fighting && this.state.monsters.get(other.fighting) === m) this.stopActions(other); });
   }
@@ -1980,13 +2051,14 @@ export class WorldRoom extends Room<WorldState> {
         m.attackTimer = 0;
         return;
       }
+      if (m.trappedUntil && m.trappedUntil <= tick) { m.trappedUntil = 0; m.trappedBy = null; }
       if (m.sleepUntil > tick) { m.status = "asleep"; return; }
       const frozen = m.frozenUntil > tick;
       const home = { x: m.homeX, y: m.homeY };
       const danger = isDanger(home.x, home.y);
       // Give up on someone who left, ran out of its patch, or is lying on the ground.
       let target = m.target ? this.state.players.get(m.target) : undefined;
-      if (m.target && (!target || isDanger(target.x, target.y) !== danger || tileDistance(target, home) > LEASH_RADIUS + 1)) {
+      if (m.target && (!target || target.invisible || isDanger(target.x, target.y) !== danger || tileDistance(target, home) > LEASH_RADIUS + 1)) {
         m.target = null;
         target = undefined;
       }
@@ -1995,7 +2067,7 @@ export class WorldRoom extends Room<WorldState> {
         let best = AGGRO_RADIUS + 1;
         this.state.players.forEach((pl, sid) => {
           const d = tileDistance(pl, m);
-          if (d < best && isDanger(pl.x, pl.y) && tileDistance(pl, home) <= LEASH_RADIUS) { best = d; m.target = sid; target = pl; }
+          if (d < best && !pl.invisible && isDanger(pl.x, pl.y) && tileDistance(pl, home) <= LEASH_RADIUS) { best = d; m.target = sid; target = pl; }
         });
       }
       // Packs: when one goes for you, the rest of the pack nearby joins in.
@@ -2053,7 +2125,18 @@ export class WorldRoom extends Room<WorldState> {
     const client = this.clients.getById(sessionId);
     const chance = monsterHitChance(m.kind, levelForXp(p.skillXp.defense), armorPoints(p.gear) + jewelTotals(p.jewels).armor, this.tree(p, "defense", "dodge"));
     const hit = Math.random() < chance;
-    const damage = hit ? 1 + Math.floor(Math.random() * def.maxHit) : 0;
+    let damage = hit ? 1 + Math.floor(Math.random() * def.maxHit) : 0;
+    const ward = p.buffs.ward;
+    if (damage && ward && ward.until > worldNow()) {
+      const soaked = Math.min(ward.power, damage);
+      damage -= soaked;
+      ward.power -= soaked;
+      if (ward.power <= 0) {
+        delete p.buffs.ward;
+        if (client) this.say(client, "🛡️ Your ward breaks!");
+      }
+      if (client) this.sendBuffs(client, p);
+    }
     p.hp = Math.max(0, p.hp - damage);
     p.dirty = true;
     this.broadcast("hit", { on: "player", id: sessionId, damage, miss: !hit, from: monsterId });
@@ -2174,6 +2257,197 @@ export class WorldRoom extends Room<WorldState> {
   }
 
   /** Mastery of a weapon type, spell or monster (no cap). */
+  /** Spells this player knows right now. */
+  private known(p: Player): SpellId[] {
+    return isUnlocked(p.unlocked, "magic") ? knownSpells(levelForXp(p.skillXp.magic), p.books) : [];
+  }
+
+  /** The spell bar, the spells you know, and how many slots you have. */
+  private sendSpellbook(client: Client, p: Player) {
+    const slots = barSlots(p.combatMastery);
+    // A new or old save with no bar yet: fill it once you know a spell (Ysolde teaches Firebolt).
+    if (p.barFresh && this.known(p).length) {
+      p.barFresh = false;
+      p.spellBar = [];
+      for (const id of this.known(p)) this.addToBar(p, id);
+    }
+    while (p.spellBar.length < slots) p.spellBar.push(null);
+    client.send("spellbook", { bar: p.spellBar.slice(0, slots), known: this.known(p), books: p.books, bolt: p.spell });
+  }
+
+  /** Put a newly learned spell in the first empty slot. False if the bar is full. */
+  private addToBar(p: Player, id: SpellId): boolean {
+    if (p.spellBar.includes(id)) return true;
+    const slots = barSlots(p.combatMastery);
+    while (p.spellBar.length < slots) p.spellBar.push(null);
+    const i = p.spellBar.findIndex((s, n) => s === null && n < slots);
+    if (i < 0) return false;
+    p.spellBar[i] = id;
+    p.dirty = true;
+    return true;
+  }
+
+  /** Pick which bolt your staff fires. */
+  private pickBolt(client: Client, p: Player, id: BoltSpellId) {
+    const level = levelForXp(p.skillXp.magic);
+    if (level < SPELLS[id].level) return this.say(client, `You need Spellcasting level ${SPELLS[id].level} to cast ${SPELLS[id].name}. (You're level ${level}.)`);
+    p.spell = id;
+    const mana = spellMana(id, combatMasteryIn(p.combatMastery, id));
+    const staff = attackFor(p.gear, id).style === "magic";
+    this.say(client, staff ? `Your staff will cast ${SPELLS[id].icon} ${SPELLS[id].name} (${mana} mana). Click a monster to fire it.`
+      : `${SPELLS[id].icon} ${SPELLS[id].name} flies from a staff. Hold one (Huntmaster Kael sells them), then click a monster.`);
+    this.sendGear(client, p);
+    this.sendSpellbook(client, p);
+    p.dirty = true;
+  }
+
+  /** Invisibility breaks when you attack or gather. */
+  private breakInvisible(p: Player, client: Client | undefined, why: "attack" | "gather") {
+    if (!p.buffs.invisible) return;
+    delete p.buffs.invisible;
+    p.invisible = false;
+    p.dirty = true;
+    if (client) {
+      this.say(client, `🫥 You ${why === "attack" ? "attack" : "get to work"}, and your invisibility breaks.`);
+      this.sendBuffs(client, p);
+    }
+  }
+
+  /** Cast a spell from the spell bar. */
+  private castSpell(client: Client, p: Player, id: SpellId, sessionId: string) {
+    const d = SPELLS[id];
+    if (!isUnlocked(p.unlocked, "magic")) return this.say(client, this.notTaught("magic"));
+    if (!this.known(p).includes(id)) {
+      return this.say(client, d.book ? `You haven't learned ${d.name}. It comes from a spell book.` : `You need Spellcasting level ${d.level} to cast ${d.name}.`);
+    }
+    if (isBoltSpell(id)) return this.pickBolt(client, p, id);
+    const now = Date.now();
+    if (now < p.castReadyAt) return;
+    const level = levelForXp(p.skillXp.magic);
+    const mastery = combatMasteryIn(p.combatMastery, id);
+    const mana = spellMana(id, mastery);
+    if (p.mana < mana) return this.say(client, `You need ${mana} mana for ${d.name}, and you have ${p.mana}. It comes back 1 every 6 seconds.`);
+    const world = worldNow();
+    let xp = Math.ceil(mana / 2);
+    let msg: string;
+    if (id === "ward") {
+      const power = spellPower(id, level, mastery);
+      p.buffs.ward = { until: world + spellSeconds(id, mastery) * 1000, power };
+      msg = `🛡️ A ward shimmers around you. It soaks up ${power} damage.`;
+    } else if (id === "heal") {
+      if (p.hp >= p.maxHp) return this.say(client, `You're already at full health (${p.maxHp}).`);
+      const before = p.hp;
+      p.hp = Math.min(p.maxHp, p.hp + spellPower(id, level, mastery));
+      msg = `💚 You heal ${p.hp - before} (${p.hp}/${p.maxHp}).`;
+    } else if (id === "haste") {
+      const power = spellPower(id, level, mastery);
+      p.buffs.haste = { until: world + spellSeconds(id, mastery) * 1000, power };
+      msg = `💨 You feel light on your feet: ${power}% faster for ${spellSeconds(id, mastery)} seconds.`;
+    } else if (id === "invisibility") {
+      p.buffs.invisible = { until: world + spellSeconds(id, mastery) * 1000, power: 1 };
+      p.invisible = true;
+      this.stopActions(p);
+      this.state.monsters.forEach((m) => { if (m.target === sessionId) m.target = null; });
+      msg = `🫥 You fade from sight for ${spellSeconds(id, mastery)} seconds. Attacking or gathering breaks it.`;
+    } else if (id === "soul_trap") {
+      const m = this.trapTarget(p);
+      if (!m) return this.say(client, `No monster close enough for ${d.name}. Stand within ${TARGET_RANGE} tiles of one (or attack it first).`);
+      this.breakInvisible(p, client, "attack");
+      const secs = spellSeconds(id, mastery, buffPower(p.buffs, "soultrap", world));
+      m.trappedUntil = this.state.tick + Math.round(secs * 1000 / TICK_MS);
+      m.trappedBy = sessionId;
+      const gem = p.inventory.some((it) => isSoulGem(it) && (parseGem(it) as { souls: number; size: number }).souls < soulCapacity((parseGem(it) as { size: number }).size));
+      msg = `👻 The ${MONSTERS[m.kind].name.toLowerCase()} glows purple: its soul is trapped for ${secs} seconds. Defeat it in time!` +
+        (gem ? "" : " (You have no soul gem with room, so its soul would be lost. Brann cuts soul stone into soul gems.)");
+    } else {
+      // Frost nova: every monster next to you.
+      const max = novaMaxHit(level, mastery);
+      const hitList: Monster[] = [];
+      this.state.monsters.forEach((m) => { if (m.alive && tileDistance(m, p) <= NOVA_RADIUS) hitList.push(m); });
+      if (!hitList.length) return this.say(client, `No monsters within ${NOVA_RADIUS} tiles for ${d.name}.`);
+      this.breakInvisible(p, client, "attack");
+      let total = 0;
+      for (const m of hitList) {
+        const id2 = [...this.state.monsters.entries()].find(([, o]) => o === m)![0];
+        const damage = 1 + Math.floor(Math.random() * max);
+        m.hurtBy.set(sessionId, (m.hurtBy.get(sessionId) ?? 0) + Math.min(damage, m.hp));
+        m.hp = Math.max(0, m.hp - damage);
+        m.frozenUntil = this.state.tick + (d.freeze ?? 0);
+        total += damage;
+        this.broadcast("hit", { on: "monster", id: id2, damage, miss: false, spell: "frost_nova", from: sessionId });
+        if (MONSTERS[m.kind].maxHit > 0 && !m.target) m.target = sessionId;
+        if (m.hp <= 0) {
+          this.addSkillXp(p, client, "magic", MONSTERS[m.kind].xp);
+          this.killMonster(m, p, client, "magic");
+        }
+      }
+      xp += total;
+      msg = `🌨️ Ice bursts around you, hitting ${hitList.length} monster${hitList.length === 1 ? "" : "s"} for ${total} in all. They're frozen!`;
+    }
+    if (!treeRoll(p.tree, "magic", "manaSave")) p.mana -= mana;
+    p.castReadyAt = now + 1500;
+    p.stepMs = this.stepMsOf(p);
+    p.dirty = true;
+    this.say(client, msg);
+    this.addSkillXp(p, client, "magic", xp);
+    this.addCombatMastery(p, client, id, xp);
+    this.sendVitals(client, p);
+    this.sendBuffs(client, p);
+    this.saveSoon(p);
+  }
+
+  /** Soul trap's target: the monster you're fighting, or the closest one in reach. */
+  private trapTarget(p: Player): Monster | null {
+    const fighting = p.fighting ? this.state.monsters.get(p.fighting) : undefined;
+    if (fighting?.alive && tileDistance(fighting, p) <= TARGET_RANGE) return fighting;
+    let best: Monster | null = null;
+    let bestD = TARGET_RANGE + 1;
+    this.state.monsters.forEach((m) => {
+      const dist = tileDistance(m, p);
+      if (m.alive && dist < bestD) { best = m; bestD = dist; }
+    });
+    return best;
+  }
+
+  /**
+   * A trapped monster died: its soul goes into the caster's best soul gem with
+   * room. That's the smallest gem it fits in whole; if none can take it all,
+   * the gem with the most room (which fills up, and the rest is lost).
+   */
+  private fillSoulGem(m: Monster) {
+    const sid = m.trappedBy!;
+    const p = this.state.players.get(sid);
+    if (!p) return;
+    const client = this.clients.getById(sid);
+    const souls = soulsOf(m.kind);
+    let best = -1, bestRoom = 0, fitsWhole = false;
+    p.inventory.forEach((it, i) => {
+      if (!isSoulGem(it)) return;
+      const g = parseGem(it) as { size: number; souls: number };
+      const room = soulCapacity(g.size) - g.souls;
+      if (room <= 0) return;
+      const whole = room >= souls;
+      if (best < 0 || (whole && (!fitsWhole || room < bestRoom)) || (!whole && !fitsWhole && room > bestRoom)) {
+        best = i; bestRoom = room; fitsWhole = whole;
+      }
+    });
+    const name = MONSTERS[m.kind].name.toLowerCase();
+    if (best < 0) {
+      if (client) this.say(client, `👻 The ${name}'s soul drifts away: you have no soul gem with room for it.`);
+      return;
+    }
+    const g = parseGem(p.inventory[best]) as { size: number; souls: number };
+    const filled = soulGemId(g.size, Math.min(soulCapacity(g.size), g.souls + souls));
+    takeFromEntry(p, best, 1);
+    this.give(p, filled, 1, null, true);
+    const pct = Math.floor((Math.min(soulCapacity(g.size), g.souls + souls) / soulCapacity(g.size)) * 100);
+    if (client) {
+      this.say(client, `👻 The ${name}'s soul flows into your soul gem (${carats(g.size)}): ${pct >= 100 ? "it's full! ✨" : `${pct}% full.`}`);
+      this.sendInventory(client, p);
+    }
+    p.dirty = true;
+  }
+
   private addCombatMastery(p: Player, client: Client | undefined, id: CombatMasteryId, xp: number) {
     const before = combatMasteryIn(p.combatMastery, id);
     p.combatMastery[id] = (p.combatMastery[id] ?? 0) + xp;
@@ -2181,8 +2455,14 @@ export class WorldRoom extends Room<WorldState> {
     if (!client) return;
     client.send("combatmastery", p.combatMastery);
     if (after <= before) return;
-    this.say(client, `${combatMasteryName(id)} Mastery ${after}! ` + (id in MONSTERS ? "You hit it more often, and it drops things more often." : "You hit more often, and a little harder."));
+    const spell = id in SPELLS && !isBoltSpell(id);
+    this.say(client, `${combatMasteryName(id)} Mastery ${after}! ` + (id in MONSTERS ? "You hit it more often, and it drops things more often."
+      : spell ? "It costs a little less mana, and it's a little stronger." : "You hit more often, and a little harder."));
     client.send("combatmasteryup", { id, level: after });
+    if (id in SPELLS) {
+      if (before < 10 && after >= 10 && barSlots(p.combatMastery) > p.spellBar.length) this.say(client, `✨ Your spell bar grows to ${barSlots(p.combatMastery)} slots!`);
+      this.sendSpellbook(client, p);
+    }
   }
 
   /** Health, mana and their maximums (only you see your mana). */
@@ -2593,7 +2873,17 @@ export class WorldRoom extends Room<WorldState> {
       } else if (skill === "melee" || skill === "ranged" || skill === "magic") {
         for (const w of Object.values(WEAPONS)) if (w.style === skill && w.level > before && w.level <= after) this.say(client, `You can now use ${aOr(w.name.toLowerCase())}!`);
         if (skill === "magic") {
-          for (const sp of Object.values(SPELLS)) if (sp.level > before && sp.level <= after) this.say(client, `You can now cast ${sp.icon} ${sp.name}! Pick it under your gear.`);
+          for (const id of SPELL_IDS) {
+            const sp = SPELLS[id];
+            if (sp.level <= before || sp.level > after) continue;
+            if (sp.book) {
+              if (p.books.includes(id)) this.say(client, `You can now cast ${sp.icon} ${sp.name}!`);
+              continue;
+            }
+            const placed = this.addToBar(p, id);
+            this.say(client, `You can now cast ${sp.icon} ${sp.name}! ${placed ? "It's on your spell bar." : "Your spell bar is full: press ✎ on it to swap it in."}`);
+          }
+          this.sendSpellbook(client, p);
         }
       } else if (skill === "alchemy") {
         for (const t of POTION_TYPES) {
@@ -2861,7 +3151,11 @@ export class WorldRoom extends Room<WorldState> {
       }
     }
     for (const id of ALL_COMBAT_MASTERY_IDS) if (ok(save.combatMastery?.[id])) p.combatMastery[id] = Math.floor(save.combatMastery![id]);
-    if (SPELL_IDS.includes(save.spell as SpellId) && levelForXp(p.skillXp.magic) >= SPELLS[save.spell as SpellId].level) p.spell = save.spell as SpellId;
+    if (isBoltSpell(save.spell ?? "") && levelForXp(p.skillXp.magic) >= SPELLS[save.spell as BoltSpellId].level) p.spell = save.spell as BoltSpellId;
+    p.books = SPELL_IDS.filter((id) => SPELLS[id].book && save.books?.includes(id));
+    // No bar saved yet (an old save): it fills with the spells you know the first time it's sent.
+    p.spellBar = Array.isArray(save.spellBar) ? save.spellBar.slice(0, 8).map((id) => (SPELL_IDS.includes(id as SpellId) ? id as SpellId : null)) : [];
+    p.barFresh = !Array.isArray(save.spellBar);
     p.tree = cleanRanks(save.tree);
     p.jewels = emptyJewels();
     for (const s of JEWEL_SLOTS) {
@@ -2874,6 +3168,7 @@ export class WorldRoom extends Room<WorldState> {
       const b = save.buffs?.[id];
       if (b && Number.isFinite(b.until) && Number.isFinite(b.power) && b.until > worldNow()) p.buffs[id] = { until: b.until, power: b.power };
     }
+    p.invisible = !!p.buffs.invisible;
     // Skills taught, Discipline levels, and the stats they give.
     p.unlocked = unlockedSkills(p.quest);
     p.levels = disciplineLevels(p.skillXp, p.unlocked);
@@ -2896,7 +3191,7 @@ export class WorldRoom extends Room<WorldState> {
     const dest = p.path.length ? p.path[p.path.length - 1] : p;
     const bag = cloneBag(p);
     compact(bag); // leave out unused entries
-    return { saveVersion: SAVE_VERSION, questRev: QUEST_REV, quest: structuredClone(p.quest), x: dest.x, y: dest.y, inventory: bag.inventory, slots: bag.slotOf, coins: p.coins, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: bag.durability, belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), hp: p.hp, hpAt: Date.now(), gear: { ...p.gear }, spell: p.spell, combatMastery: { ...p.combatMastery }, tree: { ...p.tree }, lockedSlots: bag.locked.flatMap((on, i) => (on ? [i] : [])), bounties: p.bounties.map((b) => ({ ...b })), tracked: p.tracked ?? undefined, color: p.color, counts: bag.counts, jewels: { ...p.jewels }, discovered: [...p.discovered], buffs: structuredClone(p.buffs), guild: this.guildSave(p) };
+    return { saveVersion: SAVE_VERSION, questRev: QUEST_REV, quest: structuredClone(p.quest), x: dest.x, y: dest.y, inventory: bag.inventory, slots: bag.slotOf, coins: p.coins, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: bag.durability, belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), hp: p.hp, hpAt: Date.now(), gear: { ...p.gear }, spell: p.spell, combatMastery: { ...p.combatMastery }, tree: { ...p.tree }, lockedSlots: bag.locked.flatMap((on, i) => (on ? [i] : [])), bounties: p.bounties.map((b) => ({ ...b })), tracked: p.tracked ?? undefined, color: p.color, counts: bag.counts, jewels: { ...p.jewels }, discovered: [...p.discovered], books: [...p.books], spellBar: p.barFresh ? undefined : [...p.spellBar], buffs: structuredClone(p.buffs), guild: this.guildSave(p) };
   }
 
   private async save(p: Player) {

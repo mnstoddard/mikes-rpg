@@ -31,28 +31,50 @@ export const POTION_ID = "health_potion";
 /** Weapon attacks cost this much stamina each (spells cost mana instead). */
 export const ATTACK_STAMINA = 1;
 
-// ---- Spells (need a staff in your hand) ----
+// ---- Spells ----
+// Bolts (Firebolt, Frost bolt, Sleep) fly from a staff in your hand. The rest
+// are cast straight from your spell bar (shared/spells.ts): on yourself, on a
+// monster, or all around you.
 
-export type SpellId = "fire_blast" | "frost_bolt" | "sleep";
+/** Spells you fire from a staff. */
+export type BoltSpellId = "fire_blast" | "frost_bolt" | "sleep";
+export type SpellId = BoltSpellId | "ward" | "soul_trap" | "heal" | "haste" | "invisibility" | "frost_nova";
 export interface SpellDef {
   name: string;
   icon: string;
-  /** Magic level needed. */
+  /** bolt: fired from a staff. self: on you. target: on a monster. area: every monster around you. */
+  kind: "bolt" | "self" | "target" | "area";
+  /** Spellcasting level needed. */
   level: number;
+  /** Only learned from a spell book (shared/spells.ts SPELL_BOOKS). */
+  book?: boolean;
+  /** Mana at Mastery 1 (Mastery lowers it). */
   mana: number;
-  /** Biggest hit (plus your staff's metal). 0 = no damage. */
+  /** Biggest hit (a bolt adds its staff's metal). 0 = no damage. */
   maxHit: number;
-  /** Frost bolt: the monster can't move for this many ticks. */
+  /** The monster can't move for this many ticks. */
   freeze?: number;
   /** Sleep: the monster can't move or attack for this many ticks. */
   sleep?: number;
+  /** Ward: damage it soaks up. Heal: health. Haste: % faster. (Plus half your level for Ward and Heal; Mastery adds more.) */
+  power?: number;
+  /** How long it lasts at Mastery 1, in seconds. */
+  seconds?: number;
   description: string;
 }
 export const SPELLS: Record<SpellId, SpellDef> = {
-  fire_blast: { name: "Fire blast", icon: "🔥", level: 1,  mana: 4,  maxHit: 4, description: "A burst of flame." },
-  frost_bolt: { name: "Frost bolt", icon: "❄️", level: 5,  mana: 7,  maxHit: 5, freeze: 8, description: "Hits, and freezes the monster in place for about 5 seconds." },
-  sleep:      { name: "Sleep",      icon: "💤", level: 10, mana: 12, maxHit: 0, sleep: 10, description: "No damage, but the monster falls asleep for 6 seconds: it can't move or attack." },
+  fire_blast:   { name: "Firebolt",     icon: "🔥", kind: "bolt",   level: 1,  mana: 4,  maxHit: 4, description: "A bolt of flame from your staff." },
+  ward:         { name: "Ward",         icon: "🛡️", kind: "self",   level: 3,  mana: 10, maxHit: 0, power: 8, seconds: 120, description: "A shield of light that soaks up damage until it breaks or runs out." },
+  frost_bolt:   { name: "Frost bolt",   icon: "❄️", kind: "bolt",   level: 5,  mana: 7,  maxHit: 5, freeze: 8, description: "Hits, and freezes the monster in place for about 5 seconds." },
+  soul_trap:    { name: "Soul trap",    icon: "👻", kind: "target", level: 6,  mana: 8,  maxHit: 0, seconds: 60, description: "Traps a monster's soul. Defeat it before the glow fades and its soul fills one of your soul gems." },
+  heal:         { name: "Heal",         icon: "💚", kind: "self",   level: 8,  mana: 12, maxHit: 0, power: 12, description: "Heals you." },
+  sleep:        { name: "Sleep",        icon: "💤", kind: "bolt",   level: 10, mana: 12, maxHit: 0, sleep: 10, description: "No damage, but the monster falls asleep for 6 seconds: it can't move or attack." },
+  haste:        { name: "Haste",        icon: "💨", kind: "self",   level: 12, book: true, mana: 15, maxHit: 0, power: 20, seconds: 60, description: "You walk faster for a while." },
+  invisibility: { name: "Invisibility", icon: "🫥", kind: "self",   level: 15, book: true, mana: 20, maxHit: 0, seconds: 15, description: "Monsters can't see you. It breaks when you attack or gather." },
+  frost_nova:   { name: "Frost nova",   icon: "🌨️", kind: "area",   level: 20, book: true, mana: 18, maxHit: 6, freeze: 8, description: "Hits every monster next to you (2 tiles) and freezes them." },
 };
+export const BOLT_SPELLS: BoltSpellId[] = ["fire_blast", "frost_bolt", "sleep"];
+export const isBoltSpell = (id: string): id is BoltSpellId => (BOLT_SPELLS as string[]).includes(id);
 export const SPELL_IDS = Object.keys(SPELLS) as SpellId[];
 
 // ---- Monsters ----
@@ -96,9 +118,9 @@ export const MONSTERS: Record<MonsterId, MonsterDef> = {
   wolf:    { name: "Wolf",         icon: "🐺", level: 8,  hp: 20, maxHit: 3, speed: 4, aggressive: true,  xp: 8,  respawnTicks: 100, drops: [{ item: "wolf_pelt", chance: 0.5 }, { item: "wolf_fang", chance: 0.4 }], coins: [1, 5], pack: true },
   // The little cave east of the quarry (it counts as danger, like the forest).
   cave_spider: { name: "Cave spider", icon: "🕷️", level: 14, hp: 34, maxHit: 5, speed: 3, aggressive: true, xp: 14, respawnTicks: 110, drops: [{ item: "spider_silk", chance: 0.5 }, { item: "venom_sac", chance: 0.3 }], coins: [2, 10] },
-  goblin:  { name: "Goblin",       icon: "👺", level: 12, hp: 30, maxHit: 4, speed: 4, aggressive: true,  xp: 12, respawnTicks: 100, drops: [{ item: "goblin_charm", chance: 0.35 }, { item: POTION_ID, chance: 0.1 }], coins: [3, 12] },
-  spider:  { name: "Giant spider", icon: "🕷️", level: 18, hp: 42, maxHit: 6, speed: 3, aggressive: true,  xp: 18, respawnTicks: 120, drops: [{ item: "spider_silk", chance: 0.5 }, { item: POTION_ID, chance: 0.1 }], coins: [5, 15] },
-  bandit:  { name: "Bandit",       icon: "🦹", level: 25, hp: 60, maxHit: 8, speed: 4, aggressive: true,  xp: 26, respawnTicks: 150, drops: [{ item: "stolen_ring", chance: 0.25 }, { item: POTION_ID, chance: 0.25 }], coins: [15, 45] },
+  goblin:  { name: "Goblin",       icon: "👺", level: 12, hp: 30, maxHit: 4, speed: 4, aggressive: true,  xp: 12, respawnTicks: 100, drops: [{ item: "goblin_charm", chance: 0.35 }, { item: POTION_ID, chance: 0.1 }, { item: "book_haste", chance: 0.02 }], coins: [3, 12] },
+  spider:  { name: "Giant spider", icon: "🕷️", level: 18, hp: 42, maxHit: 6, speed: 3, aggressive: true,  xp: 18, respawnTicks: 120, drops: [{ item: "spider_silk", chance: 0.5 }, { item: POTION_ID, chance: 0.1 }, { item: "book_frost_nova", chance: 0.02 }], coins: [5, 15] },
+  bandit:  { name: "Bandit",       icon: "🦹", level: 25, hp: 60, maxHit: 8, speed: 4, aggressive: true,  xp: 26, respawnTicks: 150, drops: [{ item: "stolen_ring", chance: 0.25 }, { item: POTION_ID, chance: 0.25 }, { item: "book_invisibility", chance: 0.03 }], coins: [15, 45] },
 };
 export const MONSTER_IDS = Object.keys(MONSTERS) as MonsterId[];
 
@@ -174,11 +196,11 @@ export interface Attack {
   range: number;
   /** Extra hit chance from the weapon's wood. */
   accuracy: number;
-  spell?: SpellId;
+  spell?: BoltSpellId;
   name: string;
 }
 
-export function attackFor(gear: Gear, spell: SpellId): Attack {
+export function attackFor(gear: Gear, spell: BoltSpellId): Attack {
   const w = gear.weapon?.item;
   if (!isWeapon(w)) return { style: "melee", mastery: "fists", maxHit: 1, speed: 4, range: 1, accuracy: 0, name: "your fists" };
   const { type, metal, wood } = parseWeapon(w);

@@ -670,7 +670,7 @@ export const CHAPTERS: Chapter[] = [
         lines: [
           "Welcome to the Mages' Guild. I'll teach you Spellcasting. It's part of Wisdom, which raises your max mana.",
           "Spells need a staff in your hand, and they use mana, the blue 🔮 bar under your stamina. Mana comes back on its own, 1 every 6 seconds.",
-          "Here's a bronze staff. Hold it, and your spells show under your gear. Fire blast is the first. Go and defeat 2 chickens with it.",
+          "Here's a bronze staff. Your spells sit on the spell bar under your gear. Firebolt flies from a staff: hold this one and go defeat 2 chickens with it.",
         ],
         give: [STAFF],
       },
@@ -680,8 +680,8 @@ export const CHAPTERS: Chapter[] = [
         ensure: [STAFF], protect: ["staff_"],
       },
       {
-        task: "Defeat 2 chickens with Fire blast (hold the staff)", goal: { kind: "kill", monster: "chicken", count: 2, style: "magic" },
-        hint: "With the staff in your hand and Fire blast picked, click a chicken. If you run out of mana, wait a little and it comes back.",
+        task: "Defeat 2 chickens with Firebolt (hold the staff)", goal: { kind: "kill", monster: "chicken", count: 2, style: "magic" },
+        hint: "With the staff in your hand and Firebolt picked on your spell bar, click a chicken. If you run out of mana, wait a little and it comes back.",
         ensure: [STAFF], protect: ["staff_"], fightWith: "magic",
       },
       {

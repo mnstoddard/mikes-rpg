@@ -31,7 +31,9 @@ import { carriedWeight, carryCapacity, kg, weightOf } from "../../shared/weight"
 import {
   CHEST_RENT, CHEST_START, CHEST_STEP, GuildBounty, GuildView, RANKS, expandCost, guildBountyName, guildReward, rankFor,
 } from "../../shared/guild";
-import { MONSTERS as MONSTER_DEFS } from "../../shared/combat";
+import { MONSTERS as MONSTER_DEFS, BoltSpellId, isBoltSpell } from "../../shared/combat";
+import { BAR_SLOT_MASTERY, describeSpell, isSpellBook, SPELL_BOOKS, spellMana } from "../../shared/spells";
+import { isSoulGem, soulCapacity, soulFill } from "../../shared/jewelry";
 import {
   BASE_INGREDIENTS, DISHES, DISH_IDS, DishId, FOOD_KINDS, FUEL_STAMINA, INGREDIENTS, IngredientId, MAX_STAMINA, RAW_FISH_STAMINA, STAMINA_COST,
   fireStamina, fitsDish, foodStamina, ingredientStamina, isFood, isIngredient, isMeal, mealBaseStamina, mealId, parseMeal,
@@ -107,7 +109,12 @@ let flashSkill: SkillId | undefined;
 let flashType: MasteryId | undefined;
 let lastBelt: Belt = emptyBelt();
 let lastGear: Gear = emptyGear();
-let lastSpell: SpellId = "fire_blast";
+let lastSpell: BoltSpellId = "fire_blast";
+/** The spell bar (shared/spells.ts), from the server. */
+interface Spellbook { bar: (SpellId | null)[]; known: SpellId[]; books: SpellId[]; bolt: BoltSpellId }
+let spellbook: Spellbook = { bar: [], known: [], books: [], bolt: "fire_blast" };
+let editingBar = false;
+let pickedSlot = 0;
 let lastCombatMastery: CombatMasteryXp = {};
 let flashCombat: CombatMasteryId | undefined;
 /** The Monsters list in the Combat discipline is open. */
@@ -545,15 +552,18 @@ function weaponDetails(skill: "melee" | "ranged", level: number, box: HTMLElemen
 
 /** Magic: your mana, and each spell with its Mastery. */
 function magicDetails(level: number, box: HTMLElement) {
-  const upcoming = SPELL_IDS.find((id) => SPELLS[id].level > level);
-  box.append(el("m-info", `Mana ${vitals.mana}/${vitals.maxMana} · needs a staff in your hand`));
+  const upcoming = SPELL_IDS.find((id) => SPELLS[id].level > level && !SPELLS[id].book);
+  box.append(el("m-info", `Mana ${vitals.mana}/${vitals.maxMana} · bolts need a staff, other spells cast from your spell bar`));
   if (upcoming) box.append(el("m-info", `Next spell: ${SPELLS[upcoming].name} at level ${SPELLS[upcoming].level}`));
   if (!expanded.has("magic")) return box;
   const list = el("m-types");
   for (const id of SPELL_IDS) {
     const sp = SPELLS[id];
+    if (sp.book && !spellbook.books.includes(id)) { list.appendChild(lockedRow(sp.icon, sp.name, `📖 book, Lv ${sp.level}`)); continue; }
     if (level < sp.level) { list.appendChild(lockedRow(sp.icon, sp.name, `🔒 Lv ${sp.level}`)); continue; }
-    list.appendChild(combatRow(id, sp.name, sp.icon, (m) => `${sp.mana} mana · +${Math.round(masteryAccuracy(m) * 100)}% to hit`, () => sp.description));
+    list.appendChild(combatRow(id, sp.name, sp.icon,
+      (m) => isBoltSpell(id) ? `${spellMana(id, m)} mana · +${Math.round(masteryAccuracy(m) * 100)}% to hit` : `${spellMana(id, m)} mana`,
+      () => describeSpell(id, level, combatMasteryIn(lastCombatMastery, id))));
   }
   box.appendChild(list);
   return box;
@@ -714,6 +724,9 @@ let onWear: (slot: number) => void = () => {};
 let onRemove: (slot: GearSlot) => void = () => {};
 let onDrink: (slot: number) => void = () => {};
 let onSpell: (id: SpellId) => void = () => {};
+let onCast: (id: SpellId) => void = () => {};
+let onSpellBar: (bar: (SpellId | null)[]) => void = () => {};
+let onRead: (slot: number) => void = () => {};
 let onSort: () => void = () => {};
 let onMove: (from: number, to: number) => void = () => {};
 
@@ -731,6 +744,9 @@ export function setInventoryActions(actions: {
   remove: (slot: GearSlot) => void;
   drink: (slot: number) => void;
   spell: (id: SpellId) => void;
+  cast: (id: SpellId) => void;
+  spellBar: (bar: (SpellId | null)[]) => void;
+  read: (slot: number) => void;
   sort: () => void;
   move: (from: number, to: number) => void;
 }) {
@@ -741,6 +757,9 @@ export function setInventoryActions(actions: {
   onRemove = actions.remove;
   onDrink = actions.drink;
   onSpell = actions.spell;
+  onCast = actions.cast;
+  onSpellBar = actions.spellBar;
+  onRead = actions.read;
   onDrop = actions.drop;
   onSell = actions.sell;
   onSellAll = actions.sellAll;
@@ -823,7 +842,7 @@ renderBelt(lastBelt);
 const gearEl = document.getElementById("gear")!;
 const spellsEl = document.getElementById("spells")!;
 
-export function renderGear(gear: Gear, spell: SpellId) {
+export function renderGear(gear: Gear, spell: BoltSpellId) {
   lastGear = gear;
   lastSpell = spell;
   renderWeight();
@@ -844,26 +863,92 @@ export function renderGear(gear: Gear, spell: SpellId) {
     }
     gearEl.appendChild(box);
   }
-  // Spells: only when holding a staff.
-  spellsEl.replaceChildren();
-  const holdingStaff = isWeapon(gear.weapon?.item) && WEAPONS[parseWeapon(gear.weapon!.item as `${WeaponType}_stone_pine`).type].style === "magic";
-  spellsEl.style.display = holdingStaff ? "" : "none";
-  if (holdingStaff) {
-    const magic = levelForXp(lastSkillXp.magic ?? 0);
-    for (const id of SPELL_IDS) {
-      const sp = SPELLS[id];
-      const b = document.createElement("button");
-      const locked = magic < sp.level;
-      b.className = "pick spell" + (id === spell ? " active" : "") + (locked ? " locked" : "");
-      b.append(icon("pick-icon", sp.icon), el("pick-name", locked ? `🔒${sp.level}` : `${sp.mana} mana`));
-      b.title = locked ? `${sp.name}: needs Magic level ${sp.level}` : `${sp.name} (${sp.mana} mana): ${sp.description}`;
-      b.onclick = () => onSpell(id);
-      spellsEl.appendChild(b);
-    }
-  }
+  renderSpellBar();
   renderDisciplines(lastDisciplines);
 }
 renderGear(lastGear, lastSpell);
+
+// ---- Spell bar (shared/spells.ts): click a slot or press its number key to cast. ----
+
+export function setSpellbook(b: Spellbook) {
+  spellbook = b;
+  lastSpell = b.bolt;
+  if (pickedSlot >= b.bar.length) pickedSlot = 0;
+  renderSpellBar();
+}
+/** The number keys: cast the spell in that slot. */
+export function castSlot(n: number) {
+  const id = spellbook.bar[n];
+  if (id && !editingBar) onCast(id);
+}
+function renderSpellBar() {
+  spellsEl.replaceChildren();
+  spellsEl.style.display = spellbook.known.length ? "" : "none";
+  if (!spellbook.known.length) return;
+  const magic = levelForXp(lastSkillXp.magic ?? 0);
+  const holdingStaff = isWeapon(lastGear.weapon?.item) && WEAPONS[parseWeapon(lastGear.weapon!.item as `${WeaponType}_stone_pine`).type].style === "magic";
+  const head = el("spell-head");
+  const edit = document.createElement("button");
+  edit.className = "spell-edit" + (editingBar ? " active" : "");
+  edit.textContent = editingBar ? "✓ Done" : "✎";
+  edit.title = editingBar ? "Done arranging your spell bar" : "Arrange your spell bar: pick a slot, then a spell to put in it.";
+  edit.onclick = () => { editingBar = !editingBar; renderSpellBar(); };
+  head.append(el("strip-label", `Spells (${spellbook.bar.length} slots)`), edit);
+  spellsEl.appendChild(head);
+  const row = el("spell-bar");
+  spellbook.bar.forEach((id, i) => {
+    const b = document.createElement("button");
+    const picked = editingBar && i === pickedSlot;
+    if (!id) {
+      b.className = "pick spell empty" + (picked ? " active" : "");
+      b.append(el("spell-key", String(i + 1)), el("pick-name", editingBar ? "empty" : "·"));
+      b.title = editingBar ? `Slot ${i + 1}: empty. Pick a spell below to put here.` : `Slot ${i + 1}: empty. Press ✎ to put a spell here.`;
+      b.onclick = () => { if (editingBar) { pickedSlot = i; renderSpellBar(); } };
+      row.appendChild(b);
+      return;
+    }
+    const sp = SPELLS[id];
+    const m = combatMasteryIn(lastCombatMastery, id);
+    const bolt = isBoltSpell(id);
+    const active = editingBar ? picked : bolt && id === spellbook.bolt && holdingStaff;
+    b.className = "pick spell" + (active ? " active" : "") + (bolt && !holdingStaff && !editingBar ? " dim" : "");
+    b.append(el("spell-key", String(i + 1)), icon("pick-icon", sp.icon), el("pick-name", `${spellMana(id, m)} mana`));
+    b.title = `${i + 1}. ${describeSpell(id, magic, m)} Mastery ${m}.` + (bolt ? (holdingStaff ? " Click to make your staff fire it." : "") : " Click (or press its number) to cast it.");
+    b.onclick = () => {
+      if (editingBar) { pickedSlot = i; renderSpellBar(); return; }
+      onCast(id);
+    };
+    row.appendChild(b);
+  });
+  spellsEl.appendChild(row);
+  if (!editingBar) return;
+  // Arranging: every spell you know, to drop in the picked slot.
+  const list = el("spell-list");
+  list.appendChild(el("m-info", `Slot ${pickedSlot + 1}: pick a spell for it. Each spell at Mastery ${BAR_SLOT_MASTERY} adds a slot.`));
+  const choices = el("spell-bar wrap");
+  for (const id of spellbook.known) {
+    const sp = SPELLS[id];
+    const b = document.createElement("button");
+    const at = spellbook.bar.indexOf(id);
+    b.className = "pick spell" + (at === pickedSlot ? " active" : "");
+    b.append(icon("pick-icon", sp.icon), el("pick-name", sp.name));
+    b.title = describeSpell(id, magic, combatMasteryIn(lastCombatMastery, id)) + (at >= 0 ? ` (in slot ${at + 1} now)` : "");
+    b.onclick = () => {
+      const bar = [...spellbook.bar];
+      if (at >= 0) bar[at] = bar[pickedSlot]; // swap places
+      bar[pickedSlot] = id;
+      onSpellBar(bar);
+    };
+    choices.appendChild(b);
+  }
+  const clear = document.createElement("button");
+  clear.className = "pick spell";
+  clear.append(icon("pick-icon", "✖"), el("pick-name", "Clear slot"));
+  clear.onclick = () => { const bar = [...spellbook.bar]; bar[pickedSlot] = null; onSpellBar(bar); };
+  choices.appendChild(clear);
+  list.appendChild(choices);
+  spellsEl.appendChild(list);
+}
 
 /** Lock everything in a slot, or unlock it if it's all locked already. */
 function toggleLock(slot: number) {
@@ -2088,6 +2173,15 @@ function renderInfo() {
   }
   const price = sellPrice(id, uses);
   const buyers = SHOP_IDS.filter((s) => s !== "tam" && SHOPS[s].buys(id)).map((s) => npcById(s)!.name);
+  if (isSpellBook(id)) {
+    const sp = SPELLS[SPELL_BOOKS[id]];
+    infoBody.append(infoLine("Read it", `learn ${sp.icon} ${sp.name}`, `needs Spellcasting ${sp.level}. ${sp.description}`));
+  }
+  if (isSoulGem(id)) {
+    const g = parseGem(id) as { size: number; souls: number };
+    infoBody.append(infoLine("Souls", `${g.souls} / ${soulCapacity(g.size)} (${Math.floor((soulFill(id) ?? 0) * 100)}%)`,
+      "Cast 👻 Soul trap on a monster, then defeat it in time: its soul fills your best soul gem. Full gems power enchantments."));
+  }
   if (isJewelry(id)) infoBody.append(infoLine("Wear it", describeBonus(jewelBonus(id)), "2 rings and 1 amulet at a time"));
   else if (isRough(id)) infoBody.append(infoLine("Cut it", "at the anvil", "under Cut gems (Smithing). A cut can go well or badly."));
   else if (isCutGem(id)) infoBody.append(infoLine("Set it", "in a ring or amulet", `at the anvil: ${describeBonus(jewelBonus(jewelId("ring", "bronze", id)))} in a bronze ring, more in finer metals`));
@@ -2191,6 +2285,7 @@ function renderInfo() {
     if (id === POTION_ID) infoButton(`Drink (+${POTION_HEAL})`, () => { onDrink(e); closeInfo(); });
     if (isPotion(id)) infoButton("Drink", () => { onDrink(e); closeInfo(); });
     if (isJewelry(id)) infoButton("Put on", () => { onWearJewel(e); closeInfo(); });
+    if (isSpellBook(id)) infoButton("Read", () => { onRead(e); closeInfo(); });
     if (isFood(id)) infoButton(`Eat (+${staminaOf(id)})`, () => { onEat(e); done(); }, staminaNow >= staminaMax);
     infoButton(isLocked ? "Unlock" : "Lock", () => onLock(e, !isLocked));
     infoButton(stack > 1 ? `Drop all ${stack}` : "Drop", () => { onDrop(e); done(); }, isLocked);

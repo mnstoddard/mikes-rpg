@@ -21,8 +21,8 @@ export type BonusId = "sage" | "honey" | "mushroom" | "old_bone" | "moonpetal";
 export type PotionId = `potion_${PotionType}` | `potion_${PotionType}_${BonusId}`;
 /** Each kind of potion has its own Alchemy Mastery ("potion_health"). */
 export type PotionMastery = `potion_${PotionType}`;
-/** Effects that last a while. */
-export type BuffId = "strength" | "swift" | "nightsight" | "soultrap";
+/** Effects that last a while (potions, and the Ward, Haste and Invisibility spells). */
+export type BuffId = "strength" | "swift" | "nightsight" | "soultrap" | "ward" | "haste" | "invisible";
 
 export const VIAL: ItemId = "vial";
 export const POTION_COOLDOWN_MS = 10_000;
@@ -61,7 +61,7 @@ export const POTIONS: Record<PotionType, PotionDef> = {
   swift:      { name: "Swiftness potion",  icon: "🧪", tint: "hue-rotate(60deg) saturate(2)", level: 15, pair: ["boar_tusk", "ginseng"], xp: 20, start: 0.5, buffs: { swift: 15 }, description: "You walk faster for a while" },
   hunter:     { name: "Hunter's brew",     icon: "⚗️", tint: "sepia(.6) saturate(2)", level: 18, pair: ["wolf_fang", "boar_tusk"], xp: 24, start: 0.45, buffs: { strength: 6, swift: 8 }, hidden: true, description: "A little stronger and a little faster, for a while" },
   nightsight: { name: "Night sight potion", icon: "🧪", tint: "hue-rotate(200deg) saturate(1.2) brightness(1.3)", level: 20, pair: ["moonpetal", "blue_lotus"], xp: 26, start: 0.45, buffs: { nightsight: 100 }, description: "You see clearly at night, for a while" },
-  soultrap:   { name: "Soul trap potion",  icon: "🧪", tint: "hue-rotate(80deg) saturate(1.5) brightness(.7)", level: 25, pair: ["venom_sac", "moonpetal"], xp: 32, start: 0.4, buffs: { soultrap: 50 }, description: "Your Soul trap spell lasts longer, for a while (Spellcasting, coming soon)" },
+  soultrap:   { name: "Soul trap potion",  icon: "🧪", tint: "hue-rotate(80deg) saturate(1.5) brightness(.7)", level: 25, pair: ["venom_sac", "moonpetal"], xp: 32, start: 0.4, buffs: { soultrap: 50 }, description: "Your Soul trap spell lasts longer, for a while" },
 };
 export const POTION_TYPES = Object.keys(POTIONS) as PotionType[];
 
@@ -93,6 +93,9 @@ export const BUFFS: Record<BuffId, { name: string; icon: string; describe: (powe
   swift:      { name: "Swiftness",   icon: "💨", describe: (p) => `walk ${p}% faster` },
   nightsight: { name: "Night sight", icon: "🌙", describe: () => "see clearly at night" },
   soultrap:   { name: "Soul trap",   icon: "👻", describe: (p) => `Soul trap lasts ${p}% longer` },
+  ward:       { name: "Ward",        icon: "🛡️", describe: (p) => `soaks up ${p} more damage` },
+  haste:      { name: "Haste",       icon: "💨", describe: (p) => `walk ${p}% faster` },
+  invisible:  { name: "Invisible",   icon: "🫥", describe: () => "monsters can't see you" },
 };
 export const BUFF_IDS = Object.keys(BUFFS) as BuffId[];
 

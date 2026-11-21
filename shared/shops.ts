@@ -78,9 +78,10 @@ export const SHOPS: Record<ShopId, ShopDef> = {
   },
   moss: {
     title: "⚗️ Alchemist Moss",
-    stock: [VIAL],
-    buys: (i) => isPotion(i) || i === VIAL || i === "health_potion" || ALCHEMY_INGREDIENTS.has(i),
-    buysText: "potions, vials, herbs and monster parts",
+    // Moss keeps a few of Ysolde's spell books for sale too.
+    stock: [VIAL, "book_haste", "book_frost_nova"],
+    buys: (i) => isPotion(i) || i === VIAL || i.startsWith("book_") || i === "health_potion" || ALCHEMY_INGREDIENTS.has(i),
+    buysText: "potions, vials, herbs, monster parts and spell books",
   },
 };
 
