@@ -9,6 +9,7 @@ import type { BarId, ToolType } from "./tools";
 import type { GearType } from "./gear";
 import type { DishId } from "./cooking";
 import type { BaitId } from "./handicraft";
+import type { PotionMastery } from "./alchemy";
 
 /** XP to go from Mastery 1 to 2. Each level after needs 10% more than the one before. */
 export const MASTERY_FIRST_LEVEL_XP = 10;
@@ -49,7 +50,7 @@ export const masteryValue = (level: number) => 1 + (level - 1) * MASTERY_VALUE_P
 export const valueBonusPercent = (level: number) => Math.round((masteryValue(level) - 1) * 100);
 
 /** What can have Mastery: a gathered type (oak), a bar (bronze_bar), a kind of tool (axe), a dish (stew), a bait, or a kind of weapon or armor you smith (sword). */
-export type MasteryId = ResourceId | BarId | ToolType | DishId | BaitId | GearType;
+export type MasteryId = ResourceId | BarId | ToolType | DishId | BaitId | GearType | PotionMastery;
 
 /** Mastery XP per type. Types you've never gathered or made aren't listed. */
 export type ItemMasteryXp = Partial<Record<MasteryId, number>>;

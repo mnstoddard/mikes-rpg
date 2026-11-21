@@ -51,6 +51,8 @@ export interface SaveData {
   color?: number; // character colour, picked in Settings (one of shared/colors.ts)
   locked?: string[]; // old: item types that were locked; turned into lockedSlots when loaded
   counts?: number[]; // per entry: how many are in the stack (missing in older saves: 1 each)
+  discovered?: string[]; // hidden potion recipes found by brewing them, e.g. ["restore"] (shared/alchemy.ts)
+  buffs?: Record<string, { until: number; power: number }>; // potion buffs still running, e.g. { strength: { until: 1795..., power: 12 } }
   guild?: GuildSave; // the Mages' Guild: rank points, magic bounties and the enchanted chest
   // Add more here later (skills, bank, quests...). Stored as JSON, so no
   // database migration is needed for new fields.

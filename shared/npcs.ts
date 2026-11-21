@@ -2,9 +2,9 @@
 // Click one to walk over and use it: trainers teach you their skill (and run a little shop),
 // Old Maren talks to you, the furnace, anvil, stove and workbench open their crafting windows,
 // the bounty board shows its jobs.
-export type NpcId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "wren" | "bryn"
+export type NpcId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "wren" | "moss" | "bryn"
   | "furnace" | "anvil" | "stove" | "workbench" | "board"
-  | "archmage" | "guildboard" | "repairer" | "chest" | "chest_east" | "chest_forest";
+  | "archmage" | "guildboard" | "repairer" | "alchemy_table" | "chest" | "chest_east" | "chest_forest";
 
 export interface NpcDef {
   id: NpcId;
@@ -97,6 +97,15 @@ export const NPCS: NpcDef[] = [
   {
     id: "archmage", name: "Archmage Ysolde", kind: "person", x: 8, y: 19, color: 0x5b2c9f, badge: "🔮",
     greeting: "Welcome to the Mages' Guild. Rent space in our enchanted chest, or help the guild to rise in rank.",
+  },
+  {
+    // Alchemy (shared/alchemy.ts): teaches it, sells empty vials, buys potions and herbs.
+    id: "moss", name: "Alchemist Moss", kind: "person", x: 6, y: 17, color: 0x1e8449, badge: "⚗️",
+    greeting: "I buy potions, herbs and monster parts, and I sell empty vials.",
+  },
+  {
+    id: "alchemy_table", name: "Alchemy table", kind: "station", x: 10, y: 17, color: 0x4a3a6a,
+    greeting: "Bottles, burners and a pestle. Pick two ingredients (and maybe a third) to brew.",
   },
   {
     // Fixes worn and broken tools, weapons and armor (shared/repair.ts), for anyone.

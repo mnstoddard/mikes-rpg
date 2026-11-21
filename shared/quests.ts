@@ -106,7 +106,7 @@ export interface QuestStep {
   unlocks?: SkillId[];
 }
 
-export type ChapterId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "wren" | "ysolde" | "bryn";
+export type ChapterId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "wren" | "ysolde" | "moss" | "bryn";
 
 export interface Chapter {
   id: ChapterId;
@@ -142,6 +142,8 @@ const BRANN = "Smith Brann";
 const ROOK = "Woodworker Rook";
 const KAEL = "Huntmaster Kael";
 const WREN = "Herbalist Wren";
+const MOSS = "Alchemist Moss";
+const VIAL_GIFT: Gift = { item: "vial" };
 const YSOLDE = "Archmage Ysolde";
 const BRYN = "Captain Bryn";
 
@@ -689,6 +691,42 @@ export const CHAPTERS: Chapter[] = [
           "You're welcome in the guild now: rent space in our enchanted chest, or take magic jobs from the guild board to rise in rank. Talk to me again any time.",
         ],
         coins: 150,
+      },
+    ],
+  },
+
+  // ---------------- Alchemist Moss: A drop of something ----------------
+  {
+    id: "moss", title: "A drop of something", giver: "moss", name: MOSS, where: "at the Mages' Guild, south-west of town",
+    steps: [
+      {
+        task: `Talk to ${MOSS} at the Mages' Guild`, goal: { kind: "talk" }, unlocks: ["alchemy"],
+        lines: [
+          "Careful, that one bubbles. I'm Moss. Ysolde lets me keep my table in the corner of the guild, as long as nothing explodes.",
+          "Alchemy is part of Wisdom. Two ingredients make a potion: a red cap mushroom and some slime goo make a health potion. A third, like sage, adds something extra. Every potion needs an empty vial, and I sell those.",
+          "Here's a red cap, some slime goo and a vial. Use the alchemy table next to me: tap the two ingredients to put them in, then brew.",
+        ],
+        give: [{ item: "red_cap" }, { item: "slime_goo" }, VIAL_GIFT],
+      },
+      {
+        task: "Brew a health potion at the alchemy table", goal: { kind: "craft", skill: "alchemy", prefix: "potion_health", count: 1 },
+        hint: "Click the alchemy table next to me. Tap the red cap and the slime goo, then press Make 1. If it spoils, I'll give you more.",
+        ensure: [{ item: "red_cap" }, { item: "slime_goo" }, VIAL_GIFT], protect: ["red_cap", "slime_goo", "vial"], guaranteed: true,
+      },
+      {
+        task: "Drink a potion (click it in your bag, then Drink)", goal: { kind: "drink" },
+        hint: "Click your potion in your bag and press Drink. Potions stack 10 to a slot, and you need a moment between them.",
+        ensure: [{ item: "potion_health" }],
+      },
+      {
+        task: `Go back to ${MOSS} for your reward`, goal: { kind: "talk" },
+        lines: [
+          "Not bad! The better you get at Alchemy, the stronger your potions are when you drink them.",
+          "Stamina, mana, strength, swiftness, night sight... the recipes are all at the table, as you learn them. And between you and me, a few aren't written down anywhere. Try mixing things and see what happens.",
+          "Herbalist Wren digs up most of what you need, and the rest comes off monsters. Here are some vials to get you going.",
+        ],
+        give: [{ item: "vial", count: 5 }],
+        coins: 120,
       },
     ],
   },

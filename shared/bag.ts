@@ -26,6 +26,7 @@ import { isArmor, isGear, isWeapon, parseArmor, parseWeapon } from "./gear";
 import { POTION_ID } from "./combat";
 import { isBait } from "./handicraft";
 import { parseMeal } from "./cooking";
+import { isPotion } from "./alchemy";
 
 /** Change these to make stacks bigger or smaller. */
 export const STACK_LIMITS = {
@@ -61,7 +62,7 @@ export function stackLimit(item: ItemId): number {
   if (wearsOut(item)) return STACK_LIMITS.gear;
   if (RESOURCE_FOR_ITEM[item]) return STACK_LIMITS.gathered;
   if (item === "feather") return STACK_LIMITS.feather;
-  if (item === POTION_ID) return STACK_LIMITS.potion;
+  if (item === POTION_ID || isPotion(item)) return STACK_LIMITS.potion;
   return STACK_LIMITS.other;
 }
 

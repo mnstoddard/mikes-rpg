@@ -10,6 +10,7 @@ import { CRAFT_MARKUP, ITEMS, ItemId } from "./items";
 import { RESOURCES, RESOURCE_FOR_ITEM, ResourceId } from "./foraging";
 import { ItemMasteryXp, MAX_SUCCESS, MasteryId, craftSuccess, masteryIn, masteryValue } from "./mastery";
 import type { CraftSkill } from "./disciplines";
+import { POTIONS, POTION_TYPES, PotionId, PotionType, parsePotion, potionInputs } from "./alchemy";
 import {
   ALL_TOOL_IDS, BAR_IDS, BarId, Belt, MATERIALS, MATERIAL_IDS, METALS, METAL_IDS, TOOL_TYPES, TOOL_TYPE_IDS, ToolType, WOODS, WOOD_IDS,
   STONE, headCount, isTool, maxDurability, metalOfBar, parseTool, toolBonus, toolForSkill, toolId, wearFor,
@@ -163,7 +164,15 @@ function mealRecipe(item: ItemId): Recipe | undefined {
   return { output: item, skill: "cooking", inputs: ITEMS[item].inputs!, level: mealLevel(item as never), xp: mealXp(item as never), mastery: meal.dish, start: d.start, needsTool: true };
 }
 
-export const recipeFor = (item: ItemId): Recipe | undefined => RECIPES.get(item) ?? mealRecipe(item);
+/** Potions (shared/alchemy.ts): made on the spot too, one id per potion and bonus. */
+function potionRecipe(item: ItemId): Recipe | undefined {
+  const p = parsePotion(item);
+  if (!p) return undefined;
+  const d = POTIONS[p.type];
+  return { output: item, skill: "alchemy", inputs: potionInputs(item as PotionId), level: d.level, xp: d.xp + (p.bonus ? 2 : 0), mastery: `potion_${p.type}`, start: d.start, needsTool: false };
+}
+
+export const recipeFor = (item: ItemId): Recipe | undefined => RECIPES.get(item) ?? mealRecipe(item) ?? potionRecipe(item);
 export const SMELTING_RECIPES = BAR_IDS.map((b) => RECIPES.get(b)!);
 
 /** How much a crafting tool wears down on one try of this recipe. */
@@ -188,6 +197,7 @@ export const failXp = (xp: number) => Math.max(1, Math.floor(xp / 2));
 
 /** Display name for a Mastery: "Oak logs", "Bronze bar", "Axe", "Stew", "Worm bait". */
 export function masteryName(id: MasteryId): string {
+  if (id.startsWith("potion_")) return POTIONS[id.slice(7) as PotionType].name;
   if (id in DISHES) return DISHES[id as DishId].name;
   if (id in BAITS) return BAITS[id as BaitId].name;
   if (id in WEAPONS) return WEAPONS[id as keyof typeof WEAPONS].name;
@@ -198,4 +208,4 @@ export function masteryName(id: MasteryId): string {
 }
 
 /** Every Mastery id there is (for loading saves). */
-export const ALL_MASTERY_IDS: MasteryId[] = [...(Object.keys(RESOURCES) as ResourceId[]), ...BAR_IDS, ...TOOL_TYPE_IDS, ...DISH_IDS, ...BAIT_IDS, ...WEAPON_TYPES, ...ARMOR_TYPES];
+export const ALL_MASTERY_IDS: MasteryId[] = [...(Object.keys(RESOURCES) as ResourceId[]), ...BAR_IDS, ...TOOL_TYPE_IDS, ...DISH_IDS, ...BAIT_IDS, ...WEAPON_TYPES, ...ARMOR_TYPES, ...POTION_TYPES.map((t) => `potion_${t}` as const)];

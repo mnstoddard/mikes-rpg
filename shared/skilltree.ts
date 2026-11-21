@@ -75,6 +75,11 @@ export const TREES: Record<SkillId, TreeNode[]> = {
     node("handicraft", "extra", "Bait bundle", "🪱", 0.1),
     node("handicraft", "xp", "Quick learner", "📖", 0.1),
   ],
+  alchemy: [
+    node("alchemy", "success", "Steady hands", "🎯", 0.06),
+    node("alchemy", "extra", "Extra dose", "🧪", 0.05),
+    node("alchemy", "xp", "Quick learner", "📖", 0.1),
+  ],
   melee: [
     node("melee", "accuracy", "Precise strikes", "🎯", 0.02),
     node("melee", "damage", "Heavy blows", "💥", 0.05),

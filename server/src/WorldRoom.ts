@@ -4,7 +4,7 @@ import { MAP, MAP_HEIGHT, MAP_WIDTH, TICK_MS, isDanger, isWalkable, randomSpawn 
 import { findPath, Point } from "../../shared/pathfinding";
 import {
   RESOURCES, RESOURCE_FOR_ITEM, ROCK_EMPTY_CHANCE, ResourceId, TREE_FALL_CHANCE,
-  PATCH_EMPTY_CHANCE, isDigPatch, rollForageFind,
+  FORAGE_FINDS, PATCH_EMPTY_CHANCE, isDigPatch, rollForageFind,
   fishAt, forageXp, gatherChancePerTick, gatherSuccessChance, masteryIn, nodeAt, resourcesFor, treeKey,
 } from "../../shared/foraging";
 import {
@@ -48,6 +48,9 @@ import {
 import { findSkill as skillInfo } from "../../shared/disciplines";
 import { formatMoney } from "../../shared/money";
 import { isNight } from "../../shared/daynight";
+import {
+  BUFFS, BUFF_IDS, Buffs, POTIONS, POTION_COOLDOWN_MS, POTION_TYPES, PotionId, PotionType, buffPower, describeEffect, isPotion, parsePotion, potionEffect,
+} from "../../shared/alchemy";
 import { huntingDrops, huntingXp } from "../../shared/combat";
 import {
   BASE_INGREDIENTS, DISHES, DISH_IDS, MAX_STAMINA, SHOP_STEW, STAMINA_COST, STAMINA_REGEN_MS, foodStamina, isFood, isMeal, legacyStew, parseMeal,
@@ -137,6 +140,9 @@ export class Player extends Schema {
   healthTicks = 0; // ticks since health last came back on its own
   manaTicks = 0;
   bounties: Bounty[] = []; // the 5 jobs on this player's bounty board (filled the first time they look)
+  discovered: PotionType[] = []; // hidden potion recipes found by brewing them
+  buffs: Buffs = {}; // potion buffs, with when each runs out (world clock)
+  potionReadyAt = 0; // can't drink another potion until then (ms)
   tree: TreeRanks = {}; // Mastery skill tree ranks bought, e.g. { "cooking.slots": 2 } (shared/skilltree.ts)
   tracked: ItemId | null = null; // the bounty shown on the quest tracker (by its item), or null for Maren's quest
   // The Mages' Guild (shared/guild.ts):
@@ -195,7 +201,7 @@ type QuestEvent =
   | { kind: "bounty" };
 
 /** Where each crafting skill is done. */
-const STATION_FOR = { smelting: "furnace", smithing: "anvil", cooking: "stove", handicraft: "workbench" } as const;
+const STATION_FOR = { smelting: "furnace", smithing: "anvil", cooking: "stove", handicraft: "workbench", alchemy: "alchemy_table" } as const;
 
 const isRock = (x: number, y: number) =>
   y >= 0 && y < MAP_HEIGHT && x >= 0 && x < MAP_WIDTH && MAP[y][x] === "rock";
@@ -500,7 +506,7 @@ export class WorldRoom extends Room<WorldState> {
       p.faceY = station.y;
       const chance = this.craftChance(p, recipe);
       const tool = toolForSkill(recipe.skill);
-      const verb = { smelting: "smelting", smithing: "making", cooking: "cooking", handicraft: "making" }[recipe.skill];
+      const verb = { smelting: "smelting", smithing: "making", cooking: "cooking", handicraft: "making", alchemy: "brewing" }[recipe.skill];
       this.say(client, `You start ${verb} ${msg.all ? ITEMS[recipe.output].name.toLowerCase() : aOr(ITEMS[recipe.output].single)}. ` +
         (this.forcedCraft(p, recipe) === "success" ? `${this.giverName(p)} is guiding your hand, so this one will work.`
           : `${percent(chance)} chance each.` + (!tool || p.belt[tool] || !recipe.needsTool ? "" : ` (No ${TOOL_TYPES[tool].name.toLowerCase()} on your belt: half the chance.)`)));
@@ -690,6 +696,8 @@ export class WorldRoom extends Room<WorldState> {
       this.sendVitals(client, p);
       client.send("combatmastery", p.combatMastery);
       client.send("tree", p.tree);
+      client.send("discovered", p.discovered);
+      this.sendBuffs(client, p);
       this.fillBoard(p);
       this.sendBounties(client, p);
       client.send("clock", { now: worldNow() }); // day and night (shared/daynight.ts)
@@ -883,15 +891,34 @@ export class WorldRoom extends Room<WorldState> {
     // Drink a health potion.
     this.onMessage("drink", (client, msg: { slot: number }) => {
       const p = this.state.players.get(client.sessionId);
-      if (!p || !Number.isInteger(msg?.slot) || p.inventory[msg.slot] !== POTION_ID) return;
-      const questDrink = this.step(p)?.goal.kind === "drink"; // Maren asked you to, so you can even at full health
-      if (p.hp >= p.maxHp && !questDrink) return this.say(client, `You're already at full health (${p.maxHp}).`);
+      if (!p || !Number.isInteger(msg?.slot)) return;
+      const item = p.inventory[msg.slot];
+      if (item !== POTION_ID && !isPotion(item)) return;
+      const questDrink = this.step(p)?.goal.kind === "drink"; // the trainer asked you to, so you can even at full health
+      const now = Date.now();
+      if (now < p.potionReadyAt) return this.say(client, `You need a moment before another potion (${Math.ceil((p.potionReadyAt - now) / 1000)}s).`);
+      const effect = isPotion(item) ? potionEffect(item, levelForXp(p.skillXp.alchemy)) : { heal: POTION_HEAL, stamina: 0, mana: 0, buffs: [], minutes: 0 };
+      const manaMax = this.maxManaOf(p);
+      const useful = (effect.heal && p.hp < p.maxHp) || (effect.stamina && p.stamina < p.maxStamina) || (effect.mana && p.mana < manaMax) || effect.buffs.length;
+      if (!useful && !questDrink) {
+        return this.say(client, effect.heal ? `You're already at full health (${p.maxHp}).` : effect.stamina ? "Your stamina is already full." : "Your mana is already full.");
+      }
       takeFromEntry(p, msg.slot, 1);
-      const before = p.hp;
-      p.hp = Math.min(p.maxHp, p.hp + POTION_HEAL);
-      this.say(client, `You drink the health potion. +${p.hp - before} health (${p.hp}/${p.maxHp}).`);
+      p.potionReadyAt = now + POTION_COOLDOWN_MS;
+      const got: string[] = [];
+      if (effect.heal) { const b = p.hp; p.hp = Math.min(p.maxHp, p.hp + effect.heal); got.push(`+${p.hp - b} health (${p.hp}/${p.maxHp})`); }
+      if (effect.stamina) { const b = p.stamina; p.stamina = Math.min(p.maxStamina, p.stamina + effect.stamina); got.push(`+${p.stamina - b} stamina`); }
+      if (effect.mana) { const b = p.mana; p.mana = Math.min(manaMax, p.mana + effect.mana); got.push(`+${p.mana - b} mana`); }
+      for (const b of effect.buffs) {
+        p.buffs[b.id] = { until: worldNow() + effect.minutes * 60_000, power: b.power };
+        got.push(`${BUFFS[b.id].icon} ${BUFFS[b.id].describe(b.power)} for ${effect.minutes} minutes`);
+      }
+      p.stepMs = this.stepMsOf(p);
+      this.say(client, `You drink the ${ITEMS[item].single}. ${got.join(", ")}.`);
       this.sendInventory(client, p);
       this.sendVitals(client, p);
+      this.sendStamina(client, p);
+      this.sendBuffs(client, p);
       this.questEvent(p, client, { kind: "drink" });
       this.saveSoon(p);
     });
@@ -917,6 +944,7 @@ export class WorldRoom extends Room<WorldState> {
       }
       // Health comes back very slowly (1 a minute), mana faster (1 every 6 seconds).
       const client = this.clients.getById(sessionId);
+      if (tick % 5 === 0) this.expireBuffs(p, client);
       let vitals = false;
       if (p.hp < p.maxHp && ++p.healthTicks >= HEALTH_REGEN_TICKS) { p.healthTicks = 0; p.hp++; vitals = true; }
       const mMax = this.maxManaOf(p);
@@ -1125,6 +1153,16 @@ export class WorldRoom extends Room<WorldState> {
     const worked = forced ? forced === "success" : Math.random() < chance;
     const xp = worked ? recipe.xp : failXp(recipe.xp);
     if (worked) this.give(p, recipe.output);
+    else if (recipe.skill === "alchemy" && recipe.inputs.includes("vial")) this.give(p, "vial"); // a spoiled brew leaves the vial
+    // Hidden potion recipes: brewing one is how you find it.
+    const brewed = worked ? parsePotion(recipe.output) : null;
+    if (brewed && POTIONS[brewed.type].hidden && !p.discovered.includes(brewed.type)) {
+      p.discovered.push(brewed.type);
+      if (client) {
+        this.say(client, `✨ You've discovered a hidden recipe: ${POTIONS[brewed.type].name}! It's in your recipe list now.`);
+        client.send("discovered", p.discovered);
+      }
+    }
     const tool = toolForSkill(recipe.skill);
     if (tool) this.wearTool(p, client, tool, recipeWear(recipe));
     const extras: string[] = [];
@@ -1140,12 +1178,14 @@ export class WorldRoom extends Room<WorldState> {
         smithing: `You make ${aOr(output.single)}!`,
         cooking: `You cook ${aOr(output.single)}! Eat it for ${foodStamina(recipe.output, p.mastery, this.tree(p, "cooking", "mealStamina"))} stamina.`,
         handicraft: `You make ${aOr(output.single)}.`,
+        alchemy: `You brew ${aOr(output.single)}! ${isPotion(recipe.output) ? `${describeEffect(potionEffect(recipe.output, levelForXp(p.skillXp.alchemy)))}.` : ""}`,
       };
       const FAILED = {
         smelting: `The ore burns away. You fail to smelt ${aOr(output.single)}.`,
         smithing: `You ruin the metal. You fail to make ${aOr(output.single)}.`,
         cooking: `You burn the ${output.single}. The ingredients and the log are gone.`,
         handicraft: `It falls apart in your hands. You fail to make ${aOr(output.single)}.`,
+        alchemy: "The mixture curdles and spoils. The ingredients are gone, but you keep the vial.",
       };
       this.say(client, (worked ? WORKED : FAILED)[recipe.skill] + (extras.length ? ` You also get ${extras.join(" and ")}!` : ""));
     }
@@ -1160,6 +1200,34 @@ export class WorldRoom extends Room<WorldState> {
       if (client) this.say(client, `You've run out: you need ${next}.`);
       this.stopActions(p);
     }
+  }
+
+  /** How long each step takes: Dexterity, and a swiftness potion. */
+  private stepMsOf(p: Player) {
+    return Math.round(TICK_MS / (1 + walkBonus(p.levels.dexterity) + buffPower(p.buffs, "swift", worldNow()) / 100));
+  }
+
+  /** Potion buffs that are running, for the bar under your health. */
+  private sendBuffs(client: Client, p: Player) {
+    client.send("buffs", p.buffs);
+  }
+
+  /** Buffs that ran out: say so, and walk at normal speed again. */
+  private expireBuffs(p: Player, client: Client | undefined) {
+    const now = worldNow();
+    let changed = false;
+    for (const id of BUFF_IDS) {
+      const b = p.buffs[id];
+      if (b && b.until <= now) {
+        delete p.buffs[id];
+        changed = true;
+        if (client) this.say(client, `${BUFFS[id].icon} Your ${BUFFS[id].name.toLowerCase()} potion wears off.`);
+      }
+    }
+    if (!changed) return;
+    p.stepMs = this.stepMsOf(p);
+    p.dirty = true;
+    if (client) this.sendBuffs(client, p);
   }
 
   /** Enough stamina for one more of this? If not, say so (and how to get more). */
@@ -1306,7 +1374,7 @@ export class WorldRoom extends Room<WorldState> {
     if (p.maxStamina > oldStamina) p.stamina += p.maxStamina - oldStamina;
     p.stamina = Math.min(p.stamina, p.maxStamina);
     p.mana = Math.min(p.mana, this.maxManaOf(p));
-    p.stepMs = Math.round(TICK_MS / (1 + walkBonus(p.levels.dexterity)));
+    p.stepMs = this.stepMsOf(p);
     if (!client) return;
     for (const id of p.unlocked) {
       if (!taught.has(id) && p.levels) {
@@ -1723,7 +1791,9 @@ export class WorldRoom extends Room<WorldState> {
     const hit = Math.random() < chance;
     const max = maxHitWith(a, weaponM);
     // The skill tree's damage bonus: +5% is a 5% chance of +1 on a hit of 1, and so on.
-    const roll = hit && max ? (1 + Math.floor(Math.random() * max)) * (1 + this.tree(p, style, "damage")) : 0;
+    // Weapons (not spells) hit harder with a strength potion.
+    const strength = a.spell ? 0 : buffPower(p.buffs, "strength", worldNow()) / 100;
+    const roll = hit && max ? (1 + Math.floor(Math.random() * max)) * (1 + this.tree(p, style, "damage") + strength) : 0;
     const damage = Math.floor(roll) + (Math.random() < roll % 1 ? 1 : 0);
     const spell = a.spell ? SPELLS[a.spell] : null;
     if (damage) {
@@ -2432,6 +2502,13 @@ export class WorldRoom extends Room<WorldState> {
         if (skill === "magic") {
           for (const sp of Object.values(SPELLS)) if (sp.level > before && sp.level <= after) this.say(client, `You can now cast ${sp.icon} ${sp.name}! Pick it under your gear.`);
         }
+      } else if (skill === "alchemy") {
+        for (const t of POTION_TYPES) {
+          const d = POTIONS[t];
+          if (d.level > before && d.level <= after) this.say(client, d.hidden ? "⚗️ Your Alchemy is good enough for a hidden recipe now. Keep experimenting!" : `⚗️ You can now brew ${d.name.toLowerCase()}s!`);
+        }
+      } else if (skill === "foraging") {
+        for (const f of FORAGE_FINDS) if (f.level > before && f.level <= after) this.say(client, `🌱 You can now dig up ${ITEMS[f.item].name.toLowerCase()}${f.night ? " (at night)" : ""}!`);
       } else if (skill === "trading" || skill === "renown") {
         // Nothing new to unlock yet; the Charisma level-up message says what it does.
       } else if (isCraftSkill(skill)) {
@@ -2685,12 +2762,18 @@ export class WorldRoom extends Room<WorldState> {
     for (const id of ALL_COMBAT_MASTERY_IDS) if (ok(save.combatMastery?.[id])) p.combatMastery[id] = Math.floor(save.combatMastery![id]);
     if (SPELL_IDS.includes(save.spell as SpellId) && levelForXp(p.skillXp.magic) >= SPELLS[save.spell as SpellId].level) p.spell = save.spell as SpellId;
     p.tree = cleanRanks(save.tree);
+    p.discovered = POTION_TYPES.filter((t) => POTIONS[t].hidden && save.discovered?.includes(t));
+    p.buffs = {};
+    for (const id of BUFF_IDS) {
+      const b = save.buffs?.[id];
+      if (b && Number.isFinite(b.until) && Number.isFinite(b.power) && b.until > worldNow()) p.buffs[id] = { until: b.until, power: b.power };
+    }
     // Skills taught, Discipline levels, and the stats they give.
     p.unlocked = unlockedSkills(p.quest);
     p.levels = disciplineLevels(p.skillXp, p.unlocked);
     p.maxStamina = maxStamina(p.levels.endurance);
     p.stamina = Math.min(p.stamina, p.maxStamina);
-    p.stepMs = Math.round(TICK_MS / (1 + walkBonus(p.levels.dexterity)));
+    p.stepMs = this.stepMsOf(p);
     p.maxHp = this.maxHpOf(p);
     p.hp = p.maxHp;
     if (typeof save.hp === "number" && Number.isFinite(save.hp)) {
@@ -2707,7 +2790,7 @@ export class WorldRoom extends Room<WorldState> {
     const dest = p.path.length ? p.path[p.path.length - 1] : p;
     const bag = cloneBag(p);
     compact(bag); // leave out unused entries
-    return { saveVersion: SAVE_VERSION, questRev: QUEST_REV, quest: structuredClone(p.quest), x: dest.x, y: dest.y, inventory: bag.inventory, slots: bag.slotOf, coins: p.coins, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: bag.durability, belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), hp: p.hp, hpAt: Date.now(), gear: { ...p.gear }, spell: p.spell, combatMastery: { ...p.combatMastery }, tree: { ...p.tree }, lockedSlots: bag.locked.flatMap((on, i) => (on ? [i] : [])), bounties: p.bounties.map((b) => ({ ...b })), tracked: p.tracked ?? undefined, color: p.color, counts: bag.counts, guild: this.guildSave(p) };
+    return { saveVersion: SAVE_VERSION, questRev: QUEST_REV, quest: structuredClone(p.quest), x: dest.x, y: dest.y, inventory: bag.inventory, slots: bag.slotOf, coins: p.coins, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: bag.durability, belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), hp: p.hp, hpAt: Date.now(), gear: { ...p.gear }, spell: p.spell, combatMastery: { ...p.combatMastery }, tree: { ...p.tree }, lockedSlots: bag.locked.flatMap((on, i) => (on ? [i] : [])), bounties: p.bounties.map((b) => ({ ...b })), tracked: p.tracked ?? undefined, color: p.color, counts: bag.counts, discovered: [...p.discovered], buffs: structuredClone(p.buffs), guild: this.guildSave(p) };
   }
 
   private async save(p: Player) {
