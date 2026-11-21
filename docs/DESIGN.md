@@ -357,6 +357,35 @@ A gem shows how full it is, like "Soul gem, 3.2 ct, 140 / 320 souls".
 
 A Moonpetal potion makes soul trap last longer.
 
+**How stage 8 was built:**
+
+- **Spell bar**: under your gear, 4 slots to start, plus 1 for each spell you
+  raise to Mastery 10 (up to 8). Click a slot or press its number key (1 to 8)
+  to cast. Press ✎ to arrange it: pick a slot, then a spell.
+- **Spells by level** (Spellcasting): Firebolt 1, Ward 3, Frost bolt 5, Soul
+  trap 6, Heal 8, Sleep 10. A new spell goes on the bar by itself if there's room.
+- **Spell books**: Haste (Spellcasting 12), Invisibility (15) and Frost nova
+  (20). Read a book from your bag to learn it. Moss sells Haste and Frost nova
+  books; goblins (Haste), giant spiders (Frost nova) and bandits (Invisibility)
+  rarely drop them; reaching guild rank Adept earns the Invisibility book.
+- **Bolts still need a staff** for now: Firebolt, Frost bolt and Sleep fly from
+  the staff in your hand, and clicking one on the bar picks it. Enchanting
+  (stage 9) changes staffs. The other spells need no staff.
+- **Ward** soaks up damage (8 plus half your level) for 2 minutes. **Heal**
+  heals 12 plus half your level. **Haste**: 20% faster for 60 seconds.
+  **Invisibility**: 15 seconds where monsters ignore you; attacking, gathering
+  or casting at a monster breaks it. **Frost nova** hits and freezes every
+  monster within 2 tiles.
+- **Mastery** of a spell: -1% mana a level (down to half), +2% strength or
+  length a level.
+- **Soul trap** works on the monster you're fighting, or the closest one within
+  6 tiles. It glows purple for 60 seconds and blinks in the last 10. If it dies
+  trapped, its souls (4 per monster level plus half its health) go to the
+  caster's best soul gem: the smallest one it fits in whole, or else the one with
+  the most room. Only the caster's gem fills.
+- **Soul gems** hold 50 souls per carat and show how full they are ("Soul gem,
+  3.1 ct (45% full)"). A slime fills about half of a 0.5 ct gem.
+
 ### Enchanting (new)
 Enchanting adds magic effects to gear at an **enchanting altar** in the Mages'
 Guild. Every enchantment uses:
@@ -682,7 +711,7 @@ quest chapter as it goes, so the main quest grows with the game.
 | **5. Foraging, Hunting and new monsters** ✅ built | Shovel, forage spots, ingredients, night herbs; slimes, bats, boars, beetles, spiders and night monsters; kill XP split by damage share; Hunting drop bonus | Ingredients for potions and crafting |
 | **6. Alchemy** ✅ built | Alchemy table, vials, the potion list | Uses stage 5's ingredients |
 | **7. Gems and soul stone** ✅ built | Gem and soul stone rocks with continuous sizes, and Smithing's gem cutting, rings, amulets, inlays and soul gems | Needed for enchanting |
-| **8. Spellcasting** | Spell bar, new spell list, learning by level and books, Invisibility, Soul trap with the glow and blink, filling soul gems | Needed for enchanting |
+| **8. Spellcasting** ✅ built | Spell bar, new spell list, learning by level and books, Invisibility, Soul trap with the glow and blink, filling soul gems | Needed for enchanting |
 | **9. Enchanting** | Enchanting altar, staffs, armor and tool enchants, the Mend spell, Enchanting tree unlocks | Needs stages 4, 7 and 8 |
 | **10. More Handicraft** | Cloth and leather armor, bows, arrows and plain staffs, all in Handicraft | Uses hides, silk and logs |
 | **11. Farming** | Farm area, buying and expanding plots, seeds, real-time growth | Independent, can move earlier |

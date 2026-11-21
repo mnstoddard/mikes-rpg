@@ -26,7 +26,9 @@ import type { ShopId } from "../../shared/shops";
 import type { RepairJob } from "../../shared/repair";
 import type { Buffs, PotionType } from "../../shared/alchemy";
 import type { Jewels } from "../../shared/jewelry";
-import { renderJewels, setGemActions } from "./ui";
+import { renderJewels, setGemActions, setSpellbook, castSlot } from "./ui";
+import type { BoltSpellId } from "../../shared/combat";
+import { TRAP_BLINK_SECONDS } from "../../shared/spells";
 import { NIGHT_DARKNESS, darkness, isNight, minutesUntilChange } from "../../shared/daynight";
 
 const TILE_COLORS: Record<Tile, number> = {
@@ -42,6 +44,8 @@ interface MonsterView {
   body: Phaser.GameObjects.Text;
   bar: Phaser.GameObjects.Graphics;
   status: Phaser.GameObjects.Text;
+  /** Soul trap's purple glow. */
+  glow: Phaser.GameObjects.Ellipse;
   tween?: Phaser.Tweens.Tween;
 }
 
@@ -156,6 +160,9 @@ export class WorldScene extends Phaser.Scene {
       remove: (slot) => room.send("remove", { slot }),
       drink: (slot) => room.send("drink", { slot }),
       spell: (id) => room.send("spell", { id }),
+      cast: (id) => room.send("cast", { id }),
+      spellBar: (bar) => room.send("spellBar", { bar }),
+      read: (slot) => room.send("read", { slot }),
       sort: () => room.send("sortInventory"),
       move: (from, to) => room.send("moveItem", { from, to }),
     });
@@ -201,7 +208,16 @@ export class WorldScene extends Phaser.Scene {
     });
     room.onMessage("questDone", () => this.floatText("Quest complete!", "#ffd84a", true));
     room.onMessage("vitals", (v: { hp: number; maxHp: number; mana: number; maxMana: number }) => renderVitals(v.hp, v.maxHp, v.mana, v.maxMana));
-    room.onMessage("gear", (msg: { gear: Gear; spell: SpellId }) => renderGear(msg.gear, msg.spell));
+    room.onMessage("gear", (msg: { gear: Gear; spell: BoltSpellId }) => renderGear(msg.gear, msg.spell));
+    room.onMessage("spellbook", (b: Parameters<typeof setSpellbook>[0]) => setSpellbook(b));
+    // Number keys 1-8 cast the spell in that slot of the spell bar (not while typing in a box).
+    window.addEventListener("keydown", (e) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
+      if (e.key >= "1" && e.key <= "8" && !e.ctrlKey && !e.metaKey && !e.altKey) castSlot(Number(e.key) - 1);
+    });
+    // Soul trap glows: steady, then blinking for the last few seconds.
+    this.time.addEvent({ delay: 200, loop: true, callback: () => this.updateTrapGlows() });
     room.onMessage("combatmastery", (m: CombatMasteryXp) => renderCombatMastery(m));
     room.onMessage("combatmasteryup", (msg: { id: CombatMasteryId; level: number }) => {
       this.time.delayedCall(700, () => this.floatText(`${combatMasteryName(msg.id)} Mastery ${msg.level}!`, "#7fd0ff"));
@@ -640,6 +656,8 @@ export class WorldScene extends Phaser.Scene {
       $(player).listen("maxHp", () => this.drawHealth(view.bar, player.hp, player.maxHp, -16));
       // Settings: a new name or colour shows up for everyone.
       $(player).listen("color", (color: number) => { view.body.setFillStyle(color); if (isMe) renderMe(player.name, color); });
+      // Invisibility: you see yourself faded; others barely see you at all.
+      $(player).listen("invisible", (inv: boolean) => view.container.setAlpha(inv ? (isMe ? 0.4 : 0.12) : 1));
       $(player).listen("name", (name: string) => { view.label.setText(name); if (isMe) { renderMe(name, player.color); this.updateHud(); } });
       this.updateHud();
     });
@@ -911,8 +929,9 @@ export class WorldScene extends Phaser.Scene {
     const body = this.add.text(0, 0, def.icon, { fontSize: big ? "24px" : "20px" }).setOrigin(0.5);
     const bar = this.add.graphics();
     const status = this.add.text(12, -14, "", { fontSize: "12px" }).setOrigin(0.5);
-    container.add([shadow, body, bar, status]);
-    const view: MonsterView = { container, body, bar, status };
+    const glow = this.add.ellipse(0, 0, 34, 34, 0xa25bff, 0.45).setStrokeStyle(2, 0xd6a8ff, 0.9).setVisible(false);
+    container.add([glow, shadow, body, bar, status]);
+    const view: MonsterView = { container, body, bar, status, glow };
     this.monsters.set(id, view);
     // Danger zone monsters get a red name tag, so you know they'll come for you.
     if (def.aggressive) {
@@ -947,6 +966,21 @@ export class WorldScene extends Phaser.Scene {
     container.setVisible(m.alive);
   }
 
+  /** Soul-trapped monsters glow purple; in the last seconds the glow blinks. */
+  private updateTrapGlows() {
+    const state = this.room?.state;
+    if (!state?.monsters) return;
+    const tick = state.tick as number;
+    const blinkTicks = Math.round(TRAP_BLINK_SECONDS * 1000 / TICK_MS);
+    const on = Math.floor(Date.now() / 200) % 2 === 0;
+    state.monsters.forEach((m: any, id: string) => {
+      const view = this.monsters.get(id);
+      if (!view) return;
+      const left = m.alive && m.trappedUntil ? m.trappedUntil - tick : 0;
+      view.glow.setVisible(left > 0 && (left > blinkTicks || on));
+    });
+  }
+
   /** A small health bar over someone's head once they're hurt (hidden at full health). */
   private drawHealth(bar: Phaser.GameObjects.Graphics, hp: number, max: number, y: number) {
     bar.clear();
@@ -961,7 +995,7 @@ export class WorldScene extends Phaser.Scene {
   private showHit(h: { on: "monster" | "player"; id: string; damage: number; miss: boolean; spell: SpellId | null }) {
     const target = h.on === "monster" ? this.monsters.get(h.id)?.container : this.players.get(h.id)?.container;
     if (!target) return;
-    const icon = h.spell === "fire_blast" ? "🔥" : h.spell === "frost_bolt" ? "❄️" : h.spell === "sleep" ? "💤" : "";
+    const icon = h.spell === "fire_blast" ? "🔥" : h.spell === "frost_bolt" ? "❄️" : h.spell === "sleep" ? "💤" : h.spell === "frost_nova" ? "🌨️" : "";
     if (icon && !h.miss) {
       const fx = this.add.text(target.x, target.y, icon, { fontSize: "22px" }).setOrigin(0.5).setDepth(998);
       this.tweens.add({ targets: fx, scale: 1.8, alpha: 0, duration: 500, onComplete: () => fx.destroy() });

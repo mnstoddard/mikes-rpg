@@ -25,7 +25,7 @@ export type GemId = "amethyst" | "topaz" | "emerald" | "sapphire" | "ruby";
 export type RoughGemId = `rough_${GemId}_${number}`;
 export type CutGemId = `gem_${GemId}_${number}`;
 export type SoulStoneId = `soulstone_${number}`;
-export type SoulGemId = `soulgem_${number}`;
+export type SoulGemId = `soulgem_${number}` | `soulgem_${number}_${number}`;
 export type JewelMetal = "bronze" | "silver" | "gold" | "platinum" | "iridium";
 export type JewelType = "ring" | "amulet";
 export type JewelryId = `${JewelType}_${JewelMetal}` | `${JewelType}_${JewelMetal}_${GemId}_${number}`;
@@ -96,7 +96,8 @@ const isGemName = (g: string): g is GemId => (GEM_IDS as string[]).includes(g);
 
 export type ParsedGem =
   | { kind: "rough" | "cut"; gem: GemId; size: number }
-  | { kind: "soulstone" | "soulgem"; size: number }
+  | { kind: "soulstone"; size: number }
+  | { kind: "soulgem"; size: number; souls: number }
   | { kind: "jewel"; type: JewelType; metal: JewelMetal; gem: GemId | null; size: number };
 
 export function parseGem(item: string | null | undefined): ParsedGem | null {
@@ -105,7 +106,11 @@ export function parseGem(item: string | null | undefined): ParsedGem | null {
   if ((p[0] === "rough" || p[0] === "gem") && p.length === 3 && isGemName(p[1]) && okSize(p[2])) {
     return { kind: p[0] === "rough" ? "rough" : "cut", gem: p[1], size: Number(p[2]) };
   }
-  if ((p[0] === "soulstone" || p[0] === "soulgem") && p.length === 2 && okSize(p[1])) return { kind: p[0], size: Number(p[1]) };
+  if (p[0] === "soulstone" && p.length === 2 && okSize(p[1])) return { kind: "soulstone", size: Number(p[1]) };
+  if (p[0] === "soulgem" && p.length === 2 && okSize(p[1])) return { kind: "soulgem", size: Number(p[1]), souls: 0 };
+  if (p[0] === "soulgem" && p.length === 3 && okSize(p[1]) && /^[1-9]\d*$/.test(p[2]) && Number(p[2]) <= soulCapacity(Number(p[1]))) {
+    return { kind: "soulgem", size: Number(p[1]), souls: Number(p[2]) };
+  }
   if ((p[0] === "ring" || p[0] === "amulet") && Object.hasOwn(JEWEL_METALS, p[1] ?? "")) {
     if (p.length === 2) return { kind: "jewel", type: p[0], metal: p[1] as JewelMetal, gem: null, size: 0 };
     if (p.length === 4 && isGemName(p[2]) && okSize(p[3])) return { kind: "jewel", type: p[0], metal: p[1] as JewelMetal, gem: p[2], size: Number(p[3]) };
@@ -120,7 +125,16 @@ export const isCutGem = (item: string | null | undefined): item is CutGemId => p
 export const roughId = (gem: GemId, size: number) => `rough_${gem}_${size}` as RoughGemId;
 export const cutId = (gem: GemId, size: number) => `gem_${gem}_${size}` as CutGemId;
 export const soulStoneId = (size: number) => `soulstone_${size}` as SoulStoneId;
-export const soulGemId = (size: number) => `soulgem_${size}` as SoulGemId;
+/** A soul gem, empty or holding some souls. */
+export const soulGemId = (size: number, souls = 0) => (souls > 0 ? `soulgem_${size}_${Math.min(souls, soulCapacity(size))}` : `soulgem_${size}`) as SoulGemId;
+/** Souls a soul gem holds when full: 50 per carat (size is in tenths of a carat). */
+export const soulCapacity = (size: number) => size * 5;
+/** How full a soul gem is, 0 to 1 (null if it isn't a soul gem). */
+export function soulFill(item: string | null | undefined): number | null {
+  const g = parseGem(item);
+  return g?.kind === "soulgem" ? g.souls / soulCapacity(g.size) : null;
+}
+export const isSoulGem = (item: string | null | undefined): item is SoulGemId => parseGem(item)?.kind === "soulgem";
 export function jewelId(type: JewelType, metal: JewelMetal, gem: CutGemId | null): JewelryId {
   if (!gem) return `${type}_${metal}`;
   const g = parseGem(gem) as { gem: GemId; size: number };
@@ -139,9 +153,20 @@ export function gemItemDef(item: string): { name: string; single: string; icon: 
     const price = Math.max(1, Math.round(d.price * Math.pow(ct, 1.3) * (g.kind === "cut" ? 3 : 1)));
     return { name, single: name.charAt(0).toLowerCase() + name.slice(1), icon: d.icon, tint: g.kind === "rough" ? `${d.tint} brightness(.75) contrast(.8)` : d.tint, sellPrice: price };
   }
-  if (g.kind === "soulstone" || g.kind === "soulgem") {
-    const name = `${g.kind === "soulstone" ? "Soul stone" : "Soul gem (empty)"}, ${carats(g.size)}`;
-    return { name, single: name.toLowerCase(), icon: g.kind === "soulstone" ? "🪨" : "🔮", tint: g.kind === "soulstone" ? "hue-rotate(220deg) saturate(1.5) brightness(.8)" : "hue-rotate(40deg) brightness(.9)", sellPrice: Math.max(1, Math.round(30 * Math.pow(ct, 1.3) * (g.kind === "soulgem" ? 2 : 1))) };
+  if (g.kind === "soulstone") {
+    const name = `Soul stone, ${carats(g.size)}`;
+    return { name, single: name.toLowerCase(), icon: "🪨", tint: "hue-rotate(220deg) saturate(1.5) brightness(.8)", sellPrice: Math.max(1, Math.round(30 * Math.pow(ct, 1.3))) };
+  }
+  if (g.kind === "soulgem") {
+    // "Soul gem, 3.1 ct (45% full)": a fuller gem glows brighter and is worth more.
+    const fill = g.souls / soulCapacity(g.size);
+    const state = g.souls === 0 ? "empty" : fill >= 1 ? "full" : `${Math.floor(fill * 100)}% full`;
+    const name = `Soul gem, ${carats(g.size)} (${state})`;
+    return {
+      name, single: name.toLowerCase(), icon: "🔮",
+      tint: `hue-rotate(40deg) brightness(${(0.75 + 0.5 * fill).toFixed(2)}) saturate(${(1 + fill).toFixed(2)})`,
+      sellPrice: Math.max(1, Math.round(60 * Math.pow(ct, 1.3) * (1 + fill))),
+    };
   }
   if (g.kind !== "jewel") return null;
   const m = JEWEL_METALS[g.metal];
