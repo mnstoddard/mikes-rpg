@@ -10,7 +10,11 @@
 // shop would pay you for them (your Mastery counts), plus XP: the same XP
 // as gathering or making them once more, in that item's skill. Monster drops
 // give Combat XP and that monster's Mastery instead. A finished bounty is
-// replaced by a new one, and Refresh (free for now) rerolls all 5.
+// replaced by a new one. The whole board changes every day by itself, and
+// Refresh rerolls all 5 for a small fee (REROLL_FEE).
+//
+// Renown (stage 12): the better known you are, the bigger the jobs folk trust
+// you with, and the more they pay: +2% amount and +2% pay per Renown level.
 // Shared so the board shows the same rewards the server pays.
 import { ITEMS, ItemId } from "./items";
 import { RESOURCES, RESOURCE_FOR_ITEM, RESOURCE_IDS, ResourceId } from "./foraging";
@@ -29,6 +33,15 @@ export const BOUNTY_PAY = 2;
 
 export interface Bounty { item: ItemId; count: number }
 
+/** What Refresh costs (both boards), in bronze. */
+export const REROLL_FEE = 50;
+/** Which day it is (the boards change when it does): days since 1970, UTC. */
+export const boardDay = (now = Date.now()) => Math.floor(now / 86_400_000);
+/** Pay goes up 2% per Renown level above 1 (about 3x at 99 instead of 2x). */
+export const renownPay = (renown: number) => BOUNTY_PAY * (1 + 0.02 * Math.max(0, renown - 1));
+/** Bounties ask for 2% more per Renown level above 1. */
+export const renownAmount = (renown: number) => 1 + 0.02 * Math.max(0, renown - 1);
+
 /** What decides which bounties you can get: your levels, and which monsters you've defeated. */
 export interface BountyPlayer {
   /** Skills you've been taught (shared/quests.ts unlockedSkills). */
@@ -36,6 +49,7 @@ export interface BountyPlayer {
   skillXp: SkillXp;
   combatMastery: CombatMasteryXp;
 }
+const renownOf = (p: BountyPlayer) => (isUnlocked(p.unlocked, "renown") ? levelForXp(p.skillXp.renown) : 1);
 
 const rand = (lo: number, hi: number) => lo + Math.floor(Math.random() * (hi - lo + 1));
 const pickOne = <T>(list: T[]): T => list[Math.floor(Math.random() * list.length)];
@@ -113,7 +127,7 @@ export function newBounty(p: BountyPlayer, taken: ItemId[] = []): Bounty | null 
   if (!groups.length) return null;
   const fresh = groups.filter((g) => !g.some((item) => taken.includes(item)));
   const item = pickOne(pickOne(fresh.length ? fresh : groups));
-  return { item, count: amountFor(item) };
+  return { item, count: Math.min(28, Math.round(amountFor(item) * renownAmount(renownOf(p)))) };
 }
 
 /** A whole new board of 5. */
@@ -150,8 +164,8 @@ export const bountyRenown = (count: number) => 5 + count;
  * the items (with your Mastery), and the XP of gathering or making them once
  * more (monster drops: the monster's kill bonus each).
  */
-export function bountyReward(b: Bounty, mastery: ItemMasteryXp): BountyReward {
-  const coins = BOUNTY_PAY * sellPriceFor(b.item, mastery) * b.count;
+export function bountyReward(b: Bounty, mastery: ItemMasteryXp, renown = 1): BountyReward {
+  const coins = Math.round(renownPay(renown) * sellPriceFor(b.item, mastery) * b.count);
   const resource = RESOURCE_FOR_ITEM[b.item];
   if (resource) {
     const r = RESOURCES[resource];

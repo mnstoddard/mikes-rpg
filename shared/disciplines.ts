@@ -82,8 +82,8 @@ export const DISCIPLINES: Record<DisciplineId, DisciplineDef> = {
     name: "Charisma", icon: "🤝",
     description: "Dealing with people. Better shop prices.",
     skills: [
-      { id: "trading", name: "Trading", icon: "💰", description: "Trained by selling things to any shop. The more it's worth, the more XP." },
-      { id: "renown", name: "Renown", icon: "📋", description: "Trained by finishing bounties, on the bounty board and the Mages' Guild board." },
+      { id: "trading", name: "Trading", icon: "💰", description: "Trained by selling things to any shop (the more it's worth, the more XP). Each level makes prices a little better, and trainers sell you rarer things as it goes up." },
+      { id: "renown", name: "Renown", icon: "📋", description: "Trained by finishing bounties, on the bounty board and the Mages' Guild board. Bounties get bigger and pay more as it goes up, and Captain Bryn gives you ranks and titles (Wanderer at 5, Trusted at 15, Champion at 30)." },
     ],
   },
 };

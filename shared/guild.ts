@@ -64,7 +64,20 @@ export const GUILD_BOUNTY_COUNT = 3;
  */
 export type GuildBounty =
   | { kind: "slay"; monster: MonsterId; count: number; progress: number }
-  | { kind: "reagent"; item: ItemId; count: number };
+  | { kind: "reagent"; item: ItemId; count: number }
+  /** Stage 12: trap souls (Soul trap), brew potions (Alchemy), enchant things (Enchanting). Count up as you go. */
+  | { kind: "trap" | "brew" | "enchant"; count: number; progress: number };
+/** The jobs that count up by themselves. */
+export const MAGIC_JOBS = ["trap", "brew", "enchant"] as const;
+export type MagicJob = typeof MAGIC_JOBS[number];
+const JOB_INFO: Record<MagicJob, { icon: string; name: (n: number) => string; count: [number, number]; points: number; xp: number; coins: number }> = {
+  trap: { icon: "👻", name: (n) => `Trap ${n} soul${n === 1 ? "" : "s"} in soul gems`, count: [2, 5], points: 2, xp: 15, coins: 30 },
+  brew: { icon: "⚗️", name: (n) => `Brew ${n} potion${n === 1 ? "" : "s"}`, count: [3, 6], points: 1, xp: 10, coins: 25 },
+  enchant: { icon: "✨", name: (n) => `Enchant ${n} thing${n === 1 ? "" : "s"} at the altar`, count: [1, 2], points: 3, xp: 25, coins: 60 },
+};
+export const jobIcon = (kind: MagicJob) => JOB_INFO[kind].icon;
+export type JobBounty = Extract<GuildBounty, { kind: MagicJob }>;
+export const isJob = (b: GuildBounty): b is JobBounty => b.kind === "trap" || b.kind === "brew" || b.kind === "enchant";
 
 /** Things the guild enchants with. Only ones you can get show up (see `reagentChoices`). */
 export const REAGENTS: ItemId[] = [
@@ -77,6 +90,8 @@ export interface GuildPlayer {
   magicLevel: number;
   /** Reagents this player can gather or has seen drop (from the normal bounty board's rules). */
   reagents: ItemId[];
+  /** Magic jobs this player can do: knows Soul trap, has learned Alchemy, has learned Enchanting. */
+  jobs?: MagicJob[];
 }
 
 const rand = (lo: number, hi: number) => lo + Math.floor(Math.random() * (hi - lo + 1));
@@ -88,6 +103,12 @@ export const slayChoices = (p: GuildPlayer) => MONSTER_IDS.filter((m) => MONSTER
 export function newGuildBounty(p: GuildPlayer, taken: GuildBounty[] = []): GuildBounty {
   const monsters = slayChoices(p).filter((m) => !taken.some((b) => b.kind === "slay" && b.monster === m));
   const reagents = p.reagents.filter((r) => !taken.some((b) => b.kind === "reagent" && b.item === r));
+  // A soul trapping, brewing or enchanting job about a third of the time (one of each at most).
+  const jobs = (p.jobs ?? []).filter((j) => !taken.some((b) => b.kind === j));
+  if (jobs.length && Math.random() < 0.35) {
+    const kind = pickOne(jobs);
+    return { kind, count: rand(...JOB_INFO[kind].count), progress: 0 };
+  }
   // About half of each, when both are possible.
   if (monsters.length && (!reagents.length || Math.random() < 0.55)) {
     const monster = pickOne(monsters);
@@ -113,6 +134,10 @@ export interface GuildReward { points: number; magicXp: number; coins: number }
  * rarer reagents are worth more points.
  */
 export function guildReward(b: GuildBounty): GuildReward {
+  if (isJob(b)) {
+    const j = JOB_INFO[b.kind];
+    return { points: j.points + Math.floor(b.count / 3), magicXp: j.xp * b.count, coins: j.coins * b.count };
+  }
   if (b.kind === "slay") {
     const m = MONSTERS[b.monster];
     return { points: 1 + Math.floor(m.level / 6), magicXp: m.xp * b.count, coins: 5 * m.level * b.count };
@@ -123,6 +148,7 @@ export function guildReward(b: GuildBounty): GuildReward {
 
 /** "Defeat 4 Wolves with spells" / "Bring 5 Feathers". */
 export function guildBountyName(b: GuildBounty): string {
+  if (isJob(b)) return JOB_INFO[b.kind].name(b.count);
   if (b.kind === "slay") return `Defeat ${b.count} × ${MONSTERS[b.monster].name} with spells`;
   return `Bring ${b.count} × ${ITEMS[b.item].name}`;
 }
@@ -133,6 +159,7 @@ export function validGuildBounty(b: unknown): b is GuildBounty {
   const x = b as GuildBounty;
   if (!Number.isInteger(x.count) || x.count < 1 || x.count > 50) return false;
   if (x.kind === "slay") return MONSTER_IDS.includes(x.monster) && Number.isInteger(x.progress) && x.progress >= 0;
+  if (x.kind === "trap" || x.kind === "brew" || x.kind === "enchant") return Number.isInteger(x.progress) && x.progress >= 0;
   return x.kind === "reagent" && x.item in ITEMS;
 }
 

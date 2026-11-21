@@ -26,6 +26,7 @@ import { SKILL_IDS } from "./disciplines";
 import type { CraftSkill, DisciplineId, GatherSkill, SkillId } from "./disciplines";
 import type { ItemId } from "./items";
 import type { ResourceId } from "./foraging";
+import { findSkill } from "./disciplines";
 import type { ToolType } from "./tools";
 import type { MonsterId } from "./combat";
 import { FIRST_STEW, SHOP_STEW } from "./cooking";
@@ -114,7 +115,7 @@ export interface QuestStep {
   unlocks?: SkillId[];
 }
 
-export type ChapterId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "wren" | "ysolde" | "moss" | "bryn" | "odo";
+export type ChapterId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "wren" | "ysolde" | "moss" | "bryn" | "odo" | "bryn_bandits";
 
 export interface Chapter {
   id: ChapterId;
@@ -126,7 +127,16 @@ export interface Chapter {
   /** Where to find them, for the 📜 tab. */
   where: string;
   steps: QuestStep[];
+  /** A side quest: not one of the lessons (so "all lessons done" doesn't wait for it). */
+  side?: boolean;
+  /** Only offered once you reach this level in a skill (stage 12: some side quests need Renown). */
+  requires?: { skill: SkillId; level: number };
 }
+
+/** A skill's level, for chapters that need one (the server and client each pass their own). */
+export type LevelOf = (skill: SkillId) => number;
+/** Is this chapter's level gate met (or has it none)? */
+export const gateMet = (c: Chapter, levelOf?: LevelOf) => !c.requires || (!!levelOf && levelOf(c.requires.skill) >= c.requires.level);
 
 const WORN_ROD: Gift = { item: "rod_pine", durability: 8 };
 const WORN_PICK: Gift = { item: "pickaxe_stone_pine", durability: 10 };
@@ -831,12 +841,50 @@ export const CHAPTERS: Chapter[] = [
       },
     ],
   },
+
+  // ---------------- Side quest: Captain Bryn's bandit trouble (needs Renown 10) ----------------
+  {
+    id: "bryn_bandits", title: "Highway robbery", giver: "bryn", name: BRYN, where: "by the bounty board in the square",
+    side: true, requires: { skill: "renown", level: 10 },
+    steps: [
+      {
+        task: `Talk to ${BRYN} about the bandits`, goal: { kind: "talk" },
+        lines: [
+          "You've made a name for yourself, so I've a job I wouldn't give just anyone.",
+          "Bandits deep in the Dark Forest, far south, have been robbing the carts on their way to town. They hit hard, so go well armed and take potions.",
+          "Defeat 4 of them, and bring me 2 of the rings they've stolen.",
+        ],
+      },
+      {
+        task: "Defeat 4 bandits (deep in the Dark Forest, far south)", goal: { kind: "kill", monster: "bandit", count: 4 },
+        hint: "The bandits are deep in the south of the Dark Forest. They hit hard: wear your best armor and keep potions handy.",
+        fightWith: "weapon",
+      },
+      {
+        task: "Get 2 stolen rings from bandits", goal: { kind: "have", items: { stolen_ring: 2 } },
+        hint: "Bandits sometimes drop the rings they've stolen. Keep at it!",
+      },
+      {
+        task: `Go back to ${BRYN}`, goal: { kind: "talk" },
+        lines: [
+          "Two rings! The merchants will sleep easier tonight. Keep the rings: they've been paid out by the guild already.",
+          "Here's a steel helmet from the watch's own stores, and your pay.",
+        ],
+        give: [{ item: "helmet_steel" }],
+        coins: 3000,
+      },
+    ],
+  },
 ];
 
 export const CHAPTER_IDS = CHAPTERS.map((c) => c.id);
 export const chapterById = (id: ChapterId) => CHAPTERS.find((c) => c.id === id)!;
 /** The chapter a person gives, if any. */
-export const chapterOf = (npc: string) => CHAPTERS.find((c) => c.giver === npc) ?? null;
+export const chapterOf = (npc: string, q?: QuestProgress) => {
+  const mine = CHAPTERS.filter((c) => c.giver === npc);
+  // The first one you haven't finished (a giver can have a side quest after their lesson), else their lesson.
+  return (q && mine.find((c) => !chapterDone(q, c.id))) ?? mine[0] ?? null;
+};
 
 /** How far along one chapter is: which step, and how far along it (e.g. 2 of 3 logs). */
 export interface ChapterProgress { step: number; count: number }
@@ -859,7 +907,7 @@ export const chapterStarted = (q: QuestProgress, id: ChapterId) => !!q.ch[id];
 export const chapterDone = (q: QuestProgress, id: ChapterId) => (q.ch[id]?.step ?? -1) >= chapterById(id).steps.length;
 export const marenDone = (q: QuestProgress) => chapterDone(q, "maren");
 /** Every chapter finished. */
-export const tutorialDone = (q: QuestProgress) => CHAPTER_IDS.every((id) => chapterDone(q, id));
+export const tutorialDone = (q: QuestProgress) => CHAPTERS.every((c) => c.side || chapterDone(q, c.id));
 /** Can you start this chapter now? (Maren's is first; the rest open once hers is done.) */
 export const chapterOpen = (q: QuestProgress, id: ChapterId) => id === "maren" || marenDone(q);
 
@@ -871,12 +919,14 @@ export function currentStep(q: QuestProgress): QuestStep | null {
 }
 
 /** People with something for you: the active chapter's giver if it's a talk step, plus everyone whose chapter you can start or go back to. */
-export function questMarks(q: QuestProgress): NpcId[] {
+export function questMarks(q: QuestProgress, levelOf?: LevelOf): NpcId[] {
   const out = new Set<NpcId>();
   const step = currentStep(q);
   if (step?.goal.kind === "talk") out.add(chapterById(q.active!).giver);
   for (const c of CHAPTERS) {
-    if (c.id === q.active || chapterDone(q, c.id) || !chapterOpen(q, c.id)) continue;
+    if (c.id === q.active || chapterDone(q, c.id) || !chapterOpen(q, c.id) || (!q.ch[c.id] && !gateMet(c, levelOf))) continue;
+    // A side quest waits until the same person's lesson is done.
+    if (c.side && CHAPTERS.some((o) => o.giver === c.giver && !o.side && !chapterDone(q, o.id))) continue;
     const prog = q.ch[c.id];
     // Not started yet, or waiting on a talk while another chapter is active.
     if (!prog || c.steps[prog.step]?.goal.kind === "talk") out.add(c.giver);
@@ -910,6 +960,10 @@ export interface ChapterView {
   name: string;
   where: string;
   state: "done" | "active" | "started" | "open" | "locked";
+  /** A side quest. */
+  side?: boolean;
+  /** Locked by a level: "Renown 10". */
+  needs?: string;
   /** Started chapters: what to do next. */
   task?: string;
   /** Step number and how many steps. */
@@ -941,13 +995,15 @@ export interface QuestView {
   chapters: ChapterView[];
 }
 
-export function chapterViews(q: QuestProgress): ChapterView[] {
+export function chapterViews(q: QuestProgress, levelOf?: LevelOf): ChapterView[] {
   return CHAPTERS.map((c) => {
     const prog = q.ch[c.id];
     const done = chapterDone(q, c.id);
-    const state = done ? "done" : q.active === c.id ? "active" : prog ? "started" : chapterOpen(q, c.id) ? "open" : "locked";
+    const gated = !prog && !gateMet(c, levelOf);
+    const state = done ? "done" : q.active === c.id ? "active" : prog ? "started" : chapterOpen(q, c.id) && !gated ? "open" : "locked";
     return {
-      id: c.id, title: c.title, name: c.name, where: c.where, state,
+      id: c.id, title: c.title, name: c.name, where: c.where, state, side: c.side,
+      needs: gated && c.requires ? `${findSkill(c.requires.skill).def.name} ${c.requires.level}` : undefined,
       task: prog && !done ? c.steps[prog.step]?.task : undefined,
       step: Math.min(prog?.step ?? 0, c.steps.length), of: c.steps.length,
     };
