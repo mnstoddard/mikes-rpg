@@ -27,7 +27,7 @@ import {
 } from "../../shared/combat";
 import {
   ARMOR, CombatStyle, GEAR_SLOTS, Gear, GearSlot, SLOT_NAMES, WEAPONS, emptyGear, gearSlot, isArmor, isGear, isWeapon, parseArmor,
-  parseWeapon,
+  parseWeapon, METAL_DAMAGE,
 } from "../../shared/gear";
 import {
   Belt, METALS, TOOL_TYPES, TOOL_TYPE_IDS, TOOL_WARN_AT, ToolType, emptyBelt, isTool, legacyTool, maxDurability, parseTool,
@@ -51,13 +51,18 @@ import { isNight } from "../../shared/daynight";
 import {
   NOVA_RADIUS, SPELL_BOOKS, TARGET_RANGE, barSlots, isSpellBook, knownSpells, novaMaxHit, soulsOf, spellMana, spellPower, spellSeconds,
 } from "../../shared/spells";
-import { BoltSpellId, isBoltSpell } from "../../shared/combat";
+import { ARMOR_LEVEL, BoltSpellId, clothMana, isBoltSpell, metalSlow } from "../../shared/combat";
 import {
   ENCHANTS, EnchantId, GUARD_CAP, Inlay, INLAYS, addEnchant, cappedGem, chainPercent, describeEnchant, enchantForGem, enchantKind, enchantTotal, enchantsOf,
   fireDamage, fits, frostTicks, guardPercent, isEnchantId, isSpent, lifeStealPercent, manaFlowPercent, poisonDamage, soulPower, staffHit, stripEnchants,
   thornsDamage, vitalityHp, swiftPercent, bountyPercent, tirelessPercent, wisdomPercent,
 } from "../../shared/enchanting";
-import { Metal, barId, baseItem, isWoodTool } from "../../shared/tools";
+import { Material, Metal, barId, baseItem, isWoodTool } from "../../shared/tools";
+import { ARROW_RECOVER, ARROW_LEVEL, ArrowId, CLOTH_LEVEL, SOFT_LEVEL, TANNING, THREAD_LEVEL, WOOD_LEVEL, arrowId } from "../../shared/handicraft";
+import { ArmorType, SOFT_NAMES } from "../../shared/gear";
+
+/** Arrows a bow shoots, best tip first. */
+const ARROW_ORDER: ArrowId[] = (["mithril", "steel", "iron", "bronze", "stone"] as Material[]).map(arrowId);
 import {
   GemId, CUT_KEEPS, CUT_LEVEL, GEMS, isSoulGem, soulCapacity, JEWEL_BARS, JEWEL_METALS, JEWEL_SLOTS, JewelSlot, Jewels, carats, cutId, cutXp, describeBonus, emptyJewels, isJewelry, jewelBonus, jewelTotals,
   parseGem, rollCut, rollGemSize, roughId, soulGemId, soulStoneId,
@@ -499,7 +504,7 @@ export class WorldRoom extends Room<WorldState> {
       const p = this.state.players.get(client.sessionId);
       const recipe = p && recipeFor(msg?.item as ItemId);
       if (!p || !recipe) return;
-      const station = NPCS.find((n) => n.id === STATION_FOR[recipe.skill])!;
+      const station = NPCS.find((n) => n.id === (recipe.station ?? STATION_FOR[recipe.skill]))!;
       if (!this.nearNpc(p, station.id)) return this.say(client, `You need to be next to the ${station.name.toLowerCase()}.`);
       if (!isUnlocked(p.unlocked, recipe.skill)) return this.say(client, this.notTaught(recipe.skill));
       const blocked = this.toolBlock(p, recipe.skill);
@@ -1301,7 +1306,7 @@ export class WorldRoom extends Room<WorldState> {
     const forced = this.forcedCraft(p, recipe); // the tutorial's first stew always burns; some tries always work
     const worked = forced ? forced === "success" : Math.random() < chance;
     const xp = worked ? recipe.xp : failXp(recipe.xp);
-    if (worked) this.give(p, recipe.output);
+    if (worked) this.give(p, recipe.output, recipe.makes ?? 1);
     else for (const kept of recipe.keepOnFail ?? []) this.give(p, kept); // a spoiled brew leaves the vial; a botched ring, the gem
     // Hidden potion recipes: brewing one is how you find it.
     const brewed = worked ? parsePotion(recipe.output) : null;
@@ -1326,7 +1331,7 @@ export class WorldRoom extends Room<WorldState> {
         smelting: `You smelt ${aOr(output.single)}.`,
         smithing: `You make ${aOr(output.single)}!`,
         cooking: `You cook ${aOr(output.single)}! Eat it for ${foodStamina(recipe.output, p.mastery, this.tree(p, "cooking", "mealStamina"))} stamina.`,
-        handicraft: `You make ${aOr(output.single)}.`,
+        handicraft: recipe.makes ? `You make ${recipe.makes} ${output.name.toLowerCase()}.` : `You make ${aOr(output.single)}.`,
         alchemy: `You brew ${aOr(output.single)}! ${isPotion(recipe.output) ? `${describeEffect(potionEffect(recipe.output, levelForXp(p.skillXp.alchemy)))}.` : ""}`,
       };
       const FAILED = {
@@ -1354,7 +1359,8 @@ export class WorldRoom extends Room<WorldState> {
   /** How long each step takes: Dexterity, and a swiftness potion. */
   private stepMsOf(p: Player) {
     const now = worldNow();
-    return Math.round(TICK_MS / (1 + walkBonus(p.levels.dexterity) + (buffPower(p.buffs, "swift", now) + buffPower(p.buffs, "haste", now)) / 100));
+    const speed = 1 + walkBonus(p.levels.dexterity) + (buffPower(p.buffs, "swift", now) + buffPower(p.buffs, "haste", now)) / 100;
+    return Math.round(TICK_MS / Math.max(0.5, speed - metalSlow(p.gear)));
   }
 
   /** Potion buffs that are running, for the bar under your health. */
@@ -1517,7 +1523,7 @@ export class WorldRoom extends Room<WorldState> {
 
   /** Max mana: from your Wisdom level. */
   private maxManaOf(p: Player) {
-    return maxMana(p.levels.wisdom) + jewelTotals(p.jewels).mana;
+    return maxMana(p.levels.wisdom) + jewelTotals(p.jewels).mana + clothMana(p.gear);
   }
 
   /** Max stamina: from your Endurance level, plus emeralds. */
@@ -1922,9 +1928,10 @@ export class WorldRoom extends Room<WorldState> {
       const level = levelForXp(p.skillXp[def.style]);
       if (level < def.level) return `You need ${skill.name} level ${def.level} to hold ${aOr(def.name.toLowerCase())}. (You're level ${level}.)`;
     } else if (isArmor(item)) {
-      const metal = METALS[parseArmor(item).metal];
+      const m = parseArmor(item).metal;
+      const need = ARMOR_LEVEL[m];
       const level = levelForXp(p.skillXp.defense);
-      if (level < metal.level) return `You need Defense level ${metal.level} to wear ${metal.name.toLowerCase()} armor. (You're level ${level}.)`;
+      if (level < need) return `You need Defense level ${need} to wear ${m} armor. (You're level ${level}.)`;
     }
     return null;
   }
@@ -1975,6 +1982,20 @@ export class WorldRoom extends Room<WorldState> {
       }
       if (!treeRoll(p.tree, a.style, "staminaSave")) p.stamina -= ATTACK_STAMINA;
     }
+    // A bow shoots arrows from your bag: the best tip first. About 1 in 3 can be picked up again.
+    let arrow: ArrowId | null = null;
+    const held = p.gear.weapon?.item;
+    if (isWeapon(held) && parseWeapon(held).type === "bow") {
+      arrow = ARROW_ORDER.find((id) => p.inventory.some((it, i) => it === id && !p.locked[i])) ?? null;
+      if (!arrow) {
+        if (client) this.say(client, "You're out of arrows. Make them at Rook's workbench (Handicraft), or buy stone arrows from Huntmaster Kael.");
+        return this.stopActions(p);
+      }
+      if (Math.random() >= ARROW_RECOVER) {
+        takeItem(p, arrow, 1, (i) => !p.locked[i]);
+        if (client) this.sendInventory(client, p);
+      }
+    }
     p.attackTimer = 0;
     this.breakInvisible(p, client, "attack");
     const style = a.style;
@@ -1983,7 +2004,7 @@ export class WorldRoom extends Room<WorldState> {
     const chance = hitChance(levelForXp(p.skillXp[style]), m.kind, a, weaponM, monsterM, this.tree(p, style, "accuracy") + jewelTotals(p.jewels).accuracy / 100);
     const hit = Math.random() < chance;
     const staffMagic = a.spell ? this.staffEnchant(p) : null;
-    const max = maxHitWith(a, weaponM) + (staffMagic && a.maxHit ? staffHit(staffMagic.power) : 0);
+    const max = maxHitWith(a, weaponM) + (staffMagic && a.maxHit ? staffHit(staffMagic.power) : 0) + (arrow ? METAL_DAMAGE[arrow.slice(7) as Material] : 0);
     // The skill tree's damage bonus: +5% is a 5% chance of +1 on a hit of 1, and so on.
     // Weapons (not spells) hit harder with a strength potion.
     const strength = a.spell ? 0 : buffPower(p.buffs, "strength", worldNow()) / 100;
@@ -2598,9 +2619,10 @@ export class WorldRoom extends Room<WorldState> {
       material = isWoodTool(t.type) ? `${t.wood!}_logs` as ItemId : t.metal === "stone" ? "stone" : barId(t.metal as Metal);
     } else if (isWeapon(target.item)) {
       const w = parseWeapon(target.item);
-      material = w.metal === "stone" ? "stone" : barId(w.metal as Metal);
+      material = w.metal === "stone" ? (w.type === "bow" || w.type === "staff" ? `${w.wood}_logs` as ItemId : "stone") : barId(w.metal as Metal);
     } else {
-      material = barId(parseArmor(target.item as never).metal);
+      const m = parseArmor(target.item as never).metal;
+      material = m === "leather" || m === "cloth" ? m : barId(m);
     }
     if (!p.inventory.some((it, i) => it === material && !p.locked[i])) {
       return `Mend needs 1 ${ITEMS[material].single} to fix your ${ITEMS[baseItem(target.item) as ItemId].single}.`;
@@ -2690,10 +2712,10 @@ export class WorldRoom extends Room<WorldState> {
   /** Rings or amulet changed: new stats, and tell the client. */
   /** Armor went on or off: max health may change (Vitality). New health starts empty, like a ring's. */
   private gearStatsChanged(client: Client, p: Player) {
-    const max = this.maxHpOf(p);
-    if (max === p.maxHp) return;
-    p.maxHp = max;
-    p.hp = Math.min(p.hp, max);
+    // Vitality armor changes max health; cloth changes max mana.
+    p.maxHp = this.maxHpOf(p);
+    p.hp = Math.min(p.hp, p.maxHp);
+    p.mana = Math.min(p.mana, this.maxManaOf(p));
     this.sendVitals(client, p);
   }
 
@@ -3095,6 +3117,18 @@ export class WorldRoom extends Room<WorldState> {
         }
       } else if (skill === "handicraft") {
         for (const b of Object.values(BAITS)) if (b.level > before && b.level <= after) this.say(client, `You can now make ${b.name.toLowerCase()} at the workbench!`);
+        const now = (lv: number) => lv > before && lv <= after;
+        for (const [w, lv] of Object.entries(WOOD_LEVEL)) {
+          if (now(lv)) this.say(client, `🪵 You can now carve ${w} staffs at the workbench!`);
+          if (now(lv + 2)) this.say(client, `🏹 You can now carve ${w} bows at the workbench!`);
+        }
+        for (const [m, lv] of Object.entries(ARROW_LEVEL)) if (now(lv)) this.say(client, `🏹 You can now make ${m} arrows at the workbench!`);
+        for (const t of TANNING) if (now(t.level)) this.say(client, `🟫 You can now tan ${ITEMS[t.hide].name.toLowerCase()} into leather at the tanning rack!`);
+        if (now(THREAD_LEVEL)) this.say(client, "🧵 You can now spin spider silk into thread at the spinning wheel!");
+        if (now(CLOTH_LEVEL)) this.say(client, "🧶 You can now weave cloth at the spinning wheel!");
+        for (const soft of ["leather", "cloth"] as const) {
+          for (const [type, lv] of Object.entries(SOFT_LEVEL[soft])) if (now(lv!)) this.say(client, `You can now make ${SOFT_NAMES[soft][type as ArmorType]!.toLowerCase()} at the workbench!`);
+        }
       } else if (skill === "defense") {
         for (const m of Object.values(METALS)) if (m.level > before && m.level <= after) this.say(client, `You can now wear ${m.name.toLowerCase()} armor!`);
         this.sendVitals(client, p);

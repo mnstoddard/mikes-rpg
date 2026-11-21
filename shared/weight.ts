@@ -15,7 +15,7 @@ import { RESOURCE_FOR_ITEM, RESOURCES } from "./foraging";
 import { BAR_IDS, TOOL_TYPES, ToolType, isTool, parseTool } from "./tools";
 import { ARMOR, WEAPONS, isArmor, isWeapon, parseArmor, parseWeapon } from "./gear";
 import { isMeal } from "./cooking";
-import { isBait } from "./handicraft";
+import { isArrow, isBait } from "./handicraft";
 import { isPotion } from "./alchemy";
 import { isGemItem, isJewelry } from "./jewelry";
 
@@ -51,7 +51,8 @@ export function weightOf(item: ItemId): number {
   if (isWeapon(item)) return WEAPON_WEIGHT[parseWeapon(item).type] ?? 20;
   if (isArmor(item)) {
     const { type, metal } = parseArmor(item);
-    return Math.round(ARMOR[type].bars * ARMOR_PER_BAR * (metal === "mithril" ? 0.6 : 1));
+    // Leather is light, cloth lighter still.
+    return Math.round(ARMOR[type].bars * ARMOR_PER_BAR * (metal === "mithril" ? 0.6 : metal === "leather" ? 0.4 : metal === "cloth" ? 0.2 : 1));
   }
   const listed = ITEM_WEIGHT[item];
   if (listed != null) return listed;
@@ -59,7 +60,7 @@ export function weightOf(item: ItemId): number {
   if (res) return RESOURCES[res].skill === "fishing" ? 10 : 20; // logs, stone and ore 2 kg, fish 1 kg
   if ((BAR_IDS as string[]).includes(item)) return 20;
   if (isMeal(item)) return 10;
-  if (isBait(item)) return 1;
+  if (isBait(item) || isArrow(item)) return 1;
   if (isPotion(item)) return 5;
   if (isGemItem(item)) return isJewelry(item) ? 2 : 1;
   return 10;

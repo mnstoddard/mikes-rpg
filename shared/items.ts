@@ -3,7 +3,8 @@ import {
   ALL_TOOL_IDS, BAR_IDS, BarId, MATERIALS, METALS, ROD_LOGS, TOOL_TYPES, ToolItemId, WOODS, barId, headCount, metalOfBar, parseTool,
 } from "./tools";
 import { DISHES, INGREDIENTS, IngredientId, MealId, OtherIngredient, mealTitle, parseMeal } from "./cooking";
-import { BAITS, BAIT_IDS, BaitId, HandicraftMaterial } from "./handicraft";
+import { ARROWS_PER_CRAFT, ArrowId, BAITS, BAIT_IDS, BaitId, HandicraftMaterial, arrowId } from "./handicraft";
+import { SOFT_NAMES, isWooden } from "./gear";
 import { BONUSES, POTIONS, PotionId, parsePotion, potionInputs } from "./alchemy";
 import { enchantedName, enchantsOf } from "./enchanting";
 import { GemItemId, JEWEL_BARS, JEWEL_BAR_IDS, JEWEL_METALS, JEWEL_TYPES, JewelBarId, cutId, gemItemDef, parseGem } from "./jewelry";
@@ -46,7 +47,7 @@ export type WildId = "sage" | "moonpetal" | "old_bone" | "red_cap" | "ginseng" |
  * from ingredients and a log), weapons and armor, loot, cooking ingredients
  * (raw chicken, vegetables...), Handicraft materials (worms, food scraps) and bait.
  */
-export type ItemId = BaseItemId | BarId | ToolItemId | MealId | GearItemId | LootId | WildId | OtherIngredient | HandicraftMaterial | BaitId | PotionId | GemItemId | JewelBarId | SpellBookId | EnchantedItemId;
+export type ItemId = BaseItemId | BarId | ToolItemId | MealId | GearItemId | LootId | WildId | OtherIngredient | HandicraftMaterial | BaitId | PotionId | GemItemId | JewelBarId | SpellBookId | EnchantedItemId | ArrowId;
 /** An enchanted tool, weapon or armor piece: "axe_iron_oak+swift.20" (shared/enchanting.ts). */
 export type EnchantedItemId = `${string}+${string}`;
 
@@ -125,6 +126,11 @@ const FOOD_AND_MATERIALS: Record<OtherIngredient | HandicraftMaterial, ItemDef> 
   mushroom: { name: "Mushrooms", single: "mushroom", icon: "🍄", sellPrice: 3 },
   worm: { name: "Worms", single: "worm", icon: "🪱", sellPrice: 1 },
   food_scraps: { name: "Food scraps", single: "food scraps", icon: "🦴", tint: "sepia(.6)", sellPrice: 1 },
+  // Handicraft materials (shared/handicraft.ts): tanned at the rack, spun at the wheel.
+  boar_hide: { name: "Boar hides", single: "boar hide", icon: "🐗", tint: "sepia(.8) brightness(.8)", sellPrice: 5 },
+  leather: { name: "Leather", single: "piece of leather", icon: "🟫", sellPrice: 0, inputs: ["cowhide"] },
+  thread: { name: "Thread", single: "spool of thread", icon: "🧵", sellPrice: 0, inputs: ["spider_silk"] },
+  cloth: { name: "Cloth", single: "piece of cloth", icon: "🧶", tint: "hue-rotate(200deg)", sellPrice: 0, inputs: ["thread", "thread"] },
 };
 
 /** Spell books: read one to learn its spell (shared/spells.ts SPELL_BOOKS). */
@@ -196,6 +202,16 @@ for (const type of WEAPON_TYPES) {
     for (const wood of Object.keys(WOODS) as (keyof typeof WOODS)[]) {
       const id = weaponId(type, metal, wood);
       const { metal: m } = parseWeapon(id);
+      if (isWooden(type) && m === "stone") {
+        // Carved from wood at Rook's workbench (Handicraft): "Oak bow", "Yew staff". A bow takes a string of thread too.
+        const name = `${WOODS[wood].name} ${WEAPONS[type].name.toLowerCase()}`;
+        ITEMS[id] = {
+          name, single: name.toLowerCase(), icon: WEAPONS[type].icon, sellPrice: 0,
+          inputs: [`${wood}_logs` as BaseItemId, `${wood}_logs` as BaseItemId, ...(type === "bow" ? ["thread" as ItemId] : [])],
+        };
+        ITEMS[id].sellPrice = Math.floor(exactBase(id));
+        continue;
+      }
       const name = `${MATERIALS[m].name} ${WEAPONS[type].name.toLowerCase()}`;
       ITEMS[id] = {
         name: `${name} (${WOODS[wood].name})`, single: `${name.toLowerCase()} (${WOODS[wood].name.toLowerCase()})`,
@@ -210,15 +226,35 @@ for (const type of WEAPON_TYPES) {
 for (const type of ARMOR_TYPES) {
   for (const metal of Object.keys(METALS) as (keyof typeof METALS)[]) {
     const id = armorId(type, metal);
-    const { metal: m } = parseArmor(id);
-    const name = `${METALS[m].name} ${ARMOR[type].name.toLowerCase()}`;
+    const name = `${METALS[metal].name} ${ARMOR[type].name.toLowerCase()}`;
     ITEMS[id] = {
-      name, single: name.toLowerCase(), icon: ARMOR[type].icon, tint: METALS[m].tint, sellPrice: 0,
-      inputs: Array<ItemId>(ARMOR[type].bars).fill(barId(m)),
+      name, single: name.toLowerCase(), icon: ARMOR[type].icon, tint: METALS[metal].tint, sellPrice: 0,
+      inputs: Array<ItemId>(ARMOR[type].bars).fill(barId(metal)),
+    };
+    ITEMS[id].sellPrice = Math.floor(exactBase(id));
+  }
+  // Leather and cloth (Handicraft): as many pieces of leather or cloth as a metal one takes bars.
+  for (const soft of ["leather", "cloth"] as const) {
+    const name = SOFT_NAMES[soft][type];
+    if (!name) continue;
+    const id = armorId(type, soft);
+    ITEMS[id] = {
+      name, single: name.toLowerCase(), icon: ARMOR[type].icon, tint: soft === "leather" ? "sepia(1) saturate(1.5) brightness(.75)" : "hue-rotate(200deg) saturate(.7) brightness(1.2)", sellPrice: 0,
+      inputs: Array<ItemId>(ARMOR[type].bars).fill(soft),
     };
     ITEMS[id].sellPrice = Math.floor(exactBase(id));
   }
 }
+// Arrows: a log, a tip and 2 feathers make 10. One arrow is worth a tenth of that.
+for (const m of ["stone", ...Object.keys(METALS)] as (keyof typeof METAL_DAMAGE)[]) {
+  const id = arrowId(m);
+  const inputs: ItemId[] = ["pine_logs", m === "stone" ? "stone" : barId(m), "feather", "feather"];
+  const name = `${MATERIALS[m].name} arrows`;
+  ITEMS[id] = { name, single: `${MATERIALS[m].name.toLowerCase()} arrow`, icon: "🏹", tint: MATERIALS[m].tint, sellPrice: 0 };
+  ITEMS[id].sellPrice = Math.max(1, Math.floor(inputs.reduce((sum, i) => sum + exactBase(i), 0) * CRAFT_MARKUP / ARROWS_PER_CRAFT));
+}
+// Leather, thread and cloth are worth what goes into them.
+for (const id of ["leather", "thread", "cloth"] as ItemId[]) ITEMS[id].sellPrice = Math.floor(exactBase(id));
 // Silver, gold, platinum and iridium bars (for jewelry).
 for (const bar of JEWEL_BAR_IDS) {
   const b = JEWEL_BARS[bar];

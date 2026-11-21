@@ -14,10 +14,44 @@
 //
 // Only type imports from items, so items.ts can build these.
 import type { ItemId } from "./items";
+import type { ArmorType } from "./gear";
+import type { Material, Wood } from "./tools";
 
 export type BaitId = "bait_worm" | "bait_chum" | "bait_glow";
 /** Things Handicraft uses that you find or get as leftovers. */
-export type HandicraftMaterial = "worm" | "food_scraps";
+export type HandicraftMaterial = "worm" | "food_scraps" | "boar_hide" | "leather" | "thread" | "cloth";
+
+// ---- Woodwork, leather and cloth (stage 10) ----
+// Rook teaches it all. Things unlock one by one as your Handicraft level goes up.
+
+/** Arrows: a log, a tip (stone or a metal bar) and 2 feathers make 10. The tip decides the damage. */
+export type ArrowId = `arrows_${Material}`;
+export const ARROW_LEVEL: Record<Material, number> = { stone: 1, bronze: 5, iron: 15, steel: 30, mithril: 50 };
+export const ARROWS_PER_CRAFT = 10;
+/** Each arrow you shoot has this chance of being picked up again. */
+export const ARROW_RECOVER = 1 / 3;
+export const arrowId = (m: Material): ArrowId => `arrows_${m}`;
+export const isArrow = (item: string | null | undefined): item is ArrowId => !!item && /^arrows_(stone|bronze|iron|steel|mithril)$/.test(item);
+
+/** Handicraft level to carve a bow or staff from each wood. */
+export const WOOD_LEVEL: Record<Wood, number> = { pine: 1, oak: 8, birch: 16, maple: 25, yew: 35, ironwood: 50, elderwood: 65 };
+/** A bow's or staff's wood adds this much to its hits (bows) or spells (staffs). */
+export const WOOD_DAMAGE: Record<Wood, number> = { pine: 0, oak: 1, birch: 2, maple: 3, yew: 4, ironwood: 6, elderwood: 8 };
+
+/** Tanning (at the tanning rack): one hide makes one leather. */
+export const TANNING: { hide: ItemId; level: number; xp: number }[] = [
+  { hide: "cowhide", level: 3, xp: 6 },
+  { hide: "boar_hide", level: 6, xp: 8 },
+  { hide: "wolf_pelt", level: 10, xp: 12 },
+];
+/** Spinning (at the spinning wheel): spider silk into thread, 2 thread into cloth. */
+export const THREAD_LEVEL = 6;
+export const CLOTH_LEVEL = 10;
+/** Handicraft level for each leather and cloth piece. */
+export const SOFT_LEVEL: Record<"leather" | "cloth", Partial<Record<ArmorType, number>>> = {
+  leather: { boots: 5, helmet: 7, platelegs: 9, platebody: 12, shield: 14 },
+  cloth: { boots: 12, helmet: 14, platelegs: 16, platebody: 20 },
+};
 
 export interface BaitDef {
   name: string;

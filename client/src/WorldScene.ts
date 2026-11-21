@@ -524,6 +524,21 @@ export class WorldScene extends Phaser.Scene {
       g.fillStyle(0xf2e6c9).fillCircle(6, -11, 3); // thread
       g.lineStyle(1, 0x8b5a2b).strokeCircle(6, -11, 3);
       c.add(g);
+    } else if (id === "tanning_rack") {
+      // A wooden frame with a hide stretched across it.
+      g.fillStyle(0x5c3a1a).fillRect(-12, -20, 3, 30).fillRect(9, -20, 3, 30).fillRect(-12, -20, 24, 2).fillRect(-12, 4, 24, 2);
+      g.fillStyle(0xb07a4a).fillRoundedRect(-8, -17, 16, 19, 4);
+      g.lineStyle(1, 0x5c3a1a).lineBetween(-9, -15, -8, -15).lineBetween(8, -15, 9, -15).lineBetween(-9, 0, -8, 0).lineBetween(8, 0, 9, 0);
+      c.add(g);
+    } else if (id === "spinning_wheel") {
+      // A spinning wheel that slowly turns.
+      g.fillStyle(0x5c3a1a).fillRect(-10, 2, 20, 3).fillRect(-9, 2, 2, 9).fillRect(7, 2, 2, 9).fillRect(-1, -8, 2, 11);
+      g.fillStyle(0xf2e6c9).fillCircle(10, -2, 3);
+      const wheel = this.add.graphics({ x: 0, y: -10 });
+      wheel.lineStyle(2, 0x8b5a2b).strokeCircle(0, 0, 9);
+      wheel.lineStyle(1, 0x8b5a2b).lineBetween(-9, 0, 9, 0).lineBetween(0, -9, 0, 9).lineBetween(-6, -6, 6, 6).lineBetween(-6, 6, 6, -6);
+      c.add([g, wheel]);
+      this.tweens.add({ targets: wheel, angle: 360, duration: 4000, repeat: -1 });
     } else if (id.startsWith("chest")) {
       // A purple chest with gold bands and a glowing keyhole.
       g.fillStyle(0x4a2a7a).fillRoundedRect(-12, -10, 24, 18, 3);
@@ -549,7 +564,7 @@ export class WorldScene extends Phaser.Scene {
       c.add(g);
     }
     // In the guild hall the stations stand close to the Archmage, so their names go underneath.
-    const below = id === "chest" || id === "guildboard" || id === "alchemy_table" || id === "altar" || id === "furnace" || id === "anvil" || id === "workbench";
+    const below = id === "spinning_wheel" || id === "chest" || id === "guildboard" || id === "alchemy_table" || id === "altar" || id === "furnace" || id === "anvil" || id === "workbench";
     const label = this.add.text(0, below ? 22 : id === "board" ? -32 : -28, name, { fontSize: "12px", color: "#ffd84a", stroke: "#000", strokeThickness: 3 }).setOrigin(0.5);
     c.add(label);
   }

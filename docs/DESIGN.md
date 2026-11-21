@@ -268,6 +268,36 @@ skill:
   Cloth and leather are lighter than metal, so they suit spellcasters and
   Ranged fighters (and leave more weight for gathering).
 
+**How stage 10 was built** (decided with Mike's stage 10 notes). Woodworker
+Rook teaches it all, and things unlock one by one as your Handicraft level goes up:
+
+- **The workbench** has tabs: Bait, Bows, Staffs, Arrows, Leather and Cloth.
+- **Bows and staffs** take 2 logs (a bow also takes 1 thread). The **wood sets
+  their strength**: pine adds nothing, then oak +1, birch +2, maple +3, yew +4,
+  ironwood +6 and elderwood +8 (bows hit harder, staffs make spells stronger).
+  Pine is level 1, elderwood 65; bows need 2 levels more than staffs. Bows and
+  staffs are no longer made at the anvil (old ones still work).
+- **Arrows**: a pine log, a tip (stone or a metal bar) and 2 feathers make 10.
+  The tip sets the damage: stone +0, bronze +1 and so on, like metal weapons.
+  A bow shoots your best arrows first, and each shot uses one, but about **1 in
+  3 is picked up again**. No arrows, no shooting. Kael sells a pine bow and
+  stone arrows; Rook sells feathers and thread.
+- **The tanning rack** (outside the workshop's east wall) turns one hide into
+  one leather: cowhide (level 3), boar hide (6, boars now drop them) and wolf
+  pelts (10).
+- **The spinning wheel** (inside the workshop) spins spider silk into thread
+  (level 6) and weaves 2 thread into cloth (level 10). Wool comes with Farming.
+- **Leather armor** (boots 5, cap 7, chaps 9, jerkin 12, hide buckler 14) is a
+  bit tougher than bronze, light, and **doesn't slow you down**.
+- **Cloth robes** (shoes 12, hood 14, skirt 16, robe top 20; no shield) are
+  thin, but each piece adds **+5 max mana per cloth** in it and makes spells
+  **3% stronger**.
+- **Metal armor** is still the toughest, but now **slows walking by 1% per bar**
+  in what you wear (a full iron set is about 9% slower).
+- Leather and cloth sit in their own bag slots, apart from metal armor. Mend
+  and the Repairer fix them with leather or cloth, and wooden bows and staffs
+  with a log.
+
 ### Smithing: jewellery and gems (no Jewelcrafting skill)
 Smithing also does what a Jewelcrafting skill would have done. At the anvil
 (or a jeweller's bench next to it) you:
@@ -449,7 +479,7 @@ stage 9 notes):
   gear good as new, using 1 of what it's made of (its metal bar, stone, or a log
   for a fishing rod).
 - **Not built yet**: enchanting other weapons, bronze/platinum/iridium inlays,
-  and plain staffs from Handicraft (stage 10).
+  and plain staffs from Handicraft (stage 10, now built).
 
 ### Wear and repair
 *Built in stage 4 (decided with Mike):*
@@ -744,7 +774,7 @@ quest chapter as it goes, so the main quest grows with the game.
 | **7. Gems and soul stone** ✅ built | Gem and soul stone rocks with continuous sizes, and Smithing's gem cutting, rings, amulets, inlays and soul gems | Needed for enchanting |
 | **8. Spellcasting** ✅ built | Spell bar, new spell list, learning by level and books, Invisibility, Soul trap with the glow and blink, filling soul gems | Needed for enchanting |
 | **9. Enchanting** ✅ built | Enchanting altar, staffs, armor and tool enchants, the Mend spell, Enchanting tree unlocks | Needs stages 4, 7 and 8 |
-| **10. More Handicraft** | Cloth and leather armor, bows, arrows and plain staffs, all in Handicraft | Uses hides, silk and logs |
+| **10. More Handicraft** ✅ built | Cloth and leather armor, bows, arrows and plain staffs, all in Handicraft | Uses hides, silk and logs |
 | **11. Farming** | Farm area, buying and expanding plots, seeds, real-time growth | Independent, can move earlier |
 | **12. Trading and Renown** | Trading XP, Renown XP, bounty tiers, Renown-gated quests | Builds on the existing boards |
 | **13. Parties and Leadership** | Invites, party UI, shared quest XP and loot, quest level gates, Leadership bonus, The Howling Hollow | Biggest server change, best done last |

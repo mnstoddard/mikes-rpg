@@ -17,14 +17,14 @@ import { npcById } from "../../shared/npcs";
 import { isBroken, type RepairJob } from "../../shared/repair";
 import { PLAYER_COLORS } from "../../shared/colors";
 import {
-  ARMOR, ARMOR_TYPES, ArmorType, GEAR_SLOTS, Gear, GearSlot, SLOT_ICONS, SLOT_NAMES, WEAPONS, WEAPON_TYPES, WeaponType,
+  ARMOR, ARMOR_TYPES, METAL_DAMAGE, SOFT_NAMES, ArmorType, GEAR_SLOTS, Gear, GearSlot, SLOT_ICONS, SLOT_NAMES, WEAPONS, WEAPON_TYPES, WeaponType,
   armorId, emptyGear, isArmor, isGear, isWeapon, parseArmor, parseWeapon, weaponId,
 } from "../../shared/gear";
 import {
   huntingDrops, ARMOR_LEVEL, CombatMasteryId, CombatMasteryXp, MONSTERS, MONSTER_IDS, POTION_HEAL, POTION_ID, SPELLS, SPELL_IDS, SpellId, armorPoints, attackFor,
   combatMasteryIn, gearEffect, gearNeeds, masteryAccuracy, masteryDamage, masteryDrops, maxHitWith,
 } from "../../shared/combat";
-import { gearDurability } from "../../shared/crafting";
+import { TANNING_IDS, gearDurability } from "../../shared/crafting";
 import { Bounty, bountyReward, slotCounts } from "../../shared/bounties";
 import { Bag, emptyBag, entriesIn, slotTotal, stackLimit, usedSlots } from "../../shared/bag";
 import { carriedWeight, carryCapacity, kg, weightOf } from "../../shared/weight";
@@ -39,7 +39,7 @@ import {
   BASE_INGREDIENTS, DISHES, DISH_IDS, DishId, FOOD_KINDS, FUEL_STAMINA, INGREDIENTS, IngredientId, MAX_STAMINA, RAW_FISH_STAMINA, STAMINA_COST,
   fireStamina, fitsDish, foodStamina, ingredientStamina, isFood, isIngredient, isMeal, mealBaseStamina, mealId, parseMeal,
 } from "../../shared/cooking";
-import { BAITS, BAIT_IDS, BaitId, isBait } from "../../shared/handicraft";
+import { ARROW_LEVEL, ARROW_RECOVER, BAITS, BAIT_IDS, BaitId, CLOTH_LEVEL, SOFT_LEVEL, THREAD_LEVEL, WOOD_LEVEL, arrowId, isArrow, isBait } from "../../shared/handicraft";
 import { TreeRanks, treeBonus } from "../../shared/skilltree";
 import { setTreeData, treeButton, treeRanks } from "./tree";
 import { toolSvg } from "./toolIcons";
@@ -137,6 +137,10 @@ const pick = {
   furnaceBar: "bronze_bar" as ItemId,
   /** Anvil, jewelry: ring or amulet, its metal, and the cut gem to set (or none). */
   jewel: "ring" as JewelType, jewelMetal: "bronze" as JewelMetal, jewelGem: null as ItemId | null,
+  /** Workbench: what kind of thing, the wood for a bow or staff, the arrow tip, and the leather or cloth piece. */
+  bench: "bait" as "bait" | "bow" | "staff" | "arrows" | "leather" | "cloth", benchWood: "pine" as Wood, tip: "stone" as Material, softPiece: "boots" as ArmorType,
+  /** Tanning rack and spinning wheel: which recipe. */
+  tan: TANNING_IDS[0], spin: "thread" as ItemId,
 };
 /** Gems and jewelry: what the server should do. */
 let onCut: (item: ItemId) => void = () => {};
@@ -168,7 +172,7 @@ export function renderJewels(j: Jewels) {
     box.appendChild(slot);
   }
 }
-const STATION_SKILL = { furnace: "smelting", anvil: "smithing", stove: "cooking", workbench: "handicraft", alchemy_table: "alchemy" } as const;
+const STATION_SKILL = { furnace: "smelting", anvil: "smithing", stove: "cooking", workbench: "handicraft", tanning_rack: "handicraft", spinning_wheel: "handicraft", alchemy_table: "alchemy" } as const;
 /** Hidden potion recipes you've found. */
 let discovered: PotionType[] = [];
 export function setDiscovered(list: PotionType[]) { discovered = list; renderCraft(); }
@@ -1046,7 +1050,7 @@ const shortName = (id: ItemId) => ITEMS[id].short ?? ITEMS[id].name;
 function groupName(id: ItemId): string {
   const meal = parseMeal(id);
   const name = isTool(id) ? TOOL_TYPES[parseTool(id).type].name : meal ? DISHES[meal.dish].name
-    : isWeapon(id) ? WEAPONS[parseWeapon(id).type].name : isArmor(id) ? ARMOR[parseArmor(id).type].name : ITEMS[id].name;
+    : isWeapon(id) ? WEAPONS[parseWeapon(id).type].name : isArmor(id) ? (SOFT_NAMES[parseArmor(id).metal as "leather"]?.[parseArmor(id).type] ?? ARMOR[parseArmor(id).type].name) : ITEMS[id].name;
   return /s$/.test(name) ? name.toLowerCase() : `${name.toLowerCase()}s`;
 }
 
@@ -1593,7 +1597,7 @@ function renderCraft() {
   if (!station) return;
   const skill: CraftSkill = STATION_SKILL[station];
   const level = levelForXp(lastSkillXp[skill] ?? 0);
-  craftTitle.textContent = `${{ furnace: "Furnace", anvil: "Anvil", stove: "Stove", workbench: "Workbench", alchemy_table: "Alchemy table" }[station]} · ${findSkill(skill).def.name} level ${level}`;
+  craftTitle.textContent = `${{ furnace: "Furnace", anvil: "Anvil", stove: "Stove", workbench: "Workbench", tanning_rack: "Tanning rack", spinning_wheel: "Spinning wheel", alchemy_table: "Alchemy table" }[station]} · ${findSkill(skill).def.name} level ${level}`;
   craftBody.replaceChildren();
   const lockedAt = (m: Material) => (level < MATERIALS[m].level ? MATERIALS[m].level : undefined);
   const { def: skillDef } = findSkill(skill);
@@ -1623,10 +1627,43 @@ function renderCraft() {
       return;
     }
     output = potion;
+  } else if (station === "tanning_rack") {
+    craftBody.append(choices("Tan", TANNING_IDS, pick.tan, (t) => { const r = recipeFor(t)!; const hide = r.inputs[0];
+      return { icon: ITEMS[hide].icon, tint: ITEMS[hide].tint, name: ITEMS[hide].name, lockedAt: level < r.level ? r.level : undefined }; }, (t) => { pick.tan = t; }));
+    craftBody.append(el("craft-info", "Each hide makes one leather. Cows and boars drop hides; wolves drop pelts. Leather goes into leather armor at the workbench."));
+    output = pick.tan;
+  } else if (station === "spinning_wheel") {
+    craftBody.append(choices("Spin", ["thread", "cloth"] as ItemId[], pick.spin, (t) => ({ icon: ITEMS[t].icon, tint: ITEMS[t].tint, name: ITEMS[t].name,
+      lockedAt: level < (t === "thread" ? THREAD_LEVEL : CLOTH_LEVEL) ? (t === "thread" ? THREAD_LEVEL : CLOTH_LEVEL) : undefined }), (t) => { pick.spin = t; }));
+    craftBody.append(el("craft-info", "Spider silk spins into thread; 2 thread weave into cloth. Thread strings bows, cloth makes robes. (Wool comes with Farming.)"));
+    output = pick.spin;
   } else if (station === "workbench") {
-    craftBody.append(choices("Make", BAIT_IDS, pick.bait, (b) => ({ icon: BAITS[b].icon, tint: BAITS[b].tint, name: BAITS[b].name, lockedAt: level < BAITS[b].level ? BAITS[b].level : undefined }), (b) => { pick.bait = b; }));
-    craftBody.append(el("craft-info", BAITS[pick.bait].description + ". Fishing uses the first unlocked bait in your bag."));
-    output = pick.bait;
+    const BENCH = { bait: { icon: "🪱", name: "Bait" }, bow: { icon: "🏹", name: "Bows" }, staff: { icon: "🪄", name: "Staffs" }, arrows: { icon: "➶", name: "Arrows" }, leather: { icon: "🦺", name: "Leather" }, cloth: { icon: "👘", name: "Cloth" } };
+    const firstLevel = { bait: 1, bow: WOOD_LEVEL.pine + 2, staff: WOOD_LEVEL.pine, arrows: ARROW_LEVEL.stone, leather: SOFT_LEVEL.leather.boots!, cloth: SOFT_LEVEL.cloth.boots! };
+    craftBody.append(choices("Make", Object.keys(BENCH) as (keyof typeof BENCH)[], pick.bench, (c) => ({ ...BENCH[c], lockedAt: level < firstLevel[c] ? firstLevel[c] : undefined }), (c) => { pick.bench = c; }));
+    if (pick.bench === "bow" || pick.bench === "staff") {
+      const t = pick.bench;
+      craftBody.append(choices("Wood (2 logs)", WOOD_IDS, pick.benchWood, (w) => { const lv = WOOD_LEVEL[w] + (t === "bow" ? 2 : 0);
+        return { icon: "🪵", tint: ITEMS[`${w}_logs`].tint, name: WOODS[w].name, lockedAt: level < lv ? lv : undefined }; }, (w) => { pick.benchWood = w; }));
+      craftBody.append(el("craft-info", t === "bow" ? "Better wood hits harder. A bow also needs a thread (from the spinning wheel, or Rook sells it) and arrows to shoot." : "Better wood makes stronger spells. Enchant a staff at the altar."));
+      output = weaponId(t, "stone", pick.benchWood);
+    } else if (pick.bench === "arrows") {
+      craftBody.append(choices("Tip", MATERIAL_IDS, pick.tip, (m) => ({ icon: m === "stone" ? "🪨" : "🧈", tint: MATERIALS[m].tint, name: MATERIALS[m].name, lockedAt: level < ARROW_LEVEL[m] ? ARROW_LEVEL[m] : undefined }), (m) => { pick.tip = m; }));
+      craftBody.append(el("craft-info", `Makes 10 from a pine log, the tip and 2 feathers. The tip sets the damage. Each shot uses one; about ${Math.round(ARROW_RECOVER * 100)}% can be picked up again.`));
+      output = arrowId(pick.tip);
+    } else if (pick.bench === "leather" || pick.bench === "cloth") {
+      const soft = pick.bench;
+      const pieces = ARMOR_TYPES.filter((t) => SOFT_LEVEL[soft][t] != null);
+      if (!pieces.includes(pick.softPiece)) pick.softPiece = pieces[0];
+      craftBody.append(choices("Piece", pieces, pick.softPiece, (t) => { const lv = SOFT_LEVEL[soft][t]!;
+        return { icon: ARMOR[t].icon, name: `${SOFT_NAMES[soft][t]} (${ARMOR[t].bars})`, lockedAt: level < lv ? lv : undefined }; }, (t) => { pick.softPiece = t; }));
+      craftBody.append(el("craft-info", soft === "leather" ? "Leather is light and a bit tougher than bronze, and doesn't slow you down like metal." : "Cloth is thin, but each piece adds max mana and makes your spells stronger."));
+      output = armorId(pick.softPiece, soft);
+    } else {
+      craftBody.append(choices("Bait", BAIT_IDS, pick.bait, (b) => ({ icon: BAITS[b].icon, tint: BAITS[b].tint, name: BAITS[b].name, lockedAt: level < BAITS[b].level ? BAITS[b].level : undefined }), (b) => { pick.bait = b; }));
+      craftBody.append(el("craft-info", BAITS[pick.bait].description + ". Fishing uses the first unlocked bait in your bag."));
+      output = pick.bait;
+    }
   } else if (station === "furnace") {
     const bars: ItemId[] = [...METAL_IDS.map((m) => barId(m) as ItemId), ...JEWEL_BAR_IDS];
     craftBody.append(choices("Bar", bars, pick.furnaceBar, (b) => ({ icon: "🧈", tint: ITEMS[b].tint, name: ITEMS[b].name.replace(/ bar$/, ""),
@@ -1681,13 +1718,15 @@ function renderCraft() {
   }
 
   const recipe = recipeFor(output)!;
-  const item = ITEMS[output];
+  // Tanning recipes are keyed "tan_<hide>" but make leather.
+  const made = recipe.output;
+  const item = ITEMS[made];
   const detail = el("craft-detail");
   const head = el("craft-head");
   // A hidden potion you haven't found yet stays a mystery until you brew it.
   const brew = parsePotion(output);
   const secret = !!brew && !!POTIONS[brew.type].hidden && !discovered.includes(brew.type);
-  head.append(icon("craft-icon", secret ? "❓" : item.icon, secret ? undefined : item.tint), el("craft-name", secret ? "Unknown potion" : item.name));
+  head.append(icon("craft-icon", secret ? "❓" : item.icon, secret ? undefined : item.tint), el("craft-name", secret ? "Unknown potion" : (recipe.makes ? `${recipe.makes} ` : "") + item.name));
   detail.appendChild(head);
 
   // What it takes, and how many you have.
@@ -1715,7 +1754,7 @@ function renderCraft() {
     el("craft-info", `Mastery ${m}` + (!tool ? " · no tool needed" : lastBelt[tool] ? ` · ${ITEMS[lastBelt[tool]!.item].name} on your belt`
       : recipe.needsTool ? ` · no ${TOOL_TYPES[tool].name.toLowerCase()} on your belt (half chance)` : ` · no ${TOOL_TYPES[tool].name.toLowerCase()} needed`) +
       (steady ? ` · skill tree: ${Math.round(steady * 100)}% fewer failures` : "")));
-  const facts = secret ? [`costs ${STAMINA_COST[skill]} stamina`] : [`Sells for ${formatMoney(sellPrice(output))}`, `${recipe.xp} XP`, `costs ${STAMINA_COST[skill]} stamina`];
+  const facts = secret ? [`costs ${STAMINA_COST[skill]} stamina`] : [`Sells for ${formatMoney(sellPrice(made))}${recipe.makes ? " each" : ""}`, `${recipe.xp} XP`, `costs ${STAMINA_COST[skill]} stamina`];
   if (isTool(output)) facts.unshift(`${toolEffect(output)}, ${maxDurability(output)} uses`);
   if (isGear(output)) {
     const needs = gearNeeds(output)!;
@@ -1723,10 +1762,13 @@ function renderCraft() {
   }
   if (isMeal(output)) facts.unshift(`Gives ${staminaOf(output)} stamina`);
   if (isBait(output)) facts.unshift(`Lasts ${BAITS[output].uses} catches`);
+  if (isArrow(output)) facts.unshift(`Adds up to ${METAL_DAMAGE[output.slice(7) as Material]} to a bow's hit`);
   if (isPotion(output) && !secret) facts.unshift(describeEffect(potionEffect(output, level)) + " (stronger as your Alchemy goes up)");
   detail.append(el("craft-info", facts.join(" · ")));
   if (level < recipe.level) detail.append(el("craft-warn", `Needs ${findSkill(skill).def.name} level ${recipe.level}.`));
-  else if (!canMake) detail.append(el("craft-warn", station === "stove" ? "You don't have all of that (and the log) unlocked in your bag." : station === "alchemy_table" ? "You need an empty vial for each potion. Alchemist Moss sells them." : station === "workbench" ? "You don't have the materials. Worms turn up while chopping and mining (or Rook and Tam sell them); cooking leaves food scraps." : "You don't have the materials. Miner Greta sells ore and stone, Smith Brann sells bars, and Forester Holt sells logs."));
+  else if (!canMake) detail.append(el("craft-warn", station === "stove" ? "You don't have all of that (and the log) unlocked in your bag." : station === "alchemy_table" ? "You need an empty vial for each potion. Alchemist Moss sells them." : station === "workbench" ? (pick.bench === "bait" ? "You don't have the materials. Worms turn up while chopping and mining (or Rook and Tam sell them); cooking leaves food scraps." : "You don't have the materials. Logs come from trees (or Forester Holt), feathers from chickens (or Rook), bars from the furnace, leather from the tanning rack and cloth from the spinning wheel.")
+    : station === "tanning_rack" ? "You need a hide. Cows drop cowhide, boars drop boar hide, and wolves drop pelts."
+    : station === "spinning_wheel" ? (output === "cloth" ? "You need 2 thread. Spin it from spider silk here, or buy it from Rook." : "You need spider silk. Spiders drop it in the cave by the quarry.") : "You don't have the materials. Miner Greta sells ore and stone, Smith Brann sells bars, and Forester Holt sells logs."));
   else detail.append(el("craft-info", `You have enough for ${canMake}. ${station === "alchemy_table" ? "A spoiled brew loses the ingredients, but you keep the vial." : "A failed try loses the materials."}`));
   craftBody.appendChild(detail);
 
