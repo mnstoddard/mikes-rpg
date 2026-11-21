@@ -232,7 +232,10 @@ past and no family, and come back at a shrine when they fall. That explains
 why there are so many heroes, why you respawn and why you have no backstory.
 
 STORY.md has the regions, factions, where every trainer fits, the main quest
-acts, how the mechanics tie in, and **three twist options** still to pick from.
+acts, and how the mechanics tie in. **The twist (decided):** the heroes are
+what's draining the land, and a hidden group of Kindled, **the Undying**, opened
+the shrines wide to steal extra life. The goal is to **restore the balance** so
+every hero gives back what they take.
 
 Story work can happen now, in the 2D game, and carries straight into 1.0.
 
@@ -276,7 +279,7 @@ network, speed), we find out early and cheaply.
 
 ## 10. Open questions
 
-1. **Story**: which twist? (See [STORY.md](STORY.md).)
+1. **Story**: names and the open story questions in [STORY.md](STORY.md).
 2. **Camera**: fixed angle like today (easier, good on phones) or free rotation?
 3. **Characters**: pick-a-look from a pack, or build-your-own with hair, colours
    and outfits?
