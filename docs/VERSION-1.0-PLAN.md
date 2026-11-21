@@ -235,8 +235,10 @@ STORY.md has the regions, factions, where every trainer fits and how the
 mechanics tie in. **The twist (decided):** the kind order that runs the shrines,
 **the Lightkeepers**, are really **the Undying**, who grow heroes strong so they
 can harvest them. The shrine-smashing **Ashbound** are the real good guys. Every
-death leaves **Soul Debt**. You can't cleanse the shrines, but you can break
-your own spark free, then fight the Lightkeepers as the endgame.
+death leaves **Soul Debt**. You start in the Lightkeepers' temple, and at the
+end of Act 3 you choose a side. The endgame is the **Sundered Crown**, a PvPvE
+zone (with NPC armies, so it works with few players) where both sides hunt for
+ancient magic and special materials, and climb faction ranks with buffs.
 
 The full main quest line, act by act, is in [QUESTLINE.md](QUESTLINE.md).
 

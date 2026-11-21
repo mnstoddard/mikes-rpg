@@ -1,8 +1,8 @@
 # Mike's RPG: the main quest line
 
 This is the full main story, quest by quest. The world, factions and twist are
-in [STORY.md](STORY.md). Nothing here is built yet, except the Prologue, which
-is today's game. Change anything you like.
+in [STORY.md](STORY.md). Nothing here is built yet, except the parts of the
+Prologue that are today's tutorial and trainer chapters. Change anything you like.
 
 ## How to read this
 
@@ -22,26 +22,46 @@ is today's game. Change anything you like.
 
 | Part | Quests | Rough play time |
 |---|---|---|
-| Prologue (today's game) | 14 chapters | 6 to 10 hours |
+| Prologue: Awakening in the Light | 8 new quests, plus today's 14 chapters | 7 to 11 hours |
 | Act 1: The Light Welcomes You | 12 | 8 to 12 hours |
 | Act 2: Rising Star | 27, plus 4 with Rhys | 40 to 60 hours |
-| Act 3: Ashes | 14 | 15 to 20 hours |
-| Act 4: Breaking the Thread | 18 | 30 to 40 hours |
-| Endgame: The Long War | Repeatable | Never ends |
+| Act 3: Ashes | 15 | 15 to 20 hours |
+| Act 4: your side's path | 18 | 30 to 40 hours |
+| Endgame: The Sundered Crown | Repeatable | Never ends |
 
 That's roughly **100 to 140 hours** for the main story, plus skill training
 between quests. These are guesses; real times come from play-testing.
 
 ---
 
-## Prologue: Waking (built today)
+## Prologue: Awakening in the Light
 
-Today's tutorial and trainer chapters become the Prologue. They stay as they
-are, with a few lines of story added.
+*The Lighthall and Heartvale. Lv 1 to 10. Partly built today.*
+
+The Prologue is the player's **introduction to the Lightkeepers**. You wake at
+the **Heart Shrine**, the brightest shrine in Elderra, at the centre of the
+**Lighthall**: the Lightkeepers' great white temple in the heart of
+Heartvale. Everything is warm, golden and welcoming. The player should come
+away **loving** the Lightkeepers.
+
+| # | Quest | Giver | What you do | Skills used | Reward |
+|---|---|---|---|---|---|
+| P.1 | **Awakening** | Sister Celene | 🎬 You wake on the steps of the Heart Shrine inside the Lighthall. Light pours from the shrine. Sister Celene helps you up. Keeper Aldric welcomes you: "The light made you for a reason, friend. You won't remember anything; none of you do." | Clicking, walking | Plain robe |
+| P.2 | **The Hall of Light** | Keeper Aldric | A tour of the Lighthall: the Heart Shrine, the **Hall of Champions** (statues of past Radiants, and one empty plinth with a scratched-off name), the locked ledger room, and Enchanter Vale's quiet alcove. Talk to four Lightkeepers. | Talking | Lighthall map |
+| P.3 | **Light the Way** | Keeper Aldric | Light the lanterns along the Lighthall steps and out into the town square at dusk. | Walking, a first use of an item | Your own lantern |
+| P.4 | **The Old Sweeper** | Keeper Aldric | Aldric sends you to Old Maren, who sweeps the shrine steps: "Harmless. She's been here forever, and she teaches every new hero the basics." | Talking | Maren's chapter begins |
+| P.5 | **Living off the land** *(built)* | Old Maren | Today's first lessons: fishing, cooking, eating, selling. Maren is kind, but watches you closely: "Another one. Welcome, child." | Fishing, Cooking, Trading | As today |
+| P.6 | **The trainers** *(built)* | Each trainer | Today's trainer chapters (list below). Aldric says the Lightkeepers **pay** the trainers to teach new heroes, so every lesson feels like a gift from the Lighthall. | Every skill | As today |
+| P.7 | **A Blessing** | Sister Celene | Celene gives you your first blessing (a 30-minute XP boost) and asks you to use it to gather 20 of anything. | Any gathering | Blessing scroll x3 |
+| P.8 | **Oath of the Flame** | Keeper Aldric | 🎬 Swear the Oath at the Heart Shrine "so the shrine knows you, and can always bring you home". The shrine flares. You feel a tug, like a thread pulled tight. **Soul Debt switches on from here.** | Talking | Rank **Ember**, Ember cloak, 1 silver. **Act 1 begins.** |
+
+**Dying is free** until the Oath (no Soul Debt yet), so new players are never
+punished while learning.
+
+### Story lines to add to today's chapters
 
 | Chapter (built) | Giver | Story lines to add |
 |---|---|---|
-| Living off the land | Old Maren | Maren greets you at the **Heart Shrine**: "Another one. Welcome, child. You won't remember anything; none of you do." |
 | Buying and selling | Shopkeeper Tam | Tam mentions trade routes closing "since the Barrens went bad". |
 | The woodcutter's start | Forester Holt | "Funny thing. The trees nearest the shrine always die first." |
 | Into the rocks | Miner Greta | The soul stone veins in the quarry are dimmer every year. |
@@ -51,27 +71,27 @@ are, with a few lines of story added.
 | What the ground gives | Herbalist Wren | Wren marks dying patches on her map. |
 | Sparks and spells | Archmage Ysolde | Ysolde praises the Lightkeepers' "noble work". |
 | A drop of something | Alchemist Moss | Moss is brewing a big order of "Tithe tonics" for the Lighthall. |
-| Odd jobs | Captain Bryn | The bounty board now has Ashbound posters. |
+| Odd jobs | Captain Bryn | The bounty board now has Ashbound posters, paid for by the Lighthall. |
 | Something to grow | Farmer Odo | "Never took one of their blessings. Never will." |
 | The Wolf Hunt | Huntmaster Kael | The alpha wolf is Blighted: grey and glowing. |
 | Highway robbery | Captain Bryn | The bandits become **Ashbound raiders**. One shouts "Every time you rise, the land falls!" before running. |
 
-**Dying is free** during the Prologue (no Soul Debt yet).
+---
 
 ---
 
 ## Act 1: The Light Welcomes You
 
-*Heartvale. Lv 5 to 20. Opens when you finish Maren's chapter.*
+*Heartvale. Lv 5 to 20. Opens after the Oath of the Flame.*
 
 The Lightkeepers notice you. They're warm, generous and genuinely helpful. The
 player should **like** them. A few small things feel off.
 
 | # | Quest | Giver | What you do | Skills used | Reward |
 |---|---|---|---|---|---|
-| 1.1 | **A Warm Welcome** | Keeper Aldric | Visit the Lighthall beside the Heart Shrine. Aldric explains that the Lightkeepers tend the shrines that bring heroes back. Take a tour. | Talking | Lightkeeper's lantern (a light source at night) |
-| 1.2 | **Oath of the Flame** | Keeper Aldric | Swear the Oath at the Heart Shrine, "so the shrine knows you". 🎬 The shrine glows. **Soul Debt switches on from here.** Aldric calls it "a small tithe to keep the shrines alive". | Talking | Rank **Ember**, Ember cloak, 1 silver |
-| 1.3 | **Blessed Hands** | Sister Celene | Sister Celene gives you a blessing (a 30-minute XP boost). Use it to gather 20 of anything. | Any gathering | Blessing scroll x3 |
+| 1.1 | **Lantern Rounds** | Keeper Aldric | Light the shrine lanterns all around Heartvale at dusk. On one wall someone has painted "THE LIGHT EATS". Aldric has it scrubbed off. | Walking, night | Lightkeeper rank progress |
+| 1.2 | **The First Tithe** | Keeper Aldric | After your first death since the Oath, Aldric explains the gold chain by your health bar: a **Tithe mark**, "a small tithe so the shrines can keep raising heroes". He gives you a Tithe tonic to clear it faster. | Talking | Tithe tonic x2 |
+| 1.3 | **Blessing the Fields** | Sister Celene | Help Celene bless the farmers' fields around town. Farmer Odo chases you both off his land. | Walking, Farming | Blessing scroll x2 |
 | 1.4 | **Tithe Tonics** | Alchemist Moss | Help Moss brew 10 Tithe tonics for the Lighthall (the Lightkeepers sell them to heroes to "clear debt faster"). | Alchemy, Foraging | Recipe: Tithe tonic, 50 bronze |
 | 1.5 | **The Totem** | Woodworker Rook | Carve a shrine totem from oak and deliver it to Aldric. Rook slips a folded note inside "for luck". You don't read it (yet). | Woodcutting, Handicraft | Oak handle upgrade for one tool |
 | 1.6 | **Ash on the Road** | Captain Bryn | Ashbound raiders are smashing a roadside shrine. Drive them off (defeat 4). One drops a note: "They aren't what they seem." | Melee / Ranged / Spellcasting | Bounty pay, Renown |
@@ -166,9 +186,9 @@ Spread through Act 2, short quests with your rival:
 
 *Heartvale and the Barrens. Lv 55 to 65.*
 
-The twist. The Lightkeepers show what they are, and the player switches sides.
-The Lightkeepers stay in the shared world, so the player has to **hide** what
-they know.
+The twist. The Lightkeepers show what they are, both sides tell you their
+story, and at the end of the act **you choose a side**. The Lightkeepers stay
+in the shared world, so until then the player has to **hide** what they know.
 
 | # | Quest | Giver | What you do | Skills used | Reward |
 |---|---|---|---|---|---|
@@ -185,91 +205,228 @@ they know.
 | 3.11 | **Rhys, Again** | Rhys | Help Rhys train back up: give him a tool, a weapon and some food you made. | Crafting, Cooking | Rhys joins the Ashbound |
 | 3.12 | **Celene's Doubt** | Sister Celene | Celene has noticed heroes going grey. Show her the ledger. She's heartbroken, and promises to warn heroes quietly. | Talking | Celene's blessing (an honest one, no tithe) |
 | 3.13 | **Bryn's Choice** | Captain Bryn | Show Bryn the truth. He takes down the Ashbound bounty posters, and gives you the watch's secret passages. | Talking | Bryn's key |
-| 3.14 | **The Plan** | Sable | Sable, Maren, Ysolde and Oswin meet in secret. To cut your thread, you need five pieces from across Elderra, then you must reach the Wellspring itself. | Talking | **Act 4 begins** |
+| 3.14 | **A Voice in the Light** | The High Keeper | 🎬 The Heart Shrine calls you in, alone, at night. A hooded figure speaks from inside the light: the High Keeper. He doesn't lie. "The land is dying whatever we do. Sable would let everyone fade with it. We chose to **live**. Join us, and you'll never be drained again. You'll be the one who drinks." | Talking | An offer |
+| 3.15 | **The Crossroads** | — | 🎬 Sable waits at the Cinders. The High Keeper waits at the Heart Shrine. **You choose**: the Ashbound or the Lightkeepers. This is the biggest choice in the game. | A choice | **Act 4 begins**, on your side's path |
 
-**After Act 3:** your Lightkeeper rank is frozen. Lightkeepers still talk to
-you in town (you're pretending), but their quests stop. Your **Ashbound
-standing** track starts.
+**After Act 3:**
+
+- **If you chose the Ashbound**, your Lightkeeper rank is frozen. Lightkeepers
+  still talk to you in town (you're pretending), but their quests stop. Your
+  **Ashbound standing** track starts. Act 4 is **Breaking the Thread**.
+- **If you chose the Lightkeepers**, your Lightkeeper rank carries on past
+  Radiant. The Ashbound treat you as an enemy, and Maren stops talking to you.
+  Act 4 is **Ascension**.
+- Both paths are about the same length, end at the Wellspring, free you from
+  Soul Debt, and lead into the same endgame zone from opposite sides.
 
 ---
 
-## Act 4: Breaking the Thread
+---
+
+## Act 4 (Ashbound path): Breaking the Thread
 
 *All regions, Frostfell and the Hollow Heart. Lv 60 to 75.*
 
-A long hunt for five pieces, each using a different set of skills, then the
+You've chosen the Ashbound. Sable, Maren, Ysolde and Oswin meet in secret:
+to cut your thread, you need five pieces from across Elderra, then you must
+reach the Wellspring itself. A long hunt for five pieces, each using a different set of skills, then the
 final descent. The five pieces can be done **in any order**.
 
 ### The five pieces
 
 | # | Quest | Giver | What you do | Skills used | Piece |
 |---|---|---|---|---|---|
-| 4.1 | **The Heartroot** | Farmer Odo | Grow a **Heartroot**, a plant that only grows in soil never touched by a blessing. It takes several real days to grow, and must be watered and protected from Blighted pests. | Farming, fighting | Heartroot |
-| 4.2 | **The Unclaimed Stone** | Miner Greta | Find a soul stone vein that **doesn't** flow to a shrine, deep in the Greyspine, and mine its heart without cracking it. | Mining (high level), Foraging | Unclaimed soul stone |
-| 4.3 | **The Moonfin** | Old Maren | Catch the Moonfin, a fish that only bites at night in a storm off the Saltmere islands. | Fishing (high level), Cooking (bait) | Moonfin scale |
-| 4.4 | **The Severing Draught** | Alchemist Moss | Moss, sick about the tonics, brews the opposite: a draught that loosens your thread. Gather rare ingredients from all regions. | Alchemy, Foraging, Hunting | Severing draught |
-| 4.5 | **The Severing Blade** | Smith Brann | Forge a blade that can cut a thread of light: mithril bars, the Thornmother fang, a cut gem and an enchant from Ysolde. | Smithing, Smelting, Enchanting | Severing Blade |
+| 4A.1 | **The Heartroot** | Farmer Odo | Grow a **Heartroot**, a plant that only grows in soil never touched by a blessing. It takes several real days to grow, and must be watered and protected from Blighted pests. | Farming, fighting | Heartroot |
+| 4A.2 | **The Unclaimed Stone** | Miner Greta | Find a soul stone vein that **doesn't** flow to a shrine, deep in the Greyspine, and mine its heart without cracking it. | Mining (high level), Foraging | Unclaimed soul stone |
+| 4A.3 | **The Moonfin** | Old Maren | Catch the Moonfin, a fish that only bites at night in a storm off the Saltmere islands. | Fishing (high level), Cooking (bait) | Moonfin scale |
+| 4A.4 | **The Severing Draught** | Alchemist Moss | Moss, sick about the tonics, brews the opposite: a draught that loosens your thread. Gather rare ingredients from all regions. | Alchemy, Foraging, Hunting | Severing draught |
+| 4A.5 | **The Severing Blade** | Smith Brann | Forge a blade that can cut a thread of light: mithril bars, the Thornmother fang, a cut gem and an enchant from Ysolde. | Smithing, Smelting, Enchanting | Severing Blade |
 
 ### Frostfell and the descent
 
 | # | Quest | Giver | What you do | Skills used | Reward |
 |---|---|---|---|---|---|
-| 4.6 | **The First Shrine** | Old Maren | Travel to Frostfell, where the very first shrine is frozen in the ice. Thaw it and read the original oath, as Vael first wrote it. 🧩 *Echo: Vael, young and afraid of dying* | Fighting, Spellcasting (fire), surviving the cold | The true oath |
-| 4.7 | **The Frozen Heroes** | Sable | In the ice are heroes drained centuries ago. Use Soul trap to catch their freed sparks and carry them home to rest. | Spellcasting (Soul trap), Enchanting | Ashbound standing: **Unbound** |
-| 4.8 | **The Warden's Hunt** | Sable | Warden Corvane has found out about you. He hunts you across the Thornwood. Survive and defeat him in his own shrine (private copy). | Fighting | Corvane's lantern |
-| 4.9 | **Vale's Workshop** | Archmage Ysolde | Ysolde finds that every filled soul gem goes through **Enchanter Vale's** altar. Search his workshop at night. | Sneaking, Enchanting | 🎬 Discovery: Vale's journal, in Vael's handwriting |
-| 4.10 | **Unmasked** | Archmage Ysolde | Confront Vale. 🎬 He doesn't deny it. He's **Vael**. He offers you a place among the Undying, then vanishes into the Heart Shrine's light. | Talking | The way down: the Lighthall's sealed stair |
-| 4.11 | **The Lighthall Stair** | Captain Bryn | Bryn's secret passages lead under the Lighthall. Fight down through Lightkeeper guards (private copy). | Fighting, party recommended | Sanctum key |
-| 4.12 | **The Sanctum** | Sable | Reach the Undying's Sanctum in the Hollow Heart. Warden Halbrecht, Merrow and Ashka block the way, one after another. | Fighting, party recommended | Lightwarden seals |
-| 4.13 | **The Wellspring** | Old Maren | 🎬 See the Wellspring: a lake of light with thousands of threads rising from it. Yours glows faintly. A few are thick and dark gold: the Undying's. The thickest is Vael's. | A story scene | — |
-| 4.14 | **Vael** (final boss) | — | Fight Vael at the Wellspring. He re-forms from the threads each time he falls, until you cut the threads feeding him with the Severing Blade. Party recommended. | Everything | Vael falls (but not forever) |
-| 4.15 | **Cut the Thread** | Old Maren | 🎬 Use all five pieces and cut your own thread. Maren holds your hand. **No more Soul Debt, ever.** Your respawn point becomes any **Ashbound hearth**, and shrines become optional. | A story scene | **Unbound** title, your eyes change colour, Thread-cut cloak |
-| 4.16 | **Vael Returns** | Sable | Back on the surface, Vael's voice speaks from every shrine. He's re-formed. The Lightkeepers carry on as if nothing happened. "You can't kill what lives in every shrine. But you can make him bleed." | Talking | **The Long War begins** |
-| 4.17 | **Maren's Rest** | Old Maren | Maren is very tired now. Spend a last quiet day with her: fishing, a stew, a walk. She stays in the world (everyone still needs her for the Prologue), but from now on she talks to you as family. | Fishing, Cooking | Maren's rod, and the answer to "why no family": you have one now |
-| 4.18 | **Ashsworn** | Sable | Swear to the Ashbound at the Cinders. | Talking | Ashbound standing: **Ashsworn**, the endgame opens |
+| 4A.6 | **The First Shrine** | Old Maren | Travel to Frostfell, where the very first shrine is frozen in the ice. Thaw it and read the original oath, as Vael first wrote it. 🧩 *Echo: Vael, young and afraid of dying* | Fighting, Spellcasting (fire), surviving the cold | The true oath |
+| 4A.7 | **The Frozen Heroes** | Sable | In the ice are heroes drained centuries ago. Use Soul trap to catch their freed sparks and carry them home to rest. | Spellcasting (Soul trap), Enchanting | Ashbound standing: **Unbound** |
+| 4A.8 | **The Warden's Hunt** | Sable | Warden Corvane has found out about you. He hunts you across the Thornwood. Survive and defeat him in his own shrine (private copy). | Fighting | Corvane's lantern |
+| 4A.9 | **Vale's Workshop** | Archmage Ysolde | Ysolde finds that every filled soul gem goes through **Enchanter Vale's** altar. Search his workshop at night. | Sneaking, Enchanting | 🎬 Discovery: Vale's journal, in Vael's handwriting |
+| 4A.10 | **Unmasked** | Archmage Ysolde | Confront Vale. 🎬 He doesn't deny it. He's **Vael**, the hooded High Keeper. He offers you a place among the Undying one last time, then vanishes into the Heart Shrine's light. | Talking | The way down: the Lighthall's sealed stair |
+| 4A.11 | **The Lighthall Stair** | Captain Bryn | Bryn's secret passages lead under the Lighthall. Fight down through Lightkeeper guards (private copy). | Fighting, party recommended | Sanctum key |
+| 4A.12 | **The Sanctum** | Sable | Reach the Undying's Sanctum in the Hollow Heart. Warden Halbrecht, Merrow and Ashka block the way, one after another. | Fighting, party recommended | Lightwarden seals |
+| 4A.13 | **The Wellspring** | Old Maren | 🎬 See the Wellspring: a lake of light with thousands of threads rising from it. Yours glows faintly. A few are thick and dark gold: the Undying's. The thickest is Vael's. | A story scene | — |
+| 4A.14 | **Vael** (final boss) | — | Fight Vael at the Wellspring. He re-forms from the threads each time he falls, until you cut the threads feeding him with the Severing Blade. Party recommended. | Everything | Vael falls (but not forever) |
+| 4A.15 | **Cut the Thread** | Old Maren | 🎬 Use all five pieces and cut your own thread. Maren holds your hand. **No more Soul Debt, ever.** Your respawn point becomes any **Ashbound hearth**, and shrines become optional. | A story scene | **Unbound** title, your eyes change colour, Thread-cut cloak |
+| 4A.16 | **Vael Returns** | Sable | Back on the surface, Vael's voice speaks from every shrine. He's re-formed. The Lightkeepers carry on as if nothing happened. "You can't kill what lives in every shrine. But we can beat him to the Crown." | Talking | The war moves to the **Sundered Crown** |
+| 4A.17 | **Maren's Rest** | Old Maren | Maren is very tired now. Spend a last quiet day with her: fishing, a stew, a walk. She stays in the world (everyone still needs her for the Prologue), but from now on she talks to you as family. | Fishing, Cooking | Maren's rod, and the answer to "why no family": you have one now |
+| 4A.18 | **Ashsworn** | Sable | Swear to the Ashbound at the Cinders. Sable sends you to the **Sundered Crown**, to find the Aurel Seed before the Lightkeepers find the Crown. | Talking | Ashbound standing: **Ashsworn**, the endgame opens |
 
 ---
 
-## Endgame: The Long War
+## Act 4 (Lightkeeper path): Ascension
+
+*All regions, Frostfell and the Hollow Heart. Lv 60 to 75.*
+
+You've chosen the Lightkeepers. They welcome you into their real work, and you
+climb from Radiant toward the inner circle. This path is dark, but it's never
+cruel to real players: the people you harvest from are monsters and NPCs.
+
+| # | Quest | Giver | What you do | Skills used | Reward |
+|---|---|---|---|---|---|
+| 4L.1 | **Beneath the Lighthall** | Keeper Aldric | 🎬 Aldric takes you down the sealed stair to the Lightkeepers' hidden halls, where the real work happens. | Talking | Lighthall undercroft unlocked |
+| 4L.2 | **The High Keeper** | The High Keeper | 🎬 The High Keeper lowers his hood. It's **Enchanter Vale**, and he tells you his true name: **Vael**, who built the shrines. | Talking | 🧩 *Echo: Vael, young and afraid of dying* |
+| 4L.3 | **First Harvest** | Enchanter Vale | Use Soul trap on 10 Blighted beasts and pour their sparks into a **radiant vessel**. Feel the stolen light fill you. | Spellcasting (Soul trap), Enchanting | Radiant vessel, **Soul Debt ends**: you no longer pay the tithe |
+| 4L.4 | **Loose Ends** | Keeper Aldric | The Tithe ledger was stolen (by you, in Act 3). Get it back from the Cinders, and plant a fake one in its place. | Sneaking, Spellcasting (Invisibility) | Aldric's trust |
+| 4L.5 | **Lightforged** | Enchanter Vale | Brann won't work for you any more. Forge your own **Lightforged** weapon at the undercroft forge, quenched in a filled soul gem. | Smithing, Smelting, Enchanting | Lightforged weapon |
+| 4L.6 | **The Tonic Trade** | Keeper Aldric | Moss has quit brewing Tithe tonics. Take over the recipe and supply the Lighthall with 50. | Alchemy, Foraging | Tonic profits (coins every day) |
+| 4L.7 | **Corvane's Hunt** | Warden Corvane | Hunt an Ashbound band through the Thornwood. | Hunting, fighting | Corvane's lantern |
+| 4L.8 | **The Conduits** | Warden Halbrecht | Build soul stone conduits that carry life from the Greyspine veins to the Lighthall. | Mining, Smithing | Halbrecht's seal |
+| 4L.9 | **The Gem Fleet** | Warden Merrow | Escort a ship of filled soul gems across the Saltmere islands. The Ashbound attack at sea. | Sailing, fighting | Merrow's seal |
+| 4L.10 | **Ashka's Purge** | Warden Ashka | Raid the Cinders (private copy). Sable escapes, swearing to stop you. | Fighting, party recommended | Ashka's seal |
+| 4L.11 | **Rhys** | Warden Ashka | Rhys is cornered. **Choice:** let him go, or drain what little he has. Draining him gives you power; letting him go gives you a Memory Echo, and Rhys returns in the finale. | A choice | Either a power boost or 🧩 *Echo: Rhys's first day* |
+| 4L.12 | **The Frozen Vault** | Enchanter Vale | Travel to Frostfell, thaw the very first shrine, and claim the frozen sparks inside it for the Lighthall. | Fighting, Spellcasting (fire), surviving the cold | Frostfell seal |
+| 4L.13 | **Maren's Last Words** | Old Maren | Maren asks to see you, once. She doesn't shout. She tells you she was the first Kindled, and that she hoped you'd be the one to break it. Then she turns away. | Talking | 🧩 *Echo: Maren cuts her thread* |
+| 4L.14 | **The Sanctum** | Enchanter Vale | Take your seat in the Sanctum in the Hollow Heart, with the four Lightwardens. | Talking | Sanctum access |
+| 4L.15 | **The Wellspring** | Enchanter Vale | 🎬 See the Wellspring: a lake of light with thousands of threads rising from it. Vael shows you how to **turn your thread around**, so it carries life to you instead of from you. | A story scene | — |
+| 4L.16 | **Sable's Raid** (final boss) | — | Sable leads an Ashbound raid on the Wellspring to stop your ascension. Fight Sable and her champions (and Rhys, if you spared him). Party recommended. | Everything | Sable is driven off (but not forever) |
+| 4L.17 | **The Gift** | Vael | 🎬 Your thread is turned. Your eyes glow grey-gold. **You are Undying.** | A story scene | **Undying** title, Radiant mantle |
+| 4L.18 | **Lightsworn** | The High Keeper | Vael sends you to the **Sundered Crown**, where the Ashbound are digging for ancient magic. "They want to grow a new Wellspring. We will take the old one's crown." | Talking | Lightkeeper rank: **Lightwarden**, the endgame opens |
+
+---
+
+## Endgame: The Sundered Crown
 
 *Lv 70+. Never ends.*
 
-You're free, and the Lightkeepers are still there for everyone else. The
-endgame is a long war against them, built from **repeatable** content, so it
-works for players at any point and never changes the shared world.
+Both paths end in the same place: the **Sundered Crown**, the shattered capital
+of the old kingdom of Aurel, in a great crater between the Barrens and
+Frostfell. The Sundering War broke it open, and raw magic from the Wellspring
+still leaks up through the ruins. **Both factions are searching it for
+ancient magic**:
 
-### Ashbound standing
+- **The Lightkeepers** want the **Crown of Aurel**, which could bind the
+  Wellspring to them forever.
+- **The Ashbound** want the **Aurel Seed**, which could one day grow a new,
+  clean Wellspring.
 
-You earn standing with the Ashbound from endgame activities. Each rank unlocks
-rewards: the **Flamebreaker** gear set, hearth upgrades, mounts or boats, and
-titles.
+They're digging in the same ruins for the same relics, so they fight over
+every one.
 
-| Rank | Unlocks |
-|---|---|
-| Ally (Act 3) | The Cinders camp, its shops |
-| Unbound (Act 4) | Hearths as respawn points |
-| Ashsworn (end of Act 4) | Endgame activities, Ashbound weekly contracts |
-| Flamebreaker | Flamebreaker armor, your own hearth anywhere |
-| Wardenbane | Top title, Lightwarden trophy weapons |
+### A PvPvE zone that works with few players
+
+The Crown is **PvPvE**: players fight monsters, the other faction's NPCs,
+**and** the other faction's players. It's built so it still works if the game
+is small:
+
+- **NPC armies fill in.** Lightkeeper patrols and Ashbound squads roam the
+  Crown, capture sites and fight each other and enemy players. If no enemy
+  players are online, every objective still has someone defending it.
+- **PvP only happens inside the Crown.** Towns, the story and every other
+  region stay safe.
+- **Each faction has a safe camp** inside the Crown (a bank, a forge, a
+  respawn point).
+- **Protection for newcomers**: players far below your level can't be attacked
+  (for example, more than 10 levels lower).
+- **Dying in the Crown** drops part of the special materials you're carrying
+  (never your gear). Bank them at your camp to keep them safe. Players who
+  defeat you can pick them up.
+- **The Crown is the one place that changes.** Who holds each relic site shifts
+  all the time and resets every few hours. Everywhere else, the world stays
+  the same for everyone.
+
+### Areas
+
+| Area | Lv | What's there |
+|---|---|---|
+| **The Outer Ruins** | 70 to 80 | Mostly monsters, a few NPC patrols. Good for gathering. |
+| **The Shattered Streets** | 80 to 90 | Relic sites both factions fight over. Most of the PvP happens here. |
+| **The Crown Vault** | 90+ | The heart of the ruins. Relic surges and the world boss. |
+
+### Special materials (only in the Crown)
+
+| Material | Skill | Used for |
+|---|---|---|
+| **Aurelite ore** | Mining | A new metal tier above mithril: Aurelite tools, weapons and armor |
+| **Crownwood** | Woodcutting | Gold-grained trees: the best handles, bows and staffs |
+| **Wellglass** | Mining or Foraging | Crystals where the Wellspring leaks: the best soul gems and enchants |
+| **Glimmerfin** | Fishing | Glowing fish in the magic pools: the best food and potion ingredients |
+| **Sunbloom and Ghostcap** | Foraging (day / night) | Relic herbs for the strongest potions |
+| **Primeval hide** | Hunting | Hides from the Crown's ancient beasts: the best leather armor |
+| **Relic fragments** | Any (from relic sites) | Faction rank, relic spells and relic enchants |
+
+Gear made from these comes in **two versions**: Lightforged (Lightkeepers) and
+Rootbound (Ashbound). Same strength, different looks and bonuses.
+
+### Ancient magic
+
+Relic sites hold pieces of Aurel's lost magic. Bringing them back to your
+faction unlocks:
+
+- **Relic spells**: new spell books, for example a Wellspring lance, a
+  relic ward, or a short teleport.
+- **Relic enchants** for Aurelite gear.
+- **Chapter updates**: each new story update follows the hunt for the Crown
+  and the Seed a little further.
+
+### Faction ranks and their buffs
+
+Each faction has ranks you climb in the endgame. Each rank gives a buff. The
+**Lightkeepers' buffs come from stolen life force**: strong, fast, focused on
+fighting, with a cost. The **Ashbound's buffs are the land's gifts, as it
+should be**: steadier, focused on lasting, gathering and helping others.
+
+**Lightkeepers: Stolen Light**
+
+| Rank | When | Buff |
+|---|---|---|
+| Ember | Prologue | Lantern's glow: see clearly at night |
+| Flame | Act 1 | Siphon: heal 3% of the damage you deal |
+| Blaze | Act 2 | Tithe of the Fallen: +10% XP from monsters you defeat |
+| Radiant | Act 2 | Borrowed Breath: once an hour, survive a killing blow with 1 health |
+| Lightwarden | End of Act 4 | Harvest: Soul trap fills gems twice as fast, relic spells hit 10% harder |
+| Undying | Endgame | Radiant Rebirth: once every 30 minutes, come back where you fell |
+
+**The cost:** the grass turns grey where you walk, animals flee from you, and
+the Rooted don't quite trust you (Renown rises 10% slower, shops charge you a
+little more).
+
+**Ashbound: The Land's Gift**
+
+| Rank | When | Buff |
+|---|---|---|
+| Ally | Act 3 | Hearthwarmth: health comes back faster near any campfire or hearth |
+| Unbound | Act 4 | Free of the shrines: no Soul Debt, respawn at hearths |
+| Ashsworn | End of Act 4 | Rootstrength: +5% max health, and slow healing while standing on living ground |
+| Rootsworn | Endgame | Bountiful: +10% gathering, crops grow 10% faster |
+| Wellkeeper | Endgame | Greenmend: your heals and potions also heal nearby party members by a quarter |
+| Heartwarden | Endgame | The Land Answers: once an hour, roots hold every enemy around you for 4 seconds |
+
+**The bonus:** flowers bloom where you walk, animals don't run from you, and
+the Rooted love you (Renown rises 10% faster).
+
+My suggestion: the gathering and utility buffs work everywhere, and the combat
+buffs are strongest inside the Crown, so the two sides stay balanced against
+each other.
 
 ### Repeatable activities
 
-| Activity | What you do | Skills used | How often |
-|---|---|---|---|
-| **Sever the Conduits** | Find hidden soul stone pipes that carry tithe to the Lighthall and break them. | Mining, Spellcasting | Daily |
-| **Free the Sparks** | Ambush Lightkeeper wagons carrying filled soul gems, and release the sparks inside. | Fighting, Soul trap | Daily |
-| **Smuggler's Run** | Carry supplies to Ashbound camps without being caught. | Trading, sneaking | Daily |
-| **Warn a Hero** | NPC Kindled heroes are about to be "honoured". Get them out of town quietly. | Talking, sneaking | Weekly |
-| **Raid a Lightshrine** | Group raid on one region's great shrine (private copy) against its Lightwarden, who has re-formed. | Fighting, party | Weekly, rotating regions |
-| **Vael's Shade** | The big raid: fight Vael again at the Wellspring. Harder each time. | Everything, party | Weekly |
-| **Ashbound contracts** | The Ashbound board, like the bounty board but for the war. | Any | Always |
+| Ashbound | Lightkeepers | How often |
+|---|---|---|
+| **Sever the Conduits**: break pipes carrying tithe to the Lighthall | **Gather the Tithe**: collect filled soul gems from the shrines | Daily |
+| **Free the Sparks**: ambush soul gem wagons and release the sparks | **Guard the Wagons**: get soul gem wagons through safely | Daily |
+| **Smuggler's Run**: carry supplies to Ashbound camps | **Hunt the Hearths**: find and put out hidden Ashbound hearths (NPC camps) | Daily |
+| **Warn a Hero**: get an NPC Kindled out before they're "honoured" | **Recruit a Hero**: bring promising NPC Kindled to the Lighthall | Weekly |
+| **Raid a Lightshrine**: group raid on a re-formed Lightwarden | **Raid the Cinders**: group raid on an Ashbound stronghold | Weekly |
+| **Vael's Shade**: the big raid against Vael at the Wellspring | **Sable's Stand**: the big raid against Sable and her champions | Weekly |
+| **Relic sites** in the Crown | **Relic sites** in the Crown | Always |
+| **The Colossus**: Aurel's ancient guardian wakes in the Crown Vault, and both factions fight it (and each other) for its relic | Same | Weekly |
 
 ### Collections
 
 - **Memory Echoes**: the full journal of the true history (about 40 echoes).
-- **The Ledger**: find and free the sparks of every drained champion named in
-  the Tithe ledger.
-- **Freed heroes**: NPC Kindled you've saved start turning up at the Cinders.
+- **The Ledger**: find every drained champion named in the Tithe ledger
+  (Ashbound free their sparks, Lightkeepers claim them).
+- **Relics of Aurel**: a museum at your faction's camp that fills up as you
+  find relics.
 
 ---
 
@@ -278,17 +435,21 @@ titles.
 What the quest system needs beyond what's built today:
 
 - **New step types**: deliver an item, reach a place, go to a place at night,
-  cast a spell on something, a choice between two options, a private scene.
-- **Per-player flags** for story choices (did you report Tam?) and NPC
-  attitudes (what the Lightkeepers say to you).
+  cast a spell on something, a choice between options, a private scene.
+- **Per-player flags** for story choices (your faction, did you report Tam,
+  did you spare Rhys) and NPC attitudes.
 - **Private copies** (instances) of a few places for 🎬 scenes and boss fights.
-- **Soul Debt**: Tithe marks on death, the XP split, and the Ashguard and
-  Unbound rule changes (see STORY.md section 7).
-- **Respawn choice**: Lightshrines, then Ashbound hearths.
-- **Factions**: Lightkeeper rank and Ashbound standing tracks.
+- **Soul Debt**: Tithe marks on death, the XP split, and the Ashguard,
+  Unbound and Undying rule changes (see STORY.md section 7).
+- **Respawn choice**: shrines, then hearths (Ashbound) or instant rebirth
+  (Lightkeepers).
+- **Factions**: Lightkeeper rank and Ashbound standing tracks, with buffs.
+- **The Sundered Crown**: PvP flagging inside the zone only, NPC armies,
+  relic sites that change hands, carried-material drops on death.
 - **The journal** for Memory Echoes.
 
-A sensible order: **Act 1 can start in today's 2D game** (it's all in
-Heartvale and uses existing skills), along with renaming the bandits to the
-Ashbound and adding Keeper Aldric and the Lighthall. Acts 2 to 4 need the new
-regions, so they fit best in Version 1.0.
+A sensible order: **the Prologue and Act 1 can start in today's 2D game**
+(they're all in Heartvale and use existing skills), along with adding the
+Lighthall, Keeper Aldric and Sister Celene, and renaming the bandits to the
+Ashbound. Acts 2 to 4 and the Crown need the new regions, so they fit best in
+Version 1.0.

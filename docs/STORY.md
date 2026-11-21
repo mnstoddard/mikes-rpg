@@ -18,9 +18,17 @@ Nothing here is built yet. Change anything you like.
 - **Dying costs you:** the shrines are corrupted. Every death leaves you with
   **Soul Debt**, and part of the XP you earn goes to the shrine until it's paid
   (section 7).
-- **The ending is personal:** you can't cleanse the whole shrine network. You
-  break **your own** spark free, then keep fighting the Lightkeepers as the
-  endgame.
+- **You start inside the Lightkeepers' home.** You wake at the Heart Shrine in
+  the middle of their great temple, the Lighthall, and the Prologue is your
+  introduction to them.
+- **You choose a side.** At the end of Act 3 you join the Ashbound (break your
+  thread and fight the harvest) or the Lightkeepers (become Undying yourself).
+  You can't cleanse the whole shrine network either way.
+- **The endgame is a PvPvE zone**, the **Sundered Crown**, where both sides hunt
+  for ancient magic and special materials. NPC armies fill in, so it works
+  even with few players.
+- **Faction ranks give buffs**: the Lightkeepers' come from stolen life force,
+  the Ashbound's are the land's gifts, as it should be.
 - **The world stays the same for everyone.** Story progress is per player, so
   a new hero and a veteran can stand in the same town square.
 
@@ -32,8 +40,9 @@ The full quest line, act by act, is in **[QUESTLINE.md](QUESTLINE.md)**.
 
 At the heart of the world lies the **Wellspring**, an ancient spring of life
 force that keeps every field green and every creature alive. It is failing, and
-the land is slowly **Withering**. You wake at a stone shrine as a grown adult
-with no memories, no family and no past: one of the **Kindled**, a person grown
+the land is slowly **Withering**. You wake at the Heart Shrine, in the middle of
+the Lightkeepers' great white temple, as a grown adult with no memories, no
+family and no past: one of the **Kindled**, a person grown
 from the land's own life. There are hundreds of you. A kindly order called the
 **Lightkeepers** welcomes you, tends the shrines that bring you back when you
 fall, and cheers you on to grow strong and save the land. The townsfolk adore
@@ -61,13 +70,14 @@ Lightkeepers' greatest temple.
 
 | Region | Land type | What's there | Rough levels |
 |---|---|---|---|
-| **Heartvale** | Green valley, farms, rivers | The starting town, Trainer Row, the farm, the Heart Shrine and the Lighthall | 1 to 20 |
+| **Heartvale** | Green valley, farms, rivers | The starting town, Trainer Row, the farm, and at its centre the **Lighthall**, the Lightkeepers' temple built around the Heart Shrine | 1 to 20 |
 | **Thornwood** | Deep, dark forest | The Dark Forest, Wolf Hollow, spiders, boars, the Graveyard | 15 to 30 |
 | **Greyspine Peaks** | Mountains and caves, snow at the top | The quarry, the Crystal Cave, goblin tunnels, soul stone veins | 25 to 40 |
 | **Saltmere Coast** | Beaches, cliffs, marsh, small islands offshore | The harbour town of Saltmere, the best fishing, the Guild's sea tower | 35 to 50 |
 | **The Ashen Barrens** | Dead, dusty badlands | Where the Withering began. Ruins of the old kingdom of **Aurel**. The Ashbound's hidden camp | 45 to 60 |
 | **Frostfell** | Frozen tundra and ice | The oldest shrine of all, frozen solid. Ancient beasts | 55 to 70 |
 | **The Hollow Heart** | A cavern of light under the mountains | The Wellspring, and the Lightkeepers' Sanctum. The end of the main story | 65+ |
+| **The Sundered Crown** | A great crater of broken ruins, between the Barrens and Frostfell | The shattered capital of Aurel, leaking raw magic. The **PvPvE endgame zone** | 70+ |
 
 The islands from the 3D look test become the **Saltmere Coast**, a stretch of
 little islands you can sail between.
@@ -85,7 +95,11 @@ stays withered. What changes is **your** story:
 - **Private story scenes.** Big moments like the Ceremony happen in a private
   copy of the place, just for you (and your party), so they never change the
   shared world.
-- **Your spark.** Your Soul Debt rules change as you break free.
+- **Your spark.** Your Soul Debt rules change as the story goes on.
+
+The one exception is the **Sundered Crown**, the endgame zone: who holds each
+relic site there changes all the time, because the two factions are always
+fighting over it.
 
 ---
 
@@ -106,6 +120,8 @@ stays withered. What changes is **your** story:
 - **Enchanter Vale**: the gentle enchanter at the Mages' Guild, who teaches you
   to use soul gems. **Secretly Vael**, the High Keeper and leader of the
   Undying, centuries old.
+- **The High Keeper**: the hooded head of the order, who only speaks from
+  inside the Heart Shrine's light. (It's Vael.)
 - **Keeper Aldric**: the warm, cheerful Lightkeeper who welcomes every new hero,
   runs the Lighthall and hands out Lightkeeper ranks. Undying.
 - **Sister Celene**: the shrine healer who blesses heroes. She's Rooted and
@@ -129,7 +145,7 @@ stays withered. What changes is **your** story:
 
 | Character | Their role in the story |
 |---|---|
-| **Old Maren** | The very **first Kindled**, made by Vael during the old war. She learned what the shrines do and **cut her own thread**, which made her mortal: that's why she grew old. She keeps the Heart Shrine company so she can quietly warn the heroes who are ready to hear it. Secretly helps the Ashbound. |
+| **Old Maren** | The very **first Kindled**, made by Vael during the old war. She learned what the shrines do and **cut her own thread**, which made her mortal: that's why she grew old. She sweeps the steps of the Heart Shrine in the Lighthall, where the Lightkeepers think she's harmless, so she can meet every new hero and quietly warn the ones who are ready to hear it. Secretly helps the Ashbound. |
 | **Captain Bryn** | Captain of the Heartvale watch. Puts bounties on the Ashbound because the Lightkeepers ask him to. Later, he has to decide whose side he's on. |
 | **Shopkeeper Tam** | A trader whose routes are closing as the land dies. Smuggles supplies to the Ashbound, for a price. |
 | **Forester Holt** | Notices the trees around the shrines dying first. |
@@ -154,16 +170,19 @@ stays withered. What changes is **your** story:
   and powers enchanting. The Lightkeepers buy it up by the cartload.
 - **Soul trap** catches a spark as it dies. Late in the story you use it to
   catch sparks being pulled toward the Undying, and set them free.
-- **Lightkeeper ranks** (Ember, Flame, Blaze, Radiant) are a reward track in
-  Acts 1 and 2: titles, gear and blessings. They feel great, and they're
-  exactly how the Lightkeepers fatten you up.
-- **Ashbound standing** (Suspect, Ally, Unbound, Ashsworn, Flamebreaker)
-  replaces it after Act 3, with its own rewards.
+- **Lightkeeper ranks** (Ember, Flame, Blaze, Radiant, then Lightwarden and
+  Undying if you join them) are a reward track from the Prologue on: titles,
+  gear, blessings and **buffs from stolen life force**. They feel great, and
+  they're exactly how the Lightkeepers fatten you up.
+- **Ashbound standing** (Ally, Unbound, Ashsworn, Rootsworn, Wellkeeper,
+  Heartwarden) starts in Act 3, with **buffs that are the land's gifts**.
+  The full buff lists are in [QUESTLINE.md](QUESTLINE.md#faction-ranks-and-their-buffs).
 - **Memory Echoes**: rare finds from bosses, ruins and shrines. Each is a short
   scene from a hero who came before. Collected in a journal, they slowly tell
   the true history.
-- **Renown** is the trust of the Rooted. It doesn't drop when you turn against
-  the Lightkeepers, because you never fight them in town.
+- **Renown** is the trust of the Rooted. Ashbound players earn it a little
+  faster; Lightkeeper players a little slower, because the Rooted sense
+  something wrong about them.
 - **Every skill matters to the story.** Quests use gathering, crafting,
   magic and fighting, so a crafter can follow the story too.
 
@@ -173,16 +192,18 @@ stays withered. What changes is **your** story:
 
 The shrines are corrupted, so dying costs you. **Recommended: Soul Debt.**
 
-- **Before the Oath** (the first hour of play), dying is free. New players
+- **Before the Oath** (the end of the Prologue), dying is free. New players
   aren't punished while learning.
-- **After you take the Oath of the Flame** (Act 1), each death adds one
+- **After you take the Oath of the Flame** (end of the Prologue), each death adds one
   **Tithe mark** (shown as a little gold chain by your health bar), up to 5.
 - While you have any marks, **20% of the XP you earn goes to the shrine**
   instead of to you. Each mark clears after you've earned a set amount of XP
   (more for higher-level characters).
 - You never lose levels or items. Debt only slows you down for a while.
 - **After the Ashguard charm** (Act 3): marks drop to 10% and a maximum of 3.
-- **After you break free** (Act 4): no more marks, ever.
+- **After you break free** (Ashbound path, Act 4): no more marks, ever.
+- **After your First Harvest** (Lightkeeper path, Act 4): no more marks
+  either. You take life now instead of giving it.
 
 Players feel the story in their own stats: the moment you break free is a real,
 lasting reward.
@@ -225,27 +246,43 @@ everyone, the light pours out of him, and he drops to **level 1**, grey and
 shaking. Keeper Aldric announces, sadly, that "his spark was flawed". You were
 next on the list.
 
-### The ending
+### The choice and the ending
 
 You **can't cleanse the shrine network**: it runs all the way down to the
-Wellspring, and Vael's own spark is woven through every shrine. What you can do
-is **break your own thread**, which takes a long journey in Act 4. Once you're
-free, the endgame is a long war against the Lightkeepers: raiding their
-sanctums, freeing captured sparks, and bringing down the Lightwardens again and
-again. Vael can be beaten, but never truly killed, because he re-forms in the
-shrines just like the heroes he feeds on.
+Wellspring, and Vael's own spark is woven through every shrine. At the end of
+Act 3, both sides tell you their story, and **you choose**:
+
+- **The Ashbound** (the good side): break your own thread in a long journey,
+  then fight the harvest. Vael can be beaten, but never truly killed, because
+  he re-forms in the shrines just like the heroes he feeds on.
+- **The Lightkeepers** (the bad side): Vael reveals himself, and teaches you
+  to turn your thread around so it carries life **to** you. You become
+  Undying. Sable can be driven off, but never stopped.
+
+Both paths end at the Wellspring and lead to the same endgame from opposite
+sides: the **Sundered Crown**, where both factions race to find the ancient
+magic of Aurel. The Lightkeepers want the **Crown of Aurel** to bind the
+Wellspring forever. The Ashbound want the **Aurel Seed** to grow a new, clean
+one.
 
 ---
 
 ## 9. Still to decide
 
-1. **Names**: Elderra, Heartvale, the Lightkeepers, the Ashbound/Unbound,
-   Vael/Vale, Aldric, Celene, Sable, Rhys, the Lightwardens. Keep, or rename?
+1. **Names**: Elderra, Heartvale, the Lighthall, the Lightkeepers, the
+   Ashbound, Vael/Vale, Aldric, Celene, Sable, Rhys, the Sundered Crown,
+   Aurelite. Keep, or rename?
 2. **Soul Debt numbers**: 20% for how long? Or Mike's 10% XP loss as a
    hardcore option?
-3. **Should anything let players join the Lightkeepers for real**, for example
-   a dark path later on? (Not planned for now.)
-4. **Private story scenes**: OK to build the Ceremony and the Sanctum as
-   private copies, so the shared world never changes?
-5. **What can go into the 2D game now?** For example: rename the bandits to
-   the Ashbound, add Keeper Aldric and the Lighthall, and start Act 1's quests.
+3. **When you choose a side**: at the end of Act 3, with two different Act 4s
+   (recommended: more replay value, but more to build), or at the very end of
+   the story, with one shared Act 4 (less to build)?
+4. **Switching sides later**: never, or once, through a long quest that resets
+   your faction rank?
+5. **How harsh the Crown is**: drop some carried materials on death
+   (recommended), drop nothing, or drop more for bigger rewards?
+6. **Where the buffs work**: everywhere, or combat buffs strongest only inside
+   the Crown (recommended, to keep the sides balanced)?
+7. **What can go into the 2D game now?** For example: the Lighthall at the
+   centre of town, Keeper Aldric and Sister Celene, the new Prologue quests,
+   and renaming the bandits to the Ashbound.
