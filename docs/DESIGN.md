@@ -279,6 +279,38 @@ Smithing also does what a Jewelcrafting skill would have done. At the anvil
 - **Set gems** into rings and amulets.
 - **Shape soul gems** from raw soul stone.
 
+**How stage 7 was built:**
+
+- **The Crystal Cave** is past the spider cave (walk through it and out its
+  east side). It has amethyst (Mining 10), topaz (20), soul stone (25), emerald
+  (30), sapphire (40) and ruby (50) rocks, plus platinum (75) and iridium (85)
+  ore deep inside. Cave spiders can follow you in.
+- **Gem sizes**: rolled from your Mining level, the rock's level and your
+  Mastery of that rock, roughly 0.1 to 10 ct, with a 3% chance of a big one
+  ("💎 A big one!").
+- **Cutting** happens at the anvil (Cut gems tab). Amethyst needs Smithing 5,
+  topaz 10, emerald 15, sapphire 20, ruby 25 and soul stone 10. A cut can be
+  flawless (keeps all of it), good (85%), clumsy (60%) or shatter (gone). Higher
+  Smithing means better cuts. Soul stone always cuts cleanly into an empty soul
+  gem of the same size.
+- **Rings** (1 bar) and **amulets** (2 bars) are made at the anvil in bronze
+  (Smithing 5), silver (15), gold (25), platinum (45) or iridium (65), with or
+  without a cut gem. A failed try loses the bars but keeps the gem. Better metal
+  multiplies the gem's bonus (bronze x1 up to iridium x4) and an amulet gives
+  1.5 times a ring.
+- **Gem bonuses**: ruby gives max health, sapphire max mana, emerald max
+  stamina, topaz hit chance and amethyst armor. Bigger gems give more.
+- **You wear 2 rings and 1 amulet** (the Jewelry row under Gear). New max
+  health from a ring starts empty and fills up over time, so swapping rings
+  can't heal you.
+- **Bars**: silver, gold, platinum and iridium bars are smelted at the furnace
+  (Smelting 15, 25, 45 and 65).
+- **Coins**: bronze, silver, gold, platinum and iridium, each worth 100 of the
+  one below. Platinum and iridium only show once you have some.
+- **Selling**: gems sell well at Tam's. A cut gem is worth about 3 times a rough
+  one, and price climbs faster than size.
+- **Not built yet**: inlays (they come with Enchanting in stage 9).
+
 ---
 
 ## 5. Wisdom: magic
@@ -649,7 +681,7 @@ quest chapter as it goes, so the main quest grows with the game.
 | **4. Wear and repair** ✅ built | Worn-out gear becomes Broken instead of vanishing, armor wears from damage, the paid Repairer | Needed before enchanting |
 | **5. Foraging, Hunting and new monsters** ✅ built | Shovel, forage spots, ingredients, night herbs; slimes, bats, boars, beetles, spiders and night monsters; kill XP split by damage share; Hunting drop bonus | Ingredients for potions and crafting |
 | **6. Alchemy** ✅ built | Alchemy table, vials, the potion list | Uses stage 5's ingredients |
-| **7. Gems and soul stone** | Gem and soul stone rocks with continuous sizes, and Smithing's gem cutting, rings, amulets, inlays and soul gems | Needed for enchanting |
+| **7. Gems and soul stone** ✅ built | Gem and soul stone rocks with continuous sizes, and Smithing's gem cutting, rings, amulets, inlays and soul gems | Needed for enchanting |
 | **8. Spellcasting** | Spell bar, new spell list, learning by level and books, Invisibility, Soul trap with the glow and blink, filling soul gems | Needed for enchanting |
 | **9. Enchanting** | Enchanting altar, staffs, armor and tool enchants, the Mend spell, Enchanting tree unlocks | Needs stages 4, 7 and 8 |
 | **10. More Handicraft** | Cloth and leather armor, bows, arrows and plain staffs, all in Handicraft | Uses hides, silk and logs |

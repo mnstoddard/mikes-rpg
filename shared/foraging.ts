@@ -4,10 +4,12 @@ import type { SkillId } from "./disciplines";
 import type { ItemId } from "./items";
 import { ItemMasteryXp, masteryIn as masteryLevelIn, masterySpeed } from "./mastery";
 import { NO_TOOL_SLOWDOWN } from "./tools";
+import type { GemId } from "./jewelry";
 
 export type ResourceId =
   | "pine" | "oak" | "birch" | "maple" | "yew" | "ironwood" | "elderwood"
-  | "stone" | "copper" | "tin" | "iron" | "coal" | "silver" | "gold" | "mithril"
+  | "stone" | "copper" | "tin" | "iron" | "coal" | "silver" | "gold" | "mithril" | "platinum" | "iridium"
+  | "amethyst" | "topaz" | "emerald" | "sapphire" | "ruby" | "soulstone"
   | "minnow" | "trout" | "perch" | "salmon" | "pike" | "tuna" | "swordfish" | "eel"
   | "dig";
 
@@ -27,6 +29,8 @@ export interface ResourceDef {
   respawnTicks: number;
   /** Colour used to draw it on the map (leaves, ore flecks, ripples). */
   color: number;
+  /** Gem rocks and soul stone veins: what you get is rolled with a size (shared/jewelry.ts). */
+  gem?: GemId | "soul";
 }
 
 // Better types: need a higher skill level, are slower, give more XP and sell for more (prices in items.ts).
@@ -49,6 +53,15 @@ export const RESOURCES: Record<ResourceId, ResourceDef> = {
   silver:  { skill: "mining", node: "Silver rock",  item: "silver_ore",  level: 40, seconds: 9,   xp: 20, respawnTicks: 70,  color: 0xf5f7fa },
   gold:    { skill: "mining", node: "Gold rock",    item: "gold_ore",    level: 55, seconds: 12,  xp: 30, respawnTicks: 90,  color: 0xf5c542 },
   mithril: { skill: "mining", node: "Mithril rock", item: "mithril_ore", level: 70, seconds: 15,  xp: 45, respawnTicks: 120, color: 0x3fa9f5 },
+  // The crystal cave (through the spider cave past the quarry).
+  platinum:  { skill: "mining", node: "Platinum rock",  item: "platinum_ore", level: 75, seconds: 16, xp: 55, respawnTicks: 140, color: 0xe5e4e2 },
+  iridium:   { skill: "mining", node: "Iridium rock",   item: "iridium_ore",  level: 85, seconds: 18, xp: 70, respawnTicks: 160, color: 0xb18cff },
+  amethyst:  { skill: "mining", node: "Amethyst rock",  item: "rough_amethyst_1", level: 10, seconds: 7,  xp: 8,  respawnTicks: 60,  color: 0x9b59b6, gem: "amethyst" },
+  topaz:     { skill: "mining", node: "Topaz rock",     item: "rough_topaz_1",    level: 20, seconds: 8,  xp: 12, respawnTicks: 70,  color: 0xf5b041, gem: "topaz" },
+  soulstone: { skill: "mining", node: "Soul stone vein", item: "soulstone_1",     level: 25, seconds: 9,  xp: 15, respawnTicks: 80,  color: 0x5dade2, gem: "soul" },
+  emerald:   { skill: "mining", node: "Emerald rock",   item: "rough_emerald_1",  level: 30, seconds: 9,  xp: 18, respawnTicks: 80,  color: 0x2ecc71, gem: "emerald" },
+  sapphire:  { skill: "mining", node: "Sapphire rock",  item: "rough_sapphire_1", level: 40, seconds: 11, xp: 25, respawnTicks: 95,  color: 0x2e5fd6, gem: "sapphire" },
+  ruby:      { skill: "mining", node: "Ruby rock",      item: "rough_ruby_1",     level: 50, seconds: 13, xp: 33, respawnTicks: 110, color: 0xe0245e, gem: "ruby" },
 
   // ---- Fishing (spots never run out) ----
   minnow:    { skill: "fishing", node: "Shallow water",  item: "minnow",    level: 1,  seconds: 6,    xp: 2,  respawnTicks: 0, color: 0xffffff },
@@ -102,7 +115,7 @@ export function forageXp(id: ResourceId): number {
 }
 
 /** Which type an item comes from (oak_logs -> oak). Dig patch finds aren't listed: what you dig up is rolled. */
-export const RESOURCE_FOR_ITEM = Object.fromEntries(RESOURCE_IDS.filter((id) => RESOURCES[id].skill !== "foraging").map((id) => [RESOURCES[id].item, id])) as Partial<Record<ItemId, ResourceId>>;
+export const RESOURCE_FOR_ITEM = Object.fromEntries(RESOURCE_IDS.filter((id) => RESOURCES[id].skill !== "foraging" && !RESOURCES[id].gem).map((id) => [RESOURCES[id].item, id])) as Partial<Record<ItemId, ResourceId>>;
 
 /** Your Mastery level in one type (Pine, Copper, Trout...). */
 export const masteryIn = (mastery: ItemMasteryXp, id: ResourceId) => masteryLevelIn(mastery, id);

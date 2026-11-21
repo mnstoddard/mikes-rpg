@@ -64,7 +64,7 @@ const smithAt = (p: BountyPlayer, m: Material) => skillAt(p, "smithing", MATERIA
 export function bountyChoices(p: BountyPlayer): ItemId[][] {
   const groups: ItemId[][] = [];
   // Gathering: every type you can chop, mine or catch.
-  for (const r of RESOURCE_IDS) if (RESOURCES[r].skill !== "foraging" && canGather(p, r)) groups.push([RESOURCES[r].item]);
+  for (const r of RESOURCE_IDS) if (RESOURCES[r].skill !== "foraging" && !RESOURCES[r].gem && canGather(p, r)) groups.push([RESOURCES[r].item]);
   // Smelting.
   for (const bar of BAR_IDS) if (canSmelt(p, bar)) groups.push([bar]);
   // Smithing: tools and weapons take a handle of wood you can chop; armor is all metal.

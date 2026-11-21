@@ -49,6 +49,10 @@ import { findSkill as skillInfo } from "../../shared/disciplines";
 import { formatMoney } from "../../shared/money";
 import { isNight } from "../../shared/daynight";
 import {
+  GemId, CUT_KEEPS, CUT_LEVEL, GEMS, JEWEL_BARS, JEWEL_METALS, JEWEL_SLOTS, JewelSlot, Jewels, carats, cutId, cutXp, describeBonus, emptyJewels, isJewelry, jewelBonus, jewelTotals,
+  parseGem, rollCut, rollGemSize, roughId, soulGemId, soulStoneId,
+} from "../../shared/jewelry";
+import {
   BUFFS, BUFF_IDS, Buffs, POTIONS, POTION_COOLDOWN_MS, POTION_TYPES, PotionId, PotionType, buffPower, describeEffect, isPotion, parsePotion, potionEffect,
 } from "../../shared/alchemy";
 import { huntingDrops, huntingXp } from "../../shared/combat";
@@ -140,6 +144,7 @@ export class Player extends Schema {
   healthTicks = 0; // ticks since health last came back on its own
   manaTicks = 0;
   bounties: Bounty[] = []; // the 5 jobs on this player's bounty board (filled the first time they look)
+  jewels: Jewels = emptyJewels(); // 2 rings and an amulet (shared/jewelry.ts)
   discovered: PotionType[] = []; // hidden potion recipes found by brewing them
   buffs: Buffs = {}; // potion buffs, with when each runs out (world clock)
   potionReadyAt = 0; // can't drink another potion until then (ms)
@@ -697,6 +702,7 @@ export class WorldRoom extends Room<WorldState> {
       client.send("combatmastery", p.combatMastery);
       client.send("tree", p.tree);
       client.send("discovered", p.discovered);
+      client.send("jewels", p.jewels);
       this.sendBuffs(client, p);
       this.fillBoard(p);
       this.sendBounties(client, p);
@@ -786,6 +792,71 @@ export class WorldRoom extends Room<WorldState> {
       const blocked = this.fightBlock(p);
       if (blocked && slot === "weapon") this.say(client, blocked);
       this.sendInventory(client, p);
+      this.saveSoon(p);
+    });
+
+    // Jewelry: put on a ring or amulet from the bag (2 ring fingers, 1 neck), or take one off.
+    this.onMessage("wearJewel", (client, msg: { slot: number }) => {
+      const p = this.state.players.get(client.sessionId);
+      if (!p || !Number.isInteger(msg?.slot)) return;
+      const item = p.inventory[msg.slot];
+      if (!isJewelry(item)) return;
+      const g = parseGem(item) as { type: "ring" | "amulet" };
+      const slot: JewelSlot = g.type === "amulet" ? "amulet" : !p.jewels.ring1 ? "ring1" : !p.jewels.ring2 ? "ring2" : "ring1";
+      const old = p.jewels[slot];
+      takeFromEntry(p, msg.slot, 1);
+      if (old) this.give(p, old, 1, null, true);
+      p.jewels[slot] = item;
+      this.say(client, `You put on the ${ITEMS[item].single}: ${describeBonus(jewelBonus(item))}.` + (old ? ` (You take off the ${ITEMS[old].single}.)` : ""));
+      this.jewelsChanged(client, p);
+    });
+    this.onMessage("removeJewel", (client, msg: { slot: string }) => {
+      const p = this.state.players.get(client.sessionId);
+      const slot = msg?.slot as JewelSlot;
+      if (!p || !JEWEL_SLOTS.includes(slot) || !p.jewels[slot]) return;
+      const item = p.jewels[slot]!;
+      if (roomFor(p, item) < 1) return this.say(client, "Your inventory is full.");
+      p.jewels[slot] = null;
+      this.give(p, item, 1, null, true);
+      this.say(client, `You take off the ${ITEMS[item].single}.`);
+      this.jewelsChanged(client, p);
+    });
+
+    // Cut a rough gem (or soul stone) at the anvil. It can go well or badly; Smithing helps.
+    this.onMessage("cut", (client, msg: { item: string }) => {
+      const p = this.state.players.get(client.sessionId);
+      const parsed = parseGem(msg?.item);
+      if (!p || !parsed || (parsed.kind !== "rough" && parsed.kind !== "soulstone")) return;
+      const g = parsed as { kind: "rough" | "soulstone"; gem: GemId; size: number };
+      const item = msg.item as ItemId;
+      if (!this.nearNpc(p, "anvil")) return this.say(client, "You need to be next to the anvil in Smith Brann's smithy.");
+      if (!isUnlocked(p.unlocked, "smithing")) return this.say(client, this.notTaught("smithing"));
+      const need = CUT_LEVEL[g.kind === "soulstone" ? "soul" : g.gem];
+      const level = levelForXp(p.skillXp.smithing);
+      if (level < need) return this.say(client, `You need Smithing level ${need} to cut that. (You're level ${level}.)`);
+      const slot = entriesInOrder(p).find((e) => p.inventory[e] === item && !p.locked[e]);
+      if (slot == null) return this.say(client, "You don't have that (unlocked) in your bag.");
+      if (!this.hasStamina(client, p, "smithing")) return;
+      takeFromEntry(p, slot, 1);
+      if (!treeRoll(p.tree, "smithing", "staminaSave")) this.useStamina(p, "smithing");
+      if (g.kind === "soulstone") {
+        // Soul stone always cuts cleanly: the gem is the stone's size.
+        this.give(p, soulGemId(g.size), 1, null, true);
+        this.say(client, `You cut the soul stone into an empty soul gem, ${carats(g.size)}.`);
+      } else {
+        const result = rollCut(level);
+        const size = Math.round(g.size * CUT_KEEPS[result]);
+        if (result === "shattered" || size < 1) {
+          this.say(client, `💥 The ${ITEMS[item].single.replace(/^rough /, "")} shatters under your chisel. It's gone.`);
+        } else {
+          this.give(p, cutId(g.gem, size), 1, null, true);
+          const how = { flawless: "A flawless cut! ✨", good: "A good cut.", clumsy: "A clumsy cut: you lose quite a bit of it." }[result];
+          this.say(client, `${how} You get ${aOr(ITEMS[cutId(g.gem, size)].single)}.`);
+        }
+      }
+      this.addSkillXp(p, client, "smithing", cutXp(g.size));
+      this.sendInventory(client, p);
+      this.sendStamina(client, p);
       this.saveSoon(p);
     });
 
@@ -1070,7 +1141,9 @@ export class WorldRoom extends Room<WorldState> {
 
     // Dig patches: what you turn up is rolled from what your Foraging level can find (moonpetal only at night).
     const find = skill === "foraging" ? rollForageFind(levelForXp(p.skillXp.foraging), isNight(worldNow())) : null;
-    const gotItem = find ? find.item : res.item;
+    // Gem rocks and soul stone veins: the size is rolled (bigger with Mining level and this rock's Mastery).
+    const size = res.gem ? rollGemSize(levelForXp(p.skillXp.mining), res.level, mastery) : 0;
+    const gotItem = find ? find.item : res.gem === "soul" ? soulStoneId(size) : res.gem ? roughId(res.gem, size) : res.item;
     const gotXp = find ? find.xp : res.xp;
     const got = ITEMS[gotItem];
     if (!this.give(p, gotItem)) {
@@ -1093,7 +1166,7 @@ export class WorldRoom extends Room<WorldState> {
       this.sendStamina(client, p);
       const GOT = {
         woodcutting: `You get some ${item.name.toLowerCase()}.`,
-        mining: `You mine some ${item.name.toLowerCase()}.`,
+        mining: res.gem ? `You mine ${aOr(got.single)}!${size >= 30 ? " 💎 A big one!" : ""}` : `You mine some ${item.name.toLowerCase()}.`,
         fishing: `You catch ${aOr(item.single)}!`,
         foraging: `You dig up ${aOr(got.single)}!` + (find?.night ? " 🌙 It only opens at night." : ""),
       };
@@ -1153,7 +1226,7 @@ export class WorldRoom extends Room<WorldState> {
     const worked = forced ? forced === "success" : Math.random() < chance;
     const xp = worked ? recipe.xp : failXp(recipe.xp);
     if (worked) this.give(p, recipe.output);
-    else if (recipe.skill === "alchemy" && recipe.inputs.includes("vial")) this.give(p, "vial"); // a spoiled brew leaves the vial
+    else for (const kept of recipe.keepOnFail ?? []) this.give(p, kept); // a spoiled brew leaves the vial; a botched ring, the gem
     // Hidden potion recipes: brewing one is how you find it.
     const brewed = worked ? parsePotion(recipe.output) : null;
     if (brewed && POTIONS[brewed.type].hidden && !p.discovered.includes(brewed.type)) {
@@ -1333,12 +1406,17 @@ export class WorldRoom extends Room<WorldState> {
 
   /** Max health: from your Strength level, plus the Defense tree's "Toughness". */
   private maxHpOf(p: Player) {
-    return maxHealth(p.levels.strength) + this.tree(p, "defense", "health");
+    return maxHealth(p.levels.strength) + this.tree(p, "defense", "health") + jewelTotals(p.jewels).health;
   }
 
   /** Max mana: from your Wisdom level. */
   private maxManaOf(p: Player) {
-    return maxMana(p.levels.wisdom);
+    return maxMana(p.levels.wisdom) + jewelTotals(p.jewels).mana;
+  }
+
+  /** Max stamina: from your Endurance level, plus emeralds. */
+  private maxStaminaOf(p: Player) {
+    return maxStamina(p.levels.endurance) + jewelTotals(p.jewels).stamina;
   }
 
   /** What you can carry: from your Dexterity level. */
@@ -1370,7 +1448,7 @@ export class WorldRoom extends Room<WorldState> {
     p.maxHp = this.maxHpOf(p);
     if (p.maxHp > oldHp) p.hp += p.maxHp - oldHp; // the new health comes filled
     p.hp = Math.min(p.hp, p.maxHp);
-    p.maxStamina = maxStamina(p.levels.endurance);
+    p.maxStamina = this.maxStaminaOf(p);
     if (p.maxStamina > oldStamina) p.stamina += p.maxStamina - oldStamina;
     p.stamina = Math.min(p.stamina, p.maxStamina);
     p.mana = Math.min(p.mana, this.maxManaOf(p));
@@ -1787,7 +1865,7 @@ export class WorldRoom extends Room<WorldState> {
     const style = a.style;
     const weaponM = combatMasteryIn(p.combatMastery, a.mastery);
     const monsterM = combatMasteryIn(p.combatMastery, m.kind);
-    const chance = hitChance(levelForXp(p.skillXp[style]), m.kind, a, weaponM, monsterM, this.tree(p, style, "accuracy"));
+    const chance = hitChance(levelForXp(p.skillXp[style]), m.kind, a, weaponM, monsterM, this.tree(p, style, "accuracy") + jewelTotals(p.jewels).accuracy / 100);
     const hit = Math.random() < chance;
     const max = maxHitWith(a, weaponM);
     // The skill tree's damage bonus: +5% is a 5% chance of +1 on a hit of 1, and so on.
@@ -1973,7 +2051,7 @@ export class WorldRoom extends Room<WorldState> {
   private monsterAttack(m: Monster, monsterId: string, p: Player, sessionId: string) {
     const def = MONSTERS[m.kind];
     const client = this.clients.getById(sessionId);
-    const chance = monsterHitChance(m.kind, levelForXp(p.skillXp.defense), armorPoints(p.gear), this.tree(p, "defense", "dodge"));
+    const chance = monsterHitChance(m.kind, levelForXp(p.skillXp.defense), armorPoints(p.gear) + jewelTotals(p.jewels).armor, this.tree(p, "defense", "dodge"));
     const hit = Math.random() < chance;
     const damage = hit ? 1 + Math.floor(Math.random() * def.maxHit) : 0;
     p.hp = Math.max(0, p.hp - damage);
@@ -2110,6 +2188,21 @@ export class WorldRoom extends Room<WorldState> {
   /** Health, mana and their maximums (only you see your mana). */
   private sendVitals(client: Client, p: Player) {
     client.send("vitals", { hp: p.hp, maxHp: p.maxHp, mana: p.mana, maxMana: this.maxManaOf(p) });
+  }
+
+  /** Rings or amulet changed: new stats, and tell the client. */
+  private jewelsChanged(client: Client, p: Player) {
+    // Extra max health or stamina from a jewel starts empty and fills up over
+    // time, so taking a ring off and on again can't heal you.
+    const hp = p.hp, stamina = p.stamina;
+    this.refreshStats(p, client);
+    p.hp = Math.min(hp, p.maxHp);
+    p.stamina = Math.min(stamina, p.maxStamina);
+    client.send("jewels", p.jewels);
+    this.sendInventory(client, p);
+    this.sendVitals(client, p);
+    this.sendStamina(client, p);
+    this.saveSoon(p);
   }
 
   private sendGear(client: Client, p: Player) {
@@ -2517,6 +2610,14 @@ export class WorldRoom extends Room<WorldState> {
             this.say(client, skill === "smelting" ? `You can now smelt ${m.name.toLowerCase()} bars!` : `You can now make ${m.name.toLowerCase()} tools!`);
           }
         }
+        if (skill === "smelting") {
+          for (const b of Object.values(JEWEL_BARS)) if (b.level > before && b.level <= after) this.say(client, `You can now smelt ${b.name.toLowerCase()}s!`);
+        } else if (skill === "smithing") {
+          for (const m of Object.values(JEWEL_METALS)) if (m.level > before && m.level <= after) this.say(client, `💍 You can now make ${m.name.toLowerCase()} rings and amulets!`);
+          for (const [g, lv] of Object.entries(CUT_LEVEL)) {
+            if (lv > before && lv <= after) this.say(client, g === "soul" ? "💎 You can now cut soul stone into soul gems!" : `💎 You can now cut ${GEMS[g as GemId].name.toLowerCase()}s!`);
+          }
+        }
       } else {
         for (const id of resourcesFor(skill)) {
           const r = RESOURCES[id];
@@ -2762,6 +2863,11 @@ export class WorldRoom extends Room<WorldState> {
     for (const id of ALL_COMBAT_MASTERY_IDS) if (ok(save.combatMastery?.[id])) p.combatMastery[id] = Math.floor(save.combatMastery![id]);
     if (SPELL_IDS.includes(save.spell as SpellId) && levelForXp(p.skillXp.magic) >= SPELLS[save.spell as SpellId].level) p.spell = save.spell as SpellId;
     p.tree = cleanRanks(save.tree);
+    p.jewels = emptyJewels();
+    for (const s of JEWEL_SLOTS) {
+      const j = save.jewels?.[s];
+      if (isJewelry(j) && (s === "amulet") === ((parseGem(j) as { type: string }).type === "amulet")) p.jewels[s] = j;
+    }
     p.discovered = POTION_TYPES.filter((t) => POTIONS[t].hidden && save.discovered?.includes(t));
     p.buffs = {};
     for (const id of BUFF_IDS) {
@@ -2771,7 +2877,7 @@ export class WorldRoom extends Room<WorldState> {
     // Skills taught, Discipline levels, and the stats they give.
     p.unlocked = unlockedSkills(p.quest);
     p.levels = disciplineLevels(p.skillXp, p.unlocked);
-    p.maxStamina = maxStamina(p.levels.endurance);
+    p.maxStamina = this.maxStaminaOf(p);
     p.stamina = Math.min(p.stamina, p.maxStamina);
     p.stepMs = this.stepMsOf(p);
     p.maxHp = this.maxHpOf(p);
@@ -2790,7 +2896,7 @@ export class WorldRoom extends Room<WorldState> {
     const dest = p.path.length ? p.path[p.path.length - 1] : p;
     const bag = cloneBag(p);
     compact(bag); // leave out unused entries
-    return { saveVersion: SAVE_VERSION, questRev: QUEST_REV, quest: structuredClone(p.quest), x: dest.x, y: dest.y, inventory: bag.inventory, slots: bag.slotOf, coins: p.coins, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: bag.durability, belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), hp: p.hp, hpAt: Date.now(), gear: { ...p.gear }, spell: p.spell, combatMastery: { ...p.combatMastery }, tree: { ...p.tree }, lockedSlots: bag.locked.flatMap((on, i) => (on ? [i] : [])), bounties: p.bounties.map((b) => ({ ...b })), tracked: p.tracked ?? undefined, color: p.color, counts: bag.counts, discovered: [...p.discovered], buffs: structuredClone(p.buffs), guild: this.guildSave(p) };
+    return { saveVersion: SAVE_VERSION, questRev: QUEST_REV, quest: structuredClone(p.quest), x: dest.x, y: dest.y, inventory: bag.inventory, slots: bag.slotOf, coins: p.coins, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: bag.durability, belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), hp: p.hp, hpAt: Date.now(), gear: { ...p.gear }, spell: p.spell, combatMastery: { ...p.combatMastery }, tree: { ...p.tree }, lockedSlots: bag.locked.flatMap((on, i) => (on ? [i] : [])), bounties: p.bounties.map((b) => ({ ...b })), tracked: p.tracked ?? undefined, color: p.color, counts: bag.counts, jewels: { ...p.jewels }, discovered: [...p.discovered], buffs: structuredClone(p.buffs), guild: this.guildSave(p) };
   }
 
   private async save(p: Player) {

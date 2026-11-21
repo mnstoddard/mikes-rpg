@@ -51,6 +51,7 @@ export interface SaveData {
   color?: number; // character colour, picked in Settings (one of shared/colors.ts)
   locked?: string[]; // old: item types that were locked; turned into lockedSlots when loaded
   counts?: number[]; // per entry: how many are in the stack (missing in older saves: 1 each)
+  jewels?: Record<string, string | null>; // rings and amulet worn, e.g. { ring1: "ring_gold_ruby_24", ring2: null, amulet: null }
   discovered?: string[]; // hidden potion recipes found by brewing them, e.g. ["restore"] (shared/alchemy.ts)
   buffs?: Record<string, { until: number; power: number }>; // potion buffs still running, e.g. { strength: { until: 1795..., power: 12 } }
   guild?: GuildSave; // the Mages' Guild: rank points, magic bounties and the enchanted chest

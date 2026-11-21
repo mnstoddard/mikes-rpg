@@ -68,7 +68,7 @@ export const NPCS: NpcDef[] = [
   },
   {
     id: "anvil", name: "Anvil", kind: "station", x: 31, y: 7, color: 0x555a60,
-    greeting: "Pick a tool, weapon or piece of armor to make at the anvil.",
+    greeting: "Pick a tool, weapon, armor or jewelry to make at the anvil, or cut a gem.",
   },
   // ---- Rook's workshop (in the square) ----
   {

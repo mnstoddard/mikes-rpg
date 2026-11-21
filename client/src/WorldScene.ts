@@ -25,12 +25,14 @@ import type { QuestView } from "../../shared/quests";
 import type { ShopId } from "../../shared/shops";
 import type { RepairJob } from "../../shared/repair";
 import type { Buffs, PotionType } from "../../shared/alchemy";
+import type { Jewels } from "../../shared/jewelry";
+import { renderJewels, setGemActions } from "./ui";
 import { NIGHT_DARKNESS, darkness, isNight, minutesUntilChange } from "../../shared/daynight";
 
 const TILE_COLORS: Record<Tile, number> = {
   grass: 0x4a8f3c, path: 0xb89b6a, water: 0x2d6fa3, tree: 0x2e5e22, rock: 0x7d7d7d, bridge: 0x8b5a2b,
   fence: 0x4a8f3c, gate: 0x9a8058, sign: 0x4a8f3c, wall: 0x4b3a6b, floor: 0x6d5a8e,
-  house: 0x7a4f2a, boards: 0xa47a4c, dig: 0x4a8f3c, cave: 0x3d3846, cavewall: 0x1f1b24,
+  house: 0x7a4f2a, boards: 0xa47a4c, dig: 0x4a8f3c, cave: 0x3d3846, cavewall: 0x1f1b24, crystal: 0x33405a,
 };
 /** The Dark Forest's ground is darker and bluer, so you can see where danger starts. */
 const DARK_COLORS: Partial<Record<Tile, number>> = { grass: 0x23432a, path: 0x6b5a42, fence: 0x23432a, gate: 0x6b5a42, dig: 0x23432a };
@@ -164,6 +166,12 @@ export class WorldScene extends Phaser.Scene {
     room.onMessage("tree", (ranks: TreeRanks) => renderTreeRanks(ranks));
     room.onMessage("discovered", (list: PotionType[]) => setDiscovered(list));
     room.onMessage("buffs", (b: Buffs) => { setBuffs(b); this.updateDaylight(); });
+    room.onMessage("jewels", (j: Jewels) => renderJewels(j));
+    setGemActions({
+      cut: (item) => room.send("cut", { item }),
+      wearJewel: (slot) => room.send("wearJewel", { slot }),
+      removeJewel: (slot) => room.send("removeJewel", { slot }),
+    });
     setQuestActions({ track: (bounty) => room.send("track", bounty == null ? {} : { bounty }) });
     setAccountActions({
       rename: (name) => room.send("rename", { name }),
@@ -331,7 +339,9 @@ export class WorldScene extends Phaser.Scene {
         const t = MAP[y][x];
         const px = x * TILE_SIZE, py = y * TILE_SIZE;
         // Grass underneath trees and rocks (dark forest floor in the danger zone).
-        const ground = t === "tree" || t === "rock" ? "grass" : t;
+        // (Rocks in the crystal cave sit on the cave floor.)
+        const node = t === "rock" ? nodeAt(x, y) : null;
+        const ground = node && (RESOURCES[node].gem || node === "platinum" || node === "iridium") ? "crystal" : t === "tree" || t === "rock" ? "grass" : t;
         const base = (isDanger(x, y) ? DARK_COLORS[ground] : undefined) ?? TILE_COLORS[ground];
         // Slight checkerboard shading so you can see the tile grid.
         g.fillStyle(base, (x + y) % 2 ? 1 : 0.92);
@@ -346,6 +356,11 @@ export class WorldScene extends Phaser.Scene {
           // Rough rock: a few lighter lumps.
           g.fillStyle(0x3a3442).fillCircle(px + 9, py + 10, 6).fillCircle(px + 22, py + 20, 7);
           g.fillStyle(0x4d4657, 0.8).fillCircle(px + 7, py + 8, 2.5).fillCircle(px + 20, py + 17, 3);
+        } else if (t === "crystal") {
+          // Little glowing crystals poking out of the floor.
+          const hue = [0x9b59b6, 0x5dade2, 0x48c9b0, 0xf5b041][(x * 5 + y * 3) % 4];
+          g.fillStyle(hue, 0.85).fillTriangle(px + 6, py + 26, px + 9, py + 16, px + 12, py + 26);
+          if ((x + y) % 2) g.fillStyle(0xd6eaf8, 0.7).fillTriangle(px + 20, py + 12, px + 23, py + 4, px + 25, py + 12);
         } else if (t === "cave") {
           // Pebbles on the cave floor, and a cobweb now and then.
           g.fillStyle(0x58516a, 0.9).fillCircle(px + 8, py + 24, 1.6).fillCircle(px + 24, py + 9, 1.3);
@@ -516,6 +531,11 @@ export class WorldScene extends Phaser.Scene {
     full.fillStyle(0x9a9a9a).fillEllipse(12, 14, 10, 6);
     if (type === "stone") {
       full.lineStyle(1, 0x5a5a5a).lineBetween(9, 20, 15, 17).lineBetween(18, 23, 23, 19);
+    } else if (RESOURCES[type].gem) {
+      // Gem rocks: crystals in the gem's colour growing out of the rock.
+      const c = RESOURCES[type].color;
+      full.fillStyle(c).fillTriangle(7, 22, 10, 6, 14, 22).fillTriangle(13, 22, 17, 3, 21, 22).fillTriangle(19, 23, 23, 11, 26, 23);
+      full.fillStyle(0xffffff, 0.55).fillTriangle(10, 9, 11, 18, 12, 18).fillTriangle(17, 6, 18, 17, 19, 17);
     } else {
       const fleck = RESOURCES[type].color;
       full.fillStyle(fleck).fillCircle(10, 19, 2.5).fillCircle(19, 15, 2).fillCircle(21, 22, 2.5).fillCircle(14, 23, 1.5);
