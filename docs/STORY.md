@@ -7,8 +7,11 @@ is dying**, and the story has to explain three things every MMO usually skips:
 2. **Why you come back to life at a shrine.**
 3. **Why your character has no past and no family.**
 
-Nothing here is built yet. Change anything you like. Section 8 has the
-**big twist options** to pick from.
+Nothing here is built yet. Change anything you like.
+
+**Decided:** the twist is **"You are the drain"** (section 8), with a bad
+faction of Kindled, **the Undying**, behind it. The goal of the story is to
+**restore the balance**, not to wipe out the Kindled.
 
 ---
 
@@ -17,7 +20,7 @@ Nothing here is built yet. Change anything you like. Section 8 has the
 At the heart of the world lies the **Wellspring**, an ancient spring of life
 force that keeps every field green, every river full and every creature alive.
 The Wellspring is failing, and the land is slowly **Withering** from the edges
-inwards. To save itself, the land has started doing something strange: it
+inwards. To save itself (or so everyone believes), the land has started doing something strange: it
 **grows people**. You wake up at a stone shrine, a grown adult with skills to
 learn, but no memories, no family and no past. You are one of the
 **Kindled**, a person made from the land's own life. There are hundreds of
@@ -77,16 +80,24 @@ areas open. This is where Version 1.0's lighting work really shows off.
 
 - **The Rooted**: ordinary townsfolk. They can't come back from death, so they
   farm, trade and teach, and rely on the Kindled to do the dangerous work.
-  All the trainers are Rooted.
+  All the trainers are Rooted (as far as anyone knows).
 - **The Kindled**: the players. Not a guild, just everyone who woke at a
   shrine. Parties are Kindled who've learned to work together.
 - **The Mages' Guild**: studies life force and soul stone, and looks after the
-  shrines. Led by Archmage Ysolde. They know more than they say.
+  shrines. Led by Archmage Ysolde. Founded long ago by **Archmage Vael**.
 - **The Wardens**: Huntmaster Kael's rangers, who guard the borders where the
   Withering meets healthy land.
-- **The Ashbound**: a band of people whose villages died in the Barrens.
+- **The Undying** (the villains): Kindled who found out they can take **more**
+  life from the shrines than they're given. Each time one of them dies and
+  comes back, they drain extra life and return stronger. They hide among the
+  ordinary Kindled and secretly keep the shrines pouring out new heroes,
+  because a crowd of heroes hides what they're doing. Their sign is a faint
+  grey-gold glow in the eyes. Nobody knows they exist at the start of the game.
+- **The Ashbound**: a band of Rooted people whose villages died in the Barrens.
   They attack Kindled and **smash shrines**. They're today's bandits. Everyone
-  in town calls them madmen. (Whether they are depends on the twist.)
+  in town calls them madmen, but they've half worked out the truth: they know
+  the shrines are killing the land, they just don't know about the Undying,
+  so they blame every Kindled.
 - **The Blight**: not a faction, but what the Withering does to animals.
   Wolves, spiders and beetles that live in dying land turn grey, glowing and
   angry.
@@ -107,7 +118,7 @@ areas open. This is where Version 1.0's lighting work really shows off.
 | **Huntmaster Kael** | Leader of the Wardens. The Wolf Hunt is your first look at a Blighted beast. |
 | **Herbalist Wren** | Can "read" the land's health from its plants. The first to say out loud that it's getting worse. |
 | **Farmer Odo** | Proof that the land can still heal: his fields are the greenest in the valley because he never stops tending them. |
-| **Archmage Ysolde** | Head of the Mages' Guild. Teaches you Soul trap. Keeps the shrines running, and keeps a secret. |
+| **Archmage Ysolde** | Head of the Mages' Guild. Teaches you Soul trap. Has always believed the shrines are a gift from the founder, Vael. When she learns the truth she becomes your strongest ally, and helps you find the way to the Wellspring. |
 | **Alchemist Moss** | Brews potions from living herbs, so his supplies shrink as the land dies. |
 | **Repairer Oswin** | Fixes broken things, and likes to say "mending always costs something." He means more than coins. |
 
@@ -149,112 +160,140 @@ trainers.
 signs of the Withering: Holt's trees grow slower, Greta's veins dim, Moss
 can't find herbs, Wren gets worried. Kael's Wolf Hunt shows you your first
 Blighted beast. Act 1 ends when you **light your first new shrine** at the
-edge of Thornwood, and see an Ashbound raider smash another one.
+edge of Thornwood, and see an Ashbound raider smash another one, shouting
+"every time you rise, the land falls".
 
 **Act 2: The Four Reaches.** Travel out to Thornwood, Greyspine, Saltmere and
 the Barrens. Each region has its own problem to fix, a shrine to relight, a
-boss, and a trade route to reopen. The Ashbound keep showing up, always at
-shrines, shouting things that don't quite make sense yet. Memory Echoes begin
-to show you the old kingdom of Aurel.
+boss, and a trade route to reopen. Along the way:
+- Memory Echoes from the old war show the first Kindled, Archmage Vael, and a
+  young Maren.
+- Some shrines you relight have been **forced wide open**, and the land around
+  them is dead. Someone is doing this on purpose.
+- You keep meeting a friendly, very strong Kindled who seems to know a lot.
+  (They're Undying. This is the first one you'll fight later.)
+- Ysolde finds Vael's old notes in the Guild's sealed library: the shrines
+  were meant to go dark when the war ended.
 
-**Act 3: The Hollow Heart.** Ysolde finally opens the sealed way under the
-mountains. You reach the Wellspring, and **the twist** happens here.
+**Act 3: The Hollow Heart.** You reach the Wellspring and **the twist**
+happens (section 8). You see the threads of life, meet Vael, and learn what
+the Undying are.
 
-**Act 4: The Rekindling (never ends).** The world's big ongoing goal: heal
-Elderra, region by region, together. New regions and story chapters arrive as
-updates. This is what keeps an MMO going after the main story.
+**The choice.** Before the final fight, the Undying offer you their power.
+Players pick a side (section 8). This is a big moment, so it should feel like
+one.
+
+**Act 4: Restoring the balance (never ends).** The world's big ongoing goal:
+retune the shrines region by region, heal the land, and push the Undying back.
+New regions and story chapters arrive as updates. This is what keeps an MMO
+going after the main story.
 
 ---
 
-## 8. The big twist: three options
+## 8. The big twist: "You are the drain"
 
-### Option A: "You are the drain" ⭐ my pick
+**Decided.** The heroes aren't only saving the land. They're also what's
+killing it, and a hidden group of them is doing it on purpose.
 
-**The land isn't making heroes to save itself. The heroes are what's killing
-it.**
+### How it started
 
-Three hundred years ago, after the old kingdom of Aurel fell, the founder of
-the Mages' Guild built the shrines to bind the Wellspring and **grow an army**
-of Kindled to protect the land. It worked. But the shrines never stopped.
-Every Kindled is made from the Wellspring's life, and **every time a Kindled
-dies and is re-formed, the shrine takes a little more**. With hundreds of
-heroes now (all the players!), the drain is faster than the spring can refill.
+1. **The war.** Long ago, a war (the **Sundering War**) nearly wiped out the
+   people of Elderra, and the old kingdom of Aurel fell.
+2. **The first Kindled.** The founder of the Mages' Guild, **Archmage Vael**,
+   built the shrines and tapped the Wellspring to grow defenders: the first
+   Kindled. **Old Maren was one of them.** Only a few were made, and the
+   shrines took life so slowly that the land could heal in between.
+   **That was the balance.**
+3. **The shrines should have gone dark.** When the war ended, the plan was to
+   close the shrines. The few Kindled left would live out normal lives.
+   (That's why Maren grew old: she gave up her return to the shrine and chose
+   to age like anyone else.)
+4. **Someone opened them wide instead.** Vael and a handful of other early
+   Kindled had found that each time they died and returned, they could pull
+   **extra** life through the shrine and come back stronger. They didn't want
+   it to end. They faked Vael's death, opened the shrines wide, and became
+   **the Undying**.
+5. **Hiding in the crowd.** The Undying keep the shrines making new heroes,
+   hundreds of them, because so much life flowing through the shrines hides
+   the extra they steal. **That's why there are so many players.** Every new
+   Kindled is honest, but every new Kindled also makes the drain bigger.
 
-At the Wellspring you see glowing threads running from it to every shrine, and
-from every shrine to every Kindled, **including you**.
+### The reveal at the Wellspring
 
-- **The Mages' Guild knew.** Ysolde kept the shrines running because she
-  believed the land needed defenders more than it needed time.
-- **The Ashbound were right.** They smash shrines because they found out the
-  truth. They're not madmen, just desperate.
-- **Old Maren** has been greeting heroes at the Heart Shrine for three hundred
-  years, because she was the first Kindled ever made.
+At the Wellspring you see glowing threads running from it to every shrine,
+and from every shrine to every Kindled, **including you**. Most threads are
+thin. A few are thick, dark gold and pulling hard: the Undying. The thickest
+leads to **Vael**, alive after hundreds of years on stolen life.
 
-**The ending isn't "kill the villain".** Shutting the shrines would end every
-Kindled, including you. Instead, the Kindled learn to **give life back**: the
-Rekindling. Everything that heals the land now flows back through the shrines
-into the Wellspring. The heroes go from being the problem to being the cure.
+What changes when you learn it:
+- **You're part of the problem**, just by being a Kindled. Every respawn
+  takes a little.
+- **The Ashbound were half right.** Smashing shrines would kill the land's
+  defenders too, but they were right that the shrines are draining it.
+- **Ysolde never knew.** She trusted the founder's work, and is horrified.
+- **Maren knew some of it.** She has quietly greeted heroes for centuries,
+  hoping one of them would fix what Vael did. She's been waiting for you.
 
-Why I pick it:
-- It explains the MMO in a clever way: the land is dying *because* there are
-  so many players, and saving it is something the players do together.
-- It turns the game's everyday activities (farming, replanting, relighting
-  shrines) into the actual ending.
-- It makes the bandits and the friendly archmage morally grey, which makes for
-  great quests.
-- It sets up a new choice: **use a soul gem for enchanting, or release it at a
-  shrine to heal the land.**
-- It can be hinted at from the very start: shrines flicker when someone
-  respawns, the grass near busy shrines is browner, the Ashbound shout "every
-  time you rise, the land falls", and Oswin says "mending always costs
-  something".
+### Restoring the balance (the goal)
 
-### Option B: "You've been here before"
+The ending isn't wiping out the Kindled (that would end every player). It's
+**tuning the shrines back to a fair flow**, where every hero gives back what
+they take. In the game:
 
-**The Kindled aren't new people. They're the people of the old kingdom,
-re-formed.**
+- **Giving back**: farming, replanting, spreading forage, curing Blighted
+  creatures, finishing bounties and **releasing soul gems at a shrine** all
+  pour life back into the land.
+- **Retuning shrines**: each region's shrine can be retuned once its land is
+  healthy enough. A retuned shrine cuts off the Undying's extra pull there.
+- **Your skills are the weapon.** The Undying are beaten by fights, yes, but
+  mostly by players healing land faster than the Undying can drain it.
+- **A new choice everywhere: use a soul gem for enchanting, or release it to
+  heal the land.**
 
-When Aurel fell, its people's souls sank into the Wellspring. The land is
-using those souls to grow the Kindled. Your Memory Echoes are **your own
-memories** from a past life. The final reveal: Aurel's people caused the
-Withering by draining the Wellspring to make themselves immortal, and **you
-were one of them**. The townsfolk are your distant descendants.
+### The choice: Balance or the Undying
 
-- Gives every player a real past to uncover, which answers "no family" in a
-  bittersweet way: your family is here, they just don't know it.
-- Harder to keep personal in an MMO, because every player gets the same
-  backstory.
+Partway through, the Undying offer you their power. Players choose:
 
-### Option C: "Maren is the land"
+- **Keepers of the Balance** (the main path): give back what you take, retune
+  shrines, heal the land.
+- **The Undying** (the tempting path): get stronger each time you die and
+  return, but the land around you withers faster, and the Rooted stop
+  trusting you (Renown drops). A player could later turn back, at a cost.
 
-**Old Maren is the Wellspring.** The spirit of the land took a human shape so
-it could meet its heroes. As the land has been dying, she's been getting older.
+This sets up **rival groups** later, for example the two sides competing over
+a region's shrine, or Undying players as rare, dangerous foes.
 
-- As players heal regions, she visibly grows younger and stronger. If a region
-  falls back, she gets weaker.
-- The final act is about saving her.
-- Very emotional and easy to understand, but a smaller "huh, I didn't see that
-  coming" moment than A.
+### Hints from the very start
 
-### Mixing them
+- Shrines flicker when someone respawns, and the grass around busy shrines is
+  browner.
+- The Ashbound shout "every time you rise, the land falls".
+- Oswin says "mending always costs something".
+- Maren sometimes says "you remind me of someone" to new heroes.
+- A very strong, friendly Kindled offers to help you in Act 2, and their eyes
+  have a faint grey-gold glow.
 
-They mix well. A with a bit of C works nicely: Maren as the first Kindled in
-A already gives her a touching role. Memory Echoes can belong to earlier
-Kindled (in A) or to your own past life (in B).
+### A possible extra surprise
+
+The expansion design plans an **Enchanter Vale** at the Mages' Guild. That's
+very close to **Vael**. We can either rename the Enchanter, or make it a
+second twist: the friendly Enchanter who teaches you to use soul gems **is**
+Vael in disguise.
 
 ---
 
 ## 9. Still to decide
 
-1. **Which twist?** (A, B, C, or a mix)
-2. **Names**: Elderra, Heartvale, the Wellspring, the Kindled, the Ashbound.
-   Keep, or rename any?
-3. **The villain to fight** in Acts 2 and 3: a big Blighted creature in each
-   region, the Ashbound leader, or the Guild founder himself (still alive
-   through the shrines)?
+1. **Names**: Elderra, Heartvale, the Wellspring, the Kindled, the Undying,
+   the Ashbound, Vael. Keep, or rename any?
+2. **Enchanter Vale**: rename, or make them Vael in disguise (section 8)?
+3. **The choice**: can players really join the Undying, or is it only a
+   moment in the story? If they can join, can Undying players fight Keepers?
 4. **Shared land health**: should all players on a server share one health
    meter per region (a big team effort), or should each player's world heal
    separately?
-5. **What can we add to the 2D game now?** For example: rename the bandits to
-   the Ashbound, add the Heart Shrine where you respawn, and give Old Maren the
-   first lines of the story.
+5. **Bosses in Act 2**: one Undying lieutenant per region, a big Blighted
+   creature per region, or both?
+6. **What can we add to the 2D game now?** For example: rename the bandits to
+   the Ashbound, make the place you respawn the Heart Shrine, and give Old
+   Maren the first lines of the story.
