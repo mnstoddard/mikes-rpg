@@ -172,10 +172,10 @@ fighting over it.
   catch sparks being pulled toward the Undying, and set them free.
 - **Lightkeeper ranks** (Ember, Flame, Blaze, Radiant, then Lightwarden and
   Undying if you join them) are a reward track from the Prologue on: titles,
-  gear, blessings and **buffs from stolen life force**. They feel great, and
+  gear, blessings and **buffs from stolen life force** (the buffs only work inside the Sundered Crown). They feel great, and
   they're exactly how the Lightkeepers fatten you up.
 - **Ashbound standing** (Ally, Unbound, Ashsworn, Rootsworn, Wellkeeper,
-  Heartwarden) starts in Act 3, with **buffs that are the land's gifts**.
+  Heartwarden) starts in Act 3, with **buffs that are the land's gifts** (also only inside the Crown).
   The full buff lists are in [QUESTLINE.md](QUESTLINE.md#faction-ranks-and-their-buffs).
 - **Memory Echoes**: rare finds from bosses, ruins and shrines. Each is a short
   scene from a hero who came before. Collected in a journal, they slowly tell
@@ -274,15 +274,14 @@ one.
    Aurelite. Keep, or rename?
 2. **Soul Debt numbers**: 20% for how long? Or Mike's 10% XP loss as a
    hardcore option?
-3. **When you choose a side**: at the end of Act 3, with two different Act 4s
-   (recommended: more replay value, but more to build), or at the very end of
-   the story, with one shared Act 4 (less to build)?
-4. **Switching sides later**: never, or once, through a long quest that resets
-   your faction rank?
-5. **How harsh the Crown is**: drop some carried materials on death
-   (recommended), drop nothing, or drop more for bigger rewards?
-6. **Where the buffs work**: everywhere, or combat buffs strongest only inside
-   the Crown (recommended, to keep the sides balanced)?
+3. ~~When you choose a side~~ **Decided: at the end of Act 3**, with two
+   different Act 4s.
+4. ~~Switching sides later~~ **Decided: once**, through a long quest that
+   resets your faction rank.
+5. ~~How harsh the Crown is~~ **Decided: drop some carried materials** on
+   death, never gear.
+6. ~~Where the buffs work~~ **Decided: rank buffs only work inside the
+   Crown.**
 7. **What can go into the 2D game now?** For example: the Lighthall at the
    centre of town, Keeper Aldric and Sister Celene, the new Prologue quests,
    and renaming the bandits to the Ashbound.
