@@ -1,7 +1,7 @@
 // Day and night: one full day lasts 40 minutes (30 of day, 10 of night), the
 // same for everyone, worked out from the server's clock. Dusk and dawn each
-// take 2 minutes. For now night only darkens the screen a little; night-only
-// monsters and herbs come later (docs/DESIGN.md stage 5).
+// take 2 minutes. Night darkens the screen a little, brings out giant bats
+// (shared/combat.ts) and lets you dig up moonpetal (shared/foraging.ts).
 export const DAY_MS = 40 * 60_000;
 export const NIGHT_MS = 10 * 60_000;
 export const TWILIGHT_MS = 2 * 60_000;

@@ -33,14 +33,17 @@ export interface ItemDef {
 }
 
 /** Things monsters drop (a shop buys them), and the health potion. */
-export type LootId = "feather" | "rat_tail" | "cowhide" | "wolf_pelt" | "goblin_charm" | "spider_silk" | "stolen_ring" | "health_potion";
+export type LootId = "feather" | "rat_tail" | "cowhide" | "wolf_pelt" | "goblin_charm" | "spider_silk" | "stolen_ring" | "health_potion"
+  | "slime_goo" | "boar_tusk" | "wolf_fang" | "bat_wing" | "venom_sac";
+/** Herbs and other things you dig up with Foraging (shared/foraging.ts FORAGE_FINDS). Alchemy will use them. */
+export type WildId = "sage" | "moonpetal" | "old_bone" | "red_cap" | "ginseng" | "honey" | "blue_lotus";
 
 /**
  * Bars (smelted from ore), tools (smithed from a bar and a log), meals (cooked
  * from ingredients and a log), weapons and armor, loot, cooking ingredients
  * (raw chicken, vegetables...), Handicraft materials (worms, food scraps) and bait.
  */
-export type ItemId = BaseItemId | BarId | ToolItemId | MealId | GearItemId | LootId | OtherIngredient | HandicraftMaterial | BaitId;
+export type ItemId = BaseItemId | BarId | ToolItemId | MealId | GearItemId | LootId | WildId | OtherIngredient | HandicraftMaterial | BaitId;
 
 /** A crafted item is worth what goes into it, plus 25%. */
 export const CRAFT_MARKUP = 1.25;
@@ -81,14 +84,33 @@ const LOOT: Record<LootId, ItemDef> = {
   goblin_charm: { name: "Goblin charms", single: "goblin charm", icon: "🧿", sellPrice: 20 },
   spider_silk: { name: "Spider silk", single: "spider silk", icon: "🕸️", sellPrice: 30 },
   stolen_ring: { name: "Stolen rings", single: "stolen ring", icon: "💍", sellPrice: 60 },
+  slime_goo: { name: "Slime goo", single: "blob of slime goo", icon: "🫧", tint: "hue-rotate(-90deg) saturate(2)", sellPrice: 2 },
+  boar_tusk: { name: "Boar tusks", single: "boar tusk", icon: "🦷", tint: "sepia(.5)", sellPrice: 8 },
+  wolf_fang: { name: "Wolf fangs", single: "wolf fang", icon: "🦷", sellPrice: 10 },
+  bat_wing: { name: "Bat wings", single: "bat wing", icon: "🦇", sellPrice: 9 },
+  venom_sac: { name: "Venom sacs", single: "venom sac", icon: "🧪", tint: "hue-rotate(60deg) saturate(3)", sellPrice: 35 },
   // Drink it for health (shared/combat.ts). A shop sells them.
   health_potion: { name: "Health potion", single: "health potion", icon: "🧪", tint: "hue-rotate(230deg) saturate(2.5)", sellPrice: 10 },
+};
+
+/** Things you dig up with Foraging (the roots and mushrooms you can cook are with the ingredients below). */
+const WILD: Record<WildId, ItemDef> = {
+  sage: { name: "Sage", single: "sprig of sage", icon: "🌿", sellPrice: 4 },
+  red_cap: { name: "Red cap mushrooms", single: "red cap mushroom", icon: "🍄", tint: "saturate(2) hue-rotate(-10deg)", sellPrice: 4 },
+  ginseng: { name: "Ginseng roots", single: "ginseng root", icon: "🫚", sellPrice: 6 },
+  honey: { name: "Wild honeycomb", single: "piece of wild honeycomb", icon: "🍯", sellPrice: 7 },
+  old_bone: { name: "Old bones", single: "old bone", icon: "🦴", sellPrice: 6 },
+  blue_lotus: { name: "Blue lotus", single: "blue lotus", icon: "🪷", tint: "hue-rotate(200deg) saturate(1.5)", sellPrice: 9 },
+  moonpetal: { name: "Moonpetal", single: "moonpetal", icon: "🌼", tint: "hue-rotate(180deg) brightness(1.3)", sellPrice: 14 },
 };
 
 /** Cooking ingredients that aren't fish, and Handicraft materials. */
 const FOOD_AND_MATERIALS: Record<OtherIngredient | HandicraftMaterial, ItemDef> = {
   raw_chicken: { name: "Raw chicken", single: "raw chicken", icon: "🍗", tint: "saturate(.4) brightness(1.25)", sellPrice: 2 },
   raw_beef: { name: "Raw beef", single: "raw beef", icon: "🥩", sellPrice: 4 },
+  raw_boar: { name: "Raw boar", single: "raw boar", icon: "🥩", tint: "hue-rotate(-15deg) brightness(.8)", sellPrice: 7 },
+  wild_root: { name: "Wild roots", single: "wild root", icon: "🥕", tint: "sepia(.8) brightness(.8)", sellPrice: 2 },
+  truffle: { name: "Truffles", single: "truffle", icon: "🟤", sellPrice: 30 },
   potato: { name: "Potatoes", single: "potato", icon: "🥔", sellPrice: 1 },
   carrot: { name: "Carrots", single: "carrot", icon: "🥕", sellPrice: 1 },
   mushroom: { name: "Mushrooms", single: "mushroom", icon: "🍄", sellPrice: 3 },
@@ -96,7 +118,7 @@ const FOOD_AND_MATERIALS: Record<OtherIngredient | HandicraftMaterial, ItemDef> 
   food_scraps: { name: "Food scraps", single: "food scraps", icon: "🦴", tint: "sepia(.6)", sellPrice: 1 },
 };
 
-const TABLE = { ...BASE_ITEMS, ...LOOT, ...FOOD_AND_MATERIALS } as Record<ItemId, ItemDef>;
+const TABLE = { ...BASE_ITEMS, ...LOOT, ...WILD, ...FOOD_AND_MATERIALS } as Record<ItemId, ItemDef>;
 
 /**
  * Every item's definition. Meals ("meal_curry_oak_potato-trout") are built the

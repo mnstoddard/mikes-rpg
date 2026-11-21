@@ -8,12 +8,14 @@
 // Shared so the client shows the same numbers the server uses.
 
 export type DisciplineId = "strength" | "endurance" | "wisdom" | "dexterity" | "charisma";
-export type GatherSkill = "woodcutting" | "fishing" | "mining";
+export type GatherSkill = "woodcutting" | "fishing" | "mining" | "foraging";
+/** Hunting: trained by defeating monsters (shared by everyone who hurt it). */
+export type WildSkill = "hunting";
 export type CraftSkill = "smelting" | "smithing" | "cooking" | "handicraft";
 /** "magic" is Spellcasting (its id stays "magic" so spells, staffs and trees keep working). */
 export type CombatSkill = "melee" | "ranged" | "magic" | "defense";
 export type SocialSkill = "trading" | "renown";
-export type SkillId = GatherSkill | CraftSkill | CombatSkill | SocialSkill;
+export type SkillId = GatherSkill | WildSkill | CraftSkill | CombatSkill | SocialSkill;
 
 export interface SkillDef {
   id: SkillId;
@@ -48,6 +50,8 @@ export const DISCIPLINES: Record<DisciplineId, DisciplineDef> = {
       { id: "fishing", name: "Fishing", icon: "🎣", description: "Click the water's edge to fish." },
       { id: "woodcutting", name: "Woodcutting", icon: "🪓", description: "Click a tree to chop logs." },
       { id: "mining", name: "Mining", icon: "⛏️", description: "Click a rock to mine ore." },
+      { id: "foraging", name: "Foraging", icon: "🌱", description: "Click a glinting dig patch to dig it up with a shovel: roots, mushrooms, worms, herbs, old bones, truffles, and moonpetal at night. Herbalist Wren teaches it." },
+      { id: "hunting", name: "Hunting", icon: "🐾", description: "Trained by defeating monsters. Everyone who hurt it shares the XP by how much damage they did. Higher Hunting makes monsters drop things more often." },
     ],
   },
   wisdom: {

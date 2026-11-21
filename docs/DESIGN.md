@@ -122,6 +122,20 @@ Gems show their size in the item name, and gems of different sizes take
 separate bag slots (you can't stack a 1 ct ruby with a 5 ct ruby).
 
 ### Foraging (new, uses a shovel)
+*Built in stage 5 (decided with Mike):* Herbalist Wren, in a little hut by
+the lake east of the Mages' Guild, teaches Foraging in a 4-step chapter and
+gives you a stone shovel. Shovels come in every metal like axes (stone from
+Wren, the rest at the anvil). You dig **glinting dig patches** (a mound with a
+twinkle) scattered over the meadows, by the lake and a couple in the forest;
+each find has a 1 in 3 chance of digging the patch out, and it glints again
+about 40 seconds later. What you find is rolled from everything your level can
+find: worms and wild roots (1), red cap mushrooms (2), mushrooms (3), sage (5),
+ginseng (6), wild honeycomb and old bones (8), blue lotus and, **at night
+only**, moonpetal (10), and truffles (15). The XP comes from the find. Wren
+buys everything you dig up, and sells stone shovels and roots. Wild roots and
+truffles cook as vegetables; the rest wait for Alchemy (stage 6). Glowcap,
+iron root and fairy moss are still for later.
+
 Foraging is now its own skill, inside the Endurance discipline. You need a
 **shovel** on your tool belt (made at the anvil like other tools). You dig at
 **forage spots**: little patches of disturbed earth, mushrooms or flowers on the
@@ -149,6 +163,13 @@ Mushrooms you find now and then while chopping trees still drop too.
 See section 7.
 
 ### Hunting (new)
+*Built in stage 5:* Huntmaster Kael teaches Hunting at the end of his
+chapter (characters who already finished it have it). Every defeated monster
+gives Hunting XP (its kill XP plus its level) to **everyone who hurt it**,
+shared by how much of its health each one took (at least 1 each). Each Hunting
+level makes drops 1% more likely, on top of monster Mastery. The skinning knife
+is still to come.
+
 Hunting is general monster hunting. You earn Hunting XP for every monster you
 defeat, on top of the Melee, Ranged or Spellcasting XP from the hits. Higher
 Hunting means **more drops** and better odds on rare drops. The Hunting trainer
@@ -160,6 +181,17 @@ also sells a skinning knife that gives a small extra chance of hides and pelts.
 
 New monsters, so every potion and crafting ingredient has a source. Existing
 monsters stay.
+
+*Built in stage 5:* slimes in the wet meadow by the lake (slime goo); boars in
+the meadow south-east of the square (raw boar and tusks; they bite back); wolves
+now run in packs of 2 or 3 (when one goes for you the others nearby join in) and
+also drop wolf fangs; giant bats come out only at night (they vanish at sunrise)
+over the meadows, where they only bite back, and in the forest, where they
+attack; cave spiders live in a small dark cave just east of the quarry (silk and
+venom sacs). The cave counts as danger like the forest, so you need Kael's gate
+lesson to go in. Kael buys all the new drops. Raw boar cooks as meat, and there
+is a new **Steak** dish (Cooking 4: meat, with a little veg). Beetles, wisps,
+the dire wolf and ghouls are still to come.
 
 | Monster | Level | Where | Drops |
 |---|---|---|---|
@@ -547,7 +579,7 @@ so it's where you sell junk, and sells basics like food.
 ### Day and night
 *Built in stage 3: the 40-minute cycle, a gentle dark at night, and a ☀️/🌙
 button by the zoom buttons that says how long until it changes. Night monsters
-and herbs come in stage 5.*
+and herbs came in stage 5 (giant bats, and moonpetal from dig patches).*
 
 - A full day lasts about **40 minutes** (30 day, 10 night), the same for
   everyone.
@@ -584,7 +616,7 @@ quest chapter as it goes, so the main quest grows with the game.
 | **2. The five disciplines** ✅ built | Strength, Endurance, Wisdom, Dexterity, Charisma; skills move; health, stamina, mana, speed and price bonuses; every character reset to start fresh | Everything else plugs into this |
 | **3. Bigger town and trainers** ✅ built | Trainer Row buildings, Merchant split into trainer shops plus General Store, Maren's hub quest for existing skills, day and night cycle | Gives new skills a place to live |
 | **4. Wear and repair** ✅ built | Worn-out gear becomes Broken instead of vanishing, armor wears from damage, the paid Repairer | Needed before enchanting |
-| **5. Foraging, Hunting and new monsters** | Shovel, forage spots, ingredients, night herbs; slimes, bats, boars, beetles, spiders and night monsters; kill XP split by damage share; Hunting drop bonus | Ingredients for potions and crafting |
+| **5. Foraging, Hunting and new monsters** ✅ built | Shovel, forage spots, ingredients, night herbs; slimes, bats, boars, beetles, spiders and night monsters; kill XP split by damage share; Hunting drop bonus | Ingredients for potions and crafting |
 | **6. Alchemy** | Alchemy table, vials, the potion list | Uses stage 5's ingredients |
 | **7. Gems and soul stone** | Gem and soul stone rocks with continuous sizes, and Smithing's gem cutting, rings, amulets, inlays and soul gems | Needed for enchanting |
 | **8. Spellcasting** | Spell bar, new spell list, learning by level and books, Invisibility, Soul trap with the glow and blink, filling soul gems | Needed for enchanting |

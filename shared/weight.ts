@@ -21,7 +21,7 @@ import { isBait } from "./handicraft";
 export { carryCapacity } from "./stats";
 
 /** Tools, by type (tenths of a kg). */
-const TOOL_WEIGHT: Record<ToolType, number> = { axe: 20, pickaxe: 20, rod: 10, hammer: 15, tongs: 10, pot: 15 };
+const TOOL_WEIGHT: Record<ToolType, number> = { axe: 20, pickaxe: 20, shovel: 20, rod: 10, hammer: 15, tongs: 10, pot: 15 };
 
 /** Weapons, by type. */
 const WEAPON_WEIGHT: Record<string, number> = {
@@ -36,7 +36,8 @@ const ITEM_WEIGHT: Partial<Record<string, number>> = {
   // Big fish are heavy.
   tuna: 20, swordfish: 25, eel: 15,
   // Other food.
-  raw_chicken: 10, raw_beef: 15, potato: 5, carrot: 3, mushroom: 2,
+  raw_chicken: 10, raw_beef: 15, raw_boar: 20, potato: 5, carrot: 3, mushroom: 2, wild_root: 3, truffle: 3,
+  sage: 1, moonpetal: 1, red_cap: 2, ginseng: 2, honey: 3, blue_lotus: 1, old_bone: 5, slime_goo: 3, boar_tusk: 5, wolf_fang: 2, bat_wing: 2, venom_sac: 2,
   worm: 1, food_scraps: 2,
   // Monster drops and potions.
   feather: 1, rat_tail: 2, cowhide: 30, wolf_pelt: 20, goblin_charm: 2, spider_silk: 2, stolen_ring: 1, health_potion: 5,

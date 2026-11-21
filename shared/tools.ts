@@ -1,6 +1,6 @@
 // Tools, metals and woods: the numbers behind the tool belt and Smithing.
 //
-// Gathering tools (axe, pickaxe, fishing rod) make gathering faster. Crafting
+// Gathering tools (axe, pickaxe, shovel, fishing rod) make gathering faster. Crafting
 // tools (hammer, tongs, pot) raise the chance that smithing, smelting or
 // cooking works. Most tools are 1 metal bar (or 1 stone) and 1 log; tongs and
 // the pot have no handle and take 3 bars (or 3 stone) instead. Fishing rods
@@ -14,7 +14,7 @@ export type Metal = "bronze" | "iron" | "steel" | "mithril";
 /** What a tool's head is made of: stone, or a metal bar. */
 export type Material = "stone" | Metal;
 export type Wood = "pine" | "oak" | "birch" | "maple" | "yew" | "ironwood" | "elderwood";
-export type ToolType = "axe" | "pickaxe" | "rod" | "hammer" | "tongs" | "pot";
+export type ToolType = "axe" | "pickaxe" | "shovel" | "rod" | "hammer" | "tongs" | "pot";
 /** Tools with no wooden handle: all metal (or stone). */
 export type HandlelessTool = "tongs" | "pot";
 /** Tools made only of wood (2 logs, no metal or stone head). */
@@ -89,7 +89,7 @@ export interface ToolTypeDef {
   name: string;
   icon: string;
   /** The skill it helps. */
-  skill: "woodcutting" | "mining" | "fishing" | "smithing" | "smelting" | "cooking";
+  skill: "woodcutting" | "mining" | "foraging" | "fishing" | "smithing" | "smelting" | "cooking";
   /** What it does: gathering tools speed you up, crafting tools raise success. */
   helps: "speed" | "success";
 }
@@ -98,6 +98,7 @@ export interface ToolTypeDef {
 export const TOOL_TYPES: Record<ToolType, ToolTypeDef> = {
   axe:     { name: "Axe",         icon: "🪓", skill: "woodcutting", helps: "speed" },
   pickaxe: { name: "Pickaxe",     icon: "⛏️", skill: "mining",      helps: "speed" },
+  shovel:  { name: "Shovel",      icon: "svg:tool/shovel/iron/pine", skill: "foraging", helps: "speed" },
   rod:     { name: "Fishing rod", icon: "🎣", skill: "fishing",     helps: "speed" },
   hammer:  { name: "Hammer",      icon: "🔨", skill: "smithing",    helps: "success" },
   tongs:   { name: "Tongs",       icon: "svg:tongs", skill: "smelting",    helps: "success" },
@@ -186,4 +187,4 @@ export const wearFor = (level: number) => 1 + Math.floor(level / 10);
 /** One tool on the belt, with how many uses it has left. */
 export interface BeltTool { item: ToolItemId; durability: number }
 export type Belt = Record<ToolType, BeltTool | null>;
-export const emptyBelt = (): Belt => ({ axe: null, pickaxe: null, rod: null, hammer: null, tongs: null, pot: null });
+export const emptyBelt = (): Belt => ({ axe: null, pickaxe: null, shovel: null, rod: null, hammer: null, tongs: null, pot: null });

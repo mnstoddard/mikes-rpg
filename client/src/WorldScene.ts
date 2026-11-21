@@ -29,10 +29,10 @@ import { NIGHT_DARKNESS, darkness, isNight, minutesUntilChange } from "../../sha
 const TILE_COLORS: Record<Tile, number> = {
   grass: 0x4a8f3c, path: 0xb89b6a, water: 0x2d6fa3, tree: 0x2e5e22, rock: 0x7d7d7d, bridge: 0x8b5a2b,
   fence: 0x4a8f3c, gate: 0x9a8058, sign: 0x4a8f3c, wall: 0x4b3a6b, floor: 0x6d5a8e,
-  house: 0x7a4f2a, boards: 0xa47a4c,
+  house: 0x7a4f2a, boards: 0xa47a4c, dig: 0x4a8f3c, cave: 0x3d3846, cavewall: 0x1f1b24,
 };
 /** The Dark Forest's ground is darker and bluer, so you can see where danger starts. */
-const DARK_COLORS: Partial<Record<Tile, number>> = { grass: 0x23432a, path: 0x6b5a42, fence: 0x23432a, gate: 0x6b5a42 };
+const DARK_COLORS: Partial<Record<Tile, number>> = { grass: 0x23432a, path: 0x6b5a42, fence: 0x23432a, gate: 0x6b5a42, dig: 0x23432a };
 
 interface MonsterView {
   container: Phaser.GameObjects.Container;
@@ -65,6 +65,7 @@ export class WorldScene extends Phaser.Scene {
   private monsters = new Map<string, MonsterView>();
   private trees = new Map<string, TreeView>();
   private rocks = new Map<string, TreeView>(); // same idea: full rock, or emptied
+  private patches = new Map<string, TreeView>(); // dig patches: glinting mound, or dug out
   private marker!: Phaser.GameObjects.Text;
   private hud = document.getElementById("hud")!;
   // Touch gesture state
@@ -293,7 +294,7 @@ export class WorldScene extends Phaser.Scene {
     this.players.clear();
     this.monsters.forEach((v) => v.container.destroy());
     this.monsters.clear();
-    for (const key of [...this.trees.keys(), ...this.rocks.keys()]) this.setStump(key, false);
+    for (const key of [...this.trees.keys(), ...this.rocks.keys(), ...this.patches.keys()]) this.setStump(key, false);
     this.marker.setVisible(false);
     this.lastDisciplines = undefined;
     this.skillXpSeen = false;
@@ -335,6 +336,16 @@ export class WorldScene extends Phaser.Scene {
           this.trees.set(treeKey(x, y), this.makeTree(px, py, y, nodeAt(x, y)!));
         } else if (t === "rock") {
           this.rocks.set(treeKey(x, y), this.makeRock(px, py, y, nodeAt(x, y)!));
+        } else if (t === "dig") {
+          this.patches.set(treeKey(x, y), this.makeDigPatch(px, py, y));
+        } else if (t === "cavewall") {
+          // Rough rock: a few lighter lumps.
+          g.fillStyle(0x3a3442).fillCircle(px + 9, py + 10, 6).fillCircle(px + 22, py + 20, 7);
+          g.fillStyle(0x4d4657, 0.8).fillCircle(px + 7, py + 8, 2.5).fillCircle(px + 20, py + 17, 3);
+        } else if (t === "cave") {
+          // Pebbles on the cave floor, and a cobweb now and then.
+          g.fillStyle(0x58516a, 0.9).fillCircle(px + 8, py + 24, 1.6).fillCircle(px + 24, py + 9, 1.3);
+          if ((x * 7 + y * 3) % 4 === 0) g.lineStyle(1, 0xd8d8e0, 0.35).lineBetween(px, py, px + 12, py + 12).lineBetween(px + 12, py, px, py + 12).strokeCircle(px + 3, py + 3, 5);
         } else if (t === "water" && fishAt(x, y) && fishAt(x, y) !== "minnow") {
           this.makeFishingSpot(px, py, fishAt(x, y)!);
         } else if (t === "fence") {
@@ -403,7 +414,7 @@ export class WorldScene extends Phaser.Scene {
         hat.fillStyle(0x3b2410).fillRect(-9, -12, 18, 3).fillRect(-6, -18, 12, 7);
       }
       const badge = this.add.text(11, 2, npc.badge ?? "", { fontSize: "13px" }).setOrigin(0.5);
-      const label = this.add.text(0, npc.id === "repairer" ? 24 : -28, npc.name, {
+      const label = this.add.text(0, npc.id === "repairer" || npc.id === "wren" ? 24 : -28, npc.name, {
         fontSize: "12px", color: "#7fe0ff", stroke: "#000", strokeThickness: 3,
       }).setOrigin(0.5);
       c.add([shadow, body, hat, badge, label]);
@@ -538,8 +549,29 @@ export class WorldScene extends Phaser.Scene {
     this.tweens.add({ targets: g, alpha: 0.45, duration: 1100, yoyo: true, repeat: -1, ease: "Sine.easeInOut", delay: (px + py) % 700 });
   }
 
+  /** A dig patch: a mound of turned earth with a twinkle on it. Dug out, it's a flat dark hole. */
+  private makeDigPatch(px: number, py: number, row: number): TreeView {
+    const tree = this.add.graphics({ x: px, y: py }).setDepth(5);
+    tree.fillStyle(0x6b4a2b).fillEllipse(16, 19, 22, 11);
+    tree.fillStyle(0x8a6239).fillEllipse(15, 17, 16, 7);
+    tree.fillStyle(0x4f3520).fillCircle(10, 19, 1.4).fillCircle(21, 20, 1.2);
+    const glint = this.add.text(px + 21, py + 9, "✦", { fontSize: "11px", color: "#fff6b0", stroke: "#8a6a10", strokeThickness: 2 }).setOrigin(0.5).setDepth(6 + row);
+    this.tweens.add({ targets: glint, alpha: 0.15, scale: 0.6, duration: 800, yoyo: true, repeat: -1, ease: "Sine.easeInOut", delay: (px * 3 + py) % 900 });
+    const stump = this.add.graphics({ x: px, y: py }).setDepth(5).setVisible(false);
+    stump.fillStyle(0x3e2a18, 0.9).fillEllipse(16, 19, 18, 8);
+    stump.fillStyle(0x6b4a2b).fillCircle(8, 16, 2).fillCircle(24, 17, 2.4);
+    // Hide the glint along with the mound.
+    const show = tree.setVisible.bind(tree);
+    tree.setVisible = (v: boolean) => { glint.setVisible(v); return show(v); };
+    return { tree, stump };
+  }
+
+  private isFullPatch(x: number, y: number) {
+    return this.patches.has(treeKey(x, y)) && !this.room?.state.depleted.has(treeKey(x, y));
+  }
+
   private setStump(key: string, isStump: boolean) {
-    const t = this.trees.get(key) ?? this.rocks.get(key);
+    const t = this.trees.get(key) ?? this.rocks.get(key) ?? this.patches.get(key);
     if (!t) return;
     t.tree.setVisible(!isStump);
     t.stump.setVisible(isStump);
@@ -609,7 +641,7 @@ export class WorldScene extends Phaser.Scene {
     if (view === this.players.get(this.room?.sessionId ?? "")) this.marker.setVisible(false);
     const dx = Math.sign(player.faceX - player.x), dy = Math.sign(player.faceY - player.y);
 
-    if (action === "chopping" || action === "mining" || action === "smelting" || action === "smithing" || action === "cooking" || action === "fighting") {
+    if (action === "chopping" || action === "mining" || action === "digging" || action === "smelting" || action === "smithing" || action === "cooking" || action === "fighting") {
       view.chopTween = this.tweens.add({
         targets: view.body, x: dx * 6, y: dy * 6,
         duration: TICK_MS / 4, yoyo: true, hold: 30, repeatDelay: TICK_MS / 2 - 30, repeat: -1,
@@ -772,6 +804,8 @@ export class WorldScene extends Phaser.Scene {
       this.room?.send("chop", { x, y });
     } else if (this.isFullRock(x, y)) {
       this.room?.send("mine", { x, y });
+    } else if (this.isFullPatch(x, y)) {
+      this.room?.send("dig", { x, y });
     } else if (isFishingSpot(x, y)) {
       this.room?.send("fish", { x, y });
     } else if (isWalkable(x, y)) {
@@ -803,6 +837,12 @@ export class WorldScene extends Phaser.Scene {
       setHoverText("Mine", RESOURCES[type].node + this.lockNote(type), pointer.x, pointer.y);
     } else if (this.rocks.has(key)) {
       setHoverText("Examine", `Empty ${RESOURCES[nodeAt(x, y)!].node.toLowerCase()}`, pointer.x, pointer.y);
+    } else if (this.isFullPatch(x, y)) {
+      setHoverText("Dig", "Dig patch" + this.lockNote("dig"), pointer.x, pointer.y);
+    } else if (this.patches.has(key)) {
+      setHoverText("Examine", "Dug-out patch (it glints again soon)", pointer.x, pointer.y);
+    } else if (MAP[y]?.[x] === "cave" || MAP[y]?.[x] === "cavewall") {
+      setHoverText("⚠ Spider cave:", "cave spiders attack on sight!", pointer.x, pointer.y);
     } else if (isFishingSpot(x, y)) {
       const type = fishAt(x, y)!;
       setHoverText("Fish", RESOURCES[type].node + this.lockNote(type), pointer.x, pointer.y);
@@ -815,7 +855,7 @@ export class WorldScene extends Phaser.Scene {
     } else {
       setHoverText(null);
     }
-    this.input.setDefaultCursor(npc || monster || this.isStandingTree(x, y) || this.isFullRock(x, y) || isFishingSpot(x, y) ? "pointer" : "default");
+    this.input.setDefaultCursor(npc || monster || this.isStandingTree(x, y) || this.isFullRock(x, y) || this.isFullPatch(x, y) || isFishingSpot(x, y) ? "pointer" : "default");
   }
 
   // ---- Monsters and fighting ----

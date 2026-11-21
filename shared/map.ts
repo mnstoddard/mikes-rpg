@@ -14,36 +14,39 @@ import type { ResourceId } from "./foraging";
 //          where monsters attack on sight. The gate stays shut until Old Maren's combat lesson.
 // Houses:  W wall   _ floor (the Mages' Guild hall, south-west of town; its door faces the road)
 //          H wall   p floor (the wooden trainer buildings: Trainer Row north of the road,
-//          Tam's General Store and Rook's workshop in the square, Kael's lodge by the gate)
+//          Tam's General Store and Rook's workshop in the square, Kael's lodge by the gate,
+//          Herbalist Wren's hut by the lake)
+// Foraging: * a glinting dig patch (dig it with a shovel)
+// Cave:    C cave floor   K cave wall (the spider cave east of the quarry counts as danger, like the forest)
 const RAW = `
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~~~~~~.........T.TT.iikk..~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~~~~.......TT.T...T.##cc.#....~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~~....T....T....T...##tt.#.....~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~.........,,,,,,,,,,,,,,,,,,,,,,,~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~KKKKKKK~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~.........T.TT.iikk..KCCCCCK~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~.......TT.T...T.##cc*#KCCCCCK~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~....T....T....T...##tt.#KKKCKKK~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~.*.......,,,,,,,,,,,,,,,,,,,,,,,~~~~~~~~~~~~~~~~~~~~~~~~~~
 ~~..OO.....,.....................,.~~~~~~~~~~~~~77~~~~~~~~~~
-~...OO.....,HHHHHHH.HHHHHHH.HHHHH,.MM~~~~~~~~~......~~~~~~~~
-~..........,HpppppH.HpppppH.HpppH,.MM.~~~~~~...I..I...~~~~~~
+~...OO...*.,HHHHHHH.HHHHHHH.HHHHH,.MM4~~~~~~~~......~~~~~~~~
+~..........,HpppppH.HpppppH.HpppH,.MM.4~~~~~...I..I...~~~~~~
 ~..........,HpppppH.HpppppH.HpppH,....~~~~~...I.....E..~~~~~
 ~...~22~...,HHHpHHH.HHHpHHH.HHpHH,....~~~~~.......,..E..~~~~
-~..5~~~~~..,.....................,....~~~~~.......,......~~~
+~..5~~~~~..,.....................,..*.~~~~~.......,......~~~
 ~..5~~~~~==,,,,,,,,,,,,,,,,,,,,,,,,,,,====,,,,,,,,,..vv...8~
 ~..~~~~~~..,HHHpHHH.HHHpHHH......,....~~~~~.......,..vg...8~
-~...~33~...,HpppppH.HpppppH......,....~~~~~..gg...,.......~~
+~...~33~.*.,HpppppH.HpppppH......,....~~~~~.*gg...,.......~~
 ~..........,HpppppH.HpppppH......,.YY.~~~~~..mm...,...E..~~~
-~...BB.....,HHHHHHH.HHHHHHH......,.YY.~~~~~~......,.....~~~~
-~...BB.....,,,,,,,,,,,,,,,,,,,,,,,....~~~~~~~~...mm....~~~~~
-~~...WWW_WWW.........HHHHHHH.........~~~~~~~~~~~......~~~~~~
-~~~..W_____W.......TTHpppppH..T....~~~~~~~~~~~~~~~~~~~~~~~~~
-~~~~~W_W_W_W.........HHHpHHH......~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~~~~~~~~~~~~~~~~~~~66~~..!,...~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~...BB..*..,HHHHHHH.HHHHHHH......,.YY.~~~~~~......,.....~~~~
+~.*.BB.....,,,,,,,,,,,,,,,,,,,,,,,..*.~~~~~~~~...mm....~~~~~
+~~...WWW_WWW*HHpHH...HHHHHHH.........~~~~~~~~~~~......~~~~~~
+~~~..W_____W.HpppH.TTHpppppH..T....~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~W_W_W_W.HHHHH.*.HHHpHHH......~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~66~~...,..!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ~~~~~~~~~~~~~~~~~~~~~~~||||+||||~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ~~~~~~~~~~~~~~~~~~~::::T:::,::::T::::~~~~~~~~~~~~~~~~~~~~~~~
 ~~~~~~~~~~~~::::T::::::T:::,::::::::::T::~~~~~~~~~~~~~~~~~~~
-~~~~~~~~~::::::::::O:::::::,,,,,,::::::::::::~~~~~~~~~~~~~~~
+~~~~~~~~~:::::::*::O:::::::,,,,,,::::::::::::~~~~~~~~~~~~~~~
 ~~~~~~::::T:::::::::::::::::::::,::::T::::Y::::~~~~~~~~~~~~~
 ~~~~~::::::::O::::T::::,,,,,,,,,,,,,,,,::::::::::~~~~~~~~~~~
-~~~~:::T:::::::::::::::,:::::::T:::::::,:::ii:::::::~~~~~~~~
+~~~~:::T:::::::::::::::,:::::::T:::*:::,:::ii:::::::~~~~~~~~
 ~~~~:::::::::::Y:::::::,:::::::::::::::,:::ik::::::::~~~~~~~
 ~~~~~::::T:::::::::::::,::::T::::::::::,:::::::M::::~~~~~~~~
 ~~~~~~:::::::::::::::::,,,,,,,,,,,,,,,,,:::::::::::~~~~~~~~~
@@ -56,11 +59,13 @@ const RAW = `
 export const TILE_SIZE = 32;
 export const TICK_MS = 600; // one game tick, like old-school RuneScape
 
-export type Tile = "grass" | "path" | "water" | "tree" | "rock" | "bridge" | "fence" | "gate" | "sign" | "wall" | "floor" | "house" | "boards";
+export type Tile = "grass" | "path" | "water" | "tree" | "rock" | "bridge" | "fence" | "gate" | "sign" | "wall" | "floor" | "house" | "boards"
+  | "dig" | "cave" | "cavewall";
 
 const LEGEND: Record<string, Tile> = {
   ".": "grass", ",": "path", "~": "water", "=": "bridge", ":": "grass", "|": "fence", "+": "gate", "!": "sign",
   W: "wall", _: "floor", H: "house", p: "boards",
+  "*": "dig", C: "cave", K: "cavewall",
 };
 
 /** Map letters for each type of tree, rock and fishing spot. */
@@ -80,7 +85,7 @@ export const MAP_NODES: (ResourceId | null)[][] = ROWS.map((row) => row.map((ch)
 export const MAP_HEIGHT = MAP.length;
 export const MAP_WIDTH = MAP[0].length;
 
-const BLOCKED: ReadonlySet<Tile> = new Set<Tile>(["water", "tree", "rock", "fence", "sign", "wall", "house"]);
+const BLOCKED: ReadonlySet<Tile> = new Set<Tile>(["water", "tree", "rock", "fence", "sign", "wall", "house", "cavewall"]);
 
 /** The gate into the Dark Forest, and the first row of the danger zone (the fence row). */
 export const GATE = (() => {
@@ -88,8 +93,8 @@ export const GATE = (() => {
   return { x: ROWS[y].indexOf("+"), y };
 })();
 export const DANGER_TOP = GATE.y;
-/** The Dark Forest: monsters there attack on sight. */
-export const isDanger = (x: number, y: number) => y >= DANGER_TOP;
+/** The Dark Forest (and the spider cave by the quarry): monsters there attack on sight. */
+export const isDanger = (x: number, y: number) => y >= DANGER_TOP || MAP[y]?.[x] === "cave";
 
 export function isWalkable(x: number, y: number): boolean {
   if (y < 0 || y >= MAP_HEIGHT || x < 0 || x >= MAP_WIDTH) return false;

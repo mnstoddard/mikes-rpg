@@ -49,6 +49,15 @@ export function toolSvg(type: ToolType, material: Material | null, wood: Wood | 
         `<path d="M5 12 Q16 3.5 27 12" fill="none" stroke="${hl}" stroke-width="1.2"/>` +
         `<rect x="13.5" y="6" width="5" height="4.5" rx="1" fill="${hd}" stroke="${LINE}" stroke-width="1.1"/>`;
       return wrap(body, -35);
+    case "shovel":
+      // A spade blade on top, a long handle, and a crossbar grip at the end.
+      body = handle(10, 3) +
+        `<path d="M10 3.5 H22 V11 Q22 16 16 17.5 Q10 16 10 11 Z" fill="${hm}" stroke="${LINE}" stroke-width="1.3" stroke-linejoin="round"/>` +
+        `<path d="M12 5 V11 Q12 14 15 15.5" fill="none" stroke="${hl}" stroke-width="1.4" stroke-linecap="round"/>` +
+        `<rect x="14" y="1.5" width="4" height="3.5" rx="1" fill="${hd}" stroke="${LINE}" stroke-width="1"/>` +
+        `<path d="M11.5 29 H20.5" stroke="${LINE}" stroke-width="4" stroke-linecap="round"/>` +
+        `<path d="M11.5 29 H20.5" stroke="${wd}" stroke-width="2.2" stroke-linecap="round"/>`;
+      return wrap(body, 35);
     case "hammer":
       body = handle(9) +
         `<rect x="7" y="3.5" width="18" height="8" rx="1.5" fill="${hm}" stroke="${LINE}" stroke-width="1.3"/>` +
