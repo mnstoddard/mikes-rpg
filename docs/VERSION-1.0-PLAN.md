@@ -222,14 +222,17 @@ characters you can customise, weather (rain, mist), and sound and music.
 
 ## 7. Story
 
-**Not chosen yet.** We're picking from a few main story ideas now. Once one is
-chosen, this section will hold:
+**Chosen direction: The Wellspring.** The full outline is in
+[STORY.md](STORY.md).
 
-- The one-line pitch.
-- The world and how the island fits into it.
-- The main villain or problem.
-- Main quest chapters and how Old Maren and the trainers fit in.
-- How skills and areas unlock as the story moves on.
+The land of **Elderra** (not an island: valleys, forests, mountains, coast,
+badlands and tundra joined together) is dying because its **Wellspring** is
+failing. The land grows heroes, the **Kindled**, who wake at shrines with no
+past and no family, and come back at a shrine when they fall. That explains
+why there are so many heroes, why you respawn and why you have no backstory.
+
+STORY.md has the regions, factions, where every trainer fits, the main quest
+acts, how the mechanics tie in, and **three twist options** still to pick from.
 
 Story work can happen now, in the 2D game, and carries straight into 1.0.
 
@@ -242,7 +245,7 @@ Small steps, each one playable, like stages 1 to 13.
 | Step | What gets built | Done when |
 |---|---|---|
 | **0. Setup** | Install Godot, add the `godot/` folder, pick the first model pack | An empty 3D scene opens and runs |
-| **1. Vertical slice** | The starting island in 3D, walking by clicking tiles, **one skill (Fishing)**, two players seeing each other, day/sunset/night lighting | You and a friend can walk around and fish together in 3D, and it looks good |
+| **1. Vertical slice** | The starting town (Heartvale) in 3D, walking by clicking tiles, **one skill (Fishing)**, two players seeing each other, day/sunset/night lighting | You and a friend can walk around and fish together in 3D, and it looks good |
 | **2. The UI** | Bars, bag, tool belt, gear strip, skills panel, quest tracker, messages, in Godot | Every panel the 2D game has works in 3D |
 | **3. Town and gathering** | Trainer Row, all gathering skills, trainers and shops | Old Maren's lessons can be finished in 3D |
 | **4. Combat** | Monsters with animations, weapons, spells, the Dark Forest | The combat chapter works in 3D |
@@ -273,7 +276,7 @@ network, speed), we find out early and cheaply.
 
 ## 10. Open questions
 
-1. **Story**: which main concept? (Being chosen now.)
+1. **Story**: which twist? (See [STORY.md](STORY.md).)
 2. **Camera**: fixed angle like today (easier, good on phones) or free rotation?
 3. **Characters**: pick-a-look from a pack, or build-your-own with hair, colours
    and outfits?
