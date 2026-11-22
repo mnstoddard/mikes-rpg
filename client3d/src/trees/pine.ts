@@ -19,6 +19,7 @@ export function buildPine(rng: Rng, variant = 0): TreeShape {
   top.add(trunk.mesh);
 
   const greens = [0x2e5e22, 0x376b29];
+  const whorls: { y: number; r: number }[] = [];
   const widest = (tall ? 1.3 : 1.55) * between(rng, 0.92, 1.08);
   for (let i = 0; i < layers; i++) {
     const t = i / (layers - 1);
@@ -30,6 +31,7 @@ export function buildPine(rng: Rng, variant = 0): TreeShape {
     cone.rotation.y = rng() * Math.PI;
     top.add(cone);
     leaves.push(cone);
+    whorls.push({ y: y - h / 2 + 0.15, r: radius });
     if (snowy) {
       // A flatter white cone sharing the tip pokes out like a snow cap.
       const snow = leafCone(rng, radius * 0.8, h * 0.5, 0xf4f8fb, { sides: 7, roughness: 0.6, lumpy: 0.05 });
@@ -37,5 +39,5 @@ export function buildPine(rng: Rng, variant = 0): TreeShape {
       cone.add(snow);
     }
   }
-  return { top, leaves, cutHeight: cut, trunkRadius: r, bark: 0x6b4a30, heartwood: 0xe8cd98, sway: 0.5 };
+  return { top, leaves, cutHeight: cut, trunkRadius: r, bark: 0x6b4a30, heartwood: 0xe8cd98, sway: 0.5, bareWhorls: whorls };
 }
