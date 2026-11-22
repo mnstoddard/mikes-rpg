@@ -24,6 +24,8 @@ import { setTreeActions } from "./tree";
 import { nightSightOn, renderTreeRanks, setBuffs, setDiscovered, setServerOffset, tickBuffs } from "./ui";
 import type { TreeRanks } from "../../shared/skilltree";
 import type { QuestView } from "../../shared/quests";
+import { RANK_CLOAK } from "../../shared/story";
+import { setTithe } from "./ui";
 import type { ShopId } from "../../shared/shops";
 import type { RepairJob } from "../../shared/repair";
 import type { Buffs, PotionType } from "../../shared/alchemy";
@@ -85,6 +87,12 @@ export class WorldScene extends Phaser.Scene {
   private skillXp: SkillXp = emptySkills();
   /** The ❗ over each person who has a lesson for you (the server says who, with the quest tracker). */
   private alerts = new Map<string, Phaser.GameObjects.Text>();
+  /** The story's lanterns and shrines: what shows when they're lit, and when they're not (shared/story.ts). */
+  private lamps = new Map<string, { lit: Phaser.GameObjects.GameObject[]; dark: Phaser.GameObjects.GameObject[] }>();
+  /** 📍 markers where your quest sends you. */
+  private spotMarks: Phaser.GameObjects.GameObject[] = [];
+  /** You carry Aldric's lantern: nights are less dark. */
+  private hasLantern = false;
   /** Night: a dark blue layer over the world. */
   private nightShade!: Phaser.GameObjects.Rectangle;
   /** Server clock minus ours, so everyone's day and night match. */
@@ -210,8 +218,9 @@ export class WorldScene extends Phaser.Scene {
     });
     room.onMessage("quest", (q: QuestView) => {
       this.alerts.forEach((a, id) => a.setVisible(q.marks.includes(id as never)));
-      setWorldMapMarks(q.marks);
+      setWorldMapMarks(q.marks, q.spots);
       renderQuest(q);
+      this.showStory(q);
     });
     room.onMessage("clock", (msg: { now: number }) => {
       this.clockOffset = msg.now - Date.now();
@@ -273,7 +282,11 @@ export class WorldScene extends Phaser.Scene {
       showChest(c, c.open);
     });
     room.onMessage("guildRank", (msg: { rank: string }) => this.floatText(`Guild ${msg.rank}!`, "#c9a2ff", true));
-    room.onMessage("bag", (bag: Bag) => renderBag(bag));
+    room.onMessage("bag", (bag: Bag) => {
+      renderBag(bag);
+      const lantern = bag.inventory.includes("lantern");
+      if (lantern !== this.hasLantern) { this.hasLantern = lantern; this.updateDaylight(); }
+    });
     room.onMessage("coins", (coins: number) => renderCoins(coins));
     room.onMessage("repair", (view: { jobs: RepairJob[]; free: boolean; open: boolean }) => {
       if (view.open) this.marker.setVisible(false);
@@ -517,6 +530,32 @@ export class WorldScene extends Phaser.Scene {
       g.fillStyle(0xffffff, 0.8).fillTriangle(-2, -6, 0, -24, 3, -6);
       c.add([halo, g]);
       this.tweens.add({ targets: halo, scale: 1.25, alpha: 0.1, duration: 1600, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+    } else if (id.startsWith("lantern_") || id.startsWith("round_")) {
+      // An iron lantern on a post (white stone posts for the shrine lanterns). Lit, it glows.
+      const shrine = id.startsWith("round_");
+      g.fillStyle(shrine ? 0xd8d2c2 : 0x2f2f33).fillRect(-2, -18, 4, 28);
+      if (shrine) g.fillStyle(0xbdb6a0).fillRect(-5, 6, 10, 4);
+      g.fillStyle(0x2f2f33).fillRect(-6, -28, 12, 11);
+      g.fillStyle(0x1b1b1e).fillTriangle(-7, -28, 7, -28, 0, -33);
+      const dark = this.add.rectangle(0, -22, 8, 7, 0x40444a);
+      const flame = this.add.rectangle(0, -22, 8, 7, 0xffd36b);
+      const halo = this.add.circle(0, -22, 18, 0xffe27a, 0.28);
+      c.add([halo, g, dark, flame]);
+      this.tweens.add({ targets: halo, scale: 1.2, alpha: 0.14, duration: 1200, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+      this.lamps.set(id, { lit: [flame, halo], dark: [dark] });
+    } else if (id === "west_shrine" || id === "thorn_shrine") {
+      // Rubble (or a ring of laid-out stones), until you relight it: then a white shrine with a golden flame.
+      const rubble = this.add.graphics();
+      rubble.fillStyle(0x8d877a).fillRect(-12, 2, 9, 7).fillRect(2, 4, 10, 6).fillRect(-5, -2, 8, 6);
+      rubble.fillStyle(0x6a6458).fillRect(-8, 6, 6, 4).fillRect(6, 0, 5, 4);
+      const shrine = this.add.graphics();
+      shrine.fillStyle(0xbdb6a0).fillRect(-11, 0, 22, 10);
+      shrine.fillStyle(0xd8d2c2).fillRect(-7, -16, 14, 17);
+      shrine.fillStyle(0xfff2b0).fillTriangle(-5, -16, 0, -28, 5, -16);
+      const halo = this.add.circle(0, -14, 20, 0xffe27a, 0.25);
+      c.add([g, rubble, halo, shrine]);
+      this.tweens.add({ targets: halo, scale: 1.25, alpha: 0.1, duration: 1600, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+      this.lamps.set(id, { lit: [halo, shrine], dark: [rubble] });
     } else if (id === "plinth") {
       g.fillStyle(0xbdb6a0).fillRect(-11, -6, 22, 16);
       g.fillStyle(0xd8d2c2).fillRect(-13, -9, 26, 4);
@@ -664,6 +703,19 @@ export class WorldScene extends Phaser.Scene {
       const container = this.add.container(...this.tileCenter(player.x, player.y)).setDepth(10 + player.y);
       const shadow = this.add.ellipse(0, 10, 20, 8, 0x000000, 0.3);
       const body = this.add.circle(0, 0, 10, player.color).setStrokeStyle(2, isMe ? 0xffffff : 0x000000);
+      // A Lightkeeper's cloak (Ember orange, Flame gold) behind you, and gold links for Tithe marks by your health bar.
+      const cloak = this.add.graphics();
+      const drawCloak = () => {
+        cloak.clear();
+        const col = RANK_CLOAK[player.rank ?? 0];
+        if (!col) return;
+        cloak.fillStyle(col).fillTriangle(-11, -2, 11, -2, 0, 15).fillTriangle(-12, 0, -6, 14, 0, 2).fillTriangle(12, 0, 6, 14, 0, 2);
+        cloak.lineStyle(1, 0x000000, 0.5).strokeTriangle(-11, -2, 11, -2, 0, 15);
+      };
+      drawCloak();
+      const chain = this.add.text(17, -16, "", { fontSize: "10px", color: "#ffd84a", stroke: "#000", strokeThickness: 3 }).setOrigin(0, 0.5);
+      const drawChain = () => chain.setText(player.tithe ? `⛓${player.tithe > 1 ? `×${player.tithe}` : ""}` : "");
+      drawChain();
       const label = this.add.text(0, -24, player.name, {
         fontSize: "12px", color: isMe ? "#ffeb3b" : "#ffffff", stroke: "#000", strokeThickness: 3,
       }).setOrigin(0.5);
@@ -672,7 +724,7 @@ export class WorldScene extends Phaser.Scene {
       const title = this.add.text(0, -37, player.title ? `« ${player.title} »` : "", {
         fontSize: "10px", color: "#ffd84a", fontStyle: "italic", stroke: "#000", strokeThickness: 3,
       }).setOrigin(0.5);
-      container.add([shadow, body, label, bar, title]);
+      container.add([shadow, cloak, body, label, bar, title, chain]);
       this.put(container, player.x, player.y);
       const view: PlayerView = { container, body, label, bar };
       this.players.set(sessionId, view);
@@ -698,6 +750,8 @@ export class WorldScene extends Phaser.Scene {
       // Invisibility: you see yourself faded; others barely see you at all.
       $(player).listen("invisible", (inv: boolean) => view.container.setAlpha(inv ? (isMe ? 0.4 : 0.12) : 1));
       $(player).listen("title", (t: string) => title.setText(t ? `« ${t} »` : ""));
+      $(player).listen("rank", drawCloak);
+      $(player).listen("tithe", () => { drawChain(); if (isMe) setTithe(player.tithe); });
       $(player).listen("name", (name: string) => { view.label.setText(name); this.refreshParty(); if (isMe) { renderMe(name, player.color); this.updateHud(); } });
       this.updateHud();
     });
@@ -840,7 +894,7 @@ export class WorldScene extends Phaser.Scene {
     const now = Date.now() + this.clockOffset;
     // A night sight potion lifts the dark.
     // Inside it's always lit (caves stay a little dim). A night sight potion lifts the dark.
-    const dark = this.here.kind === "indoor" ? 0 : this.here.kind === "cave" ? 0.25 : darkness(now) * NIGHT_DARKNESS;
+    const dark = (this.here.kind === "indoor" ? 0 : this.here.kind === "cave" ? 0.25 : darkness(now) * NIGHT_DARKNESS) * (this.hasLantern ? 0.55 : 1);
     this.nightShade?.setAlpha(nightSightOn() ? 0 : dark);
     tickBuffs();
     const night = isNight(now);
@@ -853,6 +907,27 @@ export class WorldScene extends Phaser.Scene {
       const mins = minutesUntilChange(now);
       clock.textContent = night ? "🌙" : "☀️";
       clock.title = night ? `Night. The sun comes up in about ${mins} minute${mins === 1 ? "" : "s"}.` : `Day. Night falls in about ${mins} minute${mins === 1 ? "" : "s"}.`;
+    }
+  }
+
+  /** The story on the map: lit lanterns and shrines, and 📍 where your quest sends you. */
+  private showStory(q: QuestView) {
+    const lit = new Set<string>(q.lit ?? []);
+    this.lamps.forEach((v, id) => {
+      for (const o of v.lit) (o as unknown as Phaser.GameObjects.Components.Visible).setVisible(lit.has(id));
+      for (const o of v.dark) (o as unknown as Phaser.GameObjects.Components.Visible).setVisible(!lit.has(id));
+    });
+    for (const o of this.spotMarks) o.destroy();
+    this.spotMarks = [];
+    for (const s of q.spots ?? []) {
+      const [cx, cy] = this.tileCenter(s.x, s.y);
+      const ring = this.add.ellipse(cx, cy + 6, 40, 16).setStrokeStyle(3, 0xffd84a, 0.9).setDepth(9 + s.y);
+      const pin = this.add.text(cx, cy - 18, "📍", { fontSize: "20px" }).setOrigin(0.5).setDepth(12 + s.y);
+      this.put(ring, s.x, s.y);
+      this.put(pin, s.x, s.y);
+      this.tweens.add({ targets: ring, scale: 1.3, alpha: 0.3, duration: 900, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+      this.tweens.add({ targets: pin, y: cy - 24, duration: 600, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+      this.spotMarks.push(ring, pin);
     }
   }
 
@@ -1017,7 +1092,7 @@ export class WorldScene extends Phaser.Scene {
       const def = MONSTERS[m.kind as MonsterId];
       setHoverText("Attack", `${def.name} (level ${def.level})${def.aggressive ? " ⚠" : ""}`, pointer.x, pointer.y);
     } else if (npc) {
-      setHoverText(npc.id === "board" || npc.id === "guildboard" ? "Read" : npc.name === "Enchanted chest" ? "Open" : npc.kind === "station" ? "Use" : "Talk-to", npc.name, pointer.x, pointer.y);
+      setHoverText(npc.id.startsWith("lantern_") || npc.id.startsWith("round_") ? "Light" : npc.id === "board" || npc.id === "guildboard" ? "Read" : npc.name === "Enchanted chest" ? "Open" : npc.kind === "station" ? "Use" : "Talk-to", npc.name, pointer.x, pointer.y);
     } else if (this.isStandingTree(x, y)) {
       const type = nodeAt(x, y)!;
       setHoverText("Chop down", RESOURCES[type].node + this.lockNote(type), pointer.x, pointer.y);
@@ -1116,6 +1191,14 @@ export class WorldScene extends Phaser.Scene {
     container.add([glow, shadow, body, bar, status]);
     const view: MonsterView = { container, body, bar, status, glow };
     this.monsters.set(id, view);
+    // Blighted creatures (the story's hollow wolves): grey, with a sickly glow.
+    if (m.kind === "hollow_wolf") {
+      body.setTint(0xc8d0d8);
+      const blight = this.add.ellipse(0, 2, 30, 24, 0x9fe3c0, 0.35);
+      container.addAt(blight, 0);
+      this.tweens.add({ targets: blight, alpha: 0.1, scale: 1.25, duration: 900, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+    }
+    if (m.kind === "ashbound_scout") container.add(this.add.text(0, -24, def.name, { fontSize: "10px", color: "#d9c7a8", stroke: "#000", strokeThickness: 3 }).setOrigin(0.5));
     // Danger zone monsters get a red name tag, so you know they'll come for you.
     if (def.aggressive) {
       container.add(this.add.text(0, -24, def.name, { fontSize: "10px", color: "#ff8a7a", stroke: "#000", strokeThickness: 3 }).setOrigin(0.5));

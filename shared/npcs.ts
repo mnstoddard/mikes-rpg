@@ -14,7 +14,11 @@ export type NpcId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kae
   | "furnace" | "anvil" | "stove" | "workbench" | "tanning_rack" | "spinning_wheel" | "board"
   | "archmage" | "altar" | "guildboard" | "repairer" | "alchemy_table" | "chest" | "chest_east" | "chest_forest" | "chest_farm" | "chest_inn"
   // The Lighthall (the Lightkeepers' temple) and its people.
-  | "heart_shrine" | "aldric" | "celene" | "vale" | "oren" | "lisette" | "tomas" | "wynne" | "plinth";
+  | "heart_shrine" | "aldric" | "celene" | "vale" | "oren" | "lisette" | "tomas" | "wynne" | "plinth"
+  // The story (shared/story.ts): lanterns to light, the shrines out in Heartvale, and Rhys.
+  | "lantern_1" | "lantern_2" | "lantern_3" | "lantern_4" | "lantern_5" | "lantern_6"
+  | "round_1" | "round_2" | "round_3" | "round_4" | "round_5" | "round_6"
+  | "west_shrine" | "thorn_shrine" | "rhys";
 
 export interface NpcDef {
   id: NpcId;
@@ -197,6 +201,27 @@ export const NPCS: NpcDef[] = [
   {
     id: "plinth", name: "Empty plinth", kind: "station", ...at("lighthall.plinth"), color: 0xbdb6a0,
     greeting: "A plinth with no statue. Someone has scratched the name off the stone.",
+  },
+  // ---- The story: lanterns, shrines and Rhys (shared/story.ts) ----
+  ...([1, 2, 3, 4, 5, 6] as const).map((n): NpcDef => ({
+    id: `lantern_${n}`, name: "Lantern", kind: "station", ...at(`lantern_${n}`), color: 0xffd36b,
+    greeting: "A tall iron lantern on a post. The Lightkeepers light these every evening.",
+  })),
+  ...([1, 2, 3, 4, 5, 6] as const).map((n): NpcDef => ({
+    id: `round_${n}`, name: "Shrine lantern", kind: "station", ...at(`round_${n}`), color: 0xffd36b,
+    greeting: "A shrine lantern on a white stone post, with the Lighthall's flame carved on it.",
+  })),
+  {
+    id: "west_shrine", name: "Westroad shrine", kind: "station", ...at("westShrine"), color: 0xbdb6a0,
+    greeting: "A roadside shrine. The Ashbound have smashed it to rubble.",
+  },
+  {
+    id: "thorn_shrine", name: "Thornwood shrine", kind: "station", ...at("thornShrine"), color: 0xbdb6a0,
+    greeting: "Shrine stones laid out in a ring, waiting for the light.",
+  },
+  {
+    id: "rhys", name: "Rhys", kind: "person", ...at("rhys"), color: 0xe67e22, badge: "🔥",
+    greeting: "Ha! Still at it? I'm going to be a Radiant before you, you know.",
   },
 ];
 

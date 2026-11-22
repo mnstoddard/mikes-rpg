@@ -1,8 +1,33 @@
 # Mike's RPG: the main quest line
 
 This is the full main story, quest by quest. The world, factions and twist are
-in [STORY.md](STORY.md). Nothing here is built yet, except the parts of the
-Prologue that are today's tutorial and trainer chapters. Change anything you like.
+in [STORY.md](STORY.md). **The Prologue and Act 1 are built** in today's 2D game
+(the quests are in `shared/story.ts`); Acts 2 to 4 and the Crown aren't yet.
+Change anything you like.
+
+### What's in the game now (Prologue and Act 1)
+
+- New characters wake at the Heart Shrine inside the Lighthall. Awakening, The
+  Hall of Light, Light the Way and The Old Sweeper come before Old Maren's
+  lessons (characters from before skip them).
+- **A Blessing** opens after Maren's lessons and 4 trainers' lessons. **Oath of
+  the Flame** needs A Blessing and Huntmaster Kael's lesson, and makes you an
+  **Ember** (an orange cloak everyone sees).
+- **Soul Debt** is on after the Oath: each knock-out adds a gold Tithe mark
+  (⛓️, up to 5). While you have marks, a fifth of your XP goes to the shrine;
+  each mark fades after 40 + 12 × your highest Discipline level XP has gone.
+  A Tithe tonic (red cap + wild root, Moss's secret recipe) clears one.
+- **Act 1** opens after the Oath. Most quests can be done in any order; each
+  one says in the 📜 tab what it opens after. **A Light in the Thornwood**
+  needs Rebuild the Shrine, The Hollow Wolves and Maren's Question, and makes
+  you a **Flame** (a gold cloak).
+- **Shrines you've relit raise you**: you wake at the nearest of the Heart
+  Shrine, the Westroad shrine (after Rebuild the Shrine) and the Thornwood
+  shrine (after A Light in the Thornwood).
+- Changes from the plan to keep it quick: Tithe Tonics asks for 5 tonics, not
+  10; the escort in 1.12 is "lead them to the clearing and keep the wolves
+  off"; Odo's heirloom seeds are blue lotus seeds; Kael's Warden weapon is a
+  sword, bow or staff depending on how you fight best.
 
 ## How to read this
 
@@ -95,7 +120,7 @@ player should **like** them. A few small things feel off.
 | 1.4 | **Tithe Tonics** | Alchemist Moss | Help Moss brew 10 Tithe tonics for the Lighthall (the Lightkeepers sell them to heroes to "clear debt faster"). | Alchemy, Foraging | Recipe: Tithe tonic, 50 bronze |
 | 1.5 | **The Totem** | Woodworker Rook | Carve a shrine totem from oak and deliver it to Aldric. Rook slips a folded note inside "for luck". You don't read it (yet). | Woodcutting, Handicraft | Oak handle upgrade for one tool |
 | 1.6 | **Ash on the Road** | Captain Bryn | Ashbound raiders are smashing a roadside shrine. Drive them off (defeat 4). One drops a note: "They aren't what they seem." | Melee / Ranged / Spellcasting | Bounty pay, Renown |
-| 1.7 | **Rebuild the Shrine** | Keeper Aldric | Repair the smashed shrine: mine 10 stone, smelt 2 bronze bars, and bring Rook's new totem. Aldric relights it. 🎬 Notice the grass around it goes brown. | Mining, Smelting, Handicraft | Rank progress, health potions x3 |
+| 1.7 | **Rebuild the Shrine** | Keeper Aldric | Repair the smashed shrine: mine 6 stone, smelt 2 bronze bars, and bring Rook's new totem. Aldric relights it. 🎬 Notice the grass around it goes brown. | Mining, Smelting, Handicraft | Rank progress, health potions x3 |
 | 1.8 | **What Holt Saw** | Forester Holt | Holt asks you to count dead trees near three shrines, then near three places far from shrines. The difference is obvious. | Woodcutting, walking | Holt's notes (journal page), Woodcutting XP |
 | 1.9 | **Odo's Stubborn Field** | Farmer Odo | Grow a full plot with no blessing active. Odo talks about the "old days" before the Lighthall. | Farming | Heirloom seeds (a rare crop) |
 | 1.10 | **The Hollow Wolves** | Huntmaster Kael | More Blighted wolves at Wolf Hollow. Clear them with a party or alone. Kael mutters that the Blight is "always worst downhill of a shrine". | Melee / Ranged, Hunting | Warden's bow or Warden's blade |

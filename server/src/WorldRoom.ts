@@ -80,7 +80,7 @@ import { TREES, TreeEffect, TreeRanks, cleanRanks, earnedPoints, rankCost, spent
 import {
   GUIDE_NAME, Gift, QUEST_REV, YSOLDE_GUILD_STEP, boardOpen, migrateQuest, teacherOf, unlockedSkills, isProtected, QuestProgress, QuestStep, QuestView,
   gateOpen, giftItems, newQuestProgress, tutorialDone, currentStep, chapterById, chapterOf, chapterDone, chapterOpen, chapterViews,
-  questMarks, marenDone, stewsBurn, ChapterProgress, Chapter,
+  questMarks, marenDone, stewsBurn, ChapterProgress, Chapter, ChapterId,
 } from "../../shared/quests";
 import { SHOPS, SHOP_IDS, ShopId, isShop } from "../../shared/shops";
 import { RepairJob, isBroken, isRepairable, maxUses, repairCost } from "../../shared/repair";
@@ -91,7 +91,9 @@ import { RENOWN_RANKS, RenownView, earnedTitles, rankForRenown } from "../../sha
 import { REROLL_FEE, boardDay } from "../../shared/bounties";
 import { MagicJob, isJob } from "../../shared/guild";
 import { canBuyHere } from "../../shared/shops";
-import { gateMet } from "../../shared/quests";
+import { CHAPTERS, gateMet, litLanterns, oathSworn, opensAfter, rankOf, talkWith } from "../../shared/quests";
+import { BLESS_MINUTES, BLESS_POWER, RANKS as LIGHT_RANKS, STORY_ITEMS, SPOT_NAMES, TITHE_MAX, TITHE_SHARE, isStoryItem, titheCost } from "../../shared/story";
+import { AREAS, DOORS, PLACES } from "../../shared/map";
 import {
   CROPS, CROP_IDS, CropId, FARM_CHEST_PRICE, FarmView, LOTS, LOT_SIZE, MASTERY_EXTRA, PLANT_XP, PLOT_SIZES, SEED_BACK, SEED_BACK_PER_LEVEL, SeedId,
   cropOfSeed, decodeCrop, encodeCrop, inPlot, isSeed, lotAt, plotPrice, seedId, tileOf, timeLeft,
@@ -111,6 +113,8 @@ const FAST_GATHER_FOR_TESTS = process.env.RPG_FAST_GATHER === "1";
 /** For testing day and night: shift the world's clock by this many milliseconds. */
 const CLOCK_SHIFT_MS = Number(process.env.RPG_CLOCK_SHIFT_MS) || 0;
 /** The world's clock (day and night are worked out from it, shared/daynight.ts). */
+/** The story's stations: lanterns and shrines (shared/story.ts). */
+const STORY_STATIONS = new Set<string>(["west_shrine", "thorn_shrine", ...[1, 2, 3, 4, 5, 6].flatMap((n) => [`lantern_${n}`, `round_${n}`])]);
 const worldNow = () => Date.now() + CLOCK_SHIFT_MS;
 
 // Shared by every room on this server process.
@@ -137,6 +141,8 @@ export class Player extends Schema {
   @type("string") title = ""; // an earned title everyone sees over your head (shared/renown.ts)
   @type("string") party = ""; // the party you're in ("" = none, shared/party.ts); party members see each other's health
   @type("boolean") partyLead = false;
+  @type("number") rank = 0; // Lightkeeper rank (shared/story.ts RANKS): others see your cloak
+  @type("number") tithe = 0; // Tithe marks (Soul Debt): others see the gold links by your health bar
 
   // Server-only (not synced to everyone):
   path: Point[] = [];
@@ -182,6 +188,7 @@ export class Player extends Schema {
   buffs: Buffs = {}; // potion buffs, with when each runs out (world clock)
   potionReadyAt = 0; // can't drink another potion until then (ms)
   tree: TreeRanks = {}; // Mastery skill tree ranks bought, e.g. { "cooking.slots": 2 } (shared/skilltree.ts)
+  titheXp = 0; // XP the shrine has taken toward clearing your next Tithe mark
   tracked: ItemId | null = null; // the bounty shown on the quest tracker (by its item), or null for Maren's quest
   // The Mages' Guild (shared/guild.ts):
   guildPoints = 0; // from the guild's bounties; decides your rank
@@ -448,6 +455,7 @@ export class WorldRoom extends Room<WorldState> {
       if (!item) return;
       if (p.locked[msg.slot]) return this.say(client, `That ${ITEMS[item].single} is locked. Unlock it to sell it.`);
       if (isProtected(p.quest, item)) return this.say(client, this.keepIt(p, item, "sell"));
+      if (isStoryItem(item)) return this.say(client, `No one would buy your ${ITEMS[item].single}. It's worth more to you.`);
       const shop = this.nearShop(p);
       if (!shop) return this.say(client, "You need to be next to a shopkeeper to sell.");
       if (!SHOPS[shop].buys(item)) return this.say(client, `${npcById(shop)!.name} only buys ${SHOPS[shop].buysText}. Shopkeeper Tam at the General Store buys anything.`);
@@ -837,6 +845,7 @@ export class WorldRoom extends Room<WorldState> {
       if (msg?.reconnected) return;
       const step = this.step(p);
       if (!step) this.say(client, tutorialDone(p.quest) ? "Welcome back!" : "Welcome back! Talk to anyone with a ❗ for your next lesson.");
+      else if (p.quest.active === "awakening" && p.quest.ch.awakening?.step === 0) this.say(client, "✨ You open your eyes on the steps of the Heart Shrine. Light pours over you. Someone is kneeling beside you: talk to Sister Celene (the ❗, just below the shrine).");
       else if (p.quest.active === "maren" && p.quest.ch.maren?.step === 0) this.say(client, `Welcome! Go and talk to ${GUIDE_NAME} (the ❗ on the Lighthall's steps${areaAt(p.x, p.y)?.id === "lighthall" ? ": walk out of the big doors at the bottom of this hall" : ", just north of you"}). She'll show you how to get started.`);
       else this.say(client, `Welcome back! Your task: ${step.task}.`);
       for (const note of p.loginNotes.splice(0)) this.say(client, note);
@@ -848,6 +857,7 @@ export class WorldRoom extends Room<WorldState> {
       const item = p.inventory[msg.slot]!;
       if (p.locked[msg.slot]) return this.say(client, `That ${ITEMS[item].single} is locked. Unlock it to drop it.`);
       if (isProtected(p.quest, item)) return this.say(client, this.keepIt(p, item, "drop"));
+      if (isStoryItem(item) && !STORY_ITEMS[item].droppable) return this.say(client, `Better keep your ${ITEMS[item].single}. It's part of your story.`);
       clearEntry(p, msg.slot); // the whole stack
       this.sendInventory(client, p);
       this.saveSoon(p);
@@ -1038,6 +1048,7 @@ export class WorldRoom extends Room<WorldState> {
       const p = this.state.players.get(client.sessionId);
       if (!p || !Number.isInteger(msg?.slot)) return;
       const item = p.inventory[msg.slot];
+      if (isStoryItem(item)) return this.readStory(client, p, msg.slot, item);
       if (!isSpellBook(item)) return;
       const spell = SPELL_BOOKS[item];
       const d = SPELLS[spell];
@@ -1152,9 +1163,10 @@ export class WorldRoom extends Room<WorldState> {
       const questDrink = this.step(p)?.goal.kind === "drink"; // the trainer asked you to, so you can even at full health
       const now = Date.now();
       if (now < p.potionReadyAt) return this.say(client, `You need a moment before another potion (${Math.ceil((p.potionReadyAt - now) / 1000)}s).`);
-      const effect = isPotion(item) ? potionEffect(item, levelForXp(p.skillXp.alchemy)) : { heal: POTION_HEAL, stamina: 0, mana: 0, buffs: [], minutes: 0 };
+      const effect = isPotion(item) ? potionEffect(item, levelForXp(p.skillXp.alchemy)) : { heal: POTION_HEAL, stamina: 0, mana: 0, buffs: [], minutes: 0, tithe: 0 };
       const manaMax = this.maxManaOf(p);
-      const useful = (effect.heal && p.hp < p.maxHp) || (effect.stamina && p.stamina < p.maxStamina) || (effect.mana && p.mana < manaMax) || effect.buffs.length;
+      if (effect.tithe && !p.tithe && !questDrink) return this.say(client, "You don't have any Tithe marks to clear.");
+      const useful = (effect.tithe && p.tithe) || (effect.heal && p.hp < p.maxHp) || (effect.stamina && p.stamina < p.maxStamina) || (effect.mana && p.mana < manaMax) || effect.buffs.length;
       if (!useful && !questDrink) {
         return this.say(client, effect.heal ? `You're already at full health (${p.maxHp}).` : effect.stamina ? "Your stamina is already full." : "Your mana is already full.");
       }
@@ -1164,6 +1176,11 @@ export class WorldRoom extends Room<WorldState> {
       if (effect.heal) { const b = p.hp; p.hp = Math.min(p.maxHp, p.hp + effect.heal); got.push(`+${p.hp - b} health (${p.hp}/${p.maxHp})`); }
       if (effect.stamina) { const b = p.stamina; p.stamina = Math.min(p.maxStamina, p.stamina + effect.stamina); got.push(`+${p.stamina - b} stamina`); }
       if (effect.mana) { const b = p.mana; p.mana = Math.min(manaMax, p.mana + effect.mana); got.push(`+${p.mana - b} mana`); }
+      if (effect.tithe && p.tithe) {
+        p.tithe = Math.max(0, p.tithe - effect.tithe);
+        if (!p.tithe) p.titheXp = 0;
+        got.push(`a Tithe mark fades (${p.tithe} left)`);
+      }
       for (const b of effect.buffs) {
         p.buffs[b.id] = { until: worldNow() + effect.minutes * 60_000, power: b.power };
         got.push(`${BUFFS[b.id].icon} ${BUFFS[b.id].describe(b.power)} for ${effect.minutes} minutes`);
@@ -1239,6 +1256,7 @@ export class WorldRoom extends Room<WorldState> {
         p.nextStepAt = now + p.stepMs;
         return;
       }
+      this.checkReach(p);
       if (!p.path.length && p.talkTo) {
         const npc = p.talkTo;
         p.talkTo = null;
@@ -1493,7 +1511,7 @@ export class WorldRoom extends Room<WorldState> {
         delete p.buffs[id];
         changed = true;
         if (client) {
-          const spell = id === "ward" ? "ward fades" : id === "haste" ? "haste wears off" : id === "invisible" ? "invisibility wears off: monsters can see you again" : null;
+          const spell = id === "ward" ? "ward fades" : id === "haste" ? "haste wears off" : id === "invisible" ? "invisibility wears off: monsters can see you again" : id === "blessed" ? "blessing fades" : null;
           this.say(client, spell ? `${BUFFS[id].icon} Your ${spell}.` : `${BUFFS[id].icon} Your ${BUFFS[id].name.toLowerCase()} potion wears off.`);
         }
       }
@@ -1764,7 +1782,9 @@ export class WorldRoom extends Room<WorldState> {
     p.faceX = npc.x;
     p.faceY = npc.y;
     if (npc.id === "bryn") this.renownTalk(client, p); // a new rank, if you've earned one
+    if (this.storyClick(client, p, npc)) return;
     if (this.talkQuest(client, p, npc)) return;
+    if (STORY_STATIONS.has(npc.id)) return this.say(client, `${npc.name}: ${this.stationLook(p, npc)}`);
     if (npc.id === "maren") return;
     if (npc.id === "board") return this.openBoard(client, p);
     if (npc.id === "repairer") {
@@ -2612,12 +2632,18 @@ export class WorldRoom extends Room<WorldState> {
     p.path = [];
     p.hp = Math.ceil(p.maxHp / 2);
     this.state.monsters.forEach((m) => { if (m.target === sessionId) m.target = null; });
-    const spot = spotNear(WAKE_SPOT);
+    const shrine = this.respawnShrine(p);
+    const spot = spotNear(shrine.at);
     p.x = spot.x;
     p.y = spot.y;
     p.dirty = true;
+    // Soul Debt: after the Oath, the shrine takes a tithe for raising you.
+    const marked = oathSworn(p.quest) && p.tithe < TITHE_MAX;
+    if (marked) p.tithe++;
     if (client) {
-      this.say(client, `☠ The ${killer.toLowerCase()} knocked you out! You wake up at the Heart Shrine in the Lighthall with half your health. You kept all your things.`);
+      this.say(client, `☠ The ${killer.toLowerCase()} knocked you out! You wake up at ${shrine.name} with half your health. You kept all your things.`);
+      if (marked) this.say(client, `⛓️ A gold Tithe mark appears by your health bar (${p.tithe} of ${TITHE_MAX}). While you carry it, a fifth of your XP goes to the shrine, until the mark fades.`);
+      else if (oathSworn(p.quest)) this.say(client, `⛓️ You already carry ${TITHE_MAX} Tithe marks: the most there can be.`);
       client.send("died", {});
       this.sendVitals(client, p);
     }
@@ -3104,7 +3130,7 @@ export class WorldRoom extends Room<WorldState> {
     const g = step.goal;
     let counts = 0;
     if (g.kind === "gather" && ev.kind === "gather") {
-      if (ev.skill === g.skill && (!g.resource || ev.resource === g.resource) && (!g.withTool || ev.withTool) && (!g.byHand || !ev.withTool)) counts = 1;
+      if ((!g.skill || ev.skill === g.skill) && (!g.resource || ev.resource === g.resource) && (!g.withTool || ev.withTool) && (!g.byHand || !ev.withTool)) counts = 1;
     } else if (g.kind === "toolBreaks" && ev.kind === "toolBreak") {
       if (ev.tool === g.tool) counts = 1;
     } else if (g.kind === "craft" && ev.kind === "craft") {
@@ -3128,7 +3154,11 @@ export class WorldRoom extends Room<WorldState> {
       counts = 1;
     } else if (g.kind === "bounty" && ev.kind === "bounty") {
       counts = 1;
-    } else if ((g.kind === "plot" || g.kind === "plant" || g.kind === "harvest") && ev.kind === g.kind) {
+    } else if (g.kind === "harvest" && ev.kind === "harvest") {
+      if (g.unblessed && buffPower(p.buffs, "blessed", worldNow()) > 0) {
+        if (client) this.say(client, `${this.giverName(p)} said no blessings! That one doesn't count. Wait for your ✨ blessing to run out.`);
+      } else counts = 1;
+    } else if ((g.kind === "plot" || g.kind === "plant") && ev.kind === g.kind) {
       counts = 1;
     }
     if (!counts) return;
@@ -3189,7 +3219,12 @@ export class WorldRoom extends Room<WorldState> {
     this.refreshStats(p, client); // a lesson may have taught you a skill
     if (!client) return;
     if (step) this.say(client, `📜 Next: ${step.task}.`);
-    else if (!tutorialDone(p.quest)) this.say(client, "📜 Next: talk to anyone with a ❗ for your next lesson (the 📜 Quests tab lists them all).");
+    else {
+      // A story chapter that's just opened: say who to see next.
+      const next = CHAPTERS.find((c) => (c.act || c.id === "maren") && !p.quest.ch[c.id] && chapterOpen(p.quest, c.id) && gateMet(c, this.levelOf(p)));
+      if (next) this.say(client, `📜 Next: ${next.title}. Talk to ${next.name}, ${next.where}.`);
+      else if (!tutorialDone(p.quest)) this.say(client, "📜 Next: talk to anyone with a ❗ for your next lesson (the 📜 Quests tab lists them all).");
+    }
     this.sendQuest(client, p);
   }
 
@@ -3199,6 +3234,11 @@ export class WorldRoom extends Room<WorldState> {
     const step = this.step(p);
     if (!step) return null;
     if (step.guaranteed && step.goal.kind === "craft" && recipe.output.startsWith(step.goal.prefix)) return "success";
+    // A story step that asks you to bring something you make: the ones you need always work.
+    if (step.guaranteed && step.goal.kind === "have") {
+      const need = (step.goal.items as Record<string, number>)[recipe.output];
+      if (need && countItem(p, recipe.output) < need) return "success";
+    }
     return null;
   }
 
@@ -3236,7 +3276,7 @@ export class WorldRoom extends Room<WorldState> {
    */
   private talkQuest(client: Client, p: Player, npc: NpcDef): boolean {
     const q = p.quest;
-    let chapter: Chapter | null = chapterOf(npc.id, q);
+    let chapter: Chapter | null = chapterOf(npc.id, q, this.levelOf(p));
     // A side quest that needs a level you don't have yet (e.g. Renown 10): not offered yet.
     if (chapter && !q.ch[chapter.id] && !gateMet(chapter, this.levelOf(p))) {
       if (chapter.side && chapter.requires) this.say(client, `${chapter.name}: Come back when you're better known (${skillInfo(chapter.requires.skill).def.name} ${chapter.requires.level}). I might have a job for you then.`);
@@ -3252,6 +3292,11 @@ export class WorldRoom extends Room<WorldState> {
       return true;
     }
     if (!chapterOpen(q, chapter.id)) {
+      if (chapter.act) {
+        if (npc.id === "maren") return false;
+        this.say(client, `${chapter.name}: ${npc.kind === "person" ? "I'll have something more for you later." : ""} (📜 ${chapter.title}: ${opensAfter(q, chapter.id).toLowerCase()}.)`);
+        return false;
+      }
       this.say(client, `${chapter.name}: Come and see me for a lesson once ${GUIDE_NAME} has shown you the basics. She's on the Lighthall's steps, in the town square.`);
       return false;
     }
@@ -3265,6 +3310,11 @@ export class WorldRoom extends Room<WorldState> {
     }
     const step = this.step(p);
     if (!step) return false;
+    // A talk step with someone else (deliver the totem to Aldric...): point the way.
+    if (step.goal.kind === "talk" && talkWith(chapter, step) !== npc.id) {
+      this.dialog(client, [step.task + "."], chapter.name);
+      return true;
+    }
     if (step.goal.kind !== "talk") {
       const given = this.giveMissing(p, step.ensure);
       if (given) this.sendInventory(client, p);
@@ -3276,18 +3326,32 @@ export class WorldRoom extends Room<WorldState> {
       this.dialog(client, [text], chapter.name);
       return true;
     }
+    return this.doTalk(client, p, chapter, step, npc);
+  }
+
+  /** Do a talk step: they say their piece, take what they need, and hand over the rewards. */
+  private doTalk(client: Client, p: Player, chapter: Chapter, step: QuestStep, npc: NpcDef): boolean {
+    const speaker = npc.kind === "person" ? npc.name : chapter.name;
     if (step.need && !p.inventory.some((it) => it?.startsWith(step.need!.prefix))) {
-      this.dialog(client, [step.need.line], chapter.name);
+      this.dialog(client, [step.need.line], speaker);
+      return true;
+    }
+    const take = Object.entries(step.take ?? {}) as [ItemId, number][];
+    const short = take.filter(([item, n]) => this.countOf(p, item) < n);
+    if (short.length) {
+      this.dialog(client, [`You still need ${short.map(([item, n]) => `${n - this.countOf(p, item)} more ${n - this.countOf(p, item) === 1 ? ITEMS[item].single : plural(ITEMS[item].name)}`).join(" and ")}.`], speaker);
       return true;
     }
     const gifts = giftItems(step.give);
     if (!roomForAll(p, gifts.map((g) => g.item))) {
-      this.dialog(client, [`I've got ${gifts.length} things for you, but your bag is too full. Make some room and come back.`], chapter.name);
+      this.dialog(client, [`I've got ${gifts.length === 1 ? "something" : `${gifts.length} things`} for you, but your bag is too full. Make some room and come back.`], chapter.name);
       return true;
     }
+    for (const [item, n] of take) takeItem(p, item, n);
     for (const g of gifts) this.give(p, g.item, 1, g.durability, true); // gifts never count against weight, so the lessons can't get stuck
     if (step.coins) p.coins += step.coins;
-    this.dialog(client, step.lines ?? [], chapter.name);
+    this.dialog(client, step.lines ?? [], speaker);
+    if (take.length) this.say(client, `You hand over ${take.map(([item, n]) => (n === 1 ? aOr(ITEMS[item].single) : `${n} ${plural(ITEMS[item].name)}`)).join(" and ")}.`);
     if (gifts.length || step.coins) {
       const names = [...new Set(gifts.map((g) => g.item))].map((item) => {
         const n = gifts.filter((g) => g.item === item).length;
@@ -3297,9 +3361,19 @@ export class WorldRoom extends Room<WorldState> {
       if (step.coins) names.push(formatMoney(step.coins));
       this.say(client, `${chapter.name} gives you ${names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0]}.`);
     }
+    for (const [skill, xp] of Object.entries(step.xp ?? {}) as [SkillId, number][]) this.addSkillXp(p, client, skill, xp);
+    // Alchemist Moss tells you the Tithe tonic's secret recipe.
+    if (chapter.id === "tonics" && !p.discovered.includes("tithe")) {
+      p.discovered.push("tithe");
+      this.say(client, "⚗️ You learn a secret recipe: Tithe tonic (red cap + wild root). It's in your list at the alchemy table.");
+      client.send("discovered", p.discovered);
+    }
+    if (step.bless) this.bless(client, p);
+    if (step.warden) this.giveWarden(client, p);
     if (step.opensGate) this.say(client, "🚪 The gate to the Dark Forest is open to you now. It's just south of Kael's lodge on the south road, past the ⚠ signs.");
     if (step.opensBoard) this.say(client, "📋 The bounty board is open to you now. Its jobs are in the 📜 Quests tab too.");
     this.advance(p, client);
+    if (step.rank) this.updateRank(client, p);
     if (step.opensBoard) { this.fillBoard(p); this.sendBounties(client, p); }
     // Hand over anything the next step needs that you don't have (e.g. a minnow to cook).
     const extra = this.giveMissing(p, this.step(p)?.ensure);
@@ -3307,6 +3381,140 @@ export class WorldRoom extends Room<WorldState> {
     this.sendInventory(client, p);
     this.saveSoon(p);
     return true;
+  }
+
+  // ---- The story (shared/story.ts) ----
+
+  /** Read or use a story item: a blessing scroll, a note, Maren's charm. */
+  private readStory(client: Client, p: Player, slot: number, item: ItemId) {
+    const name = STORY_ITEMS[item as keyof typeof STORY_ITEMS].name;
+    if (item === "blessing_scroll") {
+      takeFromEntry(p, slot, 1);
+      this.say(client, "📜 You read the blessing aloud, and warm light settles on you.");
+      this.bless(client, p);
+      this.sendInventory(client, p);
+      return this.saveSoon(p);
+    }
+    const flame = rankOf(p.quest) >= 2;
+    const text: Partial<Record<string, string[]>> = {
+      rooks_note: flame ? ["You break the wax. Inside, in Rook's careful carving-hand:", "\"Ask Maren about the first one.\""]
+        : ["You promised Rook you wouldn't read it. Maybe later, once you're a proper Flame of the Lighthall."],
+      ashbound_note: ["Charcoal on rough paper, in a hurried hand:", "\"They aren't what they seem.\""],
+      marens_charm: ["A little wooden flame, worn smooth. On the back, scratched very small: a single letter, M.", "It's warm, as if someone had only just let go of it."],
+      holts_notes: ["Near shrines: 28 dead trees out of 35.", "Far from shrines: 2 dead trees out of 34.", "Underneath, Holt has written: \"Ashbound poison? Then why only near the shrines they DIDN'T smash?\""],
+      lantern: ["Keeper Aldric's lantern. Nights are less dark while you carry it."],
+      shrine_totem: ["Rook's oak totem, carved with the Lighthall's flame."],
+    };
+    this.dialog(client, text[item] ?? [STORY_ITEMS[item as keyof typeof STORY_ITEMS].description], name);
+  }
+
+  /**
+   * Clicking someone (or something) the story needs: a visit step (light this
+   * lantern, meet that Lightkeeper), or a talk step with someone who isn't the
+   * chapter's giver (bring the totem to Aldric). Returns true if that's all the click does.
+   */
+  private storyClick(client: Client, p: Player, npc: NpcDef): boolean {
+    const q = p.quest;
+    const step = this.step(p);
+    const prog = this.prog(p);
+    if (step && prog && step.goal.kind === "visit" && step.goal.npcs.includes(npc.id)) {
+      if (prog.got?.includes(npc.id)) return false;
+      prog.got = [...(prog.got ?? []), npc.id];
+      prog.count = prog.got.length;
+      p.dirty = true;
+      const lines = step.visitLines?.[npc.id];
+      if (lines) this.dialog(client, lines, npc.name);
+      if (prog.count >= step.goal.npcs.length) this.advance(p, client);
+      else { this.say(client, `📜 ${prog.count} of ${step.goal.npcs.length} ${step.goal.names}.`); this.sendQuest(client, p); }
+      this.saveSoon(p);
+      return true;
+    }
+    // A talk step with this person in a chapter you've started (the active one first).
+    const ids = [q.active, ...(Object.keys(q.ch) as ChapterId[])].filter((id): id is ChapterId => !!id && !chapterDone(q, id));
+    for (const id of ids) {
+      const c = chapterById(id);
+      const st = c.steps[q.ch[id]!.step];
+      if (!st || st.goal.kind !== "talk" || !st.who || st.who !== npc.id) continue;
+      if (q.active !== id) {
+        q.active = id;
+        p.dirty = true;
+        this.sendQuest(client, p);
+      }
+      return this.doTalk(client, p, c, st, npc);
+    }
+    return false;
+  }
+
+  /** What a story station looks like to you (lit or not). */
+  private stationLook(p: Player, npc: NpcDef): string {
+    const lit = litLanterns(p.quest).includes(npc.id);
+    if (npc.id === "west_shrine") return lit ? "The rebuilt shrine glows gold. The grass round it is brown and dry." : npc.greeting;
+    if (npc.id === "thorn_shrine") return lit ? "The Thornwood's first shrine burns gold. The trees nearest it look grey." : npc.greeting;
+    return lit ? "The lantern burns bright and steady." : npc.greeting;
+  }
+
+  /** Walked somewhere a reach step wants you to go? */
+  private checkReach(p: Player) {
+    const step = this.step(p);
+    const prog = this.prog(p);
+    if (!step || !prog || step.goal.kind !== "reach") return;
+    const spot = step.goal.spots.find((k) => !prog.got?.includes(k) && Math.max(Math.abs(PLACES[k].x - p.x), Math.abs(PLACES[k].y - p.y)) <= 2);
+    if (!spot) return;
+    prog.got = [...(prog.got ?? []), spot];
+    prog.count = prog.got.length;
+    p.dirty = true;
+    const client = this.clientOf(p);
+    if (client) this.say(client, `📍 ${step.spotLines?.[spot] ?? `You reach ${SPOT_NAMES[spot] ?? "the place"}.`}`);
+    if (prog.count >= step.goal.spots.length) this.advance(p, client);
+    else if (client) { this.say(client, `📜 ${prog.count} of ${step.goal.spots.length} ${step.goal.names}.`); this.sendQuest(client, p); }
+  }
+
+  private clientOf(p: Player): Client | undefined {
+    return this.clients.find((c) => this.state.players.get(c.sessionId) === p);
+  }
+
+  /** A Lightkeeper blessing: more XP for a while. */
+  private bless(client: Client, p: Player) {
+    p.buffs.blessed = { until: worldNow() + BLESS_MINUTES * 60_000, power: BLESS_POWER };
+    this.say(client, `✨ You're blessed: +${BLESS_POWER}% XP for ${BLESS_MINUTES} minutes.`);
+    this.sendBuffs(client, p);
+    p.dirty = true;
+  }
+
+  /** Kael's old Warden weapon: a sword, a bow or a staff, for however you fight best. */
+  private giveWarden(client: Client, p: Player) {
+    const lv = (sk: SkillId) => (isUnlocked(p.unlocked, sk) ? p.skillXp[sk] : -1);
+    const best = (["melee", "ranged", "magic"] as SkillId[]).reduce((a, b) => (lv(b) > lv(a) ? b : a));
+    const item = (best === "ranged" ? "bow_stone_maple" : best === "magic" ? "staff_iron_oak" : "sword_iron_oak") as ItemId;
+    this.give(p, item, 1, null, true);
+    this.say(client, `Huntmaster Kael gives you his old Warden's ${best === "ranged" ? "bow (a maple bow)" : best === "magic" ? "staff (iron and oak)" : "blade (an iron sword)"}.`);
+  }
+
+  /** Your Lightkeeper rank went up: a new cloak, and everyone sees it. */
+  private updateRank(client: Client | undefined, p: Player) {
+    const r = rankOf(p.quest);
+    if (r === p.rank) return;
+    p.rank = r;
+    if (client) {
+      this.say(client, `🔥 You are now ${r === 1 ? "an" : "a"} ${LIGHT_RANKS[r]} of the Lighthall!${r === 1 ? " (Your Ember cloak shows it.)" : " (Your cloak burns gold.)"}`);
+      client.send("questDone", { quest: `Rank: ${LIGHT_RANKS[r]}` });
+    }
+  }
+
+  /** The nearest shrine that can raise you: the Heart Shrine, or ones you've relit. */
+  private respawnShrine(p: Player): { name: string; at: Point } {
+    const lit = litLanterns(p.quest);
+    // Where you fell, outdoors: inside somewhere counts as its front door.
+    const area = areaAt(p.x, p.y);
+    const door = area && area.kind !== "outdoor" ? DOORS.find((d) => d.area === area.id && areaAt(d.x, d.y)?.kind === "outdoor") : null;
+    const from = door ?? p;
+    const heart = DOORS.find((d) => d.area === "lighthall" && areaAt(d.x, d.y)?.kind === "outdoor")!;
+    const choices: { name: string; at: Point; from: Point }[] = [{ name: "the Heart Shrine in the Lighthall", at: WAKE_SPOT, from: heart }];
+    if (lit.includes("west_shrine")) choices.push({ name: "the Westroad shrine", at: PLACES.westShrine, from: PLACES.westShrine });
+    if (lit.includes("thorn_shrine")) choices.push({ name: "the Thornwood shrine", at: PLACES.thornShrine, from: PLACES.thornShrine });
+    const dist = (a: Point) => Math.hypot(a.x - from.x, a.y - from.y);
+    const best = area && area.kind !== "outdoor" && !door ? choices[0] : choices.reduce((a, b) => (dist(b.from) < dist(a.from) ? b : a));
+    return { name: best.name, at: best.at };
   }
 
   /** Old Maren won't let you get stuck: a stew if you're worn out with no food, a potion if you're badly hurt during Kael's lessons. */
@@ -3357,15 +3565,20 @@ export class WorldRoom extends Room<WorldState> {
   private questView(p: Player): QuestView {
     const step = this.step(p);
     const chapters = chapterViews(p.quest, this.levelOf(p));
-    const finished = chapters.filter((c) => c.state === "done").length;
-    const base = { number: finished, of: chapters.length, marks: questMarks(p.quest, this.levelOf(p)), chapters };
+    const prog = this.prog(p);
+    const spots = step?.goal.kind === "reach"
+      ? step.goal.spots.filter((k) => !prog?.got?.includes(k)).map((k) => ({ ...PLACES[k], label: SPOT_NAMES[k] ?? "" }))
+      : undefined;
+    const lessons = chapters.filter((c) => !c.act);
+    const base = { number: lessons.filter((c) => c.state === "done").length, of: lessons.length, marks: questMarks(p.quest, this.levelOf(p)), chapters,
+      spots, lit: litLanterns(p.quest), rank: rankOf(p.quest) };
     if (!step) {
       return tutorialDone(p.quest)
         ? { ...base, done: true, quest: "All lessons done", giver: "", task: "Tap 📜 Quests to track a bounty from the board.", talk: false }
         : { ...base, done: false, quest: "Pick your next lesson", giver: "", task: "Talk to anyone with a ❗ (the 📜 Quests tab says where they are)", talk: true };
     }
     const chapter = chapterById(p.quest.active!);
-    const prog = this.prog(p)!;
+    const progNow = this.prog(p)!;
     const g = step.goal;
     let progress: string | undefined;
     let fraction: number | undefined;
@@ -3391,8 +3604,8 @@ export class WorldRoom extends Room<WorldState> {
       const free = this.freePoints(p);
       progress = free ? `You have ${free} Mastery point${free === 1 ? "" : "s"} to spend` : "No points yet: catch more minnows";
     } else if ("count" in g && g.count > 1) {
-      progress = `${prog.count} / ${g.count}`;
-      fraction = prog.count / g.count;
+      progress = `${progNow.count} / ${g.count}`;
+      fraction = progNow.count / g.count;
     }
     const warning = step.needsTool && !p.belt[step.needsTool] ? `Put your ${TOOL_TYPES[step.needsTool].name.toLowerCase()} back on your belt first!`
       : this.fightBlock(p) ? (step.fightWith === "magic" ? "Hold your staff first!" : step.fightWith === "ranged" ? "Hold your sling first!" : "Hold a weapon first!") : undefined;
@@ -3736,7 +3949,20 @@ export class WorldRoom extends Room<WorldState> {
     if (!isUnlocked(p.unlocked, skill)) return; // no XP in a skill nobody has taught you yet
     const before = levelForXp(p.skillXp[skill]);
     // The skill tree's "Quick learner": more skill XP (rounded at random, so small amounts still count).
-    const boosted = xp * (1 + this.tree(p, skill, "xp"));
+    let boosted = xp * (1 + this.tree(p, skill, "xp")) * (1 + buffPower(p.buffs, "blessed", worldNow()) / 100);
+    // Soul Debt: while you carry Tithe marks, the shrine takes a fifth.
+    if (p.tithe > 0) {
+      const tithe = boosted * TITHE_SHARE;
+      boosted -= tithe;
+      p.titheXp += tithe;
+      const cost = titheCost(Math.max(...Object.values(p.levels)));
+      if (p.titheXp >= cost) {
+        p.titheXp -= cost;
+        p.tithe--;
+        if (!p.tithe) p.titheXp = 0;
+        if (client) this.say(client, p.tithe ? `⛓️ A Tithe mark fades. ${p.tithe} left.` : "⛓️ Your last Tithe mark fades. All your XP is yours again.");
+      }
+    }
     p.skillXp[skill] += Math.floor(boosted) + (Math.random() < boosted % 1 ? 1 : 0);
     const after = levelForXp(p.skillXp[skill]);
     if (!client) {
@@ -3995,6 +4221,9 @@ export class WorldRoom extends Room<WorldState> {
       return;
     }
     if (save.quest) p.quest = migrateQuest(save.quest, save.questRev);
+    p.rank = rankOf(p.quest);
+    if (typeof save.tithe === "number" && Number.isInteger(save.tithe)) p.tithe = Math.max(0, Math.min(TITHE_MAX, save.tithe));
+    if (p.tithe && typeof save.titheXp === "number" && Number.isFinite(save.titheXp)) p.titheXp = Math.max(0, save.titheXp);
     if (save.mapRev === MAP_REV && Number.isInteger(save.x) && Number.isInteger(save.y) && isWalkable(save.x!, save.y!) && !doorAt(save.x!, save.y!)) {
       p.x = save.x!;
       p.y = save.y!;
@@ -4123,7 +4352,7 @@ export class WorldRoom extends Room<WorldState> {
     const dest = p.path.length ? p.path[p.path.length - 1] : p;
     const bag = cloneBag(p);
     compact(bag); // leave out unused entries
-    return { saveVersion: SAVE_VERSION, mapRev: MAP_REV, questRev: QUEST_REV, quest: structuredClone(p.quest), x: dest.x, y: dest.y, inventory: bag.inventory, slots: bag.slotOf, coins: p.coins, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: bag.durability, belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), hp: p.hp, hpAt: Date.now(), gear: { ...p.gear }, spell: p.spell, combatMastery: { ...p.combatMastery }, tree: { ...p.tree }, lockedSlots: bag.locked.flatMap((on, i) => (on ? [i] : [])), bounties: p.bounties.map((b) => ({ ...b })), tracked: p.tracked ?? undefined, color: p.color, counts: bag.counts, jewels: { ...p.jewels }, discovered: [...p.discovered], books: [...p.books], spellBar: p.barFresh ? undefined : [...p.spellBar], buffs: structuredClone(p.buffs), guild: this.guildSave(p), farmChest: p.farmChest || undefined, renownRank: p.renownRank || undefined, title: p.title || undefined, boardDay: p.boardDay || undefined, guildDay: p.guildDay || undefined };
+    return { saveVersion: SAVE_VERSION, mapRev: MAP_REV, questRev: QUEST_REV, quest: structuredClone(p.quest), x: dest.x, y: dest.y, inventory: bag.inventory, slots: bag.slotOf, coins: p.coins, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: bag.durability, belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), hp: p.hp, hpAt: Date.now(), gear: { ...p.gear }, spell: p.spell, combatMastery: { ...p.combatMastery }, tree: { ...p.tree }, lockedSlots: bag.locked.flatMap((on, i) => (on ? [i] : [])), bounties: p.bounties.map((b) => ({ ...b })), tracked: p.tracked ?? undefined, color: p.color, counts: bag.counts, jewels: { ...p.jewels }, discovered: [...p.discovered], books: [...p.books], spellBar: p.barFresh ? undefined : [...p.spellBar], buffs: structuredClone(p.buffs), guild: this.guildSave(p), farmChest: p.farmChest || undefined, renownRank: p.renownRank || undefined, title: p.title || undefined, tithe: p.tithe || undefined, titheXp: p.tithe ? Math.floor(p.titheXp) : undefined, boardDay: p.boardDay || undefined, guildDay: p.guildDay || undefined };
   }
 
   private async save(p: Player) {

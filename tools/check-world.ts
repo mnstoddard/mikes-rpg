@@ -5,6 +5,7 @@ import { writeFileSync } from "node:fs";
 import { deflateSync } from "node:zlib";
 import { AREAS, DOORS, MAP, MAP_HEIGHT, MAP_WIDTH, MAP_NODES, PLACES, areaAt, charAt, doorAt, isDanger, isWalkable, WAKE_SPOT } from "../shared/map";
 import { NPCS } from "../shared/npcs";
+import { STORY_SPOTS } from "../shared/world";
 import { MONSTER_SPAWNS } from "../shared/combat";
 import { LOTS, LOT_SIZE } from "../shared/farming";
 import { fishAt } from "../shared/foraging";
@@ -37,6 +38,10 @@ for (const n of NPCS) {
   const t = MAP[n.y][n.x];
   if (["wall", "house", "marblewall", "cavewall", "water", "void", "tree", "rock", "cliff", "roof"].includes(t)) problems.push(`${n.id} stands on ${t}`);
   if (!reachNext(n.x, n.y)) problems.push(`${n.id} (${n.x},${n.y}) can't be reached`);
+}
+// The story's places to walk to (shared/story.ts): reachable, and on open ground.
+for (const [k, p] of Object.entries(STORY_SPOTS)) {
+  if (!reach(p.x, p.y)) problems.push(`story spot ${k} (${p.x},${p.y}) can't be reached`);
 }
 for (const d of DOORS) {
   if (!isWalkable(d.to.x, d.to.y)) problems.push(`door ${d.label} at ${d.x},${d.y} lands on a blocked tile`);

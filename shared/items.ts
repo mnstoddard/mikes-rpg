@@ -7,6 +7,7 @@ import { ARROWS_PER_CRAFT, ArrowId, BAITS, BAIT_IDS, BaitId, HandicraftMaterial,
 import { SOFT_NAMES, isWooden } from "./gear";
 import { BONUSES, POTIONS, PotionId, parsePotion, potionInputs } from "./alchemy";
 import { enchantedName, enchantsOf } from "./enchanting";
+import { STORY_ITEMS, StoryItemId } from "./story";
 import { CROPS, CROP_IDS, CropId, FarmProduce, SeedId, seedId } from "./farming";
 import { GemItemId, JEWEL_BARS, JEWEL_BAR_IDS, JEWEL_METALS, JEWEL_TYPES, JewelBarId, cutId, gemItemDef, parseGem } from "./jewelry";
 import {
@@ -48,7 +49,7 @@ export type WildId = "sage" | "moonpetal" | "old_bone" | "red_cap" | "ginseng" |
  * from ingredients and a log), weapons and armor, loot, cooking ingredients
  * (raw chicken, vegetables...), Handicraft materials (worms, food scraps) and bait.
  */
-export type ItemId = BaseItemId | BarId | ToolItemId | MealId | GearItemId | LootId | WildId | OtherIngredient | HandicraftMaterial | BaitId | PotionId | GemItemId | JewelBarId | SpellBookId | EnchantedItemId | ArrowId | SeedId | FarmProduce;
+export type ItemId = BaseItemId | BarId | ToolItemId | MealId | GearItemId | LootId | WildId | OtherIngredient | HandicraftMaterial | BaitId | PotionId | GemItemId | JewelBarId | SpellBookId | EnchantedItemId | ArrowId | SeedId | FarmProduce | StoryItemId;
 /** An enchanted tool, weapon or armor piece: "axe_iron_oak+swift.20" (shared/enchanting.ts). */
 export type EnchantedItemId = `${string}+${string}`;
 
@@ -154,7 +155,7 @@ const CROP_NAMES: Record<CropId, [string, string]> = {
 };
 const SEEDS = Object.fromEntries(CROP_IDS.map((c) => [seedId(c), { name: CROP_NAMES[c][0], single: CROP_NAMES[c][1], icon: "🌱", tint: CROPS[c].tint, sellPrice: CROPS[c].seedPrice }])) as Record<SeedId, ItemDef>;
 
-const TABLE = { ...BASE_ITEMS, ...LOOT, ...WILD, ...FOOD_AND_MATERIALS, ...BOOKS, ...FARM, ...SEEDS } as Record<ItemId, ItemDef>;
+const TABLE = { ...BASE_ITEMS, ...LOOT, ...WILD, ...FOOD_AND_MATERIALS, ...BOOKS, ...FARM, ...SEEDS, ...STORY_ITEMS } as unknown as Record<ItemId, ItemDef>;
 
 /**
  * Every item's definition. Meals ("meal_curry_oak_potato-trout") are built the

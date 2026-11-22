@@ -123,6 +123,18 @@ class Canvas {
 
 /** Things the builder records as it goes, for NPCs, monsters and the farm. */
 const places: Record<string, Point> = {};
+/** Places the story sends you to walk to (not stood on by anyone). */
+const storySpots: Record<string, Point> = {};
+/** The nearest open ground (grass, path, sand...) to a spot. */
+function nearFree(c: Canvas, x: number, y: number): Point {
+  for (let r = 0; r < 12; r++) {
+    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+      if (".,;:sw".includes(c.get(x + dx, y + dy))) return { x: x + dx, y: y + dy };
+    }
+  }
+  throw new Error(`nowhere free near ${x},${y}`);
+}
 const spawns: [MonsterId, number, number][] = [];
 const lots: Point[] = [];
 const areas: AreaDef[] = [];
@@ -412,6 +424,8 @@ function buildOverworld(): Canvas {
   c.fill(4, 72, 10, 75, ",", "^.w");
   c.fill(4, 72, 4, 75, "x");
   c.set(6, 71, "!");
+  // Ashbound scouts smashing the shrine (Act 1: Ash on the Road).
+  spawnIn(c, "ashbound_scout", 4, 8, 64, 24, 71, r, 0, 0, ".,w");
 
   // ---- The Thornwood ----
   c.scatter(3, FENCE_Y + 1, 205, OVER_H - 3, "T", 0.17, r, ":");
@@ -426,6 +440,7 @@ function buildOverworld(): Canvas {
   c.blob(101, 110, 9, 5, ":", r, 0.2, FOREST);
   c.road(101, 74, 101, 150, ",", 2);
   places.thornShrine = { x: 105, y: 110 };
+  places.rhys = { x: 108, y: 111 };
   places.chest_forest = { x: 97, y: 108 };
   c.blob(44, 120, 12, 7, ":", r, 0.25, FOREST);
   c.blob(150, 120, 12, 8, ":", r, 0.25, FOREST);
@@ -451,9 +466,22 @@ function buildOverworld(): Canvas {
   spawnIn(c, "bandit", 3, 106, 142, 128, 152, r, 0, 0, ":");
   spawnIn(c, "giant_bat", 2, 180, 115, 195, 128, r, 0, 0, ":");
   spawnIn(c, "giant_bat", 1, 90, 106, 112, 118, r, 0, 0, ":");
-  spawnIn(c, "wolf", 3, 62, 139, 80, 146, r, 0, 0, ":");
+  spawnIn(c, "hollow_wolf", 5, 62, 139, 80, 146, r, 0, 0, ":"); // Wolf Hollow's Blighted pack (Act 1)
 
   c.fill(GATE.x, FENCE_Y, GATE.x + 1, FENCE_Y, "+");
+  // ---- The story's lanterns and places (shared/story.ts) ----
+  // Lanterns on the Lighthall's steps and round the square (Light the Way).
+  ([[95, 64], [107, 64], [92, 67], [110, 66], [94, 71], [108, 71]] as const).forEach(([x, y], i) => { places[`lantern_${i + 1}`] = { x, y }; });
+  // Shrine lanterns round Heartvale (Lantern Rounds): quarry road, lake, inn, farm, coast, Kael's gate.
+  ([[91, 40], [71, 58], [160, 72], [168, 76], [203, 66], [97, 101]] as const).forEach(([x, y], i) => { places[`round_${i + 1}`] = nearFree(c, x, y); });
+  // Places to walk to: Odo's fields (Blessing the Fields), Holt's dead trees (What Holt Saw), the Thornwood clearing.
+  const spots: Record<string, [number, number]> = {
+    fieldNorth: [183, 49], fieldMid: [189, 58], fieldSouth: [183, 82],
+    nearLighthall: [87, 57], nearWestShrine: [20, 66], nearGate: [96, 106],
+    farLake: [46, 38], farPeaks: [150, 30], farCoast: [205, 36],
+    thornEdge: [103, 112],
+  };
+  for (const [k, [x, y]] of Object.entries(spots)) storySpots[`spot.${k}`] = nearFree(c, x, y);
   // ---- Last: keep every doorway and every person's spot clear ----
   const WALK = ".,;:asw*=Cfo_pzGl";
   const clear = (p: Point) => {
@@ -691,7 +719,9 @@ export const WORLD_H = GRID.h;
 export const AREAS: readonly AreaDef[] = areas;
 export const DOORS: readonly Door[] = doors;
 /** Named spots: where people and stations stand, where you wake up... */
-export const PLACES: Readonly<Record<string, Point>> = places;
+export const PLACES: Readonly<Record<string, Point>> = { ...places, ...storySpots };
+/** Just the story's places to walk to ("spot.fieldNorth"...). */
+export const STORY_SPOTS: Readonly<Record<string, Point>> = storySpots;
 /** Monster homes: [type, x, y]. */
 export const WORLD_SPAWNS: readonly [MonsterId, number, number][] = spawns;
 /** Names of the regions and landmarks, for the world map (🗺️). */
