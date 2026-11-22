@@ -84,7 +84,7 @@ scene.add(rim);
 
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
-const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.3, 0.5, 0.9);
+const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.3, 0.5, 0.97);
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 
@@ -255,8 +255,8 @@ function frame(x: number, y: number, dist: number, dir = new THREE.Vector3(0.55,
 // ---------- Time of day ----------
 
 const SKIES = {
-  day: { top: "#8fc9ec", mid: "#cfe6ef", low: "#f4e7c9", hemi: [0xe2f0ff, 0x6a8452, 0.9], sun: [0xfff1d6, 2.0], pos: [3, 6, 4], exposure: 1.05, bloom: 0.2, env: 0.55 },
-  sunset: { top: "#6d7fb8", mid: "#e9a07a", low: "#f6c98a", hemi: [0xffd2b0, 0x5a4a48, 0.85], sun: [0xffa060, 2.2], pos: [-6, 2.2, 3], exposure: 1.0, bloom: 0.35, env: 0.4 },
+  day: { top: "#8fc9ec", mid: "#cfe6ef", low: "#f4e7c9", hemi: [0xe2f0ff, 0x6a8452, 0.9], sun: [0xfff1d6, 2.0], pos: [3, 6, 4], exposure: 1.05, bloom: 0.08, env: 0.55 },
+  sunset: { top: "#6d7fb8", mid: "#e9a07a", low: "#f6c98a", hemi: [0xffd2b0, 0x5a4a48, 0.85], sun: [0xffa060, 2.2], pos: [-6, 2.2, 3], exposure: 1.0, bloom: 0.2, env: 0.4 },
   night: { top: "#0b1430", mid: "#1b2950", low: "#2b3a5e", hemi: [0x5a6fae, 0x141824, 0.4], sun: [0xa9c1ff, 0.6], pos: [-3, 6, -3], exposure: 1.2, bloom: 0.8, env: 0.18 },
 } as const;
 
