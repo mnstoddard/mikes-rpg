@@ -120,9 +120,11 @@ export class Bot {
   }
   bag: any = null;
   /** Drop things the story doesn't need, like a player would (worms, sage, logs we didn't want...). */
+  /** Things the current chapter needs, so dropJunk leaves them alone. */
+  keep: string[] = [];
   dropJunk() {
     const junk = ["axe_bronze_oak", "red_cap", "wild_root", "oak_logs", "worm", "mushroom", "sage", "honey", "old_bone", "minnow", "pine_logs", "ginseng", "food_scraps"];
-    this.bag.inventory.forEach((it: string | null, i: number) => { if (it && junk.includes(it)) this.room.send("drop", { slot: i }); });
+    this.bag.inventory.forEach((it: string | null, i: number) => { if (it && junk.includes(it) && !this.keep.includes(it)) this.room.send("drop", { slot: i }); });
     this.note("🗑️ dropped junk to make room");
   }
   /** Eat a meal or a fish when stamina runs low, like a player would. */
@@ -376,10 +378,13 @@ async function story(name: string) {
       await b.until(() => b.log.slice(msgs).some((l) => /You smelt|fail to smelt|You need/.test(l)), 30000, "smelting").catch(() => {});
       await sleep(500);
     }
-    await b.gather("chop", "oak", () => b.count("oak_logs") >= 6, town); // last, so making room doesn't drop them
+    // Oak logs for the shrine's frame: keep them when making room. Chop until the task moves on.
+    b.keep = ["oak_logs"];
+    await b.gather("chop", "oak", () => b.task.startsWith("Pick up"), town);
     await b.until(() => b.task.startsWith("Pick up"), 5000, "oak logs and bars");
     await b.talkUntilNew("rook");
     await b.talkUntilNew("west_shrine");
+    b.keep = [];
     await b.talkUntilNew("aldric");
     done("1.7 Rebuild the Shrine");
   }
