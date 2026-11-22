@@ -32,7 +32,9 @@ export interface SaveData {
   saveVersion?: number; // see SAVE_VERSION
   quest?: unknown; // the main quest (shared/quests.ts QuestProgress: per chapter, which step and progress on it). Before rev 3: { step, count } in one list
   questRev?: number; // which version of the quest steps this save uses (shared/quests.ts QUEST_REV)
-  mapRev?: number; // which version of the world map x and y belong to (MAP_REV); older saves start in the town square
+  mapRev?: number;
+  tithe?: number; // Tithe marks (Soul Debt, shared/story.ts)
+  titheXp?: number; // XP the shrine has taken toward clearing the next one // which version of the world map x and y belong to (MAP_REV); older saves start in the town square
   x?: number;
   y?: number;
   inventory?: (string | null)[]; // one per bag entry (shared/bag.ts); saves from before grouped slots had one per slot

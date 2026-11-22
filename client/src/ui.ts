@@ -12,6 +12,7 @@ import {
   ROD_LOGS, hasHandle, isTool, isWoodTool, maxDurability, metalOfBar, parseTool, toolBonus, toolForSkill, toolId,
 } from "../../shared/tools";
 import { GUIDE_NAME, teacherOf, type ChapterView, type QuestView } from "../../shared/quests";
+import { RANKS as LIGHT_RANKS, STORY_ITEMS, TITHE_MAX, isStoryItem } from "../../shared/story";
 import { SHOPS, SHOP_IDS, sellersOf, type ShopId } from "../../shared/shops";
 import { npcById } from "../../shared/npcs";
 import { isBroken, type RepairJob } from "../../shared/repair";
@@ -2435,6 +2436,7 @@ function renderInfo() {
   const price = sellPrice(id, uses);
   const buyers = SHOP_IDS.filter((s) => s !== "tam" && SHOPS[s].buys(id)).map((s) => npcById(s)!.name);
   for (const e of enchantsOf(id)) infoBody.append(infoLine("Enchanted", describeEnchant(e)));
+  if (isStoryItem(id)) infoBody.append(infoLine("Story", STORY_ITEMS[id].description));
   if (isSpellBook(id)) {
     const sp = SPELLS[SPELL_BOOKS[id]];
     infoBody.append(infoLine("Read it", `learn ${sp.icon} ${sp.name}`, `needs Spellcasting ${sp.level}. ${sp.description}`));
@@ -2548,6 +2550,7 @@ function renderInfo() {
     if (isPotion(id)) infoButton("Drink", () => { onDrink(e); closeInfo(); });
     if (isJewelry(id)) infoButton("Put on", () => { onWearJewel(e); closeInfo(); });
     if (isSpellBook(id)) infoButton("Read", () => { onRead(e); closeInfo(); });
+    if (isStoryItem(id) && STORY_ITEMS[id].use) infoButton(STORY_ITEMS[id].use!, () => { onRead(e); closeInfo(); });
     if (isSeed(id)) infoButton("Plant these first", () => { onSeed(id); closeInfo(); });
     if (isFood(id)) infoButton(`Eat (+${staminaOf(id)})`, () => { onEat(e); done(); }, staminaNow >= staminaMax);
     infoButton(isLocked ? "Unlock" : "Lock", () => onLock(e, !isLocked));
@@ -2583,17 +2586,23 @@ function renderVitalBars() {
   const hpLow = vitals.hp <= vitals.maxHp / 4;
   staminaEl.append(
     vitalRow("❤", vitals.hp, vitals.maxHp, hpLow ? "#ff3b30" : "#d6443a",
-      `Health ${vitals.hp} of ${vitals.maxHp}. Monsters take it away. Drink a health potion to get it back (it also comes back 1 a minute). At 0 you wake up at the Heart Shrine in the Lighthall.`),
+      `Health ${vitals.hp} of ${vitals.maxHp}. Monsters take it away. Drink a health potion to get it back (it also comes back 1 a minute). At 0 you wake up at the nearest shrine that can raise you.`),
     vitalRow("⚡", staminaNow, staminaMax, staminaNow < 10 ? "#e74c3c" : staminaNow < 30 ? "#f1c40f" : "#f5c542",
       `Stamina ${staminaNow} of ${staminaMax}. Chopping costs ${c.woodcutting}, mining ${c.mining}, digging ${c.foraging}, smelting ${c.smelting}, smithing ${c.smithing}, cooking ${c.cooking}, fishing ${c.fishing}, each weapon attack ${c.melee}. ` +
       "It comes back 1 every 30 seconds. Eat fish or a meal (click it in your bag) for more."),
     vitalRow("🔮", vitals.mana, vitals.maxMana, "#4a7bd9", `Mana ${vitals.mana} of ${vitals.maxMana}. Spells use it. It comes back 1 every 6 seconds.`),
   );
-  // Potion buffs: an icon and the minutes (or seconds) left for each.
+  // Potion buffs: an icon and the minutes (or seconds) left for each. Tithe marks first.
   const now = serverNow();
   const running = BUFF_IDS.filter((id) => (buffs[id]?.until ?? 0) > now);
-  if (running.length) {
+  if (running.length || titheMarks) {
     const row = el("buff-row");
+    if (titheMarks) {
+      const chip = el("buff tithe", `⛓️ ${titheMarks}`);
+      chip.title = `Tithe marks: ${titheMarks} of ${TITHE_MAX}. While you carry them, a fifth of the XP you earn goes to the shrine that raised you. Each mark fades once the shrine has had enough. A Tithe tonic clears one at once.`;
+      chip.onclick = () => showMessage(chip.title);
+      row.appendChild(chip);
+    }
     for (const id of running) {
       const left = Math.ceil((buffs[id]!.until - now) / 1000);
       const chip = el("buff", `${BUFFS[id].icon} ${left >= 60 ? `${Math.ceil(left / 60)}m` : `${left}s`}`);
@@ -2611,6 +2620,13 @@ export function renderStamina(stamina: number, max: number) {
   staminaMax = max;
   renderVitalBars();
   renderInfo(); // the Eat button turns off when you're full
+}
+
+let titheMarks = 0;
+/** Soul Debt (shared/story.ts): gold links by your health. */
+export function setTithe(n: number) {
+  titheMarks = n;
+  renderVitalBars();
 }
 
 export function renderVitals(hp: number, maxHp: number, mana: number, maxMana: number) {
@@ -2711,18 +2727,29 @@ function renderQuestTab() {
   };
   const tb = trackedBounty();
   const q = lastQuest;
-  questListEl.append(el("qt-head", q ? `📜 Lessons (${q.number} of ${q.of} done)` : "📜 Lessons"));
+  const glyph: Record<ChapterView["state"], string> = { done: "✅", active: "📍", started: "⏸️", open: "❗", locked: "🔒" };
+  const chapterRow = (c: ChapterView) => {
+    const sub = c.state === "done" ? "Done" : c.state === "locked" ? (c.needs ? `Needs ${c.needs}` : c.opens || `Opens after ${GUIDE_NAME}'s lessons`) : c.task ? `${c.task} (step ${c.step + 1} of ${c.of})` : `Talk to ${c.name}, ${c.where}`;
+    const r = el("qt-row qt-chapter" + (c.state === "done" ? " done" : ""));
+    r.append(el("qt-icon", glyph[c.state]), el("qt-title", `${c.title} · ${c.name}`), el("qt-sub", sub));
+    return r;
+  };
   if (q) {
-    // What you're on now (or "pick your next lesson"), then every chapter.
+    // What you're on now (or "pick your next lesson").
     questListEl.append(row("📜", undefined, q.giver ? `${q.quest} · ${q.giver}` : q.quest, q.task, q.progress ?? (q.done ? "" : "Tap to track"), !tb, () => onTrack(null)));
-    const glyph: Record<ChapterView["state"], string> = { done: "✅", active: "📍", started: "⏸️", open: "❗", locked: "🔒" };
-    for (const c of q.chapters) {
-      const sub = c.state === "done" ? "Done" : c.state === "locked" ? (c.needs ? `Needs ${c.needs}` : `Opens after ${GUIDE_NAME}'s lessons`) : c.task ? `${c.task} (step ${c.step + 1} of ${c.of})` : `Talk to ${c.name}, ${c.where}`;
-      const r = el("qt-row qt-chapter" + (c.state === "done" ? " done" : ""));
-      r.append(el("qt-icon", glyph[c.state]), el("qt-title", `${c.title} · ${c.name}`), el("qt-sub", sub));
-      questListEl.append(r);
+    // The story: the Prologue, then Act 1 (once it's in sight).
+    const prologue = q.chapters.filter((c) => c.act === "prologue");
+    const act1 = q.chapters.filter((c) => c.act === "act1");
+    const rank = LIGHT_RANKS[q.rank ?? 0];
+    questListEl.append(el("qt-head", `✨ Prologue: Awakening in the Light (${prologue.filter((c) => c.state === "done").length} of ${prologue.length}) · ${rank}`));
+    for (const c of prologue) questListEl.append(chapterRow(c));
+    if (prologue.every((c) => c.state === "done") || act1.some((c) => c.state !== "locked")) {
+      questListEl.append(el("qt-head", `🔥 Act 1: The Light Welcomes You (${act1.filter((c) => c.state === "done").length} of ${act1.length})`));
+      for (const c of act1) questListEl.append(chapterRow(c));
     }
   }
+  questListEl.append(el("qt-head", q ? `📜 Lessons (${q.number} of ${q.of} done)` : "📜 Lessons"));
+  if (q) for (const c of q.chapters) if (!c.act) questListEl.append(chapterRow(c));
   questListEl.append(el("qt-head", "📋 Bounties"));
   if (!bounties.length) {
     questListEl.append(el("qt-note", "Captain Bryn opens the bounty board for you in one of the lessons."));

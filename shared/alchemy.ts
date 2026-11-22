@@ -16,13 +16,13 @@
 // Only type imports from items, so items.ts can build potion items from this.
 import type { ItemId } from "./items";
 
-export type PotionType = "health" | "stamina" | "mana" | "restore" | "strength" | "swift" | "hunter" | "nightsight" | "soultrap";
+export type PotionType = "health" | "stamina" | "mana" | "restore" | "strength" | "swift" | "hunter" | "nightsight" | "soultrap" | "tithe";
 export type BonusId = "sage" | "honey" | "mushroom" | "old_bone" | "moonpetal";
 export type PotionId = `potion_${PotionType}` | `potion_${PotionType}_${BonusId}`;
 /** Each kind of potion has its own Alchemy Mastery ("potion_health"). */
 export type PotionMastery = `potion_${PotionType}`;
 /** Effects that last a while (potions, and the Ward, Haste and Invisibility spells). */
-export type BuffId = "strength" | "swift" | "nightsight" | "soultrap" | "ward" | "haste" | "invisible";
+export type BuffId = "strength" | "swift" | "nightsight" | "soultrap" | "ward" | "haste" | "invisible" | "blessed";
 
 export const VIAL: ItemId = "vial";
 export const POTION_COOLDOWN_MS = 10_000;
@@ -48,6 +48,8 @@ export interface PotionDef {
   stamina?: number;
   mana?: number;
   buffs?: Partial<Record<BuffId, number>>;
+  /** Clears this many Tithe marks (shared/story.ts). */
+  tithe?: number;
   description: string;
 }
 
@@ -61,6 +63,8 @@ export const POTIONS: Record<PotionType, PotionDef> = {
   swift:      { name: "Swiftness potion",  icon: "🧪", tint: "hue-rotate(60deg) saturate(2)", level: 15, pair: ["boar_tusk", "ginseng"], xp: 20, start: 0.5, buffs: { swift: 15 }, description: "You walk faster for a while" },
   hunter:     { name: "Hunter's brew",     icon: "⚗️", tint: "sepia(.6) saturate(2)", level: 18, pair: ["wolf_fang", "boar_tusk"], xp: 24, start: 0.45, buffs: { strength: 6, swift: 8 }, hidden: true, description: "A little stronger and a little faster, for a while" },
   nightsight: { name: "Night sight potion", icon: "🧪", tint: "hue-rotate(200deg) saturate(1.2) brightness(1.3)", level: 20, pair: ["moonpetal", "blue_lotus"], xp: 26, start: 0.45, buffs: { nightsight: 100 }, description: "You see clearly at night, for a while" },
+  // Act 1 (Tithe Tonics): Alchemist Moss tells you the recipe.
+  tithe:      { name: "Tithe tonic",       icon: "🧪", tint: "sepia(1) saturate(4) hue-rotate(10deg) brightness(1.2)", level: 2, pair: ["red_cap", "wild_root"], xp: 10, start: 0.7, tithe: 1, hidden: true, description: "Clears one Tithe mark" },
   soultrap:   { name: "Soul trap potion",  icon: "🧪", tint: "hue-rotate(80deg) saturate(1.5) brightness(.7)", level: 25, pair: ["venom_sac", "moonpetal"], xp: 32, start: 0.4, buffs: { soultrap: 50 }, description: "Your Soul trap spell lasts longer, for a while" },
 };
 export const POTION_TYPES = Object.keys(POTIONS) as PotionType[];
@@ -96,6 +100,7 @@ export const BUFFS: Record<BuffId, { name: string; icon: string; describe: (powe
   ward:       { name: "Ward",        icon: "🛡️", describe: (p) => `soaks up ${p} more damage` },
   haste:      { name: "Haste",       icon: "💨", describe: (p) => `walk ${p}% faster` },
   invisible:  { name: "Invisible",   icon: "🫥", describe: () => "monsters can't see you" },
+  blessed:    { name: "Blessed",     icon: "✨", describe: (p) => `+${p}% XP` },
 };
 export const BUFF_IDS = Object.keys(BUFFS) as BuffId[];
 
@@ -156,6 +161,8 @@ export interface PotionEffect {
   buffs: { id: BuffId; power: number }[];
   /** How long the buffs last. */
   minutes: number;
+  /** Tithe marks it clears. */
+  tithe: number;
 }
 
 /** Strength from your Alchemy level: +3% a level. */
@@ -174,6 +181,7 @@ export function potionEffect(id: PotionId, alchemyLevel: number): PotionEffect {
     mana: r(d.mana),
     buffs: Object.entries(d.buffs ?? {}).map(([k, v]) => ({ id: k as BuffId, power: k === "nightsight" ? 100 : r(v) })),
     minutes: BUFF_MINUTES * (b?.longer ?? 1),
+    tithe: d.tithe ?? 0,
   };
 }
 
@@ -183,6 +191,7 @@ export function describeEffect(e: PotionEffect): string {
   if (e.heal) parts.push(`heals ${e.heal}`);
   if (e.stamina) parts.push(`+${e.stamina} stamina`);
   if (e.mana) parts.push(`+${e.mana} mana`);
+  if (e.tithe) parts.push(`clears ${e.tithe} Tithe mark${e.tithe === 1 ? "" : "s"}`);
   if (e.buffs.length) parts.push(`${e.buffs.map((b) => BUFFS[b.id].describe(b.power)).join(", ")} for ${e.minutes} minutes`);
   const s = parts.join(", ");
   return s.charAt(0).toUpperCase() + s.slice(1);

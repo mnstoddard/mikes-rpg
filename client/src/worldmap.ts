@@ -10,6 +10,7 @@ let base: HTMLCanvasElement | null = null;
 let me: { x: number; y: number } | null = null;
 let here: AreaDef = OUTDOORS;
 let marks: string[] = [];
+let spots: { x: number; y: number; label: string }[] = [];
 let open = false;
 
 const panel = document.getElementById("worldmap");
@@ -76,6 +77,21 @@ function render() {
     const at = npc && outdoorSpot(npc);
     if (at) g.fillText("❗", at.x * PX + 1, at.y * PX);
   }
+  // Places your quest sends you.
+  for (const s of spots) {
+    g.fillText("📍", s.x * PX + 1, s.y * PX);
+    if (s.label) {
+      g.font = "11px sans-serif";
+      g.lineWidth = 3;
+      g.strokeStyle = "rgba(0,0,0,.85)";
+      g.fillStyle = "#ffd84a";
+      g.textBaseline = "top";
+      g.strokeText(s.label, s.x * PX, s.y * PX + 2);
+      g.fillText(s.label, s.x * PX, s.y * PX + 2);
+      g.font = "16px sans-serif";
+      g.textBaseline = "bottom";
+    }
+  }
   const at = me && outdoorSpot(me);
   if (at) {
     g.fillStyle = "#ffffff";
@@ -90,7 +106,7 @@ function render() {
     g.arc(at.x * PX + 1, at.y * PX + 1, 3, 0, Math.PI * 2);
     g.fill();
   }
-  if (caption) caption.textContent = here === OUTDOORS ? "You are the white and red dot. ❗ = someone has something for you." : `You're inside: ${here.name} (the dot is its door).`;
+  if (caption) caption.textContent = here === OUTDOORS ? "You are the white and red dot. ❗ = someone (or something) has something for you. 📍 = a place your quest sends you." : `You're inside: ${here.name} (the dot is its door).`;
   // Keep you in view on small screens.
   if (at && panel) {
     const box = canvas.parentElement!;
@@ -105,8 +121,9 @@ export function updateWorldMap(pos: { x: number; y: number } | null, area: AreaD
   render();
 }
 
-export function setWorldMapMarks(list: string[]) {
+export function setWorldMapMarks(list: string[], places: { x: number; y: number; label: string }[] = []) {
   marks = list;
+  spots = places;
   render();
 }
 

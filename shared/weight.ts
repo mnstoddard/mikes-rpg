@@ -43,6 +43,8 @@ const ITEM_WEIGHT: Partial<Record<string, number>> = {
   worm: 1, food_scraps: 2,
   // Monster drops and potions.
   vial: 2, feather: 1, rat_tail: 2, cowhide: 30, wolf_pelt: 20, alpha_pelt: 30, goblin_charm: 2, spider_silk: 2, stolen_ring: 1, health_potion: 5,
+  // Story things: papers and charms weigh next to nothing.
+  blessing_scroll: 1, rooks_note: 1, ashbound_note: 1, holts_notes: 1, marens_charm: 1, lantern: 10, shrine_totem: 20,
 };
 
 /** One of this item's weight, in tenths of a kg. */

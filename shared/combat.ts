@@ -82,7 +82,8 @@ export const SPELL_IDS = Object.keys(SPELLS) as SpellId[];
 
 // ---- Monsters ----
 
-export type MonsterId = "chicken" | "rat" | "cow" | "slime" | "boar" | "giant_bat" | "wolf" | "cave_spider" | "goblin" | "spider" | "bandit" | "alpha_wolf";
+export type MonsterId = "chicken" | "rat" | "cow" | "slime" | "boar" | "giant_bat" | "wolf" | "cave_spider" | "goblin" | "spider" | "bandit" | "alpha_wolf"
+  | "ashbound_scout" | "hollow_wolf";
 export interface Drop { item: ItemId; chance: number }
 export interface MonsterDef {
   name: string;
@@ -125,7 +126,11 @@ export const MONSTERS: Record<MonsterId, MonsterDef> = {
   spider:  { name: "Giant spider", icon: "🕷️", level: 18, hp: 42, maxHit: 6, speed: 3, aggressive: true,  xp: 18, respawnTicks: 120, drops: [{ item: "spider_silk", chance: 0.5 }, { item: POTION_ID, chance: 0.1 }, { item: "book_frost_nova", chance: 0.02 }], coins: [5, 15] },
   // The wolf den (Kael's Wolf Hunt): a big, tough pack leader. Best fought as a party.
   alpha_wolf: { name: "Alpha wolf", icon: "🐺", level: 22, hp: 160, maxHit: 9, speed: 4, aggressive: true, xp: 90, respawnTicks: 500, drops: [{ item: "alpha_pelt", chance: 1 }, { item: "wolf_fang", chance: 1 }, { item: POTION_ID, chance: 0.3 }], coins: [40, 90], pack: true },
-  bandit:  { name: "Bandit",       icon: "🦹", level: 25, hp: 60, maxHit: 8, speed: 4, aggressive: true,  xp: 26, respawnTicks: 150, drops: [{ item: "stolen_ring", chance: 0.25 }, { item: POTION_ID, chance: 0.25 }, { item: "book_invisibility", chance: 0.03 }], coins: [15, 45] },
+  // The story's Ashbound (shared/story.ts): scouts on the Westroad, raiders deep in the Thornwood (id "bandit" from before).
+  ashbound_scout: { name: "Ashbound scout", icon: "🥷", level: 9, hp: 24, maxHit: 3, speed: 4, aggressive: false, xp: 10, respawnTicks: 60, drops: [{ item: POTION_ID, chance: 0.08 }, { item: "red_cap", chance: 0.3 }], coins: [2, 8] },
+  // Blighted wolves at Wolf Hollow (Act 1): grey, glowing and mean.
+  hollow_wolf: { name: "Hollow wolf", icon: "🐺", level: 13, hp: 32, maxHit: 4, speed: 4, aggressive: true, xp: 14, respawnTicks: 80, drops: [{ item: "wolf_pelt", chance: 0.5 }, { item: "wolf_fang", chance: 0.6 }], coins: [3, 9], pack: true },
+  bandit:  { name: "Ashbound raider",       icon: "🦹", level: 25, hp: 60, maxHit: 8, speed: 4, aggressive: true,  xp: 26, respawnTicks: 150, drops: [{ item: "stolen_ring", chance: 0.25 }, { item: POTION_ID, chance: 0.25 }, { item: "book_invisibility", chance: 0.03 }], coins: [15, 45] },
 };
 export const MONSTER_IDS = Object.keys(MONSTERS) as MonsterId[];
 

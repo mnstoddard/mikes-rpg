@@ -32,6 +32,7 @@ import type { MonsterId } from "./combat";
 import { FIRST_STEW, SHOP_STEW } from "./cooking";
 import type { CombatStyle } from "./gear";
 import type { NpcId } from "./npcs";
+import { ACT_ONE, PROLOGUE_END, PROLOGUE_START, TRAINER_LINES } from "./story";
 
 export const GUIDE_NAME = "Old Maren";
 
@@ -43,8 +44,8 @@ export type Goal =
   | { kind: "talk" }
   /** Have tools on your belt whose item ids start with these ("rod_", "pot_bronze"). */
   | { kind: "equip"; tools: string[]; names: string }
-  /** Gather this many (of one type, if set). withTool: only counts with the right tool on your belt. byHand: only without it. */
-  | { kind: "gather"; skill: GatherSkill; resource?: ResourceId; count: number; withTool?: boolean; byHand?: boolean }
+  /** Gather this many (with one skill and of one type, if set). withTool: only counts with the right tool on your belt. byHand: only without it. */
+  | { kind: "gather"; skill?: GatherSkill; resource?: ResourceId; count: number; withTool?: boolean; byHand?: boolean }
   /** Wear a tool on your belt down until it breaks. */
   | { kind: "toolBreaks"; tool: ToolType }
   /** Make something whose item id starts with `prefix` ("meal_stew_", "axe_stone_"). tries: any attempt counts, even a failure. */
@@ -80,7 +81,11 @@ export type Goal =
   /** Farming: plant seeds. */
   | { kind: "plant"; count: number }
   /** Farming: harvest ripe crops (one tile counts as one). */
-  | { kind: "harvest"; count: number }
+  | { kind: "harvest"; count: number; unblessed?: boolean }
+  /** Talk to (or use) each of these people or things, in any order. */
+  | { kind: "visit"; npcs: NpcId[]; names: string }
+  /** Walk to each of these places (shared/world.ts PLACES keys), in any order. */
+  | { kind: "reach"; spots: string[]; names: string }
   /** Spend a Mastery point in any skill's tree (done once any upgrade has a rank). */
   | { kind: "spendPoint" };
 
@@ -113,9 +118,28 @@ export interface QuestStep {
   opensBoard?: boolean;
   /** Finishing this talk step teaches you these skills (skills unlock through quests, not by level). */
   unlocks?: SkillId[];
+  /** Talk steps: with someone (or something) other than the chapter's giver. */
+  who?: NpcId;
+  /** Talk steps: items they take from you (and won't go on without). */
+  take?: Partial<Record<ItemId, number>>;
+  /** Talk steps: skill XP they give you. */
+  xp?: Partial<Record<SkillId, number>>;
+  /** Talk steps: they bless you (shared/story.ts). */
+  bless?: boolean;
+  /** Talk steps: this makes you a new Lightkeeper rank (shared/story.ts RANKS). */
+  rank?: 1 | 2;
+  /** Talk steps: Kael's old Warden weapon, picked for how you fight. */
+  warden?: boolean;
+  /** Visit steps: what each person says (or what you see) when you visit them. */
+  visitLines?: Partial<Record<NpcId, string[]>>;
+  /** Reach steps: what you see at each place. */
+  spotLines?: Record<string, string>;
 }
 
-export type ChapterId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "wren" | "ysolde" | "moss" | "bryn" | "odo" | "bryn_bandits" | "kael_hunt";
+export type ChapterId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "wren" | "ysolde" | "moss" | "bryn" | "odo" | "bryn_bandits" | "kael_hunt"
+  // The story (shared/story.ts): the Prologue, then Act 1.
+  | "awakening" | "hall" | "lanterns" | "sweeper" | "blessing" | "oath"
+  | "rounds" | "first_tithe" | "bless_fields" | "tonics" | "totem" | "ash_road" | "rebuild" | "holt_saw" | "odo_field" | "hollow_wolves" | "marens_question" | "thorn_light";
 
 export interface Chapter {
   id: ChapterId;
@@ -131,6 +155,12 @@ export interface Chapter {
   side?: boolean;
   /** Only offered once you reach this level in a skill (stage 12: some side quests need Renown). */
   requires?: { skill: SkillId; level: number };
+  /** A story chapter (shared/story.ts), not a lesson. */
+  act?: "prologue" | "act1";
+  /** Story chapters: these chapters must be done first. */
+  after?: ChapterId[];
+  /** Story chapters: and this many trainers' lessons. */
+  lessons?: number;
 }
 
 /** A skill's level, for chapters that need one (the server and client each pass their own). */
@@ -166,7 +196,7 @@ const YSOLDE = "Archmage Ysolde";
 const BRYN = "Captain Bryn";
 const ODO = "Farmer Odo";
 
-export const CHAPTERS: Chapter[] = [
+const LESSONS: Chapter[] = [
   // ---------------- Old Maren: Living off the land ----------------
   {
     id: "maren", title: "Living off the land", giver: "maren", name: MAREN, where: "on the Lighthall's steps, in the town square",
@@ -621,7 +651,7 @@ export const CHAPTERS: Chapter[] = [
         task: `Go back to ${KAEL}`, goal: { kind: "talk" }, opensGate: true,
         lines: [
           "Good shooting! I think you're ready for the forest.",
-          "I've opened the gate for you. It's just south of my lodge, past the warning sign. The wolves near the gate are the easiest. Goblins live to the west, giant spiders to the east, and bandits deep in the south. Don't go near those yet!",
+          "I've opened the gate for you. It's just south of my lodge, past the warning sign. The wolves near the gate are the easiest. Goblins live to the west, giant spiders to the east, and Ashbound raiders deep in the south. Don't go near those yet!",
           "Take these bronze platelegs and 3 more potions. Hold the weapon you like best, defeat a wolf, and come back to me. If it goes badly, walk back out through the gate: they won't follow you past the fence.",
         ],
         give: [{ item: "platelegs_bronze" }, POTION, POTION, POTION],
@@ -878,27 +908,27 @@ export const CHAPTERS: Chapter[] = [
     ],
   },
 
-  // ---------------- Side quest: Captain Bryn's bandit trouble (needs Renown 10) ----------------
+  // ---------------- Side quest: Captain Bryn's Ashbound raider trouble (needs Renown 10) ----------------
   {
     id: "bryn_bandits", title: "Highway robbery", giver: "bryn", name: BRYN, where: "by the bounty board in the square",
     side: true, requires: { skill: "renown", level: 10 },
     steps: [
       {
-        task: `Talk to ${BRYN} about the bandits`, goal: { kind: "talk" },
+        task: `Talk to ${BRYN} about the Ashbound raiders`, goal: { kind: "talk" },
         lines: [
           "You've made a name for yourself, so I've a job I wouldn't give just anyone.",
-          "Bandits deep in the Dark Forest, far south, have been robbing the carts on their way to town. They hit hard, so go well armed and take potions.",
+          "Ashbound raiders deep in the Dark Forest, far south, have been robbing the carts on their way to town. The Lighthall wants them gone. They hit hard, so go well armed and take potions.",
           "Defeat 4 of them, and bring me 2 of the rings they've stolen.",
         ],
       },
       {
-        task: "Defeat 4 bandits (deep in the Dark Forest, far south)", goal: { kind: "kill", monster: "bandit", count: 4 },
-        hint: "The bandits are deep in the south of the Dark Forest. They hit hard: wear your best armor and keep potions handy.",
+        task: "Defeat 4 Ashbound raiders (deep in the Dark Forest, far south)", goal: { kind: "kill", monster: "bandit", count: 4 },
+        hint: "The Ashbound raiders are deep in the south of the Dark Forest. They hit hard: wear your best armor and keep potions handy.",
         fightWith: "weapon",
       },
       {
-        task: "Get 2 stolen rings from bandits", goal: { kind: "have", items: { stolen_ring: 2 } },
-        hint: "Bandits sometimes drop the rings they've stolen. Keep at it!",
+        task: "Get 2 stolen rings from Ashbound raiders", goal: { kind: "have", items: { stolen_ring: 2 } },
+        hint: "The raiders sometimes drop the rings they've stolen. Keep at it!",
       },
       {
         task: `Go back to ${BRYN}`, goal: { kind: "talk" },
@@ -913,17 +943,28 @@ export const CHAPTERS: Chapter[] = [
   },
 ];
 
+/** Every chapter: the Prologue's start, the lessons, the Prologue's end, then Act 1. */
+export const CHAPTERS: Chapter[] = [...PROLOGUE_START, ...LESSONS, ...PROLOGUE_END, ...ACT_ONE];
+// The trainers' story lines: the last thing they say in their lesson.
+for (const c of LESSONS) {
+  const line = TRAINER_LINES[c.id];
+  const last = [...c.steps].reverse().find((st) => st.goal.kind === "talk" && st.lines);
+  if (line && last) last.lines = [...last.lines!, line];
+}
 export const CHAPTER_IDS = CHAPTERS.map((c) => c.id);
 export const chapterById = (id: ChapterId) => CHAPTERS.find((c) => c.id === id)!;
-/** The chapter a person gives, if any. */
-export const chapterOf = (npc: string, q?: QuestProgress) => {
+/** The chapter a person gives, if any: one you've started, else one you can start (story first), else the first you haven't done, else their first. */
+export const chapterOf = (npc: string, q?: QuestProgress, levelOf?: LevelOf) => {
   const mine = CHAPTERS.filter((c) => c.giver === npc);
-  // The first one you haven't finished (a giver can have a side quest after their lesson), else their lesson.
-  return (q && mine.find((c) => !chapterDone(q, c.id))) ?? mine[0] ?? null;
+  if (!q) return mine[0] ?? null;
+  const todo = mine.filter((c) => !chapterDone(q, c.id));
+  const startable = (c: Chapter) => chapterOpen(q, c.id) && gateMet(c, levelOf);
+  return todo.find((c) => c.id === q.active) ?? todo.find((c) => q.ch[c.id]) ?? todo.find((c) => c.act && startable(c))
+    ?? todo.find(startable) ?? todo[0] ?? mine[0] ?? null;
 };
 
 /** How far along one chapter is: which step, and how far along it (e.g. 2 of 3 logs). */
-export interface ChapterProgress { step: number; count: number }
+export interface ChapterProgress { step: number; count: number; /** Visit and reach steps: who or where you've been so far. */ got?: string[] }
 
 /** Where a character is in the main quest. */
 export interface QuestProgress {
@@ -937,15 +978,41 @@ export interface QuestProgress {
   gate?: boolean;
 }
 
-export const newQuestProgress = (): QuestProgress => ({ active: "maren", ch: { maren: { step: 0, count: 0 } } });
+export const newQuestProgress = (): QuestProgress => ({ active: "awakening", ch: { awakening: { step: 0, count: 0 } } });
 
 export const chapterStarted = (q: QuestProgress, id: ChapterId) => !!q.ch[id];
 export const chapterDone = (q: QuestProgress, id: ChapterId) => (q.ch[id]?.step ?? -1) >= chapterById(id).steps.length;
 export const marenDone = (q: QuestProgress) => chapterDone(q, "maren");
-/** Every chapter finished. */
-export const tutorialDone = (q: QuestProgress) => CHAPTERS.every((c) => c.side || chapterDone(q, c.id));
-/** Can you start this chapter now? (Maren's is first; the rest open once hers is done.) */
-export const chapterOpen = (q: QuestProgress, id: ChapterId) => id === "maren" || marenDone(q);
+/** Every lesson finished (the story goes on separately). */
+export const tutorialDone = (q: QuestProgress) => CHAPTERS.every((c) => c.side || c.act || chapterDone(q, c.id));
+/** How many trainers' lessons you've finished (not Maren's, not side quests). */
+export const lessonsDone = (q: QuestProgress) => CHAPTERS.filter((c) => !c.act && !c.side && c.id !== "maren" && chapterDone(q, c.id)).length;
+/**
+ * Can you start this chapter now? The Prologue's start comes first, then
+ * Maren's lessons, then the trainers'. Story chapters wait for the ones
+ * they come `after` (and for some lessons).
+ */
+export function chapterOpen(q: QuestProgress, id: ChapterId): boolean {
+  const c = chapterById(id);
+  if (c.act) return (c.after ?? []).every((a) => chapterDone(q, a)) && lessonsDone(q) >= (c.lessons ?? 0);
+  if (id === "maren") return !!q.ch.maren || chapterDone(q, "sweeper");
+  return marenDone(q);
+}
+/** Why a chapter isn't open yet: "Opens after The Oath of the Flame". */
+export function opensAfter(q: QuestProgress, id: ChapterId): string {
+  const c = chapterById(id);
+  if (!c.act) return id === "maren" ? "Opens after The Old Sweeper" : `Opens after ${GUIDE_NAME}'s lessons`;
+  const missing = (c.after ?? []).filter((a) => !chapterDone(q, a)).map((a) => chapterById(a).title);
+  const need = (c.lessons ?? 0) - lessonsDone(q);
+  if (need > 0) missing.push(`${need} more trainer lesson${need === 1 ? "" : "s"}`);
+  return missing.length ? `Opens after ${missing.join(", ")}` : "";
+}
+/** Your Lightkeeper rank: 0 Kindled, 1 Ember (sworn the Oath), 2 Flame (end of Act 1). */
+export const rankOf = (q: QuestProgress): 0 | 1 | 2 => (chapterDone(q, "thorn_light") ? 2 : chapterDone(q, "oath") ? 1 : 0);
+/** Soul Debt is on once you've sworn the Oath. */
+export const oathSworn = (q: QuestProgress) => chapterDone(q, "oath");
+/** Who you talk to for a talk step. */
+export const talkWith = (c: Chapter, step: QuestStep): NpcId => step.who ?? c.giver;
 
 /** The active chapter's current step, or null. */
 export function currentStep(q: QuestProgress): QuestStep | null {
@@ -958,14 +1025,16 @@ export function currentStep(q: QuestProgress): QuestStep | null {
 export function questMarks(q: QuestProgress, levelOf?: LevelOf): NpcId[] {
   const out = new Set<NpcId>();
   const step = currentStep(q);
-  if (step?.goal.kind === "talk") out.add(chapterById(q.active!).giver);
+  if (step?.goal.kind === "talk") out.add(talkWith(chapterById(q.active!), step));
+  if (step?.goal.kind === "visit") for (const id of step.goal.npcs) if (!q.ch[q.active!]?.got?.includes(id)) out.add(id);
   for (const c of CHAPTERS) {
     if (c.id === q.active || chapterDone(q, c.id) || !chapterOpen(q, c.id) || (!q.ch[c.id] && !gateMet(c, levelOf))) continue;
     // A side quest waits until the same person's lesson is done.
     if (c.side && CHAPTERS.some((o) => o.giver === c.giver && !o.side && !chapterDone(q, o.id))) continue;
     const prog = q.ch[c.id];
     // Not started yet, or waiting on a talk while another chapter is active.
-    if (!prog || c.steps[prog.step]?.goal.kind === "talk") out.add(c.giver);
+    if (!prog) out.add(c.giver);
+    else if (c.steps[prog.step]?.goal.kind === "talk") out.add(talkWith(c, c.steps[prog.step]));
   }
   return [...out];
 }
@@ -1000,6 +1069,10 @@ export interface ChapterView {
   side?: boolean;
   /** Locked by a level: "Renown 10". */
   needs?: string;
+  /** Locked: what opens it ("Opens after Oath of the Flame"). */
+  opens?: string;
+  /** A story chapter: which part. */
+  act?: "prologue" | "act1";
   /** Started chapters: what to do next. */
   task?: string;
   /** Step number and how many steps. */
@@ -1029,6 +1102,31 @@ export interface QuestView {
   warning?: string;
   /** Every chapter, for the 📜 tab. */
   chapters: ChapterView[];
+  /** Places the current step sends you (for the map): where, and what. */
+  spots?: { x: number; y: number; label: string }[];
+  /** Lanterns you've lit (story stations drawn lit). */
+  lit?: NpcId[];
+  /** Your Lightkeeper rank (shared/story.ts RANKS). */
+  rank?: number;
+}
+
+/** Lanterns lit for you: every one in a chapter you've finished, plus the ones you've lit so far in the current step. */
+export function litLanterns(q: QuestProgress): NpcId[] {
+  const out: NpcId[] = [];
+  for (const id of ["lanterns", "rounds"] as ChapterId[]) {
+    const c = chapterById(id);
+    const visit = c.steps.find((st) => st.goal.kind === "visit")!;
+    const all = (visit.goal as { npcs: NpcId[] }).npcs;
+    const prog = q.ch[id];
+    if (!prog) continue;
+    const at = c.steps.indexOf(visit);
+    if (prog.step > at) out.push(...all);
+    else if (prog.step === at) out.push(...all.filter((n) => prog.got?.includes(n)));
+  }
+  // The shrines you've lit.
+  if (chapterDone(q, "thorn_light") || (q.ch.thorn_light?.step ?? 0) > 3) out.push("thorn_shrine");
+  if ((q.ch.rebuild?.step ?? 0) > 3) out.push("west_shrine");
+  return out;
 }
 
 export function chapterViews(q: QuestProgress, levelOf?: LevelOf): ChapterView[] {
@@ -1038,7 +1136,8 @@ export function chapterViews(q: QuestProgress, levelOf?: LevelOf): ChapterView[]
     const gated = !prog && !gateMet(c, levelOf);
     const state = done ? "done" : q.active === c.id ? "active" : prog ? "started" : chapterOpen(q, c.id) && !gated ? "open" : "locked";
     return {
-      id: c.id, title: c.title, name: c.name, where: c.where, state, side: c.side,
+      id: c.id, title: c.title, name: c.name, where: c.where, state, side: c.side, act: c.act,
+      opens: state === "locked" && !gated ? opensAfter(q, c.id) : undefined,
       needs: gated && c.requires ? `${findSkill(c.requires.skill).def.name} ${c.requires.level}` : undefined,
       task: prog && !done ? c.steps[prog.step]?.task : undefined,
       step: Math.min(prog?.step ?? 0, c.steps.length), of: c.steps.length,
@@ -1077,8 +1176,23 @@ export function teacherOf(skill: SkillId): Chapter | null {
  * first quest (the first 16 steps are the same); anyone past it has her
  * chapter done, keeps every skill they'd learned and the gate if it was open,
  * and can do the trainers' chapters for their rewards.
+ * Rev 5: the story. Older saves skip the Prologue's start (Awakening to The
+ * Old Sweeper): they've already met Maren. A Blessing, the Oath and Act 1 are
+ * open to them like anyone.
  */
-export const QUEST_REV = 4;
+export const QUEST_REV = 5;
+const PROLOGUE_SKIP: ChapterId[] = ["awakening", "hall", "lanterns", "sweeper"];
+export function migrateQuest(saved: unknown, rev: number | undefined): QuestProgress {
+  const q = migrateOld(saved, rev);
+  if ((rev ?? 1) < 5) {
+    for (const id of PROLOGUE_SKIP) q.ch[id] = { step: chapterById(id).steps.length, count: 0 };
+    if (q.active && PROLOGUE_SKIP.includes(q.active)) {
+      q.active = "maren";
+      if (!q.ch.maren) q.ch.maren = { step: 0, count: 0 };
+    }
+  }
+  return q;
+}
 /** Rev 4 added two steps to Maren's chapter after "Tell Maren your rod broke" (the trip to the Repairer). */
 const REPAIR_LESSON_AT = 6;
 const OLD_UNLOCKS: [number, SkillId[]][] = [
@@ -1088,7 +1202,7 @@ const OLD_UNLOCKS: [number, SkillId[]][] = [
 const OLD_FIRST_QUEST = 16; // steps 0-15 were "Living off the land", the same as Maren's chapter (before rev 4's 2 repair steps)
 const OLD_GATE_STEP = 56;
 const OLD_STEPS = 63;
-export function migrateQuest(saved: unknown, rev: number | undefined): QuestProgress {
+function migrateOld(saved: unknown, rev: number | undefined): QuestProgress {
   const s = saved as Partial<QuestProgress & { step: number; count: number }> | undefined;
   if (!s || typeof s !== "object") return newQuestProgress();
   if ((rev ?? 1) >= 3) {
@@ -1098,13 +1212,14 @@ export function migrateQuest(saved: unknown, rev: number | undefined): QuestProg
       const c = s.ch?.[id];
       if (c && Number.isInteger(c.step) && c.step >= 0) {
         q.ch[id] = { step: Math.min(c.step, chapterById(id).steps.length), count: Number.isInteger(c.count) && c.count >= 0 ? c.count : 0 };
+        if (Array.isArray(c.got)) q.ch[id]!.got = c.got.filter((g) => typeof g === "string").slice(0, 20);
       }
     }
     if (q.active && !q.ch[q.active]) q.active = null;
     if (Array.isArray(s.taught)) q.taught = SKILL_IDS.filter((id) => s.taught!.includes(id));
     if (s.gate) q.gate = true;
-    if (!q.ch.maren) return newQuestProgress();
-    if ((rev ?? 1) < 4 && q.ch.maren.step >= REPAIR_LESSON_AT) q.ch.maren.step = Math.min(q.ch.maren.step + 2, chapterById("maren").steps.length);
+    if ((rev ?? 1) >= 5 ? !Object.keys(q.ch).length : !q.ch.maren) return newQuestProgress();
+    if ((rev ?? 1) < 4 && q.ch.maren && q.ch.maren.step >= REPAIR_LESSON_AT) q.ch.maren.step = Math.min(q.ch.maren.step + 2, chapterById("maren").steps.length);
     return q;
   }
   let step = Number.isInteger(s.step) && s.step! >= 0 ? s.step! : 0;
