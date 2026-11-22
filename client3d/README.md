@@ -85,3 +85,28 @@ changes, with a note). Only approved elements go into the game; each one's
 what each one shows. Build them with `npm run gallery` (from the top folder).
 It makes `client3d/dist/tree-gallery.html` and `client3d/dist/ore-gallery.html`,
 which open in any browser.
+
+## The character (`src/character/`)
+
+The smooth character from the Character Workshop, ready for the 3D game. A
+"recipe" holds every Workshop setting (body, face, hair, clothes, colours); the
+Workshop's character code loads with `recipeFromCode`.
+
+```ts
+import { createCharacter } from "./character";
+const hero = createCharacter({ hairStyle: "long", frame: 1 });
+scene.add(hero.object);           // faces +Z, feet on y = 0
+hero.setAnim("walk");             // idle, walk, wave, cheer, pose (or null to pose it yourself)
+hero.update(dt, time);            // every frame
+hero.joints.handR.add(sword);     // things held go in the hands
+hero.joints.skull.add(helmet);    // and on the head
+```
+
+`hero.fit` has the body's measurements, so armor can be shaped to fit any body.
+
+## Building a gallery page
+
+`node build-gallery.mjs <name>` (in `client3d/`) builds
+`src/<name>-gallery/main.ts` with `gallery/<name>-template.html` into one file,
+`dist/<name>-gallery.html`. The names `tree` and `ore` build the review
+galleries above, and with no name it builds both of those.
