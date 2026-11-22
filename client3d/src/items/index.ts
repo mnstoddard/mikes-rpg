@@ -14,14 +14,14 @@
 // "status" is Mike's review: only "approved" items should go into the game.
 // The Items Gallery page is where Mike looks at each one and approves it.
 import type { ItemId } from "../../../shared/items";
-import { MATERIAL_IDS, WOOD_IDS, WOODS, MATERIALS, toolId } from "../../../shared/tools";
+import { WOOD_IDS, WOODS, METALS, toolId } from "../../../shared/tools";
 import type { ToolType } from "../../../shared/tools";
 import { POTIONS, potionId } from "../../../shared/alchemy";
 import { GEMS } from "../../../shared/jewelry";
 import { STORY_ITEMS } from "../../../shared/story";
 import { CROP_IDS, seedId } from "../../../shared/farming";
 import { ItemShape, Item, Rng, makeItem, makeRng } from "./kit";
-import { buildTool } from "./tools";
+import { TOOL_METALS, buildTool } from "./tools";
 import { buildLogs, buildBars, buildLeather, buildThread, buildCloth } from "./materials";
 import { ForageKind, buildForage, buildSeeds } from "./forage";
 import { LootKind, buildLoot } from "./loot";
@@ -30,7 +30,7 @@ import { GEM_LIST, JEWEL_METAL_LIST, GemKind, buildGem } from "./gems";
 import { QuestKind, SPELL_BOOKS, buildQuest } from "./quest";
 import { PropKind, buildProp } from "./props";
 
-export type { Item } from "./kit";
+export type { Item, HeldMove } from "./kit";
 export { METAL_LOOK, WOOD_LOOK } from "./kit";
 
 /** Mike's review of an item. */
@@ -39,7 +39,7 @@ export type ReviewStatus = "waiting" | "approved" | "changes";
 export type ItemGroup = "tools" | "materials" | "gathered" | "loot" | "alchemy" | "gems" | "quest" | "props";
 
 export const ITEM_GROUPS: Record<ItemGroup, { name: string; about: string }> = {
-  tools: { name: "Tools", about: "Gathering and crafting tools, in every head material and handle wood." },
+  tools: { name: "Tools", about: "Gathering and crafting tools, in every metal (bronze to mithril) and handle wood." },
   materials: { name: "Materials", about: "Logs, bars, leather, thread and cloth: what you craft with." },
   gathered: { name: "Foraging finds", about: "Herbs, mushrooms, roots and more from dig patches, and seeds for the farm." },
   loot: { name: "Monster loot", about: "What monsters drop, and fishing bait." },
@@ -72,30 +72,31 @@ export interface ItemType {
   build: (rng: Rng, choice: number[]) => ItemShape;
 }
 
-const MATERIAL_NAMES = MATERIAL_IDS.map((m) => MATERIALS[m].name);
+/** Tool heads start at bronze (level 1); there is no stone tier. */
+const METAL_NAMES = TOOL_METALS.map((m) => METALS[m].name);
 const WOOD_NAMES = WOOD_IDS.map((w) => WOODS[w].name);
 const BAR_METALS = ["bronze", "iron", "steel", "mithril", "silver", "gold", "platinum", "iridium"] as const;
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 const TOOL_ABOUT: Record<ToolType, string> = {
-  axe: "Chops trees faster. A wedge blade on a wooden handle; stone ones are lashed on with leather.",
+  axe: "Chops trees faster. A wedge blade on a wooden handle.",
   pickaxe: "Mines rocks faster. A curved pick with one sharp point and one chisel end.",
   shovel: "Digs up foraging finds faster. A spade with a D-grip.",
   rod: "Catches fish faster. All wood (2 logs), with a reel and a red-and-white float.",
   hammer: "Raises your Smithing success at the anvil. Flat face and a wedge.",
-  tongs: "Raises your Smelting success at the furnace. No handle wood: all metal (or stone).",
+  tongs: "Raises your Smelting success at the furnace. No handle wood: all metal.",
   pot: "Raises your Cooking success. A three-legged pot with soup bubbling in it.",
 };
 
 function toolType(type: ToolType, name: string): ItemType {
   const handled = type !== "tongs" && type !== "pot" && type !== "rod";
   const options: ItemOption[] = [];
-  if (type !== "rod") options.push({ label: "Head", options: MATERIAL_NAMES });
+  if (type !== "rod") options.push({ label: "Head", options: METAL_NAMES });
   if (handled || type === "rod") options.push({ label: type === "rod" ? "Wood" : "Handle", options: WOOD_NAMES });
   return {
     id: type, group: "tools", name, about: TOOL_ABOUT[type], options, size: type === "pot" ? "small" : "held", status: "waiting",
-    gameItem: (c) => toolId(type, type === "rod" ? "stone" : MATERIAL_IDS[c[0]], WOOD_IDS[(type === "rod" ? c[0] : c[1]) ?? 0] ?? "pine"),
-    build: (rng, c) => buildTool(type, type === "rod" ? "stone" : MATERIAL_IDS[c[0] ?? 0], WOOD_IDS[(type === "rod" ? c[0] : c[1]) ?? 0] ?? "pine", rng),
+    gameItem: (c) => toolId(type, type === "rod" ? "bronze" : TOOL_METALS[c[0] ?? 0], WOOD_IDS[(type === "rod" ? c[0] : c[1]) ?? 0] ?? "pine"),
+    build: (rng, c) => buildTool(type, type === "rod" ? "bronze" : TOOL_METALS[c[0] ?? 0], WOOD_IDS[(type === "rod" ? c[0] : c[1]) ?? 0] ?? "pine", rng),
   };
 }
 

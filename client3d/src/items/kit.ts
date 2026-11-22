@@ -14,7 +14,7 @@ export type { MatOptions, Rng };
 // ---------- Colours ----------
 
 /** Every metal (tool metals and jewelry metals) and stone: colour and how shiny it is. */
-export type MetalLook = Material | "silver" | "gold" | "platinum" | "iridium";
+export type MetalLook = Material | "stone" | "silver" | "gold" | "platinum" | "iridium";
 
 export const METAL_LOOK: Record<MetalLook, { color: number; dark: number; m: MatOptions }> = {
   stone:    { color: 0x8f8a82, dark: 0x6b6760, m: { roughness: 0.95 } },
@@ -138,10 +138,24 @@ export interface Item {
   update(dt: number, time: number): void;
   /** What its action button says (Swing, Open, Stoke... or Drop). */
   readonly actLabel: string;
-  /** Do the action: swing the tool, open the chest, drop it on the ground... */
+  /** Do the action: open the chest, drop it on the ground... (Swung tools do nothing here: see heldMove.) */
   act(): void;
+  /** Where a hand holds it, for tools. */
+  grip?: THREE.Vector3;
+  /** Tools you swing: how the holder's arm moves (see HeldMove). */
+  heldMove?: HeldMove;
+  /** Call while the arm does heldMove, with f going 0 to 1. */
+  follow?: (f: number) => void;
   dispose(): void;
 }
+
+/**
+ * How the arm moves a tool you hold: "chop" (axe, pickaxe: lift high, bring
+ * it down in front), "strike" (hammer: a short quick blow), "dig" (shovel:
+ * push down and forward, lift the scoop), "cast" (fishing rod: back over the
+ * shoulder, then flick forward).
+ */
+export type HeldMove = "chop" | "strike" | "dig" | "cast";
 
 /** What each item file builds: the model, plus optional animation and action. */
 export interface ItemShape {
@@ -150,6 +164,10 @@ export interface ItemShape {
   groundPose?: { rx?: number; rz?: number; y?: number };
   /** Where a hand holds it (a point on the model). Only items you hold. */
   grip?: THREE.Vector3;
+  /** Tools you swing: how the arm moves them. The tool doesn't move by itself. */
+  heldMove?: HeldMove;
+  /** Called while the arm does the move, with f going 0 to 1 (the rod bends). */
+  follow?: (f: number) => void;
   tick?: (dt: number, time: number) => void;
   actLabel?: string;
   act?: (this: ItemShape) => void;
@@ -164,7 +182,7 @@ export function makeItem(shape: ItemShape): Item {
   object.add(shape.object);
   let drop: ReturnType<typeof tween> | null = null;
   const inner = shape.object;
-  const act = shape.act ? () => shape.act!.call(shape) : (() => {
+  const act = shape.act ? () => shape.act!.call(shape) : shape.heldMove ? () => {} : (() => {
     drop = tween(1.1, (f) => {
       const fall = 0.32;
       if (f < fall) inner.position.y = 0.6 * (1 - (f / fall) ** 2);
@@ -186,6 +204,9 @@ export function makeItem(shape: ItemShape): Item {
       return shape.actLabel ?? "Drop";
     },
     act,
+    grip: shape.grip,
+    heldMove: shape.heldMove,
+    follow: shape.follow,
     dispose() {
       // Materials are shared (see mat()), so only geometry and own materials go.
       object.traverse((o) => {
