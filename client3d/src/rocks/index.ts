@@ -18,7 +18,7 @@ export type { Rock, RockState } from "./rock";
 export { ROCK_SHAPES, setRockEnvironment } from "./rock";
 
 export type RockKind =
-  | "stone" | "copper" | "tin" | "iron" | "coal" | "silver" | "gold" | "mithril" | "platinum" | "iridium"
+  | "copper" | "tin" | "iron" | "coal" | "silver" | "gold" | "mithril" | "platinum" | "iridium"
   | "amethyst" | "topaz" | "soulstone" | "emerald" | "sapphire" | "ruby"
   | "aurelite" | "wellglass";
 
@@ -41,16 +41,10 @@ const GREY = 0x8f8a82;
 
 export const ROCK_TYPES: Record<RockKind, RockType> = {
   // ---- Metals ----
-  stone: {
-    id: "stone", name: "Stone", group: "metal", resource: "stone", status: "waiting",
-    about: "Plain grey rock with pale chunks. Everyone's first swing of a pickaxe.",
-    found: "The quarry north of town, and stony ground everywhere.",
-    look: { host: 0x9a968e, deposit: "chunk", colors: [0xcfc8b8, 0xbdb6a6], metalness: 0, roughness: 0.9, count: 6, size: 0.2 },
-  },
   copper: {
     id: "copper", name: "Copper", group: "metal", resource: "copper", status: "waiting",
     about: "Orange nuggets with green patina. Makes bronze, with tin.",
-    found: "The quarry.",
+    found: "The quarry (Mining level 1).",
     look: { host: GREY, deposit: "nugget", colors: [0xd9822b, 0xe39a4a, 0xc06a22], metalness: 0.6, roughness: 0.35, count: 8, glints: 4, flecks: 0x4fae8c },
   },
   tin: {

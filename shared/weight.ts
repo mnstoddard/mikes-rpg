@@ -59,7 +59,7 @@ export function weightOf(item: ItemId): number {
   const listed = ITEM_WEIGHT[item];
   if (listed != null) return listed;
   const res = RESOURCE_FOR_ITEM[item];
-  if (res) return RESOURCES[res].skill === "fishing" ? 10 : 20; // logs, stone and ore 2 kg, fish 1 kg
+  if (res) return RESOURCES[res].skill === "fishing" ? 10 : 20; // logs and ore 2 kg, fish 1 kg
   if ((BAR_IDS as string[]).includes(item)) return 20;
   if (isMeal(item)) return 10;
   if (isBait(item) || isArrow(item)) return 1;

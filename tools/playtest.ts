@@ -360,7 +360,6 @@ async function story(name: string) {
   // 1.7 Rebuild the Shrine.
   if (!isDone("rebuild")) {
     await b.talkUntilNew("aldric");
-    await b.gather("mine", "stone", () => b.count("stone") >= 6, quarry);
     await b.gather("mine", "copper", () => b.count("copper_ore") >= 3, quarry);
     await b.gather("mine", "tin", () => b.count("tin_ore") >= 3, quarry);
     const furnace = npcById("furnace")!;
@@ -377,7 +376,8 @@ async function story(name: string) {
       await b.until(() => b.log.slice(msgs).some((l) => /You smelt|fail to smelt|You need/.test(l)), 30000, "smelting").catch(() => {});
       await sleep(500);
     }
-    await b.until(() => b.task.startsWith("Pick up"), 5000, "stone and bars");
+    await b.gather("chop", "oak", () => b.count("oak_logs") >= 6, town); // last, so making room doesn't drop them
+    await b.until(() => b.task.startsWith("Pick up"), 5000, "oak logs and bars");
     await b.talkUntilNew("rook");
     await b.talkUntilNew("west_shrine");
     await b.talkUntilNew("aldric");

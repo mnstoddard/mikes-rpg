@@ -107,7 +107,7 @@ if (out) {
   for (let y = 0; y < MAP_HEIGHT; y++) for (let x = 0; x < W; x++) {
     let c = COL[MAP[y][x]] ?? 0xff00ff;
     if (isDanger(x, y) && MAP[y][x] === "grass") c = 0x23432a;
-    if (MAP[y][x] === "rock" && MAP_NODES[y][x] !== "stone") c = 0xc07a3c;
+    if (MAP[y][x] === "rock") c = 0xc07a3c;
     if (MAP[y][x] === "water" && MAP_NODES[y][x]) c = 0x7fe0ff;
     if (npcTiles.has(key(x, y))) c = 0xffffff;
     if (monTiles.has(key(x, y))) c = 0xff2020;

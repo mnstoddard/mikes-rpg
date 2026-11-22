@@ -775,7 +775,7 @@ Planned chapters (the full list, as more skills arrive):
 |---|---|---|
 | Old Maren | Fishing, Cooking, Eating | "Living off the land" (as today) |
 | Forester Holt | Woodcutting | Chop with Holt's old bronze axe, sell logs |
-| Miner Greta | Mining | Stone, ore, then find your first gem |
+| Miner Greta | Mining | Copper and tin ore, then find your first gem |
 | Smith Brann | Smithing, Smelting | Bars, tools, armor (today's lessons), then cut a gem and make a bronze ring |
 | Herbalist Wren | Foraging | Get a shovel, dig 5 finds, find a night herb |
 | Farmer Odo | Farming | Buy a plot (Odo pays for the first), plant, harvest |

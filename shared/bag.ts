@@ -2,7 +2,7 @@
 //
 // Space is counted in slots, not weight. Similar things share a slot:
 //   - the same item (pine logs with pine logs), up to its stack limit
-//   - all tools of one kind (a stone axe and a bronze axe), up to STACK_LIMITS.gear
+//   - all tools of one kind (a bronze axe and an iron axe), up to STACK_LIMITS.gear
 //   - all weapons of one kind, or all armor of one kind (every helmet together)
 //   - all meals of one dish (every stew together, whatever went into it)
 // Tap a slot to see what's in it: the item card cycles through each different
@@ -30,7 +30,7 @@ import { isPotion } from "./alchemy";
 
 /** Change these to make stacks bigger or smaller. */
 export const STACK_LIMITS = {
-  /** Logs, ore, stone and fish. */
+  /** Logs, ore and fish. */
   gathered: 50,
   /** Feathers are light. */
   feather: 100,

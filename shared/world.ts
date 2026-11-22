@@ -17,7 +17,7 @@
 //   W purple wall   _ purple rug (the Mages' Guild)   n table   b bookshelf   e crates and beds
 //   C cave floor   K cave wall   G crystal floor   V gravestone   l stony ground   * dig patch   f farm lot
 //   Trees: T pine  O oak  B birch  M maple  Y yew  I ironwood  E elderwood
-//   Rocks: # stone  c copper  t tin  i iron  k coal  v silver  g gold  m mithril
+//   Rocks: # copper or tin (it was stone)  c copper  t tin  i iron  k coal  v silver  g gold  m mithril
 //          U amethyst  Q topaz  L soul stone  N emerald  Z sapphire  R ruby  P platinum  X iridium
 //   Fishing: 2 trout  3 perch  4 salmon  5 pike  6 tuna  7 swordfish  8 eel
 //   (space) nothing: the empty space between areas

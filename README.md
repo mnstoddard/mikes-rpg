@@ -43,7 +43,7 @@ instead. There's no skipping.
 2. **The woodcutter's start:** reach Foraging 3, chop 3 logs by hand, cook up to
    Crafting 3, get Holt's old bronze axe, chop 10 logs with it,
    sell some logs. Reward: Bronze axe with an oak handle, 1 silver.
-3. **Into the rocks:** reach Foraging 5, mine 5 stone with her worn bronze pickaxe, buy 2 copper and 2 tin ore from the Merchant, reach
+3. **Into the rocks:** reach Foraging 5, mine 2 copper ore with her worn bronze pickaxe, get 2 tin ore (mine it or buy it from Greta), reach
    Crafting 5, smelt 2 bronze bars and make a bronze pickaxe (both can't fail).
    Reward: Bronze tongs, 2 silver. That's a full Bronze set of tools.
 4. **Standing your ground:** hold a bronze dagger and defeat 3 chickens, learn
@@ -101,7 +101,7 @@ There are three layers:
 2. **Skill level** (Woodcutting, Fishing, Mining; up to 99, same curve as Foraging)
    unlocks better types, which are slower but give more XP and sell for more:
    - Woodcutting: Pine 1, Oak 5, Birch 10, Maple 20, Yew 35, Ironwood 50, Elderwood 70
-   - Mining: Stone 1, Copper 5, Tin 5, Iron 20, Coal 30, Silver 40, Gold 55, Mithril 70
+   - Mining: Copper 1, Tin 1, Iron 20, Coal 30, Silver 40, Gold 55, Mithril 70
    - Fishing: Minnow 1, Trout 5, Perch 10, Salmon 20, Pike 30, Tuna 45, Swordfish 60, Eel 75
 3. **Mastery** belongs to each type (Pine, Oak, Copper, Trout...) and has no cap.
    Each Mastery level needs 10% more XP than the last (Mastery 10 = 135 XP,
@@ -138,7 +138,7 @@ Numbers live in `shared/combat.ts` (monsters, spells, hit chances) and
 - **Gear strip** (under the tool belt): Weapon, Shield, Head, Body, Legs, Feet.
   Click a weapon or armor in your bag, then **Hold** or **Wear**. With nothing
   in your hand you punch (hits up to 1).
-- **Weapons** (skill level to hold one, biggest hit with stone, seconds between hits):
+- **Weapons** (skill level to hold one, biggest hit before its metal adds more, seconds between hits):
   Melee: Dagger 1 (2, 1.8s), Sword 5 (3, 2.4s), Mace 10 (5, 3s), Spear 15 (5, 2.4s, reach 2),
   Two-handed sword 20 (8, 3.6s, no shield). Ranged: Sling 1 (2, 2.4s, 4 tiles),
   Darts 5 (2, 1.2s, 3 tiles), Bow 10 (4, 3s, 6 tiles, no shield). Magic: Staff 1.
@@ -216,8 +216,8 @@ Rules live in `shared/bounties.ts`; the board is in `shared/npcs.ts`.
 ## Bag space, stacks and weight
 
 Your bag has 12 slots. Most things stack in one slot: up to 50 logs, ore,
-stone or fish, 100 feathers, 10 health potions, and 25 of everything else.
-**Similar things share a slot too:** every axe goes together (a stone axe and a
+or fish, 100 feathers, 10 health potions, and 25 of everything else.
+**Similar things share a slot too:** every axe goes together (a bronze axe and an
 bronze axe), every pickaxe, every sword, every helmet and so on (up to 10 in a
 slot), every bait of one kind (up to 10), and every meal of one dish (all your
 stews, whatever went into them, up to 25). A slot holding different kinds looks
@@ -234,7 +234,7 @@ is locked). Sorting the bag also joins split stacks.
 
 You can also only carry so much **weight**: 45 kg to start. The ⚖️ bar under
 your bag shows it. Your bag counts, and so do the tools on your belt and the
-weapon and armor you wear. Logs, stone, ore and bars weigh 2 kg, most fish
+weapon and armor you wear. Logs, ore and bars weigh 2 kg, most fish
 1 kg, feathers 0.1 kg, a cowhide 3 kg, tools 1 to 2 kg, armor 1.5 kg per bar
 (mithril is lighter). With a starting axe, pickaxe, rod and pot you can carry
 about 19 ore or logs. When you're full, gathering stops and the Merchant won't
@@ -292,12 +292,12 @@ each for an 🪓 axe, ⛏️ pickaxe, 🎣 fishing rod, 🔨 hammer and 🗜️ 
 tool in your bag to put it on the belt (the one already there goes back in your
 bag); click a belt slot to take it off. Only the tool on the belt counts.
 Tools are just called "Axe", "Pickaxe" and so on in your bag, and drawn to show
-what they're made of: the head is the colour of its stone or metal and the
+what they're made of: the head is the colour of its metal and the
 handle the colour of its wood. The item card lists the head and handle.
 
 - **Gathering tools** (axe, pickaxe, rod) make you faster. Without one, gathering
-  takes **3 times longer**. For axes and pickaxes, the head (stone or metal) and the handle's wood each add a bonus:
-  Stone 2%, Bronze 5%, Iron 10%, Steel 15%, Mithril 25%; Pine 5%, Oak 7%, Birch 9%,
+  takes **3 times longer**. For axes and pickaxes, the head's metal and the handle's wood each add a bonus:
+  Bronze 5%, Iron 10%, Steel 15%, Mithril 25%; Pine 5%, Oak 7%, Birch 9%,
   Maple 12%, Yew 15%, Ironwood 20%, Elderwood 25%. So a Bronze + Pine axe is
   10% faster, a Mithril + Elderwood one 50% faster. Anyone can use any tool.
 - **Fishing rods are all wood** (no metal): 2 logs of one kind, and the wood counts twice.
@@ -308,7 +308,7 @@ handle the colour of its wood. The item card lists the head and handle.
   67.5%). Without one, your success chance is **cut in half**. Tongs have no
   handle, so their metal counts twice.
 - **Wear:** every use costs a tool some of its uses: 1 for level 1-9 trees,
-  rocks, fish and recipes, up to 8 for level 70+. Uses: Stone 60, Bronze 150, Iron 300,
+  rocks, fish and recipes, up to 8 for level 70+. Uses: Bronze 150, Iron 300,
   Steel 500, Mithril 900, times the wood (Pine x1 up to Elderwood x2.5; tongs
   x1.5). You get a warning at 10% and the tool breaks at 0. No repairs yet.
   A worn tool sells for its share of uses left.
@@ -323,10 +323,10 @@ least 1). The window shows your chance before you start. Crafting never uses
 locked items.
 
 - 🔨 **Smithing** at the **anvil** (right of the Merchant): axe, pickaxe and
-  hammer = 1 stone or bar + 1 log; tongs = 1 stone or bar; a fishing rod = 2 logs
-  (needs the Smithing level of chopping that wood, 80% success to start, no hammer needed). **Stone tools** are the
-  starter tier: 80% success at Mastery 1 and no hammer needed, so a new smith
-  can make a Stone + Pine axe right away. Metals unlock at Smithing 1 / 15 / 30 / 60.
+  hammer = 1 bar + 1 log; tongs = 3 bars; a fishing rod = 2 logs
+  (needs the Smithing level of chopping that wood, 80% success to start, no hammer needed). There is no stone:
+  **bronze** is the starter tier, so a new smith can make a Bronze + Pine axe
+  right away. Metals unlock at Smithing 1 / 15 / 30 / 60.
 - 🔥 **Smelting** at the **furnace** (left of the Merchant). Every bar takes 2 ores:
   Bronze bar = 1 copper ore + 1 tin ore (level 1), Iron bar = 2 iron ore (15),
   Steel bar = 1 iron ore + 1 coal (30), Mithril bar = 1 mithril ore + 1 coal (60).
@@ -354,7 +354,7 @@ in the world meanwhile. After that you just log in again.
 - A crafted item is worth what goes into it **plus 25%** (rounded down). When you
   sell, your Mastery counts on every layer: your ore Mastery, your bar Mastery and
   your tool Mastery all raise the price.
-- The Merchant sells basic tools (Stone + Pine, Stone tongs), a stone dagger,
+- The Merchant sells basic tools (Bronze + Pine, Bronze tongs), a bronze dagger,
   sling and staff, health potions, all four bars,
   and every log and ore, with endless stock. He charges **3 times** the base
   price, and Mastery doesn't lower it, so buying to resell always loses.
@@ -439,8 +439,8 @@ also while logged out, and from **eating** (click a fish or a meal, then Eat).
     no pot halves the chance. A cooked meal sometimes leaves **food scraps**.
   - A meal's item id lists what's in it (`meal_curry_oak_potato-trout-trout`),
     so every mix is its own item. Old fish stews became the same stew.
-- **Pot and tongs** take 3 bars (or 3 stone) and no wood.
-- The Merchant sells a stone pot, a stew of 3 minnows (pine), potatoes, carrots and worms at his usual 3× price.
+- **Pot and tongs** take 3 bars and no wood.
+- The Merchant sells a bronze pot, a stew of 3 minnows (pine), potatoes, carrots and worms at his usual 3× price.
 
 ## Handicraft and fishing bait
 

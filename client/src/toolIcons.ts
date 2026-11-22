@@ -1,5 +1,5 @@
 // Tool icons, drawn so you can see what each one is made of: the head is the
-// colour of its stone or metal, and the handle the colour of its wood.
+// colour of its metal, and the handle the colour of its wood.
 // Items name them like "svg:tool/axe/bronze/oak" (shared/items.ts).
 import type { Material, ToolType, Wood } from "../../shared/tools";
 

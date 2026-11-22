@@ -60,11 +60,11 @@ export const NPCS: NpcDef[] = [
   // ---- Trainer Row (east of the square, north of the road) ----
   {
     id: "holt", name: "Forester Holt", kind: "person", ...at("holt.holt"), color: 0x27ae60, badge: "🪓",
-    greeting: "I buy logs and axes, and I sell stone axes and logs.",
+    greeting: "I buy logs and axes, and I sell bronze axes and logs.",
   },
   {
     id: "greta", name: "Miner Greta", kind: "person", ...at("greta.greta"), color: 0x95a5a6, badge: "⛏️",
-    greeting: "I buy ore, stone and pickaxes, and I sell stone pickaxes and ore.",
+    greeting: "I buy ore and pickaxes, and I sell bronze pickaxes and ore.",
   },
   {
     id: "brann", name: "Smith Brann", kind: "person", ...at("smithy.brann"), color: 0xc0392b, badge: "🔨",
@@ -111,7 +111,7 @@ export const NPCS: NpcDef[] = [
   // ---- Wren's hut (by the lake, east of the Mages' Guild) ----
   {
     id: "wren", name: "Herbalist Wren", kind: "person", ...at("wren.wren"), color: 0x3d8b37, badge: "🌱",
-    greeting: "I buy roots, herbs, mushrooms and shovels, and I sell stone shovels.",
+    greeting: "I buy roots, herbs, mushrooms and shovels, and I sell bronze shovels.",
   },
   // ---- The Mages' Guild (shared/guild.ts): the hall south-west of town, past the lake ----
   {
