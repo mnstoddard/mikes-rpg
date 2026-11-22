@@ -236,3 +236,51 @@ variant, watch it move, and Approve it or ask for changes with a note.
 
 Build it with `npm run gallery:food -w client3d` (or `node build-gallery.mjs food` in `client3d/`). It makes
 `client3d/dist/food-gallery.html`.
+
+## Monsters (`src/monsters/`)
+
+Every monster in the game, plus the planned ones from the story docs: 26 in
+all, made in code. The world is low-poly, but monsters are **smooth and cute**,
+with **painted eyes** (a big shine so they look friendly; a slanted lid on the
+ones that attack, so you can still tell). Each has 2 or 3 variants and five
+animations: **idle, walk, attack, get hit** (a quick red flash and squeezed
+eyes) and **defeat** (it falls, then shrinks away and pops back, like a respawn).
+
+| Group | Monsters |
+|---|---|
+| Near town (in the game) | Chicken, Rat, Cow, Slime, Boar, Giant bat |
+| Danger zones (in the game) | Wolf, Hollow wolf, Alpha wolf, Cave spider, Giant spider, Goblin, Ashbound scout, Ashbound raider |
+| Planned creatures | Fire beetle, Will-o'-wisp, Grave ghoul, Graveyard ghost, Dire wolf, Primeval beast |
+| Planned bosses | The Thornmother, Frost Wyrm, The Deep One, The Dust Titan, Sable, Vael |
+
+Blighted monsters (Hollow wolves, the Blighted alpha, the bosses) are grey with
+the same mint glow as the 2D game. Goblins, the Ashbound, ghouls, Sable and Vael
+are the smooth character, dressed from the armor library and holding weapons
+from the weapon library. Numbers (level, health, drops) come from
+`shared/combat.ts`, so the 2D and 3D games always agree.
+
+| File | What's in it |
+|---|---|
+| `kit.ts` | Materials, rounded shapes, painted eyes, the joint rig and the animation player |
+| `beasts.ts` | Four-legged animals (rat, cow, boar, wolves, Primeval beast, Frost Wyrm) |
+| `critters.ts` | Chicken, slime, giant bat, will-o'-wisp, Graveyard ghost |
+| `bugs.ts` | Spiders and beetles (cave and giant spiders, Thornmother, fire beetle, Dust Titan) |
+| `folk.ts` | Goblins, the Ashbound, grave ghouls, Sable and Vael |
+| `serpent.ts` | The Deep One |
+
+```ts
+import { createMonster } from "./monsters";
+const wolf = createMonster("wolf", { variant: 0, seed: 7 }); // game monster ids
+scene.add(wolf.object); // faces +Z, feet on y = 0, real size in metres
+wolf.play("attack");    // idle, walk, attack, hit, death
+wolf.update(dt, time);  // every frame
+```
+
+## The Monster Gallery
+
+Like the other galleries: every monster at real size next to a person, its
+variants, buttons for each animation (plus Slow motion and Play all), day,
+sunset and night, the whole group side by side, and **Approve** or **Needs
+changes** with a note. Build it with `npm run gallery:monster -w client3d`
+(or `node build-gallery.mjs monster` in `client3d/`). It makes
+`client3d/dist/monster-gallery.html`.
