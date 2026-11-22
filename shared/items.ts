@@ -19,7 +19,7 @@ export type BaseItemId =
   // Woodcutting
   | "pine_logs" | "oak_logs" | "birch_logs" | "maple_logs" | "yew_logs" | "ironwood_logs" | "elderwood_logs"
   // Mining
-  | "stone" | "copper_ore" | "tin_ore" | "iron_ore" | "coal" | "silver_ore" | "gold_ore" | "mithril_ore" | "platinum_ore" | "iridium_ore"
+  | "copper_ore" | "tin_ore" | "iron_ore" | "coal" | "silver_ore" | "gold_ore" | "mithril_ore" | "platinum_ore" | "iridium_ore"
   // Fishing
   | "minnow" | "trout" | "perch" | "salmon" | "pike" | "tuna" | "swordfish" | "eel";
 
@@ -65,7 +65,6 @@ const BASE_ITEMS: Record<BaseItemId, ItemDef> = {
   ironwood_logs: { name: "Ironwood logs", single: "ironwood log", icon: "🪵", tint: "grayscale(1) brightness(.7) contrast(1.4)", sellPrice: 50 },
   elderwood_logs: { name: "Elderwood logs", single: "elderwood log", icon: "🪵", tint: "hue-rotate(230deg) saturate(1.6)", sellPrice: 100 },
 
-  stone: { name: "Stone", single: "stone", icon: "🪨", sellPrice: 2 },
   copper_ore: { name: "Copper ore", single: "copper ore", icon: "🪨", tint: "sepia(1) saturate(4) hue-rotate(-15deg)", sellPrice: 4 },
   tin_ore: { name: "Tin ore", single: "tin ore", icon: "🪨", tint: "grayscale(1) brightness(1.5)", sellPrice: 5 },
   iron_ore: { name: "Iron ore", single: "iron ore", icon: "🪨", tint: "sepia(.8) saturate(2) hue-rotate(-40deg) brightness(.7)", sellPrice: 12 },
@@ -348,7 +347,7 @@ function mealDef(id: string): ItemDef | undefined {
  * Items from before each skill had several types. Old saves turn them into
  * the starting type, which sells for the same price, so nobody loses money.
  */
-export const LEGACY_ITEMS: Record<string, ItemId> = { logs: "pine_logs", ore: "stone", fish: "minnow" };
+export const LEGACY_ITEMS: Record<string, ItemId> = { logs: "pine_logs", ore: "copper_ore", fish: "minnow" };
 // (Old fish stews, "stew_trout_3_oak", become new stews: see legacyStew in cooking.ts.)
 
 /**

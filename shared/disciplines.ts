@@ -74,7 +74,7 @@ export const DISCIPLINES: Record<DisciplineId, DisciplineDef> = {
     skills: [
       { id: "cooking", name: "Cooking", icon: "🍲", description: "Use the stove in the town square, by Old Maren on the Lighthall's steps, to cook meals (stew, stir fry, curry, roast) from fish, meat and vegetables. Meals give back lots of stamina." },
       { id: "handicraft", name: "Handicraft", icon: "🧵", description: "Use Woodworker Rook's workshop: fishing bait, bows, arrows and staffs at the workbench, leather at the tanning rack (outside), thread and cloth at the spinning wheel, and leather and cloth armor." },
-      { id: "smithing", name: "Smithing", icon: "🔨", description: "Use the anvil in Smith Brann's smithy to make tools from stone or a metal bar, plus a log." },
+      { id: "smithing", name: "Smithing", icon: "🔨", description: "Use the anvil in Smith Brann's smithy to make tools from a metal bar, plus a log." },
       { id: "smelting", name: "Smelting", icon: "🔥", description: "Use the furnace in Smith Brann's smithy to turn ore into bars." },
     ],
   },

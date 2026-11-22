@@ -5,7 +5,7 @@ import { TICK_MS } from "../../../shared/map";
 import { ROCK_KINDS, ROCK_SHAPES, ROCK_TYPES, Rock, createRock, setRockEnvironment } from "../rocks";
 import { runGallery } from "./app";
 
-const GROUP = { metal: "Ores and stone", gem: "Gems", planned: "Planned for the Sundered Crown" } as const;
+const GROUP = { metal: "Ores", gem: "Gems", planned: "Planned for the Sundered Crown" } as const;
 
 runGallery({
   kinds: ROCK_KINDS,

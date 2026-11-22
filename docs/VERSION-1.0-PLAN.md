@@ -235,9 +235,15 @@ these, but the rules stay the same:
   wood handles, wear, Broken gear and the Repairer. *Decided with Mike
   (Nov 22): there is no stone tier. Bronze is the level 1 starting tier for
   tools, weapons and arrows, so everything starts there. Old saves turn any
-  stone tools, weapons and arrows into bronze ones. Stone is still mined, sold
-  and used for building jobs like the shrine. (Wooden bows and staffs are
-  unchanged.)*
+  stone tools, weapons and arrows into bronze ones. (Wooden bows and staffs
+  are unchanged.)*
+- **No stone at all** *(decided with Mike, Nov 22)*: stone rocks and the stone
+  item are gone. Mining starts on **copper and tin at level 1**, the same level
+  as bronze, so a new miner can make their own bronze straight away. The quarry's
+  old stone rocks are copper and tin rocks now. Miner Greta's lesson has you mine
+  copper and tin, and the Rebuild the Shrine quest takes 6 oak logs (for the
+  frame) instead of 6 stone. Old saves holding stone get 2 bronze coins for each
+  one (what it sold for), with a note when they log in.
 - **Combat** with melee, ranged and the spell bar, monsters with day and night
   spawns, drops and soul trapping.
 - **Crafting**: cooking, smelting, smithing, handicraft, jewellery and gems,

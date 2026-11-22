@@ -318,9 +318,7 @@ export function rockTexture(scene: Phaser.Scene, type: ResourceId): string {
   tex(scene, key, (full) => {
     full.fillStyle(TILE_COLORS.rock).fillEllipse(16, 18, 26, 20);
     full.fillStyle(0x9a9a9a).fillEllipse(12, 14, 10, 6);
-    if (type === "stone") {
-      full.lineStyle(1, 0x5a5a5a).lineBetween(9, 20, 15, 17).lineBetween(18, 23, 23, 19);
-    } else if (RESOURCES[type].gem) {
+    if (RESOURCES[type].gem) {
       const c = RESOURCES[type].color;
       full.fillStyle(c).fillTriangle(7, 22, 10, 6, 14, 22).fillTriangle(13, 22, 17, 3, 21, 22).fillTriangle(19, 23, 23, 11, 26, 23);
       full.fillStyle(0xffffff, 0.55).fillTriangle(10, 9, 11, 18, 12, 18).fillTriangle(17, 6, 18, 17, 19, 17);

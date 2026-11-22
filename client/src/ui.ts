@@ -1872,7 +1872,7 @@ function renderCraft() {
   if (level < recipe.level) detail.append(el("craft-warn", `Needs ${findSkill(skill).def.name} level ${recipe.level}.`));
   else if (!canMake) detail.append(el("craft-warn", station === "stove" ? "You don't have all of that (and the log) unlocked in your bag." : station === "alchemy_table" ? "You need an empty vial for each potion. Alchemist Moss sells them." : station === "workbench" ? (pick.bench === "bait" ? "You don't have the materials. Worms turn up while chopping and mining (or Rook and Tam sell them); cooking leaves food scraps." : "You don't have the materials. Logs come from trees (or Forester Holt), feathers from chickens (or Rook), bars from the furnace, leather from the tanning rack and cloth from the spinning wheel.")
     : station === "tanning_rack" ? "You need a hide. Cows drop cowhide, boars drop boar hide, and wolves drop pelts."
-    : station === "spinning_wheel" ? (output === "cloth" ? "You need 2 thread. Spin it from spider silk here, or buy it from Rook." : "You need spider silk. Spiders drop it in the cave by the quarry.") : "You don't have the materials. Miner Greta sells ore and stone, Smith Brann sells bars, and Forester Holt sells logs."));
+    : station === "spinning_wheel" ? (output === "cloth" ? "You need 2 thread. Spin it from spider silk here, or buy it from Rook." : "You need spider silk. Spiders drop it in the cave by the quarry.") : "You don't have the materials. Miner Greta sells ore, Smith Brann sells bars, and Forester Holt sells logs."));
   else detail.append(el("craft-info", `You have enough for ${canMake}. ${station === "alchemy_table" ? "A spoiled brew loses the ingredients, but you keep the vial." : "A failed try loses the materials."}`));
   craftBody.appendChild(detail);
 
@@ -2387,7 +2387,7 @@ function renderInfo() {
   const isLocked = entry >= 0 && !!locked[entry];
   infoBody.replaceChildren();
   infoButtons.replaceChildren();
-  // Several kinds in this slot (a stone axe and a bronze axe, or stews of different recipes): flip through them.
+  // Several kinds in this slot (a bronze axe and an iron axe, or stews of different recipes): flip through them.
   if (here.length > 1 && target.kind === "slot") {
     const nav = el("info-nav");
     const flip = (d: number) => { target.pick = (target.pick + d + here.length) % here.length; renderInfo(); };

@@ -28,7 +28,8 @@ const LEGEND: Record<string, Tile> = {
 const NODE_LEGEND: Record<string, [Tile, ResourceId]> = {
   T: ["tree", "pine"], O: ["tree", "oak"], B: ["tree", "birch"], M: ["tree", "maple"],
   Y: ["tree", "yew"], I: ["tree", "ironwood"], E: ["tree", "elderwood"],
-  "#": ["rock", "stone"], c: ["rock", "copper"], t: ["rock", "tin"], i: ["rock", "iron"],
+  // "#" was a plain stone rock; stone is gone, so those spots are copper and tin rocks now (see below).
+  "#": ["rock", "copper"], c: ["rock", "copper"], t: ["rock", "tin"], i: ["rock", "iron"],
   k: ["rock", "coal"], v: ["rock", "silver"], g: ["rock", "gold"], m: ["rock", "mithril"],
   2: ["water", "trout"], 3: ["water", "perch"], 4: ["water", "salmon"], 5: ["water", "pike"],
   6: ["water", "tuna"], 7: ["water", "swordfish"], 8: ["water", "eel"],
@@ -40,7 +41,7 @@ const NODE_LEGEND: Record<string, [Tile, ResourceId]> = {
 const ROWS = WORLD_ROWS.map((row) => [...row]);
 export const MAP: Tile[][] = ROWS.map((row) => row.map((ch) => NODE_LEGEND[ch]?.[0] ?? LEGEND[ch] ?? "grass"));
 /** Which type of tree, rock or special fishing spot is on each tile (null if none). */
-export const MAP_NODES: (ResourceId | null)[][] = ROWS.map((row) => row.map((ch) => NODE_LEGEND[ch]?.[1] ?? null));
+export const MAP_NODES: (ResourceId | null)[][] = ROWS.map((row, y) => row.map((ch, x) => (ch === "#" ? ((x + y) % 2 ? "tin" : "copper") : NODE_LEGEND[ch]?.[1] ?? null)));
 export const MAP_HEIGHT = WORLD_H;
 export const MAP_WIDTH = WORLD_W;
 /** The raw map character on a tile (" " outside the map). */

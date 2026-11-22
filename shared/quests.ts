@@ -451,7 +451,7 @@ const LESSONS: Chapter[] = [
         task: `Talk to ${GRETA} on Trainer Row`, goal: { kind: "talk" }, unlocks: ["mining"],
         lines: [
           "You want to learn Mining? Good. It's hard work, but rocks don't run away. Mining is part of Endurance.",
-          "The quarry is up the north road, past the Lighthall: take the road on the Lighthall's west side. Here's a worn bronze pickaxe. Put it on your belt, then mine 5 stone from the plain grey rocks. Eat when you get tired.",
+          "The quarry is up the north road, past the Lighthall: take the road on the Lighthall's west side. Here's a worn bronze pickaxe. Put it on your belt, then mine 2 copper ore from the orange-flecked rocks. Eat when you get tired.",
         ],
         give: [WORN_PICK],
       },
@@ -461,22 +461,21 @@ const LESSONS: Chapter[] = [
         ensure: [WORN_PICK], protect: ["pickaxe_"],
       },
       {
-        task: "Mine 5 stone (plain grey rocks in the quarry)", goal: { kind: "gather", skill: "mining", resource: "stone", count: 5 },
-        hint: "Click a plain grey rock in the quarry (up the north road, past the Lighthall) with the pickaxe on your belt.",
+        task: "Mine 2 copper ore (orange-flecked rocks in the quarry)", goal: { kind: "gather", skill: "mining", resource: "copper", count: 2 },
+        hint: "Click a copper rock (grey with orange flecks) in the quarry (up the north road, past the Lighthall) with the pickaxe on your belt.",
         ensure: [WORN_PICK], needsTool: "pickaxe", protect: ["pickaxe_"],
       },
       {
-        task: `Show ${GRETA} your stone`, goal: { kind: "talk" },
-        need: { prefix: "stone", line: "Where's your stone? Mine some in the quarry and bring it here." },
+        task: `Show ${GRETA} your copper ore`, goal: { kind: "talk" },
+        need: { prefix: "copper_ore", line: "Where's your copper? Mine some in the quarry and bring it here." },
         lines: [
-          "Good, solid stone. Builders always want it, and it sells. But tools are made of metal, and the first metal is bronze.",
-          "Bronze is made from copper and tin. You'll mine those yourself at Mining level 5, but that takes a while.",
-          "For now, buy 2 copper ore and 2 tin ore from me. Open my Buy tab.",
+          "Good copper! Tools are made of metal, and the first metal is bronze: 1 copper ore and 1 tin ore make a bronze bar.",
+          "Now get 2 tin ore to go with it. Tin rocks are the pale, silvery ones right next to the copper. Or if you're in a hurry, buy them from my Buy tab.",
         ],
       },
       {
-        task: `Get 2 copper ore and 2 tin ore (${GRETA}'s Buy tab)`, goal: { kind: "have", items: { copper_ore: 2, tin_ore: 2 } },
-        hint: "Click me, open the Buy tab, and buy 2 copper ore and 2 tin ore.",
+        task: "Get 2 tin ore to go with your copper (mine it, or buy it from Greta)", goal: { kind: "have", items: { copper_ore: 2, tin_ore: 2 } },
+        hint: "Mine the pale, silvery tin rocks in the quarry, or click Greta, open the Buy tab, and buy tin ore. You need 2 copper ore too.",
         protect: ["copper_ore", "tin_ore"],
       },
       {

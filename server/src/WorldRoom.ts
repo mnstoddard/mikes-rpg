@@ -64,6 +64,8 @@ import { ArmorType, SOFT_NAMES } from "../../shared/gear";
 
 /** Arrows a bow shoots, best tip first. */
 const ARROW_ORDER: ArrowId[] = (["mithril", "steel", "iron", "bronze"] as Metal[]).map(arrowId);
+/** What a stone sold for, before stone was taken out of the game. Old saves get this many coins for each one. */
+const STONE_PRICE = 2;
 import {
   GemId, CUT_KEEPS, CUT_LEVEL, GEMS, isSoulGem, soulCapacity, JEWEL_BARS, JEWEL_METALS, JEWEL_SLOTS, JewelSlot, Jewels, carats, cutId, cutXp, describeBonus, emptyJewels, isJewelry, jewelBonus, jewelTotals,
   parseGem, rollCut, rollGemSize, roughId, soulGemId, soulStoneId,
@@ -2032,6 +2034,13 @@ export class WorldRoom extends Room<WorldState> {
       const size = Math.min(CHEST_MAX, newer ? Math.max(0, g.chestSize!) : g.chest.length);
       const old = emptyBag(size);
       g.chest.slice(0, 1000).forEach((c, i) => {
+        if (c && c.item === "stone") {
+          // Stone isn't in the game any more: it's paid out at what it sold for.
+          const n = Number.isInteger(c.count) && c.count >= 1 ? Math.min(c.count, 1000) : 1;
+          p.coins += n * STONE_PRICE;
+          p.loginNotes.push(`🪨 Stone isn't mined any more, so the stone in your enchanted chest was sold for you: +${n * STONE_PRICE} bronze coins.`);
+          return;
+        }
         if (c && typeof c.item === "string" && legacyStone(c.item)) {
           c.item = legacyStone(c.item)!; // stone tools, weapons and arrows -> bronze
           if (typeof c.durability === "number" && c.durability > 0) c.durability *= STONE_TO_BRONZE_USES;
@@ -4241,6 +4250,7 @@ export class WorldRoom extends Room<WorldState> {
       }
     }
     // Load the saved bag as it was (older saves had 28 slots, one entry each), then fit it into today's bag below.
+    let stoneRefund = 0;
     const grouped = Array.isArray(save.slots);
     const entries = Array.isArray(save.inventory) ? Math.min(save.inventory.length, grouped ? 1000 : 28) : 0;
     const old = emptyBag(grouped ? INVENTORY_SIZE : entries);
@@ -4251,6 +4261,13 @@ export class WorldRoom extends Room<WorldState> {
         if (!Number.isInteger(slot) || slot < 0 || slot >= old.slotCount) continue;
         old.slotOf[i] = slot;
         let item = save.inventory[i];
+        if (item === "stone") {
+          // Stone isn't in the game any more: it's paid out at what it sold for.
+          const n = save.counts?.[i];
+          stoneRefund += (Number.isInteger(n) && n! >= 1 ? Math.min(n!, 1000) : 1) * STONE_PRICE;
+          old.slotOf[i] = -1;
+          continue;
+        }
         if (typeof item === "string" && item in LEGACY_ITEMS) item = LEGACY_ITEMS[item]; // logs -> pine logs, etc.
         if (typeof item === "string") item = legacyTool(item) ?? item; // metal-headed rods -> wooden rods
         if (typeof item === "string") item = legacyStew(item) ?? item; // old fish stews -> stews
@@ -4283,6 +4300,10 @@ export class WorldRoom extends Room<WorldState> {
       }
     }
     if (typeof save.coins === "number" && Number.isFinite(save.coins) && save.coins >= 0) p.coins = Math.floor(save.coins);
+    if (stoneRefund) {
+      p.coins += stoneRefund;
+      p.loginNotes.push(`🪨 Stone isn't mined any more, so the stone in your bag was sold for you: +${stoneRefund} bronze coins.`);
+    }
     // Stamina also came back while you were logged out (1 every 30 seconds). Old saves start full.
     if (typeof save.stamina === "number" && Number.isFinite(save.stamina)) {
       const away = typeof save.staminaAt === "number" ? Math.max(0, Date.now() - save.staminaAt) : 0;

@@ -1,6 +1,6 @@
 // Gear: weapons and armor, worn in the gear strip (separate from the tool belt).
 //
-// Weapons are a head (stone or a metal bar) plus a wooden handle, like tools.
+// Weapons are a head (a metal bar) plus a wooden handle, like tools.
 // Armor is all metal: 1 to 3 bars, no wood. Both are smithed at the anvil and
 // wear out with use, like tools.
 //
@@ -25,7 +25,7 @@ export interface WeaponDef {
   style: CombatStyle;
   /** Melee / Ranged / Magic level needed to hold it. */
   level: number;
-  /** Biggest hit with a stone one (better metal adds to it). Staffs: spells decide the damage. */
+  /** Base hit before its metal (bronze adds 1, better metal more). Staffs: spells decide the damage. */
   maxHit: number;
   /** Ticks between attacks (1 tick = 0.6s). */
   speed: number;

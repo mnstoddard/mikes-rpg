@@ -56,7 +56,7 @@ export const SHOPS: Record<ShopId, ShopDef> = {
     title: "⛏️ Miner Greta",
     stock: [toolId("pickaxe", "bronze", "pine"), ...resourcesOf("mining")],
     buys: (i) => gathered(i, "mining") || (isTool(i) && parseTool(i).type === "pickaxe"),
-    buysText: "stone, ore and pickaxes",
+    buysText: "ore and pickaxes",
     rare: [{ item: toolId("pickaxe", "iron", "oak"), trading: 10 }, { item: toolId("pickaxe", "steel", "maple"), trading: 25 }, { item: toolId("pickaxe", "mithril", "yew"), trading: 40 }],
   },
   brann: {

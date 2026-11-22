@@ -445,12 +445,12 @@ export const ACT_ONE: Chapter[] = [
         task: `Talk to ${ALDRIC}`, goal: { kind: "talk" },
         lines: [
           "The Westroad is clear, Rook's totem is ready, and you've learned to mine and smelt. Let's rebuild that shrine!",
-          "Bring 6 stone and 2 bronze bars. I'll have Rook carve a second totem for the top: pick it up from him on your way.",
+          "The Lightkeepers have the stone cut already. Bring 6 oak logs for the frame and 2 bronze bars to bind it. I'll have Rook carve a second totem for the top: pick it up from him on your way.",
         ],
       },
       {
-        task: "Get 6 stone and 2 bronze bars", goal: { kind: "have", items: { stone: 6, bronze_bar: 2 } }, guaranteed: true,
-        hint: "Mine stone up at the quarry, and smelt bronze bars (copper + tin) at Brann's furnace. Aldric's blessing steadies your hand: the two bars you need won't fail.",
+        task: "Get 6 oak logs and 2 bronze bars", goal: { kind: "have", items: { oak_logs: 6, bronze_bar: 2 } }, guaranteed: true,
+        hint: "Chop oak trees (the round ones), mine copper and tin up at the quarry, and smelt bronze bars at Brann's furnace. Aldric's blessing steadies your hand: the two bars you need won't fail.",
       },
       {
         task: "Pick up the new totem from Woodworker Rook", goal: { kind: "talk" }, who: "rook",
@@ -459,9 +459,9 @@ export const ACT_ONE: Chapter[] = [
       },
       {
         task: "Rebuild the Westroad shrine (far west, along the main road)", goal: { kind: "talk" }, who: "west_shrine",
-        take: { stone: 6, bronze_bar: 2, shrine_totem: 1 },
+        take: { oak_logs: 6, bronze_bar: 2, shrine_totem: 1 },
         lines: [
-          "You stack the stone, bind it with bronze, and set Rook's totem on top. Two Lightkeepers arrive and say a prayer, and the shrine lights up gold.",
+          "You raise the oak frame, the Lightkeepers stack their white stone around it, you bind it with bronze, and set Rook's totem on top. Two Lightkeepers arrive and say a prayer, and the shrine lights up gold.",
           "Then you notice the grass. All round the shrine, in a ring, it's turning brown.",
           "Maybe it was always like that.",
         ],

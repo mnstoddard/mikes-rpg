@@ -28,7 +28,7 @@ function drawBase(): HTMLCanvasElement {
       const t = MAP[y][x];
       let col = TILE_COLORS[t];
       if (t === "tree") col = isDanger(x, y) ? 0x16331a : 0x2a5a22;
-      else if (t === "rock") col = MAP_NODES[y][x] === "stone" ? 0x8d8d8d : 0xb07a4c;
+      else if (t === "rock") col = 0xb07a4c;
       else if (t === "grass" && isDanger(x, y)) col = 0x23432a;
       else if (t === "door") col = 0xffd84a;
       g.fillStyle = `#${col.toString(16).padStart(6, "0")}`;
