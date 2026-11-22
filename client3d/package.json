@@ -8,7 +8,8 @@
     "gallery:armor": "node build-gallery.mjs armor",
     "gallery:items": "node build-gallery.mjs items",
     "gallery:food": "node build-gallery.mjs food",
-    "gallery:monster": "node build-gallery.mjs monster"
+    "gallery:monster": "node build-gallery.mjs monster",
+    "gallery:environment": "node build-gallery.mjs environment"
   },
   "dependencies": {
     "three": "^0.186.0"
