@@ -132,6 +132,44 @@ it next to a person, watch the character swing, stab, shoot or cast at a
 training dummy (with slow motion), see it at night, and **approve** it or ask
 for changes. Build it with `node build-gallery.mjs weapon` (in `client3d/`).
 
+## Tools and items (`src/items/`)
+
+Everything you carry or use that isn't a tree, rock, weapon, armor piece or
+food: 64 items in 8 groups, all made from code in the low-poly look.
+
+| Group | Items | Options |
+|---|---|---|
+| Tools | axe, pickaxe, shovel, fishing rod, hammer, tongs, cooking pot | head (stone, bronze, iron, steel, mithril), handle wood |
+| Materials | logs, metal bars, leather, thread, cloth | wood or metal (all 8 bars), one or a stack |
+| Foraging finds | worm, wild root, red cap, mushroom, sage, ginseng, honeycomb, old bone, blue lotus, moonpetal (glows), truffle, seeds | seeds: 6 crops |
+| Monster loot | feather, rat tail, cowhide, wolf/alpha pelt, boar hide, tusk, fang, bat wing, slime goo, venom sac, spider silk, goblin charm, stolen ring, food scraps, bait | wolf kind, 3 baits |
+| Potions | every potion (glowing, bubbling) and the empty vial | 10 potions |
+| Gems & jewelry | rough gems, cut gems, soul stones/gems, rings, amulets | gem, size, metal |
+| Quest items | lantern (lights up), blessing scroll, shrine totem, Rook's note, scrawled note, Maren's charm, Holt's notes, spell books | 3 spell books |
+| Workshop props | storage chest, furnace, anvil, workbench, spinning wheel, tanning rack, cooking stove, alchemy table, enchanting altar, guild board | |
+
+Each one has an action: tools swing, dig or cast, the chest opens, the
+furnace roars, the anvil throws sparks, potions shake, and small things drop
+and bounce like loot. `kit.ts` has the shared colours for every metal and
+wood (`METAL_LOOK`, `WOOD_LOOK`) and the small building blocks.
+
+```ts
+import { createItem } from "./items";
+const axe = createItem("axe", { choice: [2, 1] }); // Iron axe (Oak)
+scene.add(axe.object);
+axe.update(dt, time); // every frame
+axe.act();            // swing it (or open, light, drop...)
+hero.joints.handR.add(axe.object); // tools can be held
+```
+
+## The Items Gallery
+
+Pick a group, then an item; try its options, press its action button, hold
+tools in the character's hand, see every item in a group side by side on a
+table, and **approve** it or ask for changes. Build it with
+`node build-gallery.mjs items` (in `client3d/`), which makes
+`dist/items-gallery.html`.
+
 ## Building a gallery page
 
 `node build-gallery.mjs <name>` (in `client3d/`) builds

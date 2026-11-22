@@ -5,7 +5,8 @@
   "scripts": {
     "gallery": "node build-gallery.mjs",
     "typecheck": "tsc -p .",
-    "gallery:armor": "node build-gallery.mjs armor"
+    "gallery:armor": "node build-gallery.mjs armor",
+    "gallery:items": "node build-gallery.mjs items"
   },
   "dependencies": {
     "three": "^0.186.0"
