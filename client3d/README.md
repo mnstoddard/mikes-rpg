@@ -104,6 +104,34 @@ hero.joints.skull.add(helmet);    // and on the head
 
 `hero.fit` has the body's measurements, so armor can be shaped to fit any body.
 
+## Weapons (`src/weapons/`)
+
+Every weapon, made from code in the low-poly look: the game's nine weapon
+types (dagger, sword, mace, spear, two-handed sword, sling, darts, bow, staff),
+arrows, and four planned story weapons (Warden's weapon, Goblin-forged dagger,
+Severing Blade, Lightforged weapon). Each has two or three **designs** to pick
+from, and is built from any **metal** (stone to mithril, plus planned
+Aurelite) and **handle wood** (pine to elderwood, plus planned Crownwood).
+Staffs can hold an enchantment **gem**, which also colours their bolt.
+
+Every weapon is built the same way round: the middle of the grip at (0,0,0),
+the blade pointing up +Y. Stats come from `shared/gear.ts`, so the 2D and 3D
+games always agree.
+
+```ts
+import { createWeapon, optionsForItem } from "./weapons";
+const sword = createWeapon("sword", { variant: 0, metal: "iron", wood: "oak" });
+hero.joints.handR.add(sword.held ?? sword.object);
+const { kind, opts } = optionsForItem("bow_stone_yew"); // from a game item id
+```
+
+## The Weapon Gallery
+
+Like the Tree Gallery, for weapons: try each design, metal, wood and gem, see
+it next to a person, watch the character swing, stab, shoot or cast at a
+training dummy (with slow motion), see it at night, and **approve** it or ask
+for changes. Build it with `node build-gallery.mjs weapon` (in `client3d/`).
+
 ## Building a gallery page
 
 `node build-gallery.mjs <name>` (in `client3d/`) builds
