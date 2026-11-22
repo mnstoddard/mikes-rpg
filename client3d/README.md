@@ -284,3 +284,44 @@ sunset and night, the whole group side by side, and **Approve** or **Needs
 changes** with a note. Build it with `npm run gallery:monster -w client3d`
 (or `node build-gallery.mjs monster` in `client3d/`). It makes
 `client3d/dist/monster-gallery.html`.
+
+## The world's environment (`src/environment/`)
+
+Everything in the world that isn't an item, tree, rock or creature: 57 pieces
+in 7 groups, all made in code in the low-poly look. One 2D map tile is 2 m
+(`TILE`). Ground and floors are built from their **world position**, so
+patches laid side by side join with no seams and every spot always looks the
+same for every player.
+
+| Group | Pieces |
+|---|---|
+| Ground (`ground.ts`) | Grass, dirt path, cobblestones, sand, withered grass, stony ground, farm soil, snow |
+| Floors (`ground.ts`) | Floorboards, white stone, rugs and carpets, the Lighthall's glowing floor, cave floor, crystal floor |
+| Walls and roofs (`building.ts`) | Timber-frame, wooden, stone, white stone, Mages' Guild and cave walls; cliff, hedge, fence, gate, barricade, door, bridge; tiled, thatched and gold roofs; `house()` puts walls and a roof together |
+| On the walls (`ornaments.ts`) | Wall lantern, window (with shutters), shop sign, climbing vines, flower box, banner, wall torch, awning |
+| Ground decorations (`decor.ts`) | Grass tufts, wildflowers, rocks, bushes, mushrooms, reeds, fallen logs, brambles, shells and driftwood, street lamp, well, gravestone, barrels and crates, signpost, statue |
+| Water (`water.ts`) | Lake and ponds, river, sea (waves and foam), waterfall |
+| Sky (`sky.ts`) | The sky dome (sun, moon, stars for day, sunset and night), clouds, weather (rain, fog, snow, fireflies) |
+
+Every piece has 1 to 4 styles. Lanterns, windows, lamps and glowing things
+light up at night; grass, flowers, signs and banners move in the wind.
+
+```ts
+import { createEnv, createSkyDome } from "./environment";
+const street = createEnv("ground-cobble", { variant: 0, x0: 0, z0: 0, w: 20, d: 8 });
+const lantern = createEnv("orn-lantern", { variant: 1 }); // back on the wall at z = 0
+scene.add(street.object, lantern.object);
+street.update(dt, time, { night: 0, wind: 0.3 }); // every frame
+lantern.poke?.();                                  // the gallery's action button
+```
+
+## The Environment Gallery
+
+Every piece on its own (ground as a 3 x 3 tile patch, ornaments on a wall,
+decorations on their usual ground), every style side by side, and 8 **sample
+scenes** (town street, the farm, Saltmere Coast, the Thornwood, caves, inside
+a house, the Lighthall, river and lake) built from the styles Mike picks.
+Click anything in a scene to review it. Day, sunset and night, a wind slider
+and a tile grid. Build it with `npm run gallery:environment -w client3d` (or
+`node build-gallery.mjs environment` in `client3d/`). It makes
+`client3d/dist/environment-gallery.html`.
