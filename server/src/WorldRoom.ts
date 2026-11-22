@@ -33,7 +33,7 @@ import {
   Belt, METALS, TOOL_TYPES, TOOL_TYPE_IDS, TOOL_WARN_AT, ToolType, emptyBelt, isTool, legacyTool, maxDurability, parseTool,
   toolBonus, toolForSkill, wearFor,
 } from "../../shared/tools";
-import { INVENTORY_SIZE, ITEMS, ItemId, LEGACY_ITEMS } from "../../shared/items";
+import { INVENTORY_SIZE, ITEMS, ItemId, LEGACY_ITEMS, STONE_TO_BRONZE_USES, legacyStone } from "../../shared/items";
 import { NPCS, NpcDef, isChest, npcById } from "../../shared/npcs";
 import {
   Bag, addItem, groupOf, newEntry, stackLimit, wearsOut, clearEntry, cloneBag, compact, countIn, countItem, emptyBag, entriesIn, entriesInOrder, mergeStacks, putBack, reorderSlots, roomFor, roomForAll,
@@ -63,7 +63,7 @@ import { ARROW_RECOVER, ARROW_LEVEL, ArrowId, CLOTH_LEVEL, SOFT_LEVEL, TANNING, 
 import { ArmorType, SOFT_NAMES } from "../../shared/gear";
 
 /** Arrows a bow shoots, best tip first. */
-const ARROW_ORDER: ArrowId[] = (["mithril", "steel", "iron", "bronze", "stone"] as Material[]).map(arrowId);
+const ARROW_ORDER: ArrowId[] = (["mithril", "steel", "iron", "bronze"] as Metal[]).map(arrowId);
 import {
   GemId, CUT_KEEPS, CUT_LEVEL, GEMS, isSoulGem, soulCapacity, JEWEL_BARS, JEWEL_METALS, JEWEL_SLOTS, JewelSlot, Jewels, carats, cutId, cutXp, describeBonus, emptyJewels, isJewelry, jewelBonus, jewelTotals,
   parseGem, rollCut, rollGemSize, roughId, soulGemId, soulStoneId,
@@ -2032,6 +2032,10 @@ export class WorldRoom extends Room<WorldState> {
       const size = Math.min(CHEST_MAX, newer ? Math.max(0, g.chestSize!) : g.chest.length);
       const old = emptyBag(size);
       g.chest.slice(0, 1000).forEach((c, i) => {
+        if (c && typeof c.item === "string" && legacyStone(c.item)) {
+          c.item = legacyStone(c.item)!; // stone tools, weapons and arrows -> bronze
+          if (typeof c.durability === "number" && c.durability > 0) c.durability *= STONE_TO_BRONZE_USES;
+        }
         if (!c || typeof c.item !== "string" || !(c.item in ITEMS)) return;
         const slot = newer ? c.slot : i;
         if (!Number.isInteger(slot) || slot! < 0 || slot! >= size) return;
@@ -2171,7 +2175,7 @@ export class WorldRoom extends Room<WorldState> {
     if (isWeapon(held) && parseWeapon(held).type === "bow") {
       arrow = ARROW_ORDER.find((id) => p.inventory.some((it, i) => it === id && !p.locked[i])) ?? null;
       if (!arrow) {
-        if (client) this.say(client, "You're out of arrows. Make them at Rook's workbench (Handicraft), or buy stone arrows from Huntmaster Kael.");
+        if (client) this.say(client, "You're out of arrows. Make them at Rook's workbench (Handicraft), or buy bronze arrows from Huntmaster Kael.");
         return this.stopActions(p);
       }
       if (Math.random() >= ARROW_RECOVER) {
@@ -2980,14 +2984,14 @@ export class WorldRoom extends Room<WorldState> {
     for (const sl of GEAR_SLOTS) { const g = p.gear[sl]; if (g) worn.push({ where: "gear", key: sl, item: g.item, left: g.durability, max: gearDurability(g.item) }); }
     const target = worn.filter((w) => w.left < w.max).sort((a, b) => a.left / a.max - b.left / b.max)[0];
     if (!target) return "Nothing you're using is worn. (Mend fixes tools on your belt and gear you're wearing.)";
-    // What it's made of: its metal's bar, stone, or (for a fishing rod) a log of its wood.
+    // What it's made of: its metal's bar, or (for a fishing rod, or a wooden bow or staff) a log of its wood.
     let material: ItemId;
     if (isTool(target.item)) {
       const t = parseTool(target.item);
-      material = isWoodTool(t.type) ? `${t.wood!}_logs` as ItemId : t.metal === "stone" ? "stone" : barId(t.metal as Metal);
+      material = isWoodTool(t.type) ? `${t.wood!}_logs` as ItemId : barId(t.metal as Metal);
     } else if (isWeapon(target.item)) {
       const w = parseWeapon(target.item);
-      material = w.metal === "stone" ? (w.type === "bow" || w.type === "staff" ? `${w.wood}_logs` as ItemId : "stone") : barId(w.metal as Metal);
+      material = w.metal === "stone" ? `${w.wood}_logs` as ItemId : barId(w.metal as Metal);
     } else {
       const m = parseArmor(target.item as never).metal;
       material = m === "leather" || m === "cloth" ? m : barId(m);
@@ -4250,6 +4254,8 @@ export class WorldRoom extends Room<WorldState> {
         if (typeof item === "string" && item in LEGACY_ITEMS) item = LEGACY_ITEMS[item]; // logs -> pine logs, etc.
         if (typeof item === "string") item = legacyTool(item) ?? item; // metal-headed rods -> wooden rods
         if (typeof item === "string") item = legacyStew(item) ?? item; // old fish stews -> stews
+        const wasStone = typeof item === "string" && legacyStone(item) != null;
+        if (typeof item === "string") item = legacyStone(item) ?? item; // stone tools, weapons and arrows -> bronze
         old.inventory[i] = typeof item === "string" && item in ITEMS ? (item as ItemId) : null;
         const it = old.inventory[i];
         if (!it) { old.slotOf[i] = -1; continue; }
@@ -4258,7 +4264,8 @@ export class WorldRoom extends Room<WorldState> {
         old.counts[i] = wearsOut(it) ? 1 : Number.isInteger(n) && n! >= 1 ? Math.min(n!, stackLimit(it)) : 1;
         if (isTool(it) || isGear(it) || isBait(it)) {
           const max = isTool(it) ? maxDurability(it) : isGear(it) ? gearDurability(it) : BAITS[it].uses;
-          const d = save.durability?.[i];
+          let d = save.durability?.[i];
+          if (wasStone && typeof d === "number" && d > 0) d *= STONE_TO_BRONZE_USES; // bronze lasts longer than stone did
           // Broken tools and gear (0 uses left) stay broken; bait at 0 would have been used up.
           old.durability[i] = typeof d === "number" && (d > 0 || (d === 0 && !isBait(it))) ? Math.min(Math.floor(d), max) : max;
         }
@@ -4267,6 +4274,10 @@ export class WorldRoom extends Room<WorldState> {
     for (const type of TOOL_TYPE_IDS) {
       const t = save.belt?.[type];
       if (t && typeof t.item === "string") t.item = legacyTool(t.item) ?? t.item;
+      if (t && typeof t.item === "string" && legacyStone(t.item) && typeof t.durability === "number") {
+        t.item = legacyStone(t.item)!; // a stone tool on the belt -> bronze
+        t.durability *= STONE_TO_BRONZE_USES;
+      }
       if (t && isTool(t.item) && parseTool(t.item).type === type && typeof t.durability === "number" && t.durability > 0) {
         p.belt[type] = { item: t.item, durability: Math.min(Math.floor(t.durability), maxDurability(t.item)) };
       }
@@ -4307,6 +4318,10 @@ export class WorldRoom extends Room<WorldState> {
     // Combat: gear, Mastery, health (it came back 1 a minute while you were away) and mana (full).
     for (const slot of GEAR_SLOTS) {
       const g = save.gear?.[slot];
+      if (g && typeof g.item === "string" && legacyStone(g.item) && typeof g.durability === "number") {
+        g.item = legacyStone(g.item)!; // a stone weapon -> bronze
+        g.durability *= STONE_TO_BRONZE_USES;
+      }
       if (g && isGear(g.item) && gearSlot(g.item) === slot && typeof g.durability === "number" && g.durability > 0) {
         p.gear[slot] = { item: g.item, durability: Math.min(Math.floor(g.durability), gearDurability(g.item)) };
       }
@@ -4343,7 +4358,9 @@ export class WorldRoom extends Room<WorldState> {
       p.hp = Math.max(1, Math.min(p.maxHp, Math.floor(save.hp) + Math.floor(away / HEALTH_REGEN_MS)));
     }
     p.mana = this.maxManaOf(p);
+    if (Array.isArray(save.bounties)) for (const b of save.bounties) if (b && typeof b.item === "string") b.item = legacyStone(b.item) ?? b.item; // stone -> bronze
     if (Array.isArray(save.bounties)) p.bounties = save.bounties.filter(validBounty).slice(0, BOUNTY_COUNT);
+    if (typeof save.tracked === "string") save.tracked = legacyStone(save.tracked) ?? save.tracked;
     if (typeof save.tracked === "string" && p.bounties.some((b) => b.item === save.tracked)) p.tracked = save.tracked as ItemId;
   }
 

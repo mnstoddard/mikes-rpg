@@ -41,27 +41,27 @@ const LOOT: ItemId[] = [
 export const SHOPS: Record<ShopId, ShopDef> = {
   tam: {
     title: "💰 General Store",
-    stock: [toolId("rod", "stone", "pine"), toolId("pot", "stone", "pine"), SHOP_STEW, "health_potion", "potato", "carrot", "worm"],
+    stock: [toolId("rod", "bronze", "pine"), toolId("pot", "bronze", "pine"), SHOP_STEW, "health_potion", "potato", "carrot", "worm"],
     buys: () => true,
     buysText: "anything",
   },
   holt: {
     title: "🪓 Forester Holt",
-    stock: [toolId("axe", "stone", "pine"), ...resourcesOf("woodcutting")],
+    stock: [toolId("axe", "bronze", "pine"), ...resourcesOf("woodcutting")],
     buys: (i) => gathered(i, "woodcutting") || (isTool(i) && parseTool(i).type === "axe"),
     buysText: "logs and axes",
     rare: [{ item: toolId("axe", "iron", "oak"), trading: 10 }, { item: toolId("axe", "steel", "maple"), trading: 25 }, { item: toolId("axe", "mithril", "yew"), trading: 40 }],
   },
   greta: {
     title: "⛏️ Miner Greta",
-    stock: [toolId("pickaxe", "stone", "pine"), ...resourcesOf("mining")],
+    stock: [toolId("pickaxe", "bronze", "pine"), ...resourcesOf("mining")],
     buys: (i) => gathered(i, "mining") || (isTool(i) && parseTool(i).type === "pickaxe"),
     buysText: "stone, ore and pickaxes",
     rare: [{ item: toolId("pickaxe", "iron", "oak"), trading: 10 }, { item: toolId("pickaxe", "steel", "maple"), trading: 25 }, { item: toolId("pickaxe", "mithril", "yew"), trading: 40 }],
   },
   brann: {
     title: "🔨 Smith Brann",
-    stock: [toolId("hammer", "stone", "pine"), toolId("tongs", "stone", "pine"), ...BAR_IDS],
+    stock: [toolId("hammer", "bronze", "pine"), toolId("tongs", "bronze", "pine"), ...BAR_IDS],
     buys: (i) => (BAR_IDS as string[]).includes(i) || isTool(i) || isGear(i),
     buysText: "bars, tools, weapons and armor",
     rare: [{ item: "silver_bar", trading: 8 }, { item: weaponId("sword", "iron", "oak"), trading: 12 }, { item: "gold_bar", trading: 20 }, { item: armorId("platebody", "steel"), trading: 30 }],
@@ -76,7 +76,7 @@ export const SHOPS: Record<ShopId, ShopDef> = {
   },
   kael: {
     title: "🏹 Huntmaster Kael",
-    stock: [weaponId("dagger", "stone", "pine"), weaponId("sling", "stone", "pine"), weaponId("staff", "stone", "pine"), weaponId("bow", "stone", "pine"), "arrows_stone", "health_potion"],
+    stock: [weaponId("dagger", "bronze", "pine"), weaponId("sling", "bronze", "pine"), weaponId("staff", "stone", "pine"), weaponId("bow", "stone", "pine"), "arrows_bronze", "health_potion"],
     buys: (i) => isWeapon(i) || isArmor(i) || LOOT.includes(i) || i === "health_potion",
     buysText: "weapons, armor and monster drops",
     rare: [{ item: weaponId("sword", "bronze", "oak"), trading: 5 }, { item: "arrows_bronze", trading: 10 }, { item: armorId("platelegs", "iron"), trading: 18 }],
@@ -103,7 +103,7 @@ export const SHOPS: Record<ShopId, ShopDef> = {
   },
   wren: {
     title: "🌱 Herbalist Wren",
-    stock: [toolId("shovel", "stone", "pine"), "wild_root"],
+    stock: [toolId("shovel", "bronze", "pine"), "wild_root"],
     buys: (i) => FORAGE_ITEMS.has(i) || (isTool(i) && parseTool(i).type === "shovel"),
     buysText: "roots, herbs, mushrooms, worms and shovels",
     rare: [{ item: "sage", trading: 6 }, { item: toolId("shovel", "iron", "oak"), trading: 12 }, { item: "ginseng", trading: 20 }, { item: "truffle", trading: 35 }],

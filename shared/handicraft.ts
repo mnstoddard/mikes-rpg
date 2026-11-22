@@ -15,7 +15,7 @@
 // Only type imports from items, so items.ts can build these.
 import type { ItemId } from "./items";
 import type { ArmorType } from "./gear";
-import type { Material, Wood } from "./tools";
+import type { Metal, Wood } from "./tools";
 
 export type BaitId = "bait_worm" | "bait_chum" | "bait_glow";
 /** Things Handicraft uses that you find or get as leftovers. */
@@ -24,14 +24,14 @@ export type HandicraftMaterial = "worm" | "food_scraps" | "boar_hide" | "leather
 // ---- Woodwork, leather and cloth (stage 10) ----
 // Rook teaches it all. Things unlock one by one as your Handicraft level goes up.
 
-/** Arrows: a log, a tip (stone or a metal bar) and 2 feathers make 10. The tip decides the damage. */
-export type ArrowId = `arrows_${Material}`;
-export const ARROW_LEVEL: Record<Material, number> = { stone: 1, bronze: 5, iron: 15, steel: 30, mithril: 50 };
+/** Arrows: a log, a tip (a metal bar) and 2 feathers make 10. The tip decides the damage. Bronze is the first (level 1). */
+export type ArrowId = `arrows_${Metal}`;
+export const ARROW_LEVEL: Record<Metal, number> = { bronze: 1, iron: 15, steel: 30, mithril: 50 };
 export const ARROWS_PER_CRAFT = 10;
 /** Each arrow you shoot has this chance of being picked up again. */
 export const ARROW_RECOVER = 1 / 3;
-export const arrowId = (m: Material): ArrowId => `arrows_${m}`;
-export const isArrow = (item: string | null | undefined): item is ArrowId => !!item && /^arrows_(stone|bronze|iron|steel|mithril)$/.test(item);
+export const arrowId = (m: Metal): ArrowId => `arrows_${m}`;
+export const isArrow = (item: string | null | undefined): item is ArrowId => !!item && /^arrows_(bronze|iron|steel|mithril)$/.test(item);
 
 /** Handicraft level to carve a bow or staff from each wood. */
 export const WOOD_LEVEL: Record<Wood, number> = { pine: 1, oak: 8, birch: 16, maple: 25, yew: 35, ironwood: 50, elderwood: 65 };

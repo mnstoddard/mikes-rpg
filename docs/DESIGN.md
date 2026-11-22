@@ -124,7 +124,7 @@ separate bag slots (you can't stack a 1 ct ruby with a 5 ct ruby).
 ### Foraging (new, uses a shovel)
 *Built in stage 5 (decided with Mike):* Herbalist Wren, in a little hut by
 the lake east of the Mages' Guild, teaches Foraging in a 4-step chapter and
-gives you a stone shovel. Shovels come in every metal like axes (stone from
+gives you a bronze shovel. Shovels come in every metal like axes (bronze from
 Wren, the rest at the anvil). You dig **glinting dig patches** (a mound with a
 twinkle) scattered over the meadows, by the lake and a couple in the forest;
 each find has a 1 in 3 chance of digging the patch out, and it glints again
@@ -132,7 +132,7 @@ about 40 seconds later. What you find is rolled from everything your level can
 find: worms and wild roots (1), red cap mushrooms (2), mushrooms (3), sage (5),
 ginseng (6), wild honeycomb and old bones (8), blue lotus and, **at night
 only**, moonpetal (10), and truffles (15). The XP comes from the find. Wren
-buys everything you dig up, and sells stone shovels and roots. Wild roots and
+buys everything you dig up, and sells bronze shovels and roots. Wild roots and
 truffles cook as vegetables; the rest wait for Alchemy (stage 6). Glowcap,
 iron root and fairy moss are still for later.
 
@@ -224,9 +224,9 @@ tools and jewellery are all mixed into one ladder. For example:
 
 | Smithing level | Unlocks |
 |---|---|
-| 1 | Bronze dagger, stone tools |
+| 1 | Bronze dagger, bronze tools (no stone tier: bronze is where everything starts) |
 | 2 | Bronze short sword, bronze ring |
-| 3 | Bronze helmet, bronze tools |
+| 3 | Bronze helmet |
 | 4 | Bronze mace, bronze amulet |
 | 5 | Bronze shield, bronze boots |
 | 7 | Bronze platelegs, bronze inlay |
@@ -242,8 +242,9 @@ tools and jewellery are all mixed into one ladder. For example:
 (Exact levels get tuned when it's built.)
 
 ### Two metal ladders
-- **Fighting and tool metals** (Strength gear and tools): stone, bronze, iron,
-  steel, mithril, as today.
+- **Fighting and tool metals** (Strength gear and tools): bronze, iron,
+  steel, mithril. (There used to be a stone tier below bronze; it was removed
+  and old stone items turned into bronze.)
 - **Jewellery metals** (rings, amulets and inlays): **bronze** (low quality,
   available right away, the same bronze bars as weapons), then **silver**, **gold**, **platinum**, and
   **iridium** at very high levels. Better jewellery metal means a stronger
@@ -277,11 +278,11 @@ Rook teaches it all, and things unlock one by one as your Handicraft level goes 
   ironwood +6 and elderwood +8 (bows hit harder, staffs make spells stronger).
   Pine is level 1, elderwood 65; bows need 2 levels more than staffs. Bows and
   staffs are no longer made at the anvil (old ones still work).
-- **Arrows**: a pine log, a tip (stone or a metal bar) and 2 feathers make 10.
-  The tip sets the damage: stone +0, bronze +1 and so on, like metal weapons.
+- **Arrows**: a pine log, a tip (a metal bar) and 2 feathers make 10.
+  The tip sets the damage: bronze +1 (level 1), iron +2 and so on, like metal weapons.
   A bow shoots your best arrows first, and each shot uses one, but about **1 in
   3 is picked up again**. No arrows, no shooting. Kael sells a pine bow and
-  stone arrows; Rook sells feathers and thread.
+  bronze arrows; Rook sells feathers and thread.
 - **The tanning rack** (outside the workshop's east wall) turns one hide into
   one leather: cowhide (level 3), boar hide (6, boars now drop them) and wolf
   pelts (10).
@@ -476,8 +477,8 @@ stage 9 notes):
 - **Enchanting tree**: Second slot (items hold 2 different enchantments),
   Potency (+10% power a rank) and Re-enchant (enchant a spent item again).
 - **Mend** (Spellcasting 18, 20 mana): fixes your most worn tool or piece of
-  gear good as new, using 1 of what it's made of (its metal bar, stone, or a log
-  for a fishing rod).
+  gear good as new, using 1 of what it's made of (its metal bar, or a log
+  for a fishing rod or a wooden bow or staff).
 - **Not built yet**: enchanting other weapons, bronze/platinum/iridium inlays,
   and plain staffs from Handicraft (stage 10, now built).
 
@@ -490,7 +491,7 @@ stage 9 notes):
   belt, held or worn until it's repaired.
 - **Repairer Oswin** at the Mages' Guild fixes things, one at a time or with
   **Repair all**. Anyone can use him, not just guild members.
-- Cost: about **1 bronze coin per 10% worn** for stone or pine. Bronze costs ×2,
+- Cost: about **1 bronze coin per 10% worn** for pine. Bronze costs ×2,
   iron ×4, steel ×8 and mithril ×16. Rods scale with their wood (balance later).
 - **Broken things sell for half price.** Worn things sell for between half and
   full price, depending on how worn they are.
@@ -506,7 +507,7 @@ The original plan, for later stages:
   as "Broken", and you can't use it until it's repaired.
 - **Repair** is part of Enchanting. Before you learn it, pay the **Repairer at
   the Mages' Guild**. The cost scales with how worn the item is and how strong
-  it is (a mithril sword with an enchantment costs much more than a stone axe).
+  it is (a mithril sword with an enchantment costs much more than a bronze axe).
 - Once you learn the **Mend** spell (Enchanting tree), you repair things
   yourself for mana and a bit of soul energy. Mend starts with basic items;
   repairing enchanted items is a later tree unlock.
@@ -773,7 +774,7 @@ Planned chapters (the full list, as more skills arrive):
 | Trainer | Skill | Chapter |
 |---|---|---|
 | Old Maren | Fishing, Cooking, Eating | "Living off the land" (as today) |
-| Forester Holt | Woodcutting | Chop, make a stone axe, sell logs |
+| Forester Holt | Woodcutting | Chop with Holt's old bronze axe, sell logs |
 | Miner Greta | Mining | Stone, ore, then find your first gem |
 | Smith Brann | Smithing, Smelting | Bars, tools, armor (today's lessons), then cut a gem and make a bronze ring |
 | Herbalist Wren | Foraging | Get a shovel, dig 5 finds, find a night herb |

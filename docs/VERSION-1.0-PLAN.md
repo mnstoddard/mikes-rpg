@@ -231,8 +231,13 @@ these, but the rules stay the same:
   Smithing, Smelting, Trading, Renown and Leadership.
 - **Mastery** for every type of tree, rock, fish, weapon, spell and monster,
   with skill trees.
-- **Tools and gear** with metal tiers (stone, bronze, iron, steel, mithril),
-  wood handles, wear, Broken gear and the Repairer.
+- **Tools and gear** with metal tiers (bronze, iron, steel, mithril),
+  wood handles, wear, Broken gear and the Repairer. *Decided with Mike
+  (Nov 22): there is no stone tier. Bronze is the level 1 starting tier for
+  tools, weapons and arrows, so everything starts there. Old saves turn any
+  stone tools, weapons and arrows into bronze ones. Stone is still mined, sold
+  and used for building jobs like the shrine. (Wooden bows and staffs are
+  unchanged.)*
 - **Combat** with melee, ranged and the spell bar, monsters with day and night
   spawns, drops and soul trapping.
 - **Crafting**: cooking, smelting, smithing, handicraft, jewellery and gems,

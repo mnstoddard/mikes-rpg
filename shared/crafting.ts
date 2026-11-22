@@ -15,7 +15,7 @@ import { POTIONS, POTION_TYPES, PotionId, PotionType, VIAL, parsePotion, potionI
 import { JEWEL_BARS, JEWEL_BAR_IDS, JEWEL_METALS, JEWEL_TYPES, JewelBarId, JewelType, cutId, parseGem } from "./jewelry";
 import {
   ALL_TOOL_IDS, BAR_IDS, BarId, Belt, MATERIALS, MATERIAL_IDS, METALS, METAL_IDS, TOOL_TYPES, TOOL_TYPE_IDS, ToolType, WOODS, WOOD_IDS,
-  STONE, barId, headCount, isTool, maxDurability, metalOfBar, parseTool, toolBonus, toolForSkill, toolId, wearFor,
+  ROD_START_SUCCESS, barId, headCount, isTool, maxDurability, metalOfBar, parseTool, toolBonus, toolForSkill, toolId, wearFor,
 } from "./tools";
 import { DISHES, DISH_IDS, DishId, SHOP_STEW, isMeal, mealLevel, mealXp, parseMeal } from "./cooking";
 import {
@@ -66,10 +66,10 @@ export function sellPriceFor(item: ItemId, mastery: ItemMasteryXp, durability?: 
 /** What a shop charges: 3 times the base price. Your Mastery doesn't change it. */
 export const buyPriceFor = (item: ItemId) => ITEMS[item].sellPrice * BUY_MARKUP;
 
-/** A shop has endless stock of these: basic (stone) tools and weapons, a stew, health potions, vegetables, worms, bars, logs and ores. */
+/** A shop has endless stock of these: basic (bronze) tools and weapons, a stew, health potions, vegetables, worms, bars, logs and ores. */
 export const SHOP_STOCK: ItemId[] = [
-  ...TOOL_TYPE_IDS.map((t) => toolId(t, "stone", "pine")),
-  weaponId("dagger", "stone", "pine"), weaponId("sling", "stone", "pine"), weaponId("staff", "stone", "pine"),
+  ...TOOL_TYPE_IDS.map((t) => toolId(t, "bronze", "pine")),
+  weaponId("dagger", "bronze", "pine"), weaponId("sling", "bronze", "pine"), weaponId("staff", "stone", "pine"),
   SHOP_STEW,
   "health_potion",
   "potato", "carrot", "worm",
@@ -92,9 +92,9 @@ export interface Recipe {
   /** XP for a success (a failure gives half, at least 1). Goes to Crafting, the skill and the Mastery. */
   xp: number;
   mastery: MasteryId;
-  /** Success at Mastery 1 (25% for most things, 80% for stone tools, 50% for stew). */
+  /** Success at Mastery 1 (25% for most things, 80% for fishing rods, 50% for stew). */
   start: number;
-  /** Without the right crafting tool, is your chance halved? (Not for stone tools.) */
+  /** Without the right crafting tool, is your chance halved? (Not for fishing rods.) */
   needsTool: boolean;
   /** Given back if the try fails (a potion's vial, a ring's gem). */
   keepOnFail?: ItemId[];
@@ -115,7 +115,7 @@ for (const tool of ALL_TOOL_IDS) {
     // Fishing rods: carved from 2 logs at the anvil. You can make one from any wood you
     // could chop (same level in Smithing), it's easy (80% at first) and needs no hammer.
     const r = RESOURCES[wood as ResourceId];
-    RECIPES.set(tool, { output: tool, skill: "smithing", inputs: ITEMS[tool].inputs!, level: r.level, xp: r.xp * 2 + 2, mastery: type, start: STONE.startSuccess, needsTool: false });
+    RECIPES.set(tool, { output: tool, skill: "smithing", inputs: ITEMS[tool].inputs!, level: r.level, xp: r.xp * 2 + 2, mastery: type, start: ROD_START_SUCCESS, needsTool: false });
     continue;
   }
   // Better materials give more XP (and so more Mastery).
@@ -125,7 +125,7 @@ for (const tool of ALL_TOOL_IDS) {
   RECIPES.set(tool, { output: tool, skill: "smithing", inputs: ITEMS[tool].inputs!, level: mat.level, xp, mastery: type, start: mat.startSuccess, needsTool: mat.needsTool });
 }
 
-// Weapons (1 stone or bar + 1 log) and armor (1 to 3 bars) are smithed at the anvil too.
+// Weapons (1 bar + 1 log) and armor (1 to 3 bars) are smithed at the anvil too.
 // Each kind (all swords, all helmets) shares one Smithing Mastery, like tools.
 for (const type of WEAPON_TYPES) {
   // Bows and staffs are carved at Rook's workbench now (Handicraft, below).
@@ -175,7 +175,7 @@ for (const type of ["bow", "staff"] as const) {
 for (const m of MATERIAL_IDS) {
   const id = arrowId(m);
   const level = ARROW_LEVEL[m];
-  RECIPES.set(id, { output: id, skill: "handicraft", inputs: ["pine_logs", m === "stone" ? "stone" : barId(m as never), "feather", "feather"], level, xp: 6 + level, mastery: "arrows", start: 0.6, needsTool: false, makes: ARROWS_PER_CRAFT });
+  RECIPES.set(id, { output: id, skill: "handicraft", inputs: ["pine_logs", barId(m), "feather", "feather"], level, xp: 6 + level, mastery: "arrows", start: 0.6, needsTool: false, makes: ARROWS_PER_CRAFT });
 }
 // Tanning at the rack: one hide makes one leather. (Keyed by "tan_<hide>", since every hide makes the same leather.)
 for (const t of TANNING) {
