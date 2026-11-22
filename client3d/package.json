@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "gallery": "node build-gallery.mjs",
-    "typecheck": "tsc -p ."
+    "typecheck": "tsc -p .",
+    "gallery:items": "node build-gallery.mjs items"
   },
   "dependencies": {
     "three": "^0.186.0"
