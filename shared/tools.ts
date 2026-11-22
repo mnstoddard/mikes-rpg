@@ -2,22 +2,27 @@
 //
 // Gathering tools (axe, pickaxe, shovel, fishing rod) make gathering faster. Crafting
 // tools (hammer, tongs, pot) raise the chance that smithing, smelting or
-// cooking works. Most tools are 1 metal bar (or 1 stone) and 1 log; tongs and
-// the pot have no handle and take 3 bars (or 3 stone) instead. Fishing rods
+// cooking works. Most tools are 1 metal bar and 1 log; tongs and
+// the pot have no handle and take 3 bars instead. Fishing rods
 // are all wood: 2 logs of one kind, and the wood decides everything.
 // Its material and its wood each add a bonus, e.g. Bronze 5% + Pine 5% = 10%.
-// Stone tools are the easy starter tier: anyone can make one from the start.
+// Bronze is the starter tier (level 1). There used to be a stone tier below it;
+// old saves turn stone tools, weapons and arrows into bronze (see items.ts).
 // No imports at runtime, so items.ts can build every tool item from this.
 import type { BaseItemId } from "./items";
 
 export type Metal = "bronze" | "iron" | "steel" | "mithril";
-/** What a tool's head is made of: stone, or a metal bar. */
+/**
+ * What a tool's or weapon's head is made of: a metal bar. "stone" is only a
+ * placeholder now, for bows and staffs carved from wood alone ("bow_stone_oak"
+ * means an oak bow with no metal). There are no stone tools any more.
+ */
 export type Material = "stone" | Metal;
 export type Wood = "pine" | "oak" | "birch" | "maple" | "yew" | "ironwood" | "elderwood";
 export type ToolType = "axe" | "pickaxe" | "shovel" | "rod" | "hammer" | "tongs" | "pot";
-/** Tools with no wooden handle: all metal (or stone). */
+/** Tools with no wooden handle: all metal. */
 export type HandlelessTool = "tongs" | "pot";
-/** Tools made only of wood (2 logs, no metal or stone head). */
+/** Tools made only of wood (2 logs, no metal head). */
 export type WoodTool = "rod";
 /** Tools with a head and a wooden handle (everything but tongs, the pot and the rod). */
 export type HandledTool = Exclude<ToolType, HandlelessTool | WoodTool>;
@@ -38,7 +43,7 @@ export interface MaterialDef {
   toolXp: number;
   /** Success chance making a tool from it at Mastery 1 (it climbs with Mastery). */
   startSuccess: number;
-  /** Does making a tool from it need a hammer for full success? (Stone doesn't.) */
+  /** Does making a tool from it need a hammer for full success? */
   needsTool: boolean;
 }
 
@@ -58,13 +63,20 @@ export const METALS: Record<Metal, MetalDef> = {
 };
 export const METAL_IDS = Object.keys(METALS) as Metal[];
 
-/** Stone: the starter tier. Weak and quick to wear out, but easy to make (80% at first, no hammer needed). */
+/**
+ * The old stone tier, kept only so old saves can be converted (stone tools had
+ * 60 uses) and so the "stone" placeholder in wooden bow and staff ids has a def.
+ * Nothing is made of stone any more: bronze is the starting tier.
+ */
 export const STONE: MaterialDef = {
   name: "Stone", tint: "grayscale(1) sepia(.25) brightness(.95)", bonus: 0.02, durability: 60, level: 1, toolXp: 4,
   startSuccess: 0.8, needsTool: false,
 };
+/** Success chance carving a fishing rod at Mastery 1 (it's easy, and needs no hammer). */
+export const ROD_START_SUCCESS = 0.8;
 export const MATERIALS: Record<Material, MaterialDef> = { stone: STONE, ...METALS };
-export const MATERIAL_IDS: Material[] = ["stone", ...METAL_IDS];
+/** The tiers tools, weapons and arrows come in, starting with bronze at level 1. */
+export const MATERIAL_IDS: Metal[] = [...METAL_IDS];
 
 export interface WoodDef {
   name: string;
@@ -120,7 +132,7 @@ export const barId = (metal: Metal): BarId => `${metal}_bar`;
 export const BAR_IDS = METAL_IDS.map(barId);
 export const metalOfBar = (bar: BarId) => bar.slice(0, -4) as Metal;
 
-/** Fishing rods are all wood: no metal or stone at all. */
+/** Fishing rods are all wood: no metal at all. */
 export const isWoodTool = (type: ToolType): type is WoodTool => type === "rod";
 /** Logs that go into one fishing rod. */
 export const ROD_LOGS = 2;
@@ -128,7 +140,7 @@ export const ROD_LOGS = 2;
 export const ROD_DURABILITY = 120;
 /** Tools with a head and a wooden handle (not tongs, the pot or the all-wood rod). */
 export const hasHandle = (type: ToolType): type is HandledTool => type !== "tongs" && type !== "pot" && !isWoodTool(type);
-/** How many bars (or stone) go into a tool's head: 3 for tongs and the pot, none for the rod, 1 for the rest. */
+/** How many bars go into a tool's head: 3 for tongs and the pot, none for the rod, 1 for the rest. */
 export const headCount = (type: ToolType) => isWoodTool(type) ? 0 : hasHandle(type) ? 1 : 3;
 
 /** A tool's item id. Rods ignore the metal (they're all wood); tongs and the pot ignore the wood. */

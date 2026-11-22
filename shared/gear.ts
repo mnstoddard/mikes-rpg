@@ -104,7 +104,8 @@ const plain = (item: string) => { const i = item.indexOf("+"); return i < 0 ? it
 export function isWeapon(item: string | null | undefined): item is WeaponItemId {
   if (!item) return false;
   const [t, m, w, extra] = plain(item).split("_");
-  return WEAPON_SET.has(t) && MATERIAL_NAMES.has(m) && WOOD_NAMES.has(w) && extra === undefined;
+  // "stone" only means "no metal" on a wooden bow or staff: there are no stone daggers or swords any more.
+  return WEAPON_SET.has(t) && MATERIAL_NAMES.has(m) && WOOD_NAMES.has(w) && extra === undefined && (m !== "stone" || t === "bow" || t === "staff");
 }
 export function isArmor(item: string | null | undefined): item is ArmorItemId {
   if (!item) return false;

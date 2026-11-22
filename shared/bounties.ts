@@ -19,7 +19,7 @@
 import { ITEMS, ItemId } from "./items";
 import { RESOURCES, RESOURCE_FOR_ITEM, RESOURCE_IDS, ResourceId } from "./foraging";
 import { SkillId, SkillXp, findSkill, isUnlocked, levelForXp } from "./disciplines";
-import { BAR_IDS, BarId, MATERIALS, MATERIAL_IDS, Material, METAL_IDS, TOOL_TYPE_IDS, WOOD_IDS, Wood, barId, hasHandle, isTool, isWoodTool, maxDurability, toolId } from "./tools";
+import { BAR_IDS, BarId, MATERIALS, MATERIAL_IDS, METAL_IDS, Metal, TOOL_TYPE_IDS, WOOD_IDS, Wood, barId, hasHandle, isTool, isWoodTool, maxDurability, toolId } from "./tools";
 import { ARMOR_TYPES, WEAPON_TYPES, armorId, isGear, weaponId } from "./gear";
 import { DISHES, DISH_IDS, INGREDIENTS, INGREDIENT_IDS, fitsDish, mealId } from "./cooking";
 import { CombatMasteryXp, MONSTERS, MONSTER_IDS, MonsterId, POTION_ID } from "./combat";
@@ -64,9 +64,9 @@ const canSmelt = (p: BountyPlayer, bar: BarId) => {
   const recipe = recipeFor(bar)!;
   return skillAt(p, "smelting", recipe.level) && recipe.inputs.every((ore) => canGather(p, RESOURCE_FOR_ITEM[ore]!));
 };
-/** A tool or weapon head: stone you can mine, or a bar you can smelt. */
-const canHead = (p: BountyPlayer, m: Material) => (m === "stone" ? canGather(p, "stone") : canSmelt(p, barId(m)));
-const smithAt = (p: BountyPlayer, m: Material) => skillAt(p, "smithing", MATERIALS[m].level) && canHead(p, m);
+/** A tool or weapon head: a bar you can smelt. */
+const canHead = (p: BountyPlayer, m: Metal) => canSmelt(p, barId(m));
+const smithAt = (p: BountyPlayer, m: Metal) => skillAt(p, "smithing", MATERIALS[m].level) && canHead(p, m);
 
 /**
  * Everything a bounty could ask you for right now, in groups. A group is one
@@ -93,7 +93,7 @@ export function bountyChoices(p: BountyPlayer): ItemId[][] {
   for (const m of METAL_IDS) if (smithAt(p, m)) groups.push(ARMOR_TYPES.map((type) => armorId(type, m)));
   // Fishing rods: all wood, so any wood you can chop and carve.
   const rodWoods = woods.filter((w) => skillAt(p, "smithing", RESOURCES[w as ResourceId].level));
-  if (rodWoods.length) groups.push(rodWoods.map((w) => toolId("rod", "stone", w)));
+  if (rodWoods.length) groups.push(rodWoods.map((w) => toolId("rod", "bronze", w)));
   // Cooking: a dish you can cook of 1 to 3 of one fish you can catch, over a
   // log you can chop. (Fish only, so you can always get what it asks for.)
   for (const dish of DISH_IDS) {

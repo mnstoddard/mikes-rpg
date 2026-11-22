@@ -48,7 +48,7 @@ export type Goal =
   | { kind: "gather"; skill?: GatherSkill; resource?: ResourceId; count: number; withTool?: boolean; byHand?: boolean }
   /** Wear a tool on your belt down until it breaks. */
   | { kind: "toolBreaks"; tool: ToolType }
-  /** Make something whose item id starts with `prefix` ("meal_stew_", "axe_stone_"). tries: any attempt counts, even a failure. */
+  /** Make something whose item id starts with `prefix` ("meal_stew_", "axe_bronze_"). tries: any attempt counts, even a failure. */
   | { kind: "craft"; skill: CraftSkill; prefix: string; count: number; tries?: boolean }
   /** Eat a meal. */
   | { kind: "eat" }
@@ -169,18 +169,18 @@ export type LevelOf = (skill: SkillId) => number;
 export const gateMet = (c: Chapter, levelOf?: LevelOf) => !c.requires || (!!levelOf && levelOf(c.requires.skill) >= c.requires.level);
 
 const WORN_ROD: Gift = { item: "rod_pine", durability: 8 };
-const WORN_PICK: Gift = { item: "pickaxe_stone_pine", durability: 10 };
+const WORN_PICK: Gift = { item: "pickaxe_bronze_pine", durability: 15 };
 const LOG: Gift = { item: "pine_logs" };
-const STONE: Gift = { item: "stone" };
+const BAR: Gift = { item: "bronze_bar" };
 const MINNOW: Gift = { item: "minnow" };
-const POT: Gift = { item: "pot_stone" };
+const POT: Gift = { item: "pot_bronze", durability: 40 }; // Maren's old, well-used pot
 const DAGGER: Gift = { item: "dagger_bronze_pine" };
 const SLING: Gift = { item: "sling_bronze_pine" };
 const STAFF: Gift = { item: "staff_bronze_pine" };
 const POTION: Gift = { item: "health_potion" };
-const AXE: Gift = { item: "axe_stone_pine" };
+const AXE: Gift = { item: "axe_bronze_pine", durability: 60 }; // Holt's old, well-used axe
 const WORM: Gift = { item: "worm" };
-const SHOVEL: Gift = { item: "shovel_stone_pine" };
+const SHOVEL: Gift = { item: "shovel_bronze_pine" };
 
 const MAREN = "Old Maren";
 const TAM = "Shopkeeper Tam";
@@ -252,7 +252,7 @@ const LESSONS: Chapter[] = [
       {
         task: `Bring your mended rod back to ${MAREN}`, goal: { kind: "talk" },
         lines: [
-          "Good as new! Better tools last longer: stone wears out fastest, bronze lasts more than twice as long, and the finer metals longer still. A better wooden handle helps too. Fishing rods are all wood, so for those, the better the wood, the better the rod.",
+          "Good as new! Better tools last longer: bronze is where everyone starts, iron lasts twice as long, and the finer metals longer still. A better wooden handle helps too. Fishing rods are all wood, so for those, the better the wood, the better the rod.",
           "Look at you, though: all that fishing raised your Minnow Mastery. Every kind of fish, log and ore has its own Mastery, and every time one goes up a level, you earn a Mastery point.",
           "Spend your points on upgrades, like faster fishing or a bigger cooking pot. Open the 📊 panel (bottom right), tap the 🌳 next to any skill, and pick an upgrade. Go on, spend your first point now.",
         ],
@@ -281,7 +281,7 @@ const LESSONS: Chapter[] = [
         lines: [
           "Burned it to a crisp, eh? Don't feel bad: everyone burns their first stew. When you fail, the fish and the log are gone, but you still learn a little.",
           "Here's the secret. Some tools make you faster, others make you succeed more often. Rods, axes and pickaxes are about speed. A pot, a hammer and tongs are about success.",
-          "Cooking without a pot halves your chance. Take my stone pot and put it on your belt, just like the rod. Here's another log.",
+          "Cooking without a pot halves your chance. Take my old bronze pot and put it on your belt, just like the rod. It's seen better days, but it'll do. Here's another log.",
         ],
         give: [POT, LOG],
       },
@@ -319,14 +319,14 @@ const LESSONS: Chapter[] = [
         task: `Go back to ${MAREN} for your reward`, goal: { kind: "talk" },
         lines: [
           "You've got the hang of living off the land: fish, cook, eat, and sell what you don't need.",
-          "Here's your reward: an oak fishing rod and a bronze pot. Faster fishing, fewer burned stews, and they last much longer. And some coins and a couple of stews for the road.",
-          "Put them both on your belt. Your old stone pot goes back in your bag when you do.",
+          "Here's your reward: an oak fishing rod and a brand new bronze pot. Faster fishing, and they'll last you a good long while. And some coins and a couple of stews for the road.",
+          "Put them both on your belt. My old pot goes back in your bag when you do.",
         ],
         give: [{ item: "rod_oak" }, { item: "pot_bronze" }, { item: SHOP_STEW, count: 2 }],
         coins: 50,
       },
       {
-        task: "Put the oak rod and bronze pot on your belt", goal: { kind: "equip", tools: ["rod_", "pot_bronze"], names: "oak rod and bronze pot" },
+        task: "Put the oak rod and bronze pot on your belt", goal: { kind: "equip", tools: ["rod_oak", "pot_bronze"], names: "oak rod and bronze pot" },
         hint: "Click the oak fishing rod in your bag and press \"Put on belt\", then the same for the bronze pot.",
         protect: ["rod_", "pot_bronze"],
       },
@@ -413,12 +413,12 @@ const LESSONS: Chapter[] = [
         task: `Go back to ${HOLT}`, goal: { kind: "talk" },
         lines: [
           "Sore hands? Good. Now you know why folks use tools.",
-          "Here's a stone axe. Put it on your belt and chop 10 logs. Chopping costs 10 stamina a log, so keep some food handy. Logs are heavy too (2 kg each): the ⚖️ bar under your bag shows how much more you can carry.",
+          "Here's my old bronze axe. Put it on your belt and chop 10 logs. Chopping costs 10 stamina a log, so keep some food handy. Logs are heavy too (2 kg each): the ⚖️ bar under your bag shows how much more you can carry.",
         ],
         give: [AXE],
       },
       {
-        task: "Put the stone axe on your belt", goal: { kind: "equip", tools: ["axe_"], names: "axe" },
+        task: "Put the bronze axe on your belt", goal: { kind: "equip", tools: ["axe_"], names: "axe" },
         hint: "Click the axe in your bag and press \"Put on belt\".",
         ensure: [AXE], protect: ["axe_"],
       },
@@ -435,9 +435,9 @@ const LESSONS: Chapter[] = [
         task: `Go back to ${HOLT} for your reward`, goal: { kind: "talk" },
         lines: [
           "Look at you, a proper woodcutter!",
-          "Here's a bronze axe: it chops faster and lasts much longer. Better trees need a higher Woodcutting level: oaks at 5, and finer woods after that.",
+          "Here's a new bronze axe with a good oak handle: it chops faster and lasts longer than my old one. Better trees need a higher Woodcutting level: oaks at 5, and finer woods after that.",
         ],
-        give: [{ item: "axe_bronze_pine" }],
+        give: [{ item: "axe_bronze_oak" }],
         coins: 100,
       },
     ],
@@ -451,7 +451,7 @@ const LESSONS: Chapter[] = [
         task: `Talk to ${GRETA} on Trainer Row`, goal: { kind: "talk" }, unlocks: ["mining"],
         lines: [
           "You want to learn Mining? Good. It's hard work, but rocks don't run away. Mining is part of Endurance.",
-          "The quarry is up the north road, past the Lighthall: take the road on the Lighthall's west side. Here's a worn stone pickaxe. Put it on your belt, then mine 5 stone from the plain grey rocks. Eat when you get tired.",
+          "The quarry is up the north road, past the Lighthall: take the road on the Lighthall's west side. Here's a worn bronze pickaxe. Put it on your belt, then mine 5 stone from the plain grey rocks. Eat when you get tired.",
         ],
         give: [WORN_PICK],
       },
@@ -469,7 +469,7 @@ const LESSONS: Chapter[] = [
         task: `Show ${GRETA} your stone`, goal: { kind: "talk" },
         need: { prefix: "stone", line: "Where's your stone? Mine some in the quarry and bring it here." },
         lines: [
-          "Good, solid stone. Smith Brann can turn stone and a log into a tool head.",
+          "Good, solid stone. Builders always want it, and it sells. But tools are made of metal, and the first metal is bronze.",
           "Bronze is made from copper and tin. You'll mine those yourself at Mining level 5, but that takes a while.",
           "For now, buy 2 copper ore and 2 tin ore from me. Open my Buy tab.",
         ],
@@ -483,9 +483,9 @@ const LESSONS: Chapter[] = [
         task: `Go back to ${GRETA} for your reward`, goal: { kind: "talk" },
         lines: [
           "That's the makings of two bronze bars. Take them to Smith Brann if you haven't learned Smelting yet.",
-          "And here's a bronze pickaxe of my own making. Faster mining, and it lasts.",
+          "And here's a new bronze pickaxe of my own making, with an oak handle. Faster mining, and it lasts.",
         ],
-        give: [{ item: "pickaxe_bronze_pine" }],
+        give: [{ item: "pickaxe_bronze_oak" }],
         coins: 100,
       },
     ],
@@ -499,15 +499,15 @@ const LESSONS: Chapter[] = [
         task: `Talk to ${BRANN} at the smithy`, goal: { kind: "talk" }, unlocks: ["smithing", "smelting"],
         lines: [
           "Mind the sparks! I'm Brann. I'll teach you Smithing at the anvil and Smelting at the furnace. Both are part of Dexterity.",
-          "A tool is a head and a handle: 1 stone or 1 metal bar for the head, and 1 log for the handle. A hammer on your belt helps you smith, the way a pot helps you cook.",
-          "Here's a stone and a log. Make yourself a stone hammer at the anvil.",
+          "A tool is a head and a handle: 1 metal bar for the head, and 1 log for the handle. A hammer on your belt helps you smith, the way a pot helps you cook.",
+          "Here's a bronze bar and a log. Make yourself a bronze hammer at the anvil.",
         ],
-        give: [STONE, LOG],
+        give: [BAR, LOG],
       },
       {
-        task: "Make a stone hammer at the anvil (1 stone + 1 log)", goal: { kind: "craft", skill: "smithing", prefix: "hammer_stone_", count: 1 },
-        hint: "Click the anvil, pick Hammer, Stone and Pine, then press Make 1. I'll guide your hand this first time.",
-        ensure: [STONE, LOG], guaranteed: true, protect: ["stone", "pine_logs"],
+        task: "Make a bronze hammer at the anvil (1 bronze bar + 1 log)", goal: { kind: "craft", skill: "smithing", prefix: "hammer_bronze_", count: 1 },
+        hint: "Click the anvil, pick Hammer, Bronze and Pine, then press Make 1. I'll guide your hand this first time.",
+        ensure: [BAR, LOG], guaranteed: true, protect: ["bronze_bar", "pine_logs"],
       },
       {
         task: "Put the hammer on your belt", goal: { kind: "equip", tools: ["hammer_"], names: "hammer" },
@@ -537,9 +537,9 @@ const LESSONS: Chapter[] = [
         need: { prefix: "platelegs_bronze", line: "Where are your platelegs? Make them at the anvil from 2 bronze bars." },
         lines: [
           "Fine work! Weapons and armor are made just like tools, and they wear out like tools too, so keep a spare.",
-          "Take these bronze tongs and a bronze hammer. With those on your belt, you'll fail much less at the furnace and the anvil.",
+          "Take these bronze tongs and a bronze hammer with a good oak handle. With those on your belt, you'll fail much less at the furnace and the anvil.",
         ],
-        give: [{ item: "tongs_bronze" }, { item: "hammer_bronze_pine" }],
+        give: [{ item: "tongs_bronze" }, { item: "hammer_bronze_oak" }],
         coins: 150,
       },
     ],
@@ -684,7 +684,7 @@ const LESSONS: Chapter[] = [
         lines: [
           "Oh! Mind the drying herbs. I'm Wren. Everyone else round here chops and mines and fishes, but the best things grow under your feet.",
           "See the little patches of turned earth that glint in the grass? Those are dig patches. Dig one with a shovel and you'll turn up roots, worms and mushrooms, and herbs once you know what to look for. That's Foraging, part of Endurance.",
-          "Here's a stone shovel. Put it on your belt like any other tool.",
+          "Here's a bronze shovel. Put it on your belt like any other tool.",
         ],
         give: [SHOVEL],
       },

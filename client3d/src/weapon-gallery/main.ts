@@ -609,7 +609,7 @@ function statRows(k: WeaponKind, o: WeaponOptions): [string, string][] {
   const rows: [string, string][] = [[`${STYLE_NAMES[def.style]} level`, String(def.level)]];
   if (k === "arrows") {
     const tip = o.metal as Material;
-    rows.push(["Handicraft level", planned ? "Planned" : String(ARROW_LEVEL[tip])]);
+    rows.push(["Handicraft level", planned ? "Planned" : String((ARROW_LEVEL as Record<string, number>)[tip] ?? "Not in the game")]);
     rows.push(["Adds to a bow's hit", planned ? "Planned" : `+${METAL_DAMAGE[tip]}`]);
     return rows;
   }

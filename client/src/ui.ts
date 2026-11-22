@@ -142,7 +142,7 @@ let monstersOpen = false;
 /** Which crafting window is open, and what's picked in it. */
 let station: Station | null = null;
 const pick = {
-  bar: "bronze" as Metal, type: "axe" as ToolType, metal: "stone" as Material, wood: "pine" as Wood, fuel: "pine" as Wood,
+  bar: "bronze" as Metal, type: "axe" as ToolType, metal: "bronze" as Metal, wood: "pine" as Wood, fuel: "pine" as Wood,
   /** Stove: the dish, and what's in the pot. Workbench: the bait. */
   dish: "stew" as DishId, pot: [] as IngredientId[], bait: "bait_worm" as BaitId,
   /** Anvil: what kind of thing to make. */
@@ -154,7 +154,7 @@ const pick = {
   /** Anvil, jewelry: ring or amulet, its metal, and the cut gem to set (or none). */
   jewel: "ring" as JewelType, jewelMetal: "bronze" as JewelMetal, jewelGem: null as ItemId | null,
   /** Workbench: what kind of thing, the wood for a bow or staff, the arrow tip, and the leather or cloth piece. */
-  bench: "bait" as "bait" | "bow" | "staff" | "arrows" | "leather" | "cloth", benchWood: "pine" as Wood, tip: "stone" as Material, softPiece: "boots" as ArmorType,
+  bench: "bait" as "bait" | "bow" | "staff" | "arrows" | "leather" | "cloth", benchWood: "pine" as Wood, tip: "bronze" as Metal, softPiece: "boots" as ArmorType,
   /** Tanning rack and spinning wheel: which recipe. */
   tan: TANNING_IDS[0], spin: "thread" as ItemId,
 };
@@ -568,7 +568,7 @@ function weaponDetails(skill: "melee" | "ranged", level: number, box: HTMLElemen
     if (level < w.level) { list.appendChild(lockedRow(w.icon, w.name, `🔒 Lv ${w.level}`)); continue; }
     list.appendChild(combatRow(t, w.name, w.icon,
       (m) => `+${Math.round(masteryAccuracy(m) * 100)}% to hit · +${Math.round((masteryDamage(m) - 1) * 100)}% damage`,
-      () => `Hits up to ${w.maxHit} (stone; better metal adds more), every ${(w.speed * 0.6).toFixed(1)}s${w.range > 1 ? `, from ${w.range} tiles` : ""}.`));
+      () => `Hits up to ${w.maxHit}, plus its metal (bronze +1, better metal more), every ${(w.speed * 0.6).toFixed(1)}s${w.range > 1 ? `, from ${w.range} tiles` : ""}.`));
   }
   box.appendChild(list);
   return box;
@@ -1743,7 +1743,7 @@ function renderCraft() {
     output = pick.spin;
   } else if (station === "workbench") {
     const BENCH = { bait: { icon: "🪱", name: "Bait" }, bow: { icon: "🏹", name: "Bows" }, staff: { icon: "🪄", name: "Staffs" }, arrows: { icon: "➶", name: "Arrows" }, leather: { icon: "🦺", name: "Leather" }, cloth: { icon: "👘", name: "Cloth" } };
-    const firstLevel = { bait: 1, bow: WOOD_LEVEL.pine + 2, staff: WOOD_LEVEL.pine, arrows: ARROW_LEVEL.stone, leather: SOFT_LEVEL.leather.boots!, cloth: SOFT_LEVEL.cloth.boots! };
+    const firstLevel = { bait: 1, bow: WOOD_LEVEL.pine + 2, staff: WOOD_LEVEL.pine, arrows: ARROW_LEVEL.bronze, leather: SOFT_LEVEL.leather.boots!, cloth: SOFT_LEVEL.cloth.boots! };
     craftBody.append(choices("Make", Object.keys(BENCH) as (keyof typeof BENCH)[], pick.bench, (c) => ({ ...BENCH[c], lockedAt: level < firstLevel[c] ? firstLevel[c] : undefined }), (c) => { pick.bench = c; }));
     if (pick.bench === "bow" || pick.bench === "staff") {
       const t = pick.bench;
@@ -1752,7 +1752,7 @@ function renderCraft() {
       craftBody.append(el("craft-info", t === "bow" ? "Better wood hits harder. A bow also needs a thread (from the spinning wheel, or Rook sells it) and arrows to shoot." : "Better wood makes stronger spells. Enchant a staff at the altar."));
       output = weaponId(t, "stone", pick.benchWood);
     } else if (pick.bench === "arrows") {
-      craftBody.append(choices("Tip", MATERIAL_IDS, pick.tip, (m) => ({ icon: m === "stone" ? "🪨" : "🧈", tint: MATERIALS[m].tint, name: MATERIALS[m].name, lockedAt: level < ARROW_LEVEL[m] ? ARROW_LEVEL[m] : undefined }), (m) => { pick.tip = m; }));
+      craftBody.append(choices("Tip", MATERIAL_IDS, pick.tip, (m) => ({ icon: "🧈", tint: MATERIALS[m].tint, name: MATERIALS[m].name, lockedAt: level < ARROW_LEVEL[m] ? ARROW_LEVEL[m] : undefined }), (m) => { pick.tip = m; }));
       craftBody.append(el("craft-info", `Makes 10 from a pine log, the tip and 2 feathers. The tip sets the damage. Each shot uses one; about ${Math.round(ARROW_RECOVER * 100)}% can be picked up again.`));
       output = arrowId(pick.tip);
     } else if (pick.bench === "leather" || pick.bench === "cloth") {
@@ -1776,7 +1776,7 @@ function renderCraft() {
   } else {
     const CATS = { tools: { icon: "🪓", name: "Tools" }, weapons: { icon: "🗡️", name: "Weapons" }, armor: { icon: "🛡️", name: "Armor" }, jewelry: { icon: "💍", name: "Jewelry" }, gems: { icon: "💎", name: "Cut gems" } };
     craftBody.append(choices("Make", ["tools", "weapons", "armor", "jewelry", "gems"] as ("tools" | "weapons" | "armor" | "jewelry" | "gems")[], pick.category, (c) => CATS[c], (c) => { pick.category = c; }));
-    const head = () => choices("Head", MATERIAL_IDS, pick.metal, (m) => ({ icon: m === "stone" ? "🪨" : "🧈", tint: MATERIALS[m].tint, name: MATERIALS[m].name, lockedAt: lockedAt(m) }), (m) => { pick.metal = m; });
+    const head = () => choices("Head", MATERIAL_IDS, pick.metal, (m) => ({ icon: "🧈", tint: MATERIALS[m].tint, name: MATERIALS[m].name, lockedAt: lockedAt(m) }), (m) => { pick.metal = m; });
     const handle = () => choices("Handle", WOOD_IDS, pick.wood, (w) => ({ icon: "🪵", tint: ITEMS[`${w}_logs`].tint, name: WOODS[w].name }), (w) => { pick.wood = w; });
     if (pick.category === "gems") {
       renderCutting(level);

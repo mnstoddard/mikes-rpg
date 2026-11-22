@@ -41,7 +41,7 @@ acc.save = {
   inventory: ["health_potion", SHOP_STEW], counts: [3, 8], slots: [0, 1], durability: [null, null],
   belt: {
     axe: { item: "axe_bronze_pine", durability: 150 }, rod: { item: "rod_pine", durability: 40 }, pickaxe: { item: "pickaxe_bronze_pine", durability: 150 },
-    shovel: { item: "shovel_stone_pine", durability: 40 }, hammer: { item: "hammer_bronze_pine", durability: 150 }, tongs: { item: "tongs_bronze", durability: 150 }, pot: { item: "pot_stone", durability: 40 },
+    shovel: { item: "shovel_bronze_pine", durability: 100 }, hammer: { item: "hammer_bronze_pine", durability: 150 }, tongs: { item: "tongs_bronze", durability: 150 }, pot: { item: "pot_bronze", durability: 100 },
   },
   gear: { weapon: { item: "sword_bronze_pine", durability: 150 }, offhand: { item: "shield_bronze", durability: 150 }, head: { item: "helmet_bronze", durability: 150 }, body: { item: "platebody_leather", durability: 150 }, legs: null, feet: null },
   hp: 999, stamina: 999,

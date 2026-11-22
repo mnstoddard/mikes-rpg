@@ -3,7 +3,7 @@
 // "Broken": it goes back in your bag and can't be used until the Repairer
 // at the Mages' Guild fixes it. Until then it works at full strength.
 //
-// Repairs cost about 1 bronze coin for every 10% worn on basic (stone or pine)
+// Repairs cost about 1 bronze coin for every 10% worn on basic (pine)
 // gear, more for better materials. Old Maren's lesson sends you there with
 // your broken rod, and that first repair is free.
 import type { ItemId } from "./items";
@@ -11,7 +11,7 @@ import { isTool, maxDurability, parseTool, Material, Wood } from "./tools";
 import { isArmor, isGear, isWeapon, parseArmor, parseWeapon } from "./gear";
 import { gearDurability } from "./crafting";
 
-/** How much more a repair costs for each material (stone and pine are 1). */
+/** How much more a repair costs for each material (pine and wooden bows and staffs are 1). */
 const MATERIAL_COST: Record<Material | "leather" | "cloth", number> = { stone: 1, bronze: 2, iron: 4, steel: 8, mithril: 16, leather: 2, cloth: 3 };
 /** Fishing rods are all wood. */
 const WOOD_COST: Record<Wood, number> = { pine: 1, oak: 2, birch: 3, maple: 5, yew: 8, ironwood: 12, elderwood: 16 };

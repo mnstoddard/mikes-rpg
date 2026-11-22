@@ -1,6 +1,6 @@
 // Item definitions shared by server and client.
 import {
-  ALL_TOOL_IDS, BAR_IDS, BarId, MATERIALS, METALS, ROD_LOGS, TOOL_TYPES, ToolItemId, WOODS, barId, headCount, metalOfBar, parseTool,
+  ALL_TOOL_IDS, BAR_IDS, BarId, MATERIALS, METALS, Metal, ROD_LOGS, STONE, TOOL_TYPES, TOOL_TYPE_IDS, ToolItemId, WOODS, barId, headCount, metalOfBar, parseTool,
 } from "./tools";
 import { DISHES, INGREDIENTS, IngredientId, MealId, OtherIngredient, mealTitle, parseMeal } from "./cooking";
 import { ARROWS_PER_CRAFT, ArrowId, BAITS, BAIT_IDS, BaitId, HandicraftMaterial, arrowId } from "./handicraft";
@@ -11,7 +11,7 @@ import { STORY_ITEMS, StoryItemId } from "./story";
 import { CROPS, CROP_IDS, CropId, FarmProduce, SeedId, seedId } from "./farming";
 import { GemItemId, JEWEL_BARS, JEWEL_BAR_IDS, JEWEL_METALS, JEWEL_TYPES, JewelBarId, cutId, gemItemDef, parseGem } from "./jewelry";
 import {
-  ARMOR, ARMOR_TYPES, GearItemId, METAL_DAMAGE, WEAPONS, WEAPON_TYPES, armorId, parseArmor, parseWeapon, weaponId,
+  ARMOR, ARMOR_TYPES, GearItemId, METAL_DAMAGE, WEAPONS, WEAPON_TYPES, WeaponType, armorId, parseArmor, parseWeapon, weaponId,
 } from "./gear";
 
 /** Things you gather. */
@@ -185,7 +185,7 @@ for (const bar of BAR_IDS) {
   ITEMS[bar] = { name: `${metal.name} bar`, single: `${metal.name.toLowerCase()} bar`, icon: "🧈", tint: metal.tint, sellPrice: 0, inputs: metal.ores };
   ITEMS[bar].sellPrice = Math.floor(exactBase(bar));
 }
-/** Tools are drawn by the client: the head in its metal or stone, the handle in its wood. */
+/** Tools are drawn by the client: the head in its metal, the handle in its wood. */
 function toolIcon(tool: ToolItemId) {
   const { type, metal, wood } = parseTool(tool);
   return `svg:tool/${type}/${metal ?? ""}/${wood ?? ""}`;
@@ -206,17 +206,19 @@ for (const tool of ALL_TOOL_IDS) {
     short: TOOL_TYPES[type].name,
     single: wood ? `${name.toLowerCase()} (${WOODS[wood].name.toLowerCase()})` : name.toLowerCase(),
     icon: toolIcon(tool), sellPrice: 0,
-    inputs: [...Array<ItemId>(headCount(type)).fill(metal === "stone" ? "stone" : barId(metal)), ...(wood ? [`${wood}_logs` as BaseItemId] : [])],
+    inputs: [...Array<ItemId>(headCount(type)).fill(barId(metal as Metal)), ...(wood ? [`${wood}_logs` as BaseItemId] : [])],
   };
   ITEMS[tool].sellPrice = Math.floor(exactBase(tool));
 }
-// Weapons: a head of stone or a metal bar, plus a wooden handle (like tools).
+// Weapons: a head of a metal bar, plus a wooden handle (like tools). Bows and
+// staffs also come carved from wood alone: their id says "stone", meaning no metal.
 for (const type of WEAPON_TYPES) {
   for (const metal of ["stone", ...Object.keys(METALS)] as (keyof typeof METAL_DAMAGE)[]) {
+    if (metal === "stone" && !isWooden(type)) continue; // no stone daggers, swords or slings any more
     for (const wood of Object.keys(WOODS) as (keyof typeof WOODS)[]) {
       const id = weaponId(type, metal, wood);
       const { metal: m } = parseWeapon(id);
-      if (isWooden(type) && m === "stone") {
+      if (m === "stone") {
         // Carved from wood at Rook's workbench (Handicraft): "Oak bow", "Yew staff". A bow takes a string of thread too.
         const name = `${WOODS[wood].name} ${WEAPONS[type].name.toLowerCase()}`;
         ITEMS[id] = {
@@ -230,7 +232,7 @@ for (const type of WEAPON_TYPES) {
       ITEMS[id] = {
         name: `${name} (${WOODS[wood].name})`, single: `${name.toLowerCase()} (${WOODS[wood].name.toLowerCase()})`,
         icon: WEAPONS[type].icon, tint: MATERIALS[m].tint, sellPrice: 0,
-        inputs: [m === "stone" ? "stone" : barId(m), `${wood}_logs` as BaseItemId],
+        inputs: [barId(m as Metal), `${wood}_logs` as BaseItemId],
       };
       ITEMS[id].sellPrice = Math.floor(exactBase(id));
     }
@@ -260,9 +262,9 @@ for (const type of ARMOR_TYPES) {
   }
 }
 // Arrows: a log, a tip and 2 feathers make 10. One arrow is worth a tenth of that.
-for (const m of ["stone", ...Object.keys(METALS)] as (keyof typeof METAL_DAMAGE)[]) {
+for (const m of Object.keys(METALS) as Metal[]) {
   const id = arrowId(m);
-  const inputs: ItemId[] = ["pine_logs", m === "stone" ? "stone" : barId(m), "feather", "feather"];
+  const inputs: ItemId[] = ["pine_logs", barId(m), "feather", "feather"];
   const name = `${MATERIALS[m].name} arrows`;
   ITEMS[id] = { name, single: `${MATERIALS[m].name.toLowerCase()} arrow`, icon: "🏹", tint: MATERIALS[m].tint, sellPrice: 0 };
   ITEMS[id].sellPrice = Math.max(1, Math.floor(inputs.reduce((sum, i) => sum + exactBase(i), 0) * CRAFT_MARKUP / ARROWS_PER_CRAFT));
@@ -348,6 +350,30 @@ function mealDef(id: string): ItemDef | undefined {
  */
 export const LEGACY_ITEMS: Record<string, ItemId> = { logs: "pine_logs", ore: "stone", fish: "minnow" };
 // (Old fish stews, "stew_trout_3_oak", become new stews: see legacyStew in cooking.ts.)
+
+/**
+ * There used to be a stone tier below bronze. Old saves turn stone tools,
+ * stone weapons and stone arrows into bronze ones, keeping any enchantments
+ * ("axe_stone_pine+swift.20" -> "axe_bronze_pine+swift.20"). Wooden bows and
+ * staffs ("bow_stone_oak") stay as they are: their "stone" just means no metal.
+ * Gives null if the item wasn't a stone one.
+ */
+export function legacyStone(item: string): string | null {
+  const plus = item.indexOf("+");
+  const base = plus < 0 ? item : item.slice(0, plus);
+  const rest = plus < 0 ? "" : item.slice(plus);
+  if (base === "arrows_stone") return `arrows_bronze${rest}`;
+  const parts = base.split("_");
+  if (parts[1] !== "stone") return null;
+  const type = parts[0];
+  const tool = type !== "rod" && (TOOL_TYPE_IDS as string[]).includes(type);
+  const weapon = (WEAPON_TYPES as string[]).includes(type) && !isWooden(type as WeaponType);
+  if (!tool && !weapon) return null;
+  parts[1] = "bronze";
+  return parts.join("_") + rest;
+}
+/** Bronze lasts longer than stone did, so a converted stone tool or weapon gets this many times its uses left. */
+export const STONE_TO_BRONZE_USES = METALS.bronze.durability / STONE.durability;
 
 /** Bag slots a player starts with. Each slot holds one stack (shared/bag.ts); weight is limited too (shared/weight.ts). */
 export const INVENTORY_SIZE = 12;

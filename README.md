@@ -37,14 +37,13 @@ instead. There's no skipping.
 
 1. **Living off the land:** catch a minnow by hand, get her worn rod and fish
    until it breaks (tools wear out), cook a stew (the first one always burns),
-   get her stone pot (pots raise success, rods/axes/picks raise speed), cook a
+   get her old bronze pot (pots raise success, rods/axes/picks raise speed), cook a
    stew that can't fail, learn about stamina and eat it, then sell a fish.
    Reward: Oak fishing rod, Bronze pot, 2 stews, 50 bronze.
 2. **The woodcutter's start:** reach Foraging 3, chop 3 logs by hand, cook up to
-   Crafting 3, make a stone axe at the anvil (can't fail), chop 10 logs with it,
-   sell some logs. Reward: Bronze axe, Bronze hammer, 1 silver.
-3. **Into the rocks:** reach Foraging 5, mine 5 stone with her worn pickaxe, make
-   your own stone pickaxe, buy 2 copper and 2 tin ore from the Merchant, reach
+   Crafting 3, get Holt's old bronze axe, chop 10 logs with it,
+   sell some logs. Reward: Bronze axe with an oak handle, 1 silver.
+3. **Into the rocks:** reach Foraging 5, mine 5 stone with her worn bronze pickaxe, buy 2 copper and 2 tin ore from the Merchant, reach
    Crafting 5, smelt 2 bronze bars and make a bronze pickaxe (both can't fail).
    Reward: Bronze tongs, 2 silver. That's a full Bronze set of tools.
 4. **Standing your ground:** hold a bronze dagger and defeat 3 chickens, learn
