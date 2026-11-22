@@ -24,8 +24,11 @@ low-poly look, and every one can:
 | Yew | 35 | Old, Ancient, Young |
 | Ironwood | 50 | Steel, Rusted |
 | Elderwood | 70 | Violet, Moonlit |
-| Dead tree | scenery | Bare, Mossy |
 | Crownwood | planned (Sundered Crown) | Gilded, Sunset |
+
+All of these were approved by Mike. Any tree can also be made **dead**
+(`createTree("oak", { dead: true })`): grey bark and a few dry leaves, for
+places like the shrines in Forester Holt's quest.
 
 Levels and logs come straight from `shared/foraging.ts`, so the 2D and 3D games
 always agree.
@@ -42,11 +45,43 @@ tree.fell();                 // it comes down, leaving a stump
 tree.regrow();               // it grows back
 ```
 
-## The Tree Gallery
+## Rocks and ores (`src/rocks/`)
 
-A page for looking at every tree, trying its variants, chopping it down, and
-**approving** it (or asking for changes, with a note). Only approved trees go
-into the game; each tree's `status` in `src/trees/index.ts` records Mike's review.
+Every rock you can mine, made from code the same way: a lumpy boulder with ore
+in it (nuggets, coal chunks or crystals). `rock.ts` builds them; `index.ts`
+has a small look recipe for each ore.
 
-Build it with `npm run gallery` (from the top folder). It makes one file,
-`client3d/dist/tree-gallery.html`, that opens in any browser.
+- Three **shapes** for every ore: Boulder, Cluster and Outcrop.
+- **Mining**: each hit shakes the rock and pops off a piece of ore. When the
+  rock runs out (`deplete()`), the rest crumbles away and the rock goes
+  darker. `refill()` grows the ore back.
+- Shiny ores **glint**, and mithril, iridium, ruby, soul stone, Aurelite and
+  Wellglass **glow**, which shows best at night.
+
+| Group | Rocks |
+|---|---|
+| Ores and stone | Stone, Copper, Tin, Iron, Coal, Silver, Gold, Mithril, Platinum, Iridium |
+| Gems | Amethyst, Topaz, Soul stone vein, Emerald, Sapphire, Ruby |
+| Planned (Sundered Crown) | Aurelite, Wellglass |
+
+```ts
+import { createRock } from "./rocks";
+const rock = createRock("copper", { seed: 42, variant: 0 });
+scene.add(rock.object);
+rock.update(dt, time); // every frame
+rock.hit();            // one ore mined
+rock.deplete();        // it runs out
+rock.refill();         // it comes back
+```
+
+## The galleries
+
+Pages for looking at every element, trying its variants, using it (chop,
+mine), switching day, sunset and night, and **approving** it (or asking for
+changes, with a note). Only approved elements go into the game; each one's
+`status` in its `index.ts` records Mike's review.
+
+`src/gallery/app.ts` is the shared gallery; `trees.ts` and `ores.ts` describe
+what each one shows. Build them with `npm run gallery` (from the top folder).
+It makes `client3d/dist/tree-gallery.html` and `client3d/dist/ore-gallery.html`,
+which open in any browser.

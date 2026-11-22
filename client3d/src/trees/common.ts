@@ -180,6 +180,8 @@ export interface TreeShape {
   sway: number;
   /** Optional per-frame extra (glowing motes, sparkles). */
   extra?: { object: THREE.Object3D; update: (time: number, dt: number) => void };
+  /** For trees whose leaves sit right on the trunk (pine): where bare branches go on the dead version. */
+  bareWhorls?: { y: number; r: number }[];
   /** Extra things at ground level that stay after felling (roots, mushrooms). */
   base?: THREE.Object3D[];
 }

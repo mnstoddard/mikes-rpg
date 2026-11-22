@@ -1,4 +1,4 @@
-<title>Tree Gallery</title>
+<title>{{TITLE}}</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;600;700&display=swap">
@@ -63,6 +63,8 @@ button:disabled{cursor:default;opacity:.6}
 .p-body{flex:1;min-height:0;overflow-y:auto;padding-block:10px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:16px}
 #list{display:flex;flex-direction:column;gap:2px}
 .tree-row{display:grid;grid-template-columns:14px minmax(0,1fr) auto;grid-template-areas:"sw name pill" "sw meta pill";column-gap:10px;align-items:center;text-align:left;border:0;background:transparent;border-radius:10px;padding:7px 8px}
+.list-group{margin:10px 8px 4px}
+.list-group:first-child{margin-top:0}
 .tree-row:hover{background:var(--chip)}
 .tree-row[aria-current="true"]{background:var(--chip);box-shadow:inset 0 0 0 2px var(--accent)}
 .swatch{grid-area:sw;width:14px;height:14px;border-radius:4px;background:var(--c);transform:rotate(45deg)}
@@ -77,7 +79,7 @@ button:disabled{cursor:default;opacity:.6}
 .detail h2{margin:0;font-family:var(--f-display);font-weight:600;font-size:24px;text-wrap:balance}
 .detail p{margin:0;line-height:1.5}
 .label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
-#d-grows{color:var(--muted);font-size:14px}
+#d-where{color:var(--muted);font-size:14px}
 dl{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0;font-size:14px}
 dt{color:var(--muted)}
 dd{margin:0;font-weight:700;font-variant-numeric:tabular-nums}
@@ -115,7 +117,7 @@ dd{margin:0;font-weight:700;font-variant-numeric:tabular-nums}
   <section class="stage" id="stage" aria-label="3D tree view">
     <canvas id="cv"></canvas>
     <div class="hud hud-top">
-      <div class="nameplate"><span class="np-kicker">Tree Gallery</span><span id="np-name">Pine</span></div>
+      <div class="nameplate"><span class="np-kicker">{{TITLE}}</span><span id="np-name"></span></div>
       <div class="hud-col">
         <div class="seg" id="mode" role="group" aria-label="View">
           <button data-mode="one" aria-pressed="true">One tree</button>
@@ -130,32 +132,33 @@ dd{margin:0;font-weight:700;font-variant-numeric:tabular-nums}
     </div>
     <div class="hud hud-bottom">
       <div class="tools">
-        <label class="pill-ctl" for="wind">Wind <input id="wind" type="range" min="0" max="2.5" step="0.1" value="1"></label>
+        <label class="pill-ctl" id="wind-wrap" for="wind">Wind <input id="wind" type="range" min="0" max="2.5" step="0.1" value="1"></label>
+        <label class="pill-ctl" id="flag-wrap" for="flag"><input id="flag" type="checkbox"> <span id="flag-label"></span></label>
         <label class="pill-ctl" for="person"><input id="person" type="checkbox" checked> Person for size</label>
       </div>
-      <button class="chop" id="chop" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 10 4 20"/><path d="M13 4c3 0 7 3 7 7l-3 1-5-5z"/></svg>
-        <span>Chop</span>
+      <button class="chop" id="act" type="button">
+        {{ICON}}
+        <span></span>
       </button>
     </div>
   </section>
 
   <aside class="panel">
     <div class="p-head">
-      <h1>Trees for Elderra</h1>
-      <div class="tally"><span id="tally">0 of 9 approved</span><span id="tally-bar"></span></div>
+      <h1>{{HEADING}}</h1>
+      <div class="tally"><span id="tally"></span><span id="tally-bar"></span></div>
     </div>
     <div class="p-body">
       <div id="list" role="list"></div>
 
       <div class="detail">
         <div>
-          <h2 id="d-name">Pine</h2>
+          <h2 id="d-name"></h2>
         </div>
         <p id="d-about"></p>
         <div>
-          <p class="label">Where it grows</p>
-          <p id="d-grows"></p>
+          <p class="label" id="d-where-label"></p>
+          <p id="d-where"></p>
         </div>
         <dl id="d-stats"></dl>
         <div>
@@ -163,10 +166,10 @@ dd{margin:0;font-weight:700;font-variant-numeric:tabular-nums}
           <div class="chips" id="d-variants"></div>
         </div>
         <div class="seed-row">
-          <span id="d-seed">Tree #7</span>
+          <span id="d-seed"></span>
           <button id="reroll" type="button">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>
-            Grow a different one
+            Make a different one
           </button>
         </div>
 
@@ -183,7 +186,7 @@ dd{margin:0;font-weight:700;font-variant-numeric:tabular-nums}
             </button>
           </div>
           <label class="label" for="note" style="margin:0">Notes for Claude</label>
-          <textarea id="note" placeholder="e.g. make it taller, leaves a bit darker, love the Snowy one"></textarea>
+          <textarea id="note"></textarea>
           <div class="review-foot"><span id="saved"></span><button id="save-note" type="button">Save note</button></div>
           <p id="db-note" hidden>Reviews can't be saved in this view. Open the page on claude.ai, signed in, to save them.</p>
         </div>
