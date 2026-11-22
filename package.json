@@ -11,7 +11,8 @@
     "typecheck": "npm run typecheck -w server && npm run typecheck -w client && npm run typecheck -w client3d",
     "build": "npm run build -w client",
     "start": "npm start -w server",
-    "gallery": "npm run gallery -w client3d"
+    "gallery": "npm run gallery -w client3d",
+    "gallery:armor": "npm run gallery:armor -w client3d"
   },
   "devDependencies": {
     "concurrently": "^9.1.0",
