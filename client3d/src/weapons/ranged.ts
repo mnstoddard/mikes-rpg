@@ -114,7 +114,7 @@ export const BOW_VARIANTS = ["Short", "Recurve", "Long"] as const;
  * A bow, held at the middle. It stands up the Y axis; the string is behind
  * (toward -Z, the archer). draw(0..1) pulls the string back with an arrow on it.
  */
-export function buildBow(o: WeaponOptions, arrowMetal: WeaponMetal = "stone", arrowVariant = 0): WeaponBuild & { draw: (amount: number) => void } {
+export function buildBow(o: WeaponOptions, arrowMetal: WeaponMetal = "bronze", arrowVariant = 0): WeaponBuild & { draw: (amount: number) => void } {
   const g = new THREE.Group();
   const wood = woodMat(o.wood);
   const L = [1.05, 1.2, 1.6][o.variant];

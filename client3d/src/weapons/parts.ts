@@ -38,7 +38,12 @@ export const METAL_LOOKS: Record<WeaponMetal, Look> = {
   mithril:  { name: "Mithril",  color: 0x7cc4ee, dark: 0x3f7fae, mat: { roughness: 0.22, metalness: 0.85, emissive: 0x2a6fa8, emissiveIntensity: 0.35 } },
   aurelite: { name: "Aurelite", color: 0xf3c64f, dark: 0xb5832a, mat: { roughness: 0.25, metalness: 0.9, emissive: 0xb07a10, emissiveIntensity: 0.45 }, planned: true },
 };
-export const WEAPON_METALS = Object.keys(METAL_LOOKS) as WeaponMetal[];
+/**
+ * The metals you can pick for a weapon. Stone is no longer a tier (bronze is
+ * the level 1 start), so it isn't offered; its look stays only because wooden
+ * weapons (bows, staffs) use "stone" in their item id to mean "no metal".
+ */
+export const WEAPON_METALS = (Object.keys(METAL_LOOKS) as WeaponMetal[]).filter((m) => m !== "stone");
 
 export const WOOD_LOOKS: Record<WeaponWood, Look> = {
   pine:      { name: "Pine",      color: 0xd2ae73, dark: 0xa07c45, mat: {} },

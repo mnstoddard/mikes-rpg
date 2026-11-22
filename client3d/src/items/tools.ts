@@ -1,27 +1,22 @@
 // Gathering and crafting tools: axe, pickaxe, shovel, fishing rod, hammer,
-// tongs and the cooking pot. Every one is built from its head material
-// (stone, bronze, iron, steel, mithril) and its handle wood, the same way
-// shared/tools.ts makes the items, so "Iron axe (Oak)" looks iron and oak.
+// tongs and the cooking pot. Every one is built from its head metal
+// (bronze, iron, steel, mithril; bronze is the level 1 start, there's no
+// stone tier) and its handle wood, the same way shared/tools.ts makes the
+// items, so "Iron axe (Oak)" looks iron and oak.
 //
-// The handle points up the Y axis and the grip (where the hand goes) is near
-// the bottom, so the game can put any tool in a character's hand.
+// The handle points up the Y axis and `grip` is where the hand goes. Tools
+// you swing don't move by themselves: their `heldMove` (chop, dig, cast)
+// tells whoever holds them how to move the arm, and `follow` lets the tool
+// react (the fishing rod bends as you cast).
 import * as THREE from "three";
-import type { Material, ToolType, Wood } from "../../../shared/tools";
-import { ItemShape, METAL_LOOK, Rng, ball, barkMat, box, ease, glowMat, lathe, mat, mesh, metalMat, rod, rough, slab, tween, woodMat } from "./kit";
+import type { ToolType, Wood } from "../../../shared/tools";
+import { HeldMove, ItemShape, METAL_LOOK, Rng, ball, barkMat, box, ease, glowMat, lathe, mat, mesh, metalMat, rod, slab, tween, woodMat } from "./kit";
 
-/** Stone heads are chipped and tied on with a leather strip. */
-function headMat(material: Material) {
-  return metalMat(material);
-}
-const LEATHER = 0x5a3a22;
+/** The metals a tool head can be made of. */
+export type ToolMetal = "bronze" | "iron" | "steel" | "mithril";
+export const TOOL_METALS: ToolMetal[] = ["bronze", "iron", "steel", "mithril"];
 
-function lashing(r: number, y: number, rng: Rng): THREE.Mesh {
-  const geo = rough(new THREE.TorusGeometry(r, r * 0.35, 4, 8), rng, r * 0.15);
-  const m = mesh(geo, mat(LEATHER));
-  m.rotation.x = Math.PI / 2;
-  m.position.y = y;
-  return m;
-}
+const headMat = (material: ToolMetal) => metalMat(material);
 
 /** A plain wooden handle from y=0 up to `length`, with a little swell at the bottom so it doesn't slip. */
 function handle(wood: Wood, length: number, r = 0.022): THREE.Group {
@@ -34,103 +29,62 @@ function handle(wood: Wood, length: number, r = 0.022): THREE.Group {
   return g;
 }
 
-/** Wraps the model so it can swing around its grip. */
-function swinging(model: THREE.Group, grip: THREE.Vector3, label: string, move: (f: number, pivot: THREE.Group) => void, seconds = 0.6): ItemShape {
+/** A tool the arm swings: where the hand holds it, and how the arm moves. */
+function held(model: THREE.Group, grip: THREE.Vector3, label: string, move: HeldMove, follow?: (f: number) => void): ItemShape {
   const object = new THREE.Group();
-  const pivot = new THREE.Group();
-  pivot.position.copy(grip);
-  model.position.sub(grip);
-  pivot.add(model);
-  object.add(pivot);
-  let anim: ReturnType<typeof tween> | null = null;
-  return {
-    object,
-    grip,
-    actLabel: label,
-    act: () => (anim = tween(seconds, (f) => move(f, pivot))),
-    tick: (dt) => {
-      if (anim && !anim.step(dt)) anim = null;
-    },
-    groundPose: { rz: Math.PI / 2, y: 0.03 },
-  };
+  object.add(model);
+  return { object, grip, actLabel: label, heldMove: move, follow, groundPose: { rz: Math.PI / 2, y: 0.03 } };
 }
 
-/** A chop: lift back, then hit hard and bounce. */
-const chopMove = (f: number, p: THREE.Group) => {
-  if (f < 0.4) p.rotation.z = ease.out(f / 0.4) * 0.9;
-  else if (f < 0.6) p.rotation.z = 0.9 - ease.inOut((f - 0.4) / 0.2) * 1.5;
-  else p.rotation.z = -0.6 + ease.inOut((f - 0.6) / 0.4) * 0.6;
-};
-
-function axe(material: Material, wood: Wood, rng: Rng): ItemShape {
+function axe(material: ToolMetal, wood: Wood): ItemShape {
   const g = new THREE.Group();
   const L = 0.72;
   g.add(handle(wood, L));
   const top = L - 0.09;
-  if (material === "stone") {
-    const head = mesh(rough(new THREE.OctahedronGeometry(0.08, 0), rng, 0.03), headMat("stone"));
-    head.scale.set(1.5, 1.1, 0.45);
-    head.position.set(0.075, top, 0);
-    g.add(head, lashing(0.03, top, rng), lashing(0.03, top - 0.035, rng));
-  } else {
-    // The blade: narrow at the eye, flaring to a curved edge.
-    const blade = slab([[0.0, -0.035], [0.1, -0.06], [0.155, -0.085], [0.165, 0], [0.155, 0.075], [0.1, 0.05], [0.0, 0.035]], 0.024, headMat(material), 0.004);
-    blade.position.set(0.02, top, 0);
-    g.add(blade);
-    // A bright sharpened edge.
-    g.add(box(0.012, 0.15, 0.012, mat(METAL_LOOK[material].color, { metalness: 0.9, roughness: 0.15 }), 0.18, top - 0.005, 0));
-    // The eye (round the handle) and the poll at the back.
-    g.add(box(0.06, 0.08, 0.05, metalMat(material, true), 0.0, top, 0));
-    g.add(box(0.035, 0.06, 0.042, metalMat(material, true), -0.045, top, 0));
-  }
-  return swinging(g, new THREE.Vector3(0, 0.12, 0), "Swing", chopMove);
+  // The blade: narrow at the eye, flaring to a curved edge.
+  const blade = slab([[0.0, -0.035], [0.1, -0.06], [0.155, -0.085], [0.165, 0], [0.155, 0.075], [0.1, 0.05], [0.0, 0.035]], 0.024, headMat(material), 0.004);
+  blade.position.set(0.02, top, 0);
+  g.add(blade);
+  // A bright sharpened edge.
+  g.add(box(0.012, 0.15, 0.012, mat(METAL_LOOK[material].color, { metalness: 0.9, roughness: 0.15 }), 0.18, top - 0.005, 0));
+  // The eye (round the handle) and the poll at the back.
+  g.add(box(0.06, 0.08, 0.05, metalMat(material, true), 0.0, top, 0));
+  g.add(box(0.035, 0.06, 0.042, metalMat(material, true), -0.045, top, 0));
+  return held(g, new THREE.Vector3(0, 0.1, 0), "Chop", "chop");
 }
 
-function pickaxe(material: Material, wood: Wood, rng: Rng): ItemShape {
+function pickaxe(material: ToolMetal, wood: Wood): ItemShape {
   const g = new THREE.Group();
   const L = 0.78;
   g.add(handle(wood, L));
   const top = L - 0.05;
   const hm = headMat(material);
-  if (material === "stone") {
-    for (const s of [1, -1]) {
-      const spike = mesh(rough(new THREE.ConeGeometry(0.035, 0.2, 5), rng, 0.012), hm);
-      spike.rotation.z = -s * (Math.PI / 2 + 0.2);
-      spike.position.set(s * 0.1, top - 0.015, 0);
-      g.add(spike);
-    }
-    g.add(lashing(0.032, top, rng));
-  } else {
-    // A curved pick: one long point and one chisel end, drooping a little.
-    const pts: [number, number][] = [];
-    for (let i = 0; i <= 8; i++) {
-      const x = -0.24 + (i / 8) * 0.48;
-      pts.push([x, -0.03 * (x / 0.24) ** 2 * 1.6 + 0.024 * (1 - Math.abs(x / 0.24) ** 1.5)]);
-    }
-    for (let i = 8; i >= 0; i--) {
-      const x = -0.24 + (i / 8) * 0.48;
-      pts.push([x, -0.03 * (x / 0.24) ** 2 * 1.6 - 0.024 * (1 - Math.abs(x / 0.24) ** 1.5) - 0.002]);
-    }
-    const head = slab(pts, 0.038, hm, 0.003);
-    head.position.set(0, top, 0);
-    g.add(head);
-    g.add(box(0.055, 0.07, 0.052, metalMat(material, true), 0, top, 0));
+  // A curved pick: one long point and one chisel end, drooping a little.
+  const pts: [number, number][] = [];
+  for (let i = 0; i <= 8; i++) {
+    const x = -0.24 + (i / 8) * 0.48;
+    pts.push([x, -0.03 * (x / 0.24) ** 2 * 1.6 + 0.024 * (1 - Math.abs(x / 0.24) ** 1.5)]);
   }
-  return swinging(g, new THREE.Vector3(0, 0.12, 0), "Swing", chopMove);
+  for (let i = 8; i >= 0; i--) {
+    const x = -0.24 + (i / 8) * 0.48;
+    pts.push([x, -0.03 * (x / 0.24) ** 2 * 1.6 - 0.024 * (1 - Math.abs(x / 0.24) ** 1.5) - 0.002]);
+  }
+  const head = slab(pts, 0.038, hm, 0.003);
+  head.position.set(0, top, 0);
+  g.add(head);
+  g.add(box(0.055, 0.07, 0.052, metalMat(material, true), 0, top, 0));
+  return held(g, new THREE.Vector3(0, 0.1, 0), "Swing", "chop");
 }
 
-function shovel(material: Material, wood: Wood, rng: Rng): ItemShape {
+function shovel(material: ToolMetal, wood: Wood): ItemShape {
   const g = new THREE.Group();
   const bladeH = 0.24;
   // Blade at the bottom, handle going up to a D-grip.
   const shape: [number, number][] = [[-0.09, bladeH], [0.09, bladeH], [0.1, 0.08], [0.06, 0.02], [0, 0], [-0.06, 0.02], [-0.1, 0.08]];
-  const blade = material === "stone"
-    ? mesh(rough(new THREE.ExtrudeGeometry(new THREE.Shape(shape.map(([x, y]) => new THREE.Vector2(x, y))), { depth: 0.03, bevelEnabled: false }), rng, 0.012), headMat(material))
-    : slab(shape, 0.012, headMat(material), 0.003);
+  const blade = slab(shape, 0.012, headMat(material), 0.003);
   blade.rotation.x = -0.12;
   g.add(blade);
-  g.add(rod(0.03, 0.022, 0.08, metalMat(material === "stone" ? "stone" : material, true), 6, bladeH - 0.02));
-  if (material === "stone") g.add(lashing(0.028, bladeH + 0.03, rng));
+  g.add(rod(0.03, 0.022, 0.08, metalMat(material, true), 6, bladeH - 0.02));
   const shaft = rod(0.022, 0.02, 0.72, woodMat(wood), 7, bladeH);
   g.add(shaft);
   // D-grip.
@@ -139,15 +93,11 @@ function shovel(material: Material, wood: Wood, rng: Rng): ItemShape {
   d.position.y = top;
   g.add(d);
   g.add(box(0.13, 0.025, 0.025, barkMat(wood), 0, top + 0.055, 0));
-  const s = swinging(g, new THREE.Vector3(0, top - 0.05, 0), "Dig", (f, p) => {
-    p.rotation.x = ease.bump(f) * 0.5;
-    p.position.y = top - 0.05 - ease.bump(f) * 0.08;
-  });
-  s.groundPose = { rz: Math.PI / 2, y: 0.03 };
-  return s;
+  // Held by the D-grip at the top; the arm pushes the blade into the ground.
+  return held(g, new THREE.Vector3(0, top + 0.03, 0), "Dig", "dig");
 }
 
-function fishingRod(wood: Wood, _rng: Rng): ItemShape {
+function fishingRod(wood: Wood): ItemShape {
   const g = new THREE.Group();
   const L = 1.7;
   // Tapered rod made in 3 pieces so it can bend when you cast.
@@ -181,60 +131,49 @@ function fishingRod(wood: Wood, _rng: Rng): ItemShape {
   bob.add(ball(0.022, mat(0xd8382c), 0, 0, 0.012, 0), ball(0.021, mat(0xf4f1e8), 0, 0, -0.01, 0));
   bob.position.y = L / 3 - 0.5;
   pieces[2].add(bob);
-  const grip = new THREE.Vector3(0, 0.12, 0);
-  const s = swinging(g, grip, "Cast", (f, p) => {
-    const bend = f < 0.35 ? ease.out(f / 0.35) : 1 - ease.inOut((f - 0.35) / 0.65);
-    const back = f < 0.35 ? ease.out(f / 0.35) * 0.7 : 0.7 - ease.out((f - 0.35) / 0.65) * 1.3;
-    p.rotation.z = f >= 1 ? 0 : back;
-    pieces[1].rotation.z = pieces[2].rotation.z = -bend * 0.18 * Math.sign(back || 1);
-    if (f >= 1) pieces[1].rotation.z = pieces[2].rotation.z = 0;
-  }, 1.1);
+  // As you cast, the tip whips back, then forward.
+  const s = held(g, new THREE.Vector3(0, 0.14, 0), "Cast", "cast", (f) => {
+    const bend = f < 0.35 ? ease.out(f / 0.35) : f < 0.6 ? 1 - 2 * ease.inOut((f - 0.35) / 0.25) : -1 + ease.inOut((f - 0.6) / 0.4);
+    pieces[1].rotation.z = pieces[2].rotation.z = bend * 0.16;
+  });
   // The float bobs gently all the time.
-  const tick0 = s.tick!;
-  s.tick = (dt, t) => {
-    tick0(dt, t);
+  s.tick = (_dt, t) => {
     bob.position.y = L / 3 - 0.5 + Math.sin(t * 2.4) * 0.01;
   };
   s.groundPose = { rz: Math.PI / 2, y: 0.03 };
   return s;
 }
 
-function hammer(material: Material, wood: Wood, rng: Rng): ItemShape {
+function hammer(material: ToolMetal, wood: Wood): ItemShape {
   const g = new THREE.Group();
   const L = 0.42;
   g.add(handle(wood, L, 0.018));
   const top = L - 0.04;
-  if (material === "stone") {
-    const head = mesh(rough(new THREE.BoxGeometry(0.15, 0.07, 0.07, 1, 1, 1), rng, 0.02), headMat("stone"));
-    head.position.y = top;
-    g.add(head, lashing(0.026, top, rng));
-  } else {
-    const head = rod(0.034, 0.034, 0.16, headMat(material), 8, -0.08);
-    head.rotation.z = Math.PI / 2;
-    head.position.y = top;
-    g.add(head);
-    // Flat striking face on one end, a wedge on the other.
-    const face = rod(0.04, 0.04, 0.02, metalMat(material, true), 8, -0.01);
-    face.rotation.z = Math.PI / 2;
-    face.position.set(0.085, top, 0);
-    g.add(face);
-    const wedge = slab([[0, -0.03], [0.05, -0.005], [0.05, 0.005], [0, 0.03]], 0.05, headMat(material));
-    wedge.position.set(-0.13, top, 0);
-    wedge.rotation.y = Math.PI;
-    wedge.position.x = -0.08;
-    g.add(wedge);
-  }
-  return swinging(g, new THREE.Vector3(0, 0.08, 0), "Strike", chopMove, 0.45);
+  const head = rod(0.034, 0.034, 0.16, headMat(material), 8, -0.08);
+  head.rotation.z = Math.PI / 2;
+  head.position.y = top;
+  g.add(head);
+  // Flat striking face on one end, a wedge on the other.
+  const face = rod(0.04, 0.04, 0.02, metalMat(material, true), 8, -0.01);
+  face.rotation.z = Math.PI / 2;
+  face.position.set(0.085, top, 0);
+  g.add(face);
+  const wedge = slab([[0, -0.03], [0.05, -0.005], [0.05, 0.005], [0, 0.03]], 0.05, headMat(material));
+  wedge.position.set(-0.13, top, 0);
+  wedge.rotation.y = Math.PI;
+  wedge.position.x = -0.08;
+  g.add(wedge);
+  return held(g, new THREE.Vector3(0, 0.08, 0), "Strike", "strike");
 }
 
-function tongs(material: Material, rng: Rng): ItemShape {
+function tongs(material: ToolMetal): ItemShape {
   const object = new THREE.Group();
   const m = headMat(material);
   const arms: THREE.Group[] = [];
   for (const s of [1, -1]) {
     const arm = new THREE.Group();
     // Long handle below the pivot, short curved jaw above it.
-    const lower = material === "stone" ? mesh(rough(new THREE.BoxGeometry(0.02, 0.44, 0.016), rng, 0.006), m) : box(0.016, 0.44, 0.012, m);
+    const lower = box(0.016, 0.44, 0.012, m);
     lower.position.set(s * 0.025, -0.22, 0);
     lower.rotation.z = s * 0.06;
     const jaw = slab([[0, 0], [s * 0.035, 0.06], [s * 0.01, 0.13], [-s * 0.005, 0.125], [s * 0.015, 0.06], [-s * 0.01, 0.0]], 0.014, m);
@@ -245,7 +184,6 @@ function tongs(material: Material, rng: Rng): ItemShape {
   const pin = rod(0.012, 0.012, 0.04, metalMat(material, true), 8, -0.02);
   pin.rotation.x = Math.PI / 2;
   object.add(pin);
-  if (material === "stone") object.add(lashing(0.03, 0, rng));
   // A hot little ingot in the jaws.
   const ingot = box(0.05, 0.025, 0.035, glowMat(0xff7a2a, 1.4), 0, 0.12, 0);
   ingot.visible = false;
@@ -276,13 +214,13 @@ function tongs(material: Material, rng: Rng): ItemShape {
   };
 }
 
-function pot(material: Material, rng: Rng): ItemShape {
+function pot(material: ToolMetal, rng: Rng): ItemShape {
   const object = new THREE.Group();
   const m = headMat(material).clone();
   m.side = THREE.DoubleSide;
   m.userData.own = true;
   const outline: [number, number][] = [[0, 0], [0.12, 0.005], [0.17, 0.04], [0.18, 0.12], [0.165, 0.2], [0.175, 0.215]];
-  const body = material === "stone" ? mesh(rough(new THREE.LatheGeometry(outline.map(([r, y]) => new THREE.Vector2(r, y)), 9), rng, 0.01), m) : lathe(outline, m, 12);
+  const body = lathe(outline, m, 12);
   object.add(body);
   // Soup inside (a dark disc), with bubbles.
   const soup = mesh(new THREE.CircleGeometry(0.16, 12), mat(0xa8622a, { roughness: 0.4 }));
@@ -329,15 +267,15 @@ function pot(material: Material, rng: Rng): ItemShape {
   };
 }
 
-/** Build any tool. Rods ignore the material; tongs and the pot ignore the wood. */
-export function buildTool(type: ToolType, material: Material, wood: Wood, rng: Rng): ItemShape {
+/** Build any tool. Rods ignore the metal; tongs and the pot ignore the wood. */
+export function buildTool(type: ToolType, material: ToolMetal, wood: Wood, rng: Rng): ItemShape {
   switch (type) {
-    case "axe": return axe(material, wood, rng);
-    case "pickaxe": return pickaxe(material, wood, rng);
-    case "shovel": return shovel(material, wood, rng);
-    case "rod": return fishingRod(wood, rng);
-    case "hammer": return hammer(material, wood, rng);
-    case "tongs": return tongs(material, rng);
+    case "axe": return axe(material, wood);
+    case "pickaxe": return pickaxe(material, wood);
+    case "shovel": return shovel(material, wood);
+    case "rod": return fishingRod(wood);
+    case "hammer": return hammer(material, wood);
+    case "tongs": return tongs(material);
     case "pot": return pot(material, rng);
   }
 }
