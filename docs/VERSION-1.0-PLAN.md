@@ -212,7 +212,7 @@ bridges and stairs are just tiles with a height.
 server/    the Colyseus server (kept)
 shared/    the game rules and numbers (kept)
 client/    the 2D Phaser web game (kept while it's useful)
-client3d/  the new three.js 3D game (new)
+client3d/  the new three.js 3D game (new; starts with the tree library, see client3d/README.md)
 docs/      this plan and the design doc
 ```
 

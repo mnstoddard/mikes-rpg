@@ -1,0 +1,16 @@
+{
+  "name": "client3d",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "gallery": "node build-gallery.mjs",
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "three": "^0.186.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.186.0",
+    "esbuild": "^0.25.0"
+  }
+}
