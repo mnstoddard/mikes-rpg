@@ -14,7 +14,7 @@ import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPa
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { ITEMS } from "../../../shared/items";
-import { GROUP_IDS, ITEM_GROUPS, ITEM_LIST, ITEM_TYPES, Item, ItemGroup, ReviewStatus, createItem } from "../items";
+import { GROUP_IDS, ITEM_GROUPS, ITEM_LIST, ITEM_TYPES, HeldMove, Item, ItemGroup, ReviewStatus, createItem } from "../items";
 import { makeRng } from "../trees/common";
 import { createCharacter } from "../character";
 
@@ -35,8 +35,9 @@ let group: ItemGroup = ITEM_TYPES[current].group;
 const choiceOf: Record<string, number[]> = {};
 for (const t of ITEM_LIST) choiceOf[t.id] = t.options.map(() => 0);
 // Start tools on something nicer than stone and pine.
-for (const id of ["axe", "pickaxe", "shovel", "hammer"]) choiceOf[id] = [2, 1];
-for (const id of ["tongs", "pot"]) choiceOf[id] = [2];
+// Start tools on iron (bronze is the first metal) with an oak handle.
+for (const id of ["axe", "pickaxe", "shovel", "hammer"]) choiceOf[id] = [1, 1];
+for (const id of ["tongs", "pot"]) choiceOf[id] = [1];
 let mode: "one" | "row" = "one";
 let timeOfDay: "day" | "sunset" | "night" = "day";
 let showPerson = true;
@@ -188,10 +189,14 @@ function place(id: string, x: number): { item: Item; holder: THREE.Group } {
     scene.add(holder);
   } else if (mode === "one" && inHand && t.size === "held") {
     person.joints.handR.add(holder);
-    // Handle up the arm's length, pointing forward from the fist.
-    holder.rotation.set(Math.PI / 2, 0, 0);
-    holder.position.set(0, 0, 0);
-    holder.translateY(-0.12);
+    // The hand's +Y runs up the forearm and +Z is the back of the fist.
+    // A shovel carries on past the fingers (blade facing forward). Everything
+    // else sticks out of the fist like a hammer: handle along +Z, with the
+    // blade or head (the tool's +X) facing the way it swings.
+    if (item.heldMove === "dig") holder.quaternion.identity();
+    else holder.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(new THREE.Vector3(0, -1, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(-1, 0, 0)));
+    // Put the grip in the palm.
+    holder.position.copy(item.grip ?? new THREE.Vector3()).applyQuaternion(holder.quaternion).multiplyScalar(-1);
   } else {
     // Held tools lie down on the table, so they fit.
     if (t.size === "held") {
@@ -214,6 +219,7 @@ const BIG_SPACING = 2.0;
 
 function rebuild(keepCamera = false) {
   clearItems();
+  armMove = null;
   const t = ITEM_TYPES[current];
   if (mode === "one") {
     const { item, holder } = place(current, 0);
@@ -262,12 +268,50 @@ function rebuild(keepCamera = false) {
   updateHud();
 }
 
-/** Raise the right arm, as if holding the tool out to look at it. */
-function poseHolding() {
+// ---------- Swinging a tool in the hand ----------
+
+/** Right shoulder and elbow angles (rotation.x) through each move: [time 0-1, shoulder, elbow]. */
+const ARM_MOVES: Record<HeldMove | "hold", { seconds: number; keys: [number, number, number][] }> = {
+  hold: { seconds: 1, keys: [[0, -0.9, -0.6], [1, -0.9, -0.6]] },
+  // Lift it high over the shoulder, bring it down hard in front, come back.
+  chop: { seconds: 0.95, keys: [[0, -0.9, -0.6], [0.4, -2.9, -1.0], [0.58, -0.35, -0.05], [0.7, -0.4, -0.1], [1, -0.9, -0.6]] },
+  // A short, quick hammer blow.
+  strike: { seconds: 0.6, keys: [[0, -0.9, -0.6], [0.35, -1.8, -1.3], [0.55, -0.6, -0.15], [1, -0.9, -0.6]] },
+  // Push the blade down into the ground, then lift the scoop.
+  dig: { seconds: 1.2, keys: [[0, -0.7, -0.1], [0.35, -0.4, 0], [0.5, -0.4, 0], [0.8, -1.3, -0.7], [1, -0.7, -0.1]] },
+  // Back over the shoulder, then flick forward.
+  cast: { seconds: 1.2, keys: [[0, -1.0, -0.5], [0.35, -2.9, -0.7], [0.6, -1.0, -0.1], [1, -1.0, -0.5]] },
+};
+let armMove: { move: HeldMove; t: number; frozen?: boolean } | null = null;
+
+function armAngles(move: HeldMove | "hold", f: number): [number, number] {
+  const keys = ARM_MOVES[move].keys;
+  let i = 0;
+  while (i < keys.length - 2 && f > keys[i + 1][0]) i++;
+  const [t0, s0, e0] = keys[i];
+  const [t1, s1, e1] = keys[i + 1];
+  const k = Math.min(1, Math.max(0, (f - t0) / Math.max(1e-6, t1 - t0)));
+  const e = k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
+  return [s0 + (s1 - s0) * e, e0 + (e1 - e0) * e];
+}
+
+/** Hold the tool out in front, or move the arm through its swing. */
+function poseHolding(dt = 0) {
   const J = person.joints;
-  J.shR.rotation.set(-0.9, 0, -0.25);
-  J.elR.rotation.set(-0.7, 0, 0);
+  const s = shown[0];
+  const rest = (s?.item.heldMove ?? "hold") === "dig" ? "dig" : s?.item.heldMove === "cast" ? "cast" : "hold";
+  let sh: number, el: number;
+  if (armMove) {
+    if (!armMove.frozen) armMove.t += dt / ARM_MOVES[armMove.move].seconds;
+    const f = Math.min(1, armMove.t);
+    [sh, el] = armAngles(armMove.move, f);
+    s?.item.follow?.(f);
+    if (f >= 1) armMove = null;
+  } else [sh, el] = armAngles(rest, 0);
+  J.shR.rotation.set(sh, 0, -0.2);
+  J.elR.rotation.set(el, 0, 0);
   J.shL.rotation.set(0, 0, 0.12);
+  J.elL.rotation.set(-0.14, 0, 0);
 }
 
 /** Point the camera so everything on show fits. */
@@ -331,7 +375,7 @@ function loop() {
     if (spin && mode === "one" && s.holder.parent === scene && ITEM_TYPES[s.id].size !== "big") s.holder.rotation.y += dt * 0.35;
   }
   person.update(dt, t);
-  if (mode === "one" && inHand && ITEM_TYPES[current].size === "held") poseHolding();
+  if (mode === "one" && inHand && ITEM_TYPES[current].size === "held") poseHolding(dt);
   const label = shown.find((s) => s.id === current)?.item.actLabel ?? "";
   if (label !== lastLabel) {
     lastLabel = label;
@@ -477,10 +521,22 @@ function select(id: string) {
   updateHud();
 }
 
-$("act").onclick = () => {
-  shown.find((x) => x.id === current)?.item.act();
+/** The action button. Tools you swing are swung by the character, so they go into the hand first. */
+function doAction() {
+  let s = shown.find((x) => x.id === current);
+  if (s?.item.heldMove) {
+    if (mode !== "one" || !inHand) {
+      mode = "one";
+      inHand = true;
+      $<HTMLInputElement>("hold").checked = true;
+      rebuild();
+      s = shown.find((x) => x.id === current);
+    }
+    if (s?.item.heldMove && !armMove) armMove = { move: s.item.heldMove, t: 0 };
+  } else s?.item.act();
   updateHud();
-};
+}
+$("act").onclick = doAction;
 $<HTMLInputElement>("person").onchange = (e) => {
   showPerson = (e.target as HTMLInputElement).checked;
   rebuild(true);
@@ -592,6 +648,13 @@ connectDb();
   setMode: (m: typeof mode) => ((mode = m), rebuild()),
   setHold: (h: boolean) => ((inHand = h), rebuild()),
   setChoice: (c: number[]) => ((choiceOf[current] = c), rebuild(true), renderDetail()),
-  act: () => shown.find((x) => x.id === current)?.item.act(),
+  act: doAction,
+  /** For testing: hold the arm still partway (0-1) through the current tool's move. */
+  armAt: (f: number) => {
+    const m = shown[0]?.item.heldMove;
+    armMove = m ? { move: m, t: f, frozen: true } : null;
+  },
+  camera,
+  controls,
   ids: ITEM_LIST.map((t) => t.id),
 };

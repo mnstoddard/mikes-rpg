@@ -878,7 +878,7 @@ async function connectDb() {
         if (first) {
           const o = optsOf[d.id];
           if (typeof data.variant === "number") o.variant = data.variant;
-          if (data.metal && data.metal in METAL_LOOKS) o.metal = data.metal;
+          if (data.metal && data.metal in METAL_LOOKS && (data.metal !== "stone" || !WEAPON_MODELS[d.id as WeaponKind].uses.metal)) o.metal = data.metal;
           if (data.wood && data.wood in WOOD_LOOKS) o.wood = data.wood;
           if (data.gem === null || (data.gem && data.gem in GEMS)) o.gem = data.gem ?? null;
         }
