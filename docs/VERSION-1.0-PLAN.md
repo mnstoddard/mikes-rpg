@@ -3,14 +3,21 @@
 This is the plan for **Version 1.0**: the same game, rebuilt in 3D with much
 better graphics, sold on Steam for PC first and on phones later.
 
-**Nothing here is being built yet.** For now we keep working on the mechanics
-and the story in today's 2D web game. This document is where we keep the 3D
-plan so it's ready when you say go. Change anything you like.
+**Decided: build it with three.js**, a 3D library for web pages. The game stays
+a web game, written in the same language (TypeScript) as today. We keep the
+server, the rules and the saves, and only replace the part that draws the
+screen.
+
+For now we keep working on the mechanics and the story in today's 2D web game.
+The first 3D piece is a small **character creator** test app (section 8), so we
+can try out the art style. Change anything you like.
 
 Quick words used in this doc:
 
-- **Engine**: the program you build a game in. It draws the 3D world, plays
-  sounds, reads the mouse and keyboard, and exports the finished game.
+- **three.js**: a free code library that draws 3D graphics in a web browser.
+  It's what the "Island in 3D" test page uses.
+- **Engine**: a full program for building games, like Godot or Unity. We're
+  not using one for now (section 2 says why).
 - **Client**: the part of the game that runs on the player's computer or phone
   and draws everything. Today it's Phaser (2D, in a web browser).
 - **Server**: the part that runs on Render and decides what really happens
@@ -29,29 +36,53 @@ Quick words used in this doc:
   quests, parties and the economy all carry over (section 6).
 - **Online multiplayer**, like today.
 - **Steam on PC first**, then **iPhone and Android** from the same project.
-- **A story** that ties the world together (section 7, still being chosen).
+- **A story** that ties the world together (section 7).
+- **Still a web game**: players open a link and play, with nothing to install.
+  The Steam and phone versions are the same game, wrapped as an app.
 
 ---
 
-## 2. The engine: Godot
+## 2. The technology: three.js
 
-**Decided: Godot 4** (free, from https://godotengine.org).
+**Decided: three.js** (free, https://threejs.org), replacing Phaser as the
+client. Godot was the first plan; it's now the backup (see below).
 
-Why Godot:
+Why three.js:
 
-- **Free forever**, with no share of your sales and no revenue limit. (Unity and
-  Unreal can take fees or a cut once a game earns enough.)
-- **Its files are plain text.** Scenes (`.tscn`) and scripts (`.gd`) are text
-  files, so Claude can read and edit them in the repo the same way it edits the
-  game today. That matters a lot, since Claude is writing most of the code.
-- **Good 3D lighting built in**: glow, fog, soft shadows, ambient occlusion and
-  tone mapping are checkboxes on one node (WorldEnvironment).
-- **Exports to Windows, Mac, Linux, iPhone and Android** from one project.
-- Real 3D games ship with it, including an online RPG for phones
-  (*Forbidden Realm*) and *Cassette Beasts* on Steam.
+- **The game is already a web game in TypeScript.** Only the drawing part
+  changes. The server, quests, skills, saves and everything in `shared/` stay
+  exactly as they are.
+- **It keeps deploying to Render like today**, and stays live the whole time.
+  Every new mechanic we build in the 2D game carries straight over.
+- **Players just open a link.** Nothing to install, and it works on PCs and
+  phones in the browser.
+- **It's all code.** Claude edits it the same way it edits the game today.
+- **Good lighting is possible**: soft shadows, fog, glow (bloom), tone mapping,
+  ambient occlusion and reflections. The Island in 3D test page already shows
+  most of these.
 
-Its scripting language, **GDScript**, looks a lot like Python and is easy to
-read.
+The trade-offs, compared with a full engine like Godot:
+
+- **A lower ceiling on graphics and speed.** Browsers can't push a computer
+  as hard as a real engine can. For a low-poly game this is fine.
+- **No visual editor.** Things like animation blending, physics and level
+  layout are built in code. That suits how Claude works, but levels are
+  placed by code or simple map files rather than dragged around in an editor.
+- **Big worlds with many players need care**: loading areas in pieces,
+  keeping the number of objects down, and a "graphics quality" setting.
+
+**Godot stays the backup.** If the game takes off and needs top-end graphics,
+we can move the client to Godot later. The server and game rules carry over
+either way, because they don't depend on what draws the screen.
+
+### Models and animations
+
+- **Models**: low-poly packs (section 4), loaded as **glTF/GLB** files, the
+  standard 3D format three.js reads best.
+- **Animations**: walk, run, idle, chop, mine, fish, attack, cast and so on
+  come from **Mixamo** (free from Adobe, with an account; its animations can be
+  used in games you sell) or from the animations included with Quaternius and
+  KayKit characters. three.js plays and blends them.
 
 ---
 
@@ -61,16 +92,19 @@ read.
 
 - **Steam Direct fee: $100 per game**, one time. Valve gives it back once the
   game earns $1,000.
-- **Steamworks** (Steam's login, achievements, friends list, cloud saves) is
-  added to Godot with the free **GodotSteam** plugin.
+- The web game is **wrapped as a desktop app** with **Electron** or **Tauri**
+  (free tools that put a web page in its own window, like many indie games on
+  Steam). It builds for Windows, Mac and Linux.
+- **Steamworks** (Steam sign-in, achievements, friends, cloud saves) is added
+  with the free **steamworks.js** library for Electron.
 - **Early Access** is an option: sell the game while it's still growing, which
   suits an RPG that keeps getting new skills and areas.
-- The Windows version can be built on any computer.
 - A Steam store page should go up a few months before launch, so people can
   wishlist it.
 
-### Phones later (same project)
+### Phones later (same game)
 
+- The web game is wrapped as a phone app with **Capacitor** (free).
 - **Android**: Google Play account, **$25 one time**. Can be built on any
   computer.
 - **iPhone**: needs **a Mac** to build the app, an **Apple Developer account
@@ -83,7 +117,8 @@ read.
 ### The web version
 
 Today's 2D web game **stays live** while Version 1.0 is built, so friends can
-keep playing and we can keep testing new mechanics there first.
+keep playing and we can keep testing new mechanics there first. Once the 3D
+client can do everything, it becomes the web version, at the same address.
 
 ---
 
@@ -107,7 +142,7 @@ The idea: use **cheap ready-made low-poly models** and spend the effort on
 Rule of thumb: **stick to one or two pack families** so everything matches.
 Keep a list of every pack used and its licence in the repo (`assets/CREDITS.md`).
 
-### Where the polish comes from (all built into Godot)
+### Where the polish comes from (all possible in three.js)
 
 - **Soft shadows** from the sun, lanterns and fires.
 - **Fog** in the distance and in the Dark Forest.
@@ -120,8 +155,8 @@ Keep a list of every pack used and its licence in the repo (`assets/CREDITS.md`)
 - Lots of **small props**: flowers, crates, barrels, fences, signposts, smoke
   from chimneys.
 
-If we want it friendlier later, Godot's **toon lighting** and outlines can be
-switched on over the same models.
+If we want it friendlier later, three.js has **toon materials**, and outlines
+can be added over the same models.
 
 For phones, we turn down shadows, glow and ambient occlusion with one
 "graphics quality" setting.
@@ -139,22 +174,17 @@ Today the game is split in three folders:
   prices, Mastery...). Both the server and the client use these files.
 - `client/`: the Phaser 2D client that draws it all.
 
-**The plan: keep `server/` and `shared/`, and make a new Godot 3D client** in a
-new folder, `godot/`. The 3D game talks to the **same server** the 2D game
-uses. So:
+**The plan: keep `server/` and `shared/`, and make a new three.js 3D client**
+in a new folder, `client3d/`. It talks to the **same server** the 2D game uses,
+with the same Colyseus library the 2D client already uses. So:
 
 - Every rule built in stages 1 to 13 (and everything we add before 1.0) keeps
   working with no rewrite.
 - New mechanics only need to be written once, on the server.
 - The 2D web game and the 3D game can even share one world while we test.
-
-How Godot talks to Colyseus:
-
-1. **First try**: a community Colyseus add-on for Godot. We check it still works
-   with our Colyseus version before relying on it.
-2. **If it doesn't**: a small, plain message layer over WebSockets (Godot has
-   WebSockets built in). The server sends simple JSON messages and the Godot
-   client reads them. This is a few hundred lines and fully under our control.
+- The 3D client can reuse a lot of the 2D client's code: the network code, the
+  login screen, and the panels (bag, skills, quests), which are web pages
+  laid over the game and work the same over a 3D view.
 
 The server stays on **Render** with saves in the **Neon** database, as today.
 Note: Render's free plan goes to sleep when nobody is playing, so the first
@@ -182,7 +212,7 @@ bridges and stairs are just tiles with a height.
 server/    the Colyseus server (kept)
 shared/    the game rules and numbers (kept)
 client/    the 2D Phaser web game (kept while it's useful)
-godot/     the new 3D game (new)
+client3d/  the new three.js 3D game (new)
 docs/      this plan and the design doc
 ```
 
@@ -215,8 +245,9 @@ these, but the rules stay the same:
   strip.
 - **Day and night** (40 minutes: 30 day, 10 night).
 
-New things 3D makes possible, to decide later: rotating camera, animated
-characters you can customise, weather (rain, mist), and sound and music.
+New things 3D makes possible: animated characters you can customise (the
+character creator, section 8), a rotating camera, weather (rain, mist), and
+sound and music.
 
 ---
 
@@ -252,17 +283,23 @@ Small steps, each one playable, like stages 1 to 13.
 
 | Step | What gets built | Done when |
 |---|---|---|
-| **0. Setup** | Install Godot, add the `godot/` folder, pick the first model pack | An empty 3D scene opens and runs |
-| **1. Vertical slice** | The starting town (Heartvale) in 3D, walking by clicking tiles, **one skill (Fishing)**, two players seeing each other, day/sunset/night lighting | You and a friend can walk around and fish together in 3D, and it looks good |
-| **2. The UI** | Bars, bag, tool belt, gear strip, skills panel, quest tracker, messages, in Godot | Every panel the 2D game has works in 3D |
-| **3. Town and gathering** | Trainer Row, all gathering skills, trainers and shops | Old Maren's lessons can be finished in 3D |
+| **0. Character creator** (first test) | A small separate test app: a 3D character on a turntable with sliders and pickers for body shape, male or female, face shape, hair style, skin, hair and eye colour, and outfit colours. Uses a low-poly base model with shape sliders (morph targets), swappable hair and clothing pieces, and Mixamo-style idle and walk animations | Mike can play with characters and settle on the art style |
+| **1. Vertical slice** | Add `client3d/`. The starting town (Heartvale) in 3D, walking by clicking tiles, **one skill (Fishing)**, two players seeing each other, day/sunset/night lighting, characters from the creator | You and a friend can walk around and fish together in 3D, and it looks good |
+| **2. The UI** | Bars, bag, tool belt, gear strip, skills panel, quest tracker, messages, moved over from the 2D client | Every panel the 2D game has works in 3D |
+| **3. Town and gathering** | Trainer Row, all gathering skills, trainers and shops | The Prologue can be finished in 3D |
 | **4. Combat** | Monsters with animations, weapons, spells, the Dark Forest | The combat chapter works in 3D |
 | **5. Everything else** | Crafting stations, farming, alchemy, enchanting, parties | Every mechanic from section 6 works |
-| **6. Story** | The chosen main story's areas, characters and cut-scenes | The main quest can be played start to finish |
-| **7. Steam** | GodotSteam, Steam sign-in, store page, Early Access build | The game is on Steam |
-| **8. Phones** | Touch controls, lower graphics setting, Android then iPhone builds | Testers play on phones |
+| **6. Story** | The story's areas, characters and cut-scenes | The main quest can be played start to finish |
+| **7. Steam** | Electron or Tauri wrapper, steamworks.js, Steam sign-in, store page, Early Access build | The game is on Steam |
+| **8. Phones** | Capacitor wrapper, touch controls, lower graphics setting, Android then iPhone builds | Testers play on phones |
 
-**Step 1 is the important one.** If the vertical slice looks and plays well,
+**The character creator does double duty.** Later, the same system makes
+**every NPC**: trainers, Lightkeepers, Ashbound and townsfolk are saved
+character "recipes" (body, face, hair, colours, outfit), and random recipes can
+fill a town with varied people. So the art choices made in step 0 carry
+through the whole game.
+
+**Step 1 is still the big test.** If the vertical slice looks and plays well,
 the rest is just more of the same. If something is wrong (the look, the
 network, speed), we find out early and cheaply.
 
@@ -272,7 +309,8 @@ network, speed), we find out early and cheaply.
 
 | What | Cost |
 |---|---|
-| Godot | Free |
+| three.js, Electron or Tauri, Capacitor, steamworks.js | Free |
+| Mixamo animations | Free (needs a free Adobe account) |
 | Kenney, Quaternius, KayKit models | Free (some paid KayKit packs are a few dollars) |
 | Synty packs (optional) | Tens of dollars each |
 | Steam listing | $100 per game, one time (returned after $1,000 in sales) |
@@ -286,9 +324,11 @@ network, speed), we find out early and cheaply.
 
 1. **Story**: names and the open story questions in [STORY.md](STORY.md).
 2. **Camera**: fixed angle like today (easier, good on phones) or free rotation?
-3. **Characters**: pick-a-look from a pack, or build-your-own with hair, colours
-   and outfits?
+3. ~~Characters~~ **Decided: build-your-own** in the character creator, which
+   also makes the NPCs.
 4. **Web version**: keep the 2D game live after Version 1.0 launches, or retire it?
 5. **Price on Steam**: free to play, or a one-time price? Early Access or full
    launch?
 6. **Music and sound**: free packs to start, or hire a composer later?
+7. **Electron or Tauri** for the Steam app: Electron is the more common choice
+   for Steam games (steamworks.js is made for it); Tauri makes smaller downloads.
