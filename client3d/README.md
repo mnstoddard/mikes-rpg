@@ -202,3 +202,37 @@ piece worn by the smooth character, the full set, the piece on an armor stand,
 or every set side by side, at day, sunset or night, on any of the Workshop's
 characters. Mike approves each piece (with the style he picked) or asks for
 changes with a note.
+
+## Fish and food (`src/food/`)
+
+Every fish, ingredient, crop, cooked dish and fishing spot, made from code in
+the same low-poly look. Sizes are real, in metres (a tuna is 1.8 m, a potato
+9 cm), so food is scaled up for icons.
+
+| Group | What's in it | Variants |
+|---|---|---|
+| Fish (`fish.ts`) | Minnow, Trout, Perch, Salmon, Pike, Tuna, Swordfish, Eel | Swimming (the whole body waves), Caught (lies on its side and flops) |
+| Cooked fish | The same 8 fish, cooked | Grilled (grill marks), Fried (golden crumb). Both steam |
+| Dishes (`dishes.ts`) | Stew, Stir fry, Curry, Steak, Roast | Their main ingredient (Fish, Chicken, Beef, Boar, Vegetable) |
+| Ingredients and crops (`ingredients.ts`) | Raw chicken, beef and boar, potato, carrot, onion, wheat, ginseng, blue lotus, mushroom, wild root, truffle | e.g. Drumstick or Breast; crops also have Growing (the plant in the ground, swaying) |
+| Fishing spots (`spots.ts`) | Shallow water and the 7 fish spots | Calm or Busy (ripples in the spot's game colour, bubbles, a fish that jumps out) |
+
+Names, levels and numbers come from `shared/` (cooking, foraging, farming,
+items), so the game and the 3D models always agree.
+
+```ts
+import { createFood, createFish } from "./food";
+const curry = createFood("dish-curry", { seed: 3, variant: 0 });
+scene.add(curry.object);
+curry.update(dt, time);   // every frame (steam, flopping, ripples...)
+curry.poke?.();           // a fish darts or flops, a spot makes a fish jump
+const pike = createFish("pike", { state: "caught" });
+```
+
+## The Food Gallery
+
+Like the Tree Gallery, for all 41 fish, food and fishing spot models: try each
+variant, watch it move, and Approve it or ask for changes with a note.
+
+Build it with `npm run gallery:food -w client3d` (or `node build-gallery.mjs food` in `client3d/`). It makes
+`client3d/dist/food-gallery.html`.

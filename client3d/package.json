@@ -6,7 +6,8 @@
     "gallery": "node build-gallery.mjs",
     "typecheck": "tsc -p .",
     "gallery:armor": "node build-gallery.mjs armor",
-    "gallery:items": "node build-gallery.mjs items"
+    "gallery:items": "node build-gallery.mjs items",
+    "gallery:food": "node build-gallery.mjs food"
   },
   "dependencies": {
     "three": "^0.186.0"
