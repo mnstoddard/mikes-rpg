@@ -176,3 +176,29 @@ table, and **approve** it or ask for changes. Build it with
 `src/<name>-gallery/main.ts` with `gallery/<name>-template.html` into one file,
 `dist/<name>-gallery.html`. The names `tree` and `ore` build the review
 galleries above, and with no name it builds both of those.
+
+## Armor (`src/armor/`)
+
+Every armor piece in the game (bronze, iron, steel and mithril plate; leather;
+cloth robes) plus the planned ones from the story docs (Aurelite, Primeval
+hide, and the rank cloaks, robes and gauntlets), 46 in all. Each piece is made
+in code, shaped to fit the body it is worn on, and hung on the character's
+joints so it moves with them. Every piece has 2 or 3 styles (e.g. helmets:
+Open helm, Full helm, Crested; shields: Round, Kite, Tower).
+
+```ts
+import { wearArmor } from "./armor";
+const helm = wearArmor(hero, "helmet_steel", { variant: 1 }); // game item ids
+helm.remove();
+```
+
+Numbers (armor points, levels, bars) come from `shared/gear.ts`, `shared/tools.ts`
+and `shared/handicraft.ts`, so the 2D and 3D games always agree.
+
+## The Armor Gallery
+
+`npm run gallery:armor` builds `client3d/dist/armor-gallery.html`. It shows each
+piece worn by the smooth character, the full set, the piece on an armor stand,
+or every set side by side, at day, sunset or night, on any of the Workshop's
+characters. Mike approves each piece (with the style he picked) or asks for
+changes with a note.
