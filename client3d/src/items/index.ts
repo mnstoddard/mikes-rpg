@@ -219,10 +219,8 @@ export const ITEM_LIST: ItemType[] = [
   prop("guild_board", "Guild board", "Notices and bounties, pinned under a little roof."),
 ];
 
-// Mike's first review (Nov 2026): everything approved except these six,
-// which were reworked from his notes and wait for a second look.
-const REWORKED = new Set(["rat_tail", "amulet", "anvil", "ashbound_note", "cloth", "leather"]);
-for (const t of ITEM_LIST) t.status = REWORKED.has(t.id) ? "waiting" : "approved";
+// Mike reviewed and approved every item (Nov 2026).
+for (const t of ITEM_LIST) t.status = "approved";
 
 export const ITEM_TYPES: Record<string, ItemType> = Object.fromEntries(ITEM_LIST.map((t) => [t.id, t]));
 export const ITEM_IDS = ITEM_LIST.map((t) => t.id);
