@@ -10,10 +10,10 @@ export interface CharacterRecipe {
   // Face
   faceWidth: number; faceLength: number; jaw: number; chin: number; cheeks: number; square: number;
   nose: "button" | "round" | "small" | "pointy" | "long"; noseSize: number;
-  mouth: "smile" | "neutral" | "grin" | "smirk" | "frown"; mouthWidth: number;
+  mouth: "smile" | "neutral" | "grin" | "smirk" | "oh" | "frown"; mouthWidth: number;
   ears: "round" | "pointy" | "elf"; earSize: number; blush: "off" | "on";
   // Eyes
-  eyeStyle: "classic" | "big" | "dots" | "sleepy"; eyeColor: string; eyeSize: number; eyeSpacing: number;
+  eyeStyle: "classic" | "big" | "wide" | "almond" | "cat" | "gentle" | "narrow" | "sleepy" | "happy" | "dots"; eyeColor: string; eyeSize: number; eyeSpacing: number;
   eyeHeight: number; eyeTilt: number; lashes: "off" | "on"; browThick: number; browTilt: number;
   // Hair
   hairStyle: "bald" | "buzz" | "short" | "messy" | "spiky" | "quiff" | "bob" | "long" | "ponytail" | "bun" | "pigtails" | "mohawk" | "afro";

@@ -128,6 +128,11 @@ export function openCreator(start: CharacterRecipe, mode: "new" | "edit", onSave
   scene.add(turn);
   let hero: Character | null = null;
   let spin = 0.4, dragX: number | null = null, idleSpin = true;
+  // Face, Eyes and Hair zoom the camera in on the head, turned mostly to the front.
+  let closeUp = false, zoom = 0;
+  const camFar = { pos: new THREE.Vector3(0, 1.25, 5.2), look: new THREE.Vector3(0, 0.95, 0) };
+  const camNear = { pos: new THREE.Vector3(0, 1.62, 2.1), look: new THREE.Vector3(0, 1.52, 0) };
+  const camLook = new THREE.Vector3();
   const rebuild = () => {
     if (hero) { turn.remove(hero.object); hero.dispose(); }
     hero = createCharacter(P);
@@ -155,7 +160,16 @@ export function openCreator(start: CharacterRecipe, mode: "new" | "edit", onSave
     raf = requestAnimationFrame(frame);
     const dt = Math.min(0.1, clock.getDelta());
     t += dt;
-    if (idleSpin) spin += dt * 0.35;
+    zoom += ((closeUp ? 1 : 0) - zoom) * Math.min(1, dt * 5);
+    camera.position.lerpVectors(camFar.pos, camNear.pos, zoom);
+    camera.lookAt(camLook.lerpVectors(camFar.look, camNear.look, zoom));
+    if (idleSpin) {
+      if (closeUp) {
+        // Sway gently near the front instead of spinning, so the face stays in view.
+        const want = Math.round(spin / (Math.PI * 2)) * Math.PI * 2 + Math.sin(t * 0.6) * 0.45;
+        spin += (want - spin) * Math.min(1, dt * 2);
+      } else spin += dt * 0.35;
+    }
     turn.rotation.y = spin;
     hero?.update(dt, t);
     renderer.render(scene, camera);
@@ -179,7 +193,7 @@ export function openCreator(start: CharacterRecipe, mode: "new" | "edit", onSave
       const b = document.createElement("button");
       b.textContent = name;
       b.className = name === tab ? "on" : "";
-      b.onclick = () => { tab = name; renderTabs(); renderControls(); };
+      b.onclick = () => { tab = name; closeUp = name === "Face" || name === "Eyes" || name === "Hair"; idleSpin = true; renderTabs(); renderControls(); };
       tabs.appendChild(b);
     }
   };
