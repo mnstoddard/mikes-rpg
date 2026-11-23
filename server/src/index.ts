@@ -15,7 +15,12 @@ app.set("trust proxy", 1); // Render sits in front: use the player's real addres
 // Bug reports from inside the game, and the password-protected page to review them.
 app.use(reportsRouter);
 // When the client has been built (npm run build), serve it from the same port.
-const clientDist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../client/dist");
+// Which game to show: the 3D one (client3d) on the 3D preview site, else the 2D one.
+// Render tells us the branch it deployed (RENDER_GIT_BRANCH), so the preview
+// site on the "3d" branch shows 3D without any extra setting; CLIENT=3d or
+// CLIENT=2d picks one by hand.
+const want3d = process.env.CLIENT ? process.env.CLIENT === "3d" : process.env.RENDER_GIT_BRANCH === "3d";
+const clientDist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), want3d ? "../../client3d/dist-game" : "../../client/dist");
 app.use(express.static(clientDist));
 app.get("/health", (_req, res) => { res.send("ok"); });
 
@@ -44,6 +49,6 @@ async function start() {
     console.warn("WARNING: DATABASE_URL isn't set, so accounts and saves will be lost on every redeploy or restart.");
   }
   await gameServer.listen(PORT);
-  console.log(`Game server listening on http://localhost:${PORT}`);
+  console.log(`Game server listening on http://localhost:${PORT} (serving the ${want3d ? "3D" : "2D"} game)`);
 }
 start();
