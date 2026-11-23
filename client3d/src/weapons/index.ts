@@ -59,90 +59,94 @@ export interface WeaponModel {
   uses: { metal?: boolean; wood?: boolean; gem?: boolean };
   /** Mike's review. Updated from the Weapon Gallery. */
   status: ReviewStatus;
+  /** The one design Mike picked for the game, if he chose just one. */
+  chosen?: number;
+  /** Mike's review note. */
+  note?: string;
   build: (o: WeaponOptions) => WeaponBuild;
 }
 
 export const WEAPON_MODELS: Record<WeaponKind, WeaponModel> = {
   dagger: {
-    id: "dagger", name: "Dagger", game: "dagger", inGame: true, status: "waiting", variants: DAGGER_VARIANTS, moves: ["stab"], hold: ["right"],
+    id: "dagger", name: "Dagger", game: "dagger", inGame: true, status: "approved", chosen: 1, note: "Just the Curved one.", variants: DAGGER_VARIANTS, moves: ["stab"], hold: ["right"],
     uses: { metal: true, wood: true }, build: buildDagger,
     about: "Short, quick and light. The first weapon most Kindled ever hold.",
     from: "Smithing (1 head + 1 handle). Stone ones in every shop.",
   },
   sword: {
-    id: "sword", name: "Sword", game: "sword", inGame: true, status: "waiting", variants: SWORD_VARIANTS, moves: ["slash"], hold: ["right"],
+    id: "sword", name: "Sword", game: "sword", inGame: true, status: "approved", variants: SWORD_VARIANTS, moves: ["slash"], hold: ["right"],
     uses: { metal: true, wood: true }, build: buildSword,
     about: "A one-handed blade. Leaves the other hand free for a shield.",
     from: "Smithing at the anvil.",
   },
   mace: {
-    id: "mace", name: "Mace", game: "mace", inGame: true, status: "waiting", variants: MACE_VARIANTS, moves: ["smash"], hold: ["right"],
+    id: "mace", name: "Mace", game: "mace", inGame: true, status: "approved", chosen: 1, note: "Just the Spiked one.", variants: MACE_VARIANTS, moves: ["smash"], hold: ["right"],
     uses: { metal: true, wood: true }, build: buildMace,
     about: "Slow and heavy. Brought down from overhead.",
     from: "Smithing at the anvil.",
   },
   spear: {
-    id: "spear", name: "Spear", game: "spear", inGame: true, status: "waiting", variants: SPEAR_VARIANTS, moves: ["stab"], hold: ["right"],
+    id: "spear", name: "Spear", game: "spear", inGame: true, status: "approved", variants: SPEAR_VARIANTS, moves: ["stab"], hold: ["right"],
     uses: { metal: true, wood: true }, build: buildSpear,
     about: "Long reach: hits from 2 tiles away.",
     from: "Smithing at the anvil.",
   },
   greatsword: {
-    id: "greatsword", name: "Two-handed sword", game: "greatsword", inGame: true, status: "waiting", variants: GREATSWORD_VARIANTS, moves: ["sweep"], hold: ["both"],
+    id: "greatsword", name: "Two-handed sword", game: "greatsword", inGame: true, status: "approved", variants: GREATSWORD_VARIANTS, moves: ["sweep"], hold: ["both"],
     uses: { metal: true, wood: true }, build: buildGreatsword,
     about: "The biggest melee hit, swung with both hands. No shield.",
     from: "Smithing at the anvil.",
   },
   sling: {
-    id: "sling", name: "Sling", game: "sling", inGame: true, status: "waiting", variants: SLING_VARIANTS, moves: ["sling"], hold: ["right"],
+    id: "sling", name: "Sling", game: "sling", inGame: true, status: "approved", note: "Looks fine; the swing may need work in the game.", variants: SLING_VARIANTS, moves: ["sling"], hold: ["right"],
     uses: { metal: true }, build: buildSling,
     about: "Whirl it round and let go. The metal is the shot it throws.",
     from: "Smithing. Stone ones in every shop.",
   },
   darts: {
-    id: "darts", name: "Darts", game: "darts", inGame: true, status: "waiting", variants: DART_VARIANTS, moves: ["throw"], hold: ["right"],
+    id: "darts", name: "Darts", game: "darts", inGame: true, status: "approved", variants: DART_VARIANTS, moves: ["throw"], hold: ["right"],
     uses: { metal: true, wood: true }, build: buildDarts,
     about: "Thrown fast, one after another. The quickest weapon there is.",
     from: "Smithing at the anvil.",
   },
   bow: {
-    id: "bow", name: "Bow", game: "bow", inGame: true, status: "waiting", variants: BOW_VARIANTS, moves: ["shoot"], hold: ["left"],
+    id: "bow", name: "Bow", game: "bow", inGame: true, status: "approved", variants: BOW_VARIANTS, moves: ["shoot"], hold: ["left"],
     uses: { wood: true }, build: buildBowWeapon,
     about: "The longest reach. The wood decides how hard it hits.",
     from: "Handicraft: 2 logs and a thread at Rook's workbench. Kael sells a pine one.",
   },
   arrows: {
-    id: "arrows", name: "Arrows", game: "bow", inGame: true, status: "waiting", variants: ARROW_VARIANTS, moves: ["shoot"], hold: ["left"],
+    id: "arrows", name: "Arrows", game: "bow", inGame: true, status: "approved", variants: ARROW_VARIANTS, moves: ["shoot"], hold: ["left"],
     uses: { metal: true }, build: buildArrows,
     about: "A bow needs them. The tip sets the damage; about 1 in 3 can be picked up again.",
     from: "Handicraft: a pine log, a tip and 2 feathers make 10.",
   },
   staff: {
-    id: "staff", name: "Staff", game: "staff", inGame: true, status: "waiting", variants: STAFF_VARIANTS, moves: ["cast"], hold: ["right"],
+    id: "staff", name: "Staff", game: "staff", inGame: true, status: "approved", variants: STAFF_VARIANTS, moves: ["cast"], hold: ["right"],
     uses: { wood: true, gem: true }, build: buildStaff,
     about: "Fires bolts. Plain ones fire Firebolt; a gem from Enchanting changes the bolt.",
     from: "Handicraft (2 logs), then Enchanting at the altar for a gem.",
   },
   warden: {
-    id: "warden", name: "Warden's weapon", game: "sword", inGame: false, status: "waiting", variants: WARDEN_VARIANTS, moves: ["slash", "shoot", "cast"], hold: ["right", "left", "right"],
+    id: "warden", name: "Warden's weapon", game: "sword", inGame: false, status: "approved", variants: WARDEN_VARIANTS, moves: ["slash", "shoot", "cast"], hold: ["right", "left", "right"],
     uses: {}, build: buildWarden,
     about: "Kael's reward: a blade, a bow or a staff, whichever way you fight best. Wardens' green.",
     from: "Story: The Hollow Wolves (Act 1, Huntmaster Kael).",
   },
   goblin_dagger: {
-    id: "goblin_dagger", name: "Goblin-forged dagger", game: "dagger", inGame: false, status: "waiting", variants: GOBLIN_VARIANTS, moves: ["stab"], hold: ["right"],
+    id: "goblin_dagger", name: "Goblin-forged dagger", game: "dagger", inGame: false, status: "approved", variants: GOBLIN_VARIANTS, moves: ["stab"], hold: ["right"],
     uses: {}, build: buildGoblinDagger,
     about: "Rough iron, a bone handle and a lucky tooth. Ugly, but it works.",
     from: "Story: Goblin Trouble (Act 2, Warden Halbrecht).",
   },
   severing_blade: {
-    id: "severing_blade", name: "Severing Blade", game: "sword", inGame: false, status: "waiting", variants: SEVERING_VARIANTS, moves: ["slash"], hold: ["right"],
+    id: "severing_blade", name: "Severing Blade", game: "sword", inGame: false, status: "approved", variants: SEVERING_VARIANTS, moves: ["slash"], hold: ["right"],
     uses: {}, build: buildSevering,
     about: "Mithril, the Thornmother's fang, a cut gem and Ysolde's enchant. Its edge of light cuts Vael's threads.",
     from: "Story: The Severing Blade (Act 4, Ashbound path, Smith Brann).",
   },
   lightforged: {
-    id: "lightforged", name: "Lightforged weapon", game: "sword", inGame: false, status: "waiting", variants: LIGHTFORGED_VARIANTS, moves: ["slash", "smash", "cast"], hold: ["right"],
+    id: "lightforged", name: "Lightforged weapon", game: "sword", inGame: false, status: "approved", variants: LIGHTFORGED_VARIANTS, moves: ["slash", "smash", "cast"], hold: ["right"],
     uses: {}, build: buildLightforged,
     about: "White-gold, quenched in a filled soul gem. It shines a little too brightly.",
     from: "Story: Lightforged (Act 4, Lightkeeper path, undercroft forge).",
