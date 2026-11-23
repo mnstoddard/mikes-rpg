@@ -491,3 +491,11 @@ worked out from your Mastery levels. Trees live in `shared/skilltree.ts`.
 - Melee, Ranged: hit more often, hit harder, chance an attack costs no stamina.
 - Magic: hit more often, hit harder, chance a spell costs no mana.
 - Defense: +5 max health per rank, monsters hit you less, more Defense XP.
+
+## Versions and updates
+
+Every update that goes live gets a version number (0.2, 0.3, ...; 1.0 is saved for the Steam
+release). The list is in `shared/version.ts` and, in words, in `CHANGELOG.md`: add the new
+update at the top of both. The game shows its version at the bottom of Settings, and each 🐞
+report records the version it was sent from.
+

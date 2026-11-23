@@ -28,20 +28,23 @@
 @keyframes flash3d { 0% { opacity: .6; } 100% { opacity: 0; } }
 #rotate3d { font-size: 22px; }
 
-/* The character creator */
-#creator { position: fixed; inset: 0; z-index: 12; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.55); }
-#creator .cr-panel { position: static; display: flex; width: min(940px, calc(100vw - 16px)); height: min(640px, calc(100vh - 16px)); overflow: hidden; }
+/* The character creator. It must fit the screen on any phone: dvh is the height you can
+   actually see (100vh hides the bottom behind a phone's address bar), and the options list
+   scrolls on its own so "Start my adventure" always stays on screen. */
+#creator { position: fixed; inset: 0; z-index: 12; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.55);
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); box-sizing: border-box; }
+#creator .cr-panel { position: static; display: flex; width: min(940px, calc(100vw - 16px)); height: min(640px, calc(100vh - 16px)); height: min(640px, calc(100dvh - 16px)); overflow: hidden; }
 .cr-stage { position: relative; flex: 1 1 50%; background: radial-gradient(circle at 50% 40%, #5d6f7e, #26303a); cursor: grab; touch-action: none; }
 .cr-stage canvas { width: 100%; height: 100%; display: block; }
 .cr-hint { position: absolute; bottom: 8px; width: 100%; text-align: center; font-size: 12px; color: #dfe6ea; opacity: .7; pointer-events: none; }
-.cr-side { flex: 1 1 50%; display: flex; flex-direction: column; padding: 12px 14px; min-width: 0; }
+.cr-side { flex: 1 1 50%; display: flex; flex-direction: column; padding: 12px 14px; min-width: 0; min-height: 0; }
 .cr-side h2 { margin: 0 0 8px; font-size: 18px; color: #ffd84a; font-weight: normal; text-align: center; }
 .cr-presets, .cr-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
 .cr-side button { font: inherit; font-size: 13px; padding: 5px 9px; border: 1px solid #6b5a3e; border-radius: 3px; background: #5a4a2f; color: #fff; cursor: pointer; touch-action: manipulation; }
 .cr-side button:hover { background: #6e5b3a; }
 .cr-side button.on { border-color: #ffd84a; background: #7a6338; }
 .cr-tabs button { flex: 1; }
-.cr-controls { flex: 1; overflow-y: auto; padding-right: 4px; }
+.cr-controls { flex: 1 1 0; min-height: 0; overflow-y: auto; padding-right: 4px; overscroll-behavior: contain; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
 .cr-controls h4 { margin: 8px 0 4px; font-size: 12px; color: #c9bc9c; font-weight: normal; text-transform: uppercase; letter-spacing: .5px; }
 .cr-row { margin-bottom: 8px; }
 .cr-row label { display: block; font-size: 13px; color: #f2e6c9; margin-bottom: 3px; }
@@ -56,7 +59,27 @@
 .cr-buttons button { flex: 1; padding: 9px 0; font-size: 14px; }
 .cr-buttons .cr-save { background: #3f7a32; }
 .cr-buttons .cr-save:hover { background: #4b8f3c; }
+/* Phones held upright: the character on top, the options below. */
 @media (max-width: 700px) {
-  #creator .cr-panel { flex-direction: column; height: calc(100vh - 16px); }
-  .cr-stage { flex: 0 0 38%; }
+  #creator .cr-panel { flex-direction: column; width: calc(100vw - 8px); height: calc(100vh - 8px); height: calc(100dvh - 8px); }
+  .cr-stage { flex: 0 0 32%; min-height: 120px; }
+  .cr-side { flex: 1 1 0; padding: 8px 10px; }
+  .cr-side h2 { font-size: 16px; margin-bottom: 6px; }
+  .cr-presets, .cr-tabs { margin-bottom: 6px; }
+  /* The ready-made looks in one row you can swipe sideways, to leave room for the options. */
+  .cr-presets { flex-wrap: nowrap; overflow-x: auto; touch-action: pan-x; scrollbar-width: none; }
+  .cr-presets button { flex: 0 0 auto; }
+  .cr-buttons { margin-top: 8px; }
+}
+/* Phones on their side (wide but short): side by side again, with less padding. */
+@media (max-height: 500px) and (min-width: 480px) {
+  #creator .cr-panel { flex-direction: row; width: calc(100vw - 8px); height: calc(100vh - 8px); height: calc(100dvh - 8px); }
+  .cr-stage { flex: 0 0 38%; min-height: 0; }
+  .cr-side { flex: 1 1 0; padding: 6px 10px; }
+  .cr-side h2 { font-size: 15px; margin-bottom: 4px; }
+  .cr-presets, .cr-tabs { margin-bottom: 4px; }
+  .cr-presets { flex-wrap: nowrap; overflow-x: auto; touch-action: pan-x; scrollbar-width: none; }
+  .cr-presets button { flex: 0 0 auto; }
+  .cr-buttons { margin-top: 6px; }
+  .cr-buttons button { padding: 7px 0; }
 }

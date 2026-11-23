@@ -4,6 +4,7 @@
 // platelegs on the hips and legs, boots on the shins and feet, a shield on the
 // left forearm, a cloak on the back, gauntlets on the hands.
 import * as THREE from "three";
+import { drape } from "../character/drape";
 import type { Character } from "../character";
 import { shapes } from "../character";
 import { ArmorLook } from "./looks";
@@ -327,11 +328,13 @@ function buildLegs(ctx: Ctx) {
   if (look.kind === "cloth") {
     const len = v === 0 ? 0.12 + J.hipsY - 0.09 : 0.12 + F.thighL * 1.05;
     const flare = v === 0 ? 1.95 : 1.55;
-    const skirt = ctx.add(J.hips, new THREE.CylinderGeometry(F.hipW * 1.14, F.hipW * flare, len, 44, 3, true), mats.main, 0, 0.12 - len / 2, 0);
+    const skirt = ctx.add(J.hips, new THREE.CylinderGeometry(F.hipW * 1.14, F.hipW * flare, len, 44, 10, true), mats.main, 0, 0.12 - len / 2, 0);
     skirt.scale.z = zs;
     const hem = ctx.add(J.hips, new THREE.TorusGeometry(F.hipW * flare, 0.012, 6, 44), mats.trim, 0, 0.12 - len, 0);
     hem.rotation.x = Math.PI / 2;
     hem.scale.y = zs;
+    // The skirt and its hem bend out around the legs as they stride.
+    drape([skirt, hem], J, F, { top: 0.12, bottom: 0.12 - len, rTop: F.hipW * 1.14, rBottom: F.hipW * flare, zs });
     const belt = ctx.add(J.hips, new THREE.CylinderGeometry(F.hipW * 1.16, F.hipW * 1.16, 0.04, 40, 1, true), mats.trim, 0, 0.1, 0);
     belt.scale.z = zs;
     return;
