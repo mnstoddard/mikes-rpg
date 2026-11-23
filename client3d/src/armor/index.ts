@@ -116,10 +116,11 @@ for (const h of honours) entries.push({ ...h, set: "honours", planned: true, fac
 // Mike's reviews (Nov 23, from the Armor Gallery). Every piece is approved in
 // its first style, except: shields use the Tower style for now ("maybe we will
 // do some different shields that have different properties later"), and the
-// bronze helmet, platebody and boots were changed after his notes and are
-// waiting for him to look again. The fixes apply to every metal.
+// bronze helmet, platebody and boots were changed after his notes (helmets
+// come straight down, arms fully covered, boots redesigned) and he approved
+// them too. The fixes apply to every metal.
 const CHOSEN_STYLE: Record<string, number> = { shield_bronze: 2, shield_iron: 2, shield_steel: 2, shield_mithril: 2, shield_aurelite: 2 };
-const WAITING = new Set(["helmet_bronze", "platebody_bronze", "boots_bronze"]);
+const WAITING = new Set<string>();
 for (const e of entries) {
   e.status = WAITING.has(e.id) ? "waiting" : "approved";
   e.style = CHOSEN_STYLE[e.id] ?? 0;
