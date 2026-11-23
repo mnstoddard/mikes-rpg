@@ -37,6 +37,14 @@ export function setReportRoom(r: Room | null) {
   room = r;
 }
 
+// The 3D game draws the world itself: it tells us its name and how to take a picture of it.
+let clientName = "2d";
+let worldShot: (() => HTMLCanvasElement | null) | null = null;
+export function setReportSource(name: string, shot: () => HTMLCanvasElement | null) {
+  clientName = name;
+  worldShot = shot;
+}
+
 /** The server address: in dev the game server is on :2567, in production it's this same address. */
 function serverBase() {
   return import.meta.env.DEV ? `${location.protocol}//${location.hostname}:2567` : "";
@@ -45,7 +53,8 @@ function serverBase() {
 // ---- Screenshot ----
 
 /** The game world, as a picture (Phaser draws it on a canvas we can't copy directly). */
-function snapshotWorld(): Promise<HTMLImageElement | null> {
+function snapshotWorld(): Promise<HTMLImageElement | HTMLCanvasElement | null> {
+  if (worldShot) return Promise.resolve(worldShot());
   const game = (window as any).game as Phaser.Game | undefined;
   if (!game?.renderer) return Promise.resolve(null);
   return new Promise((resolve) => {
@@ -171,7 +180,7 @@ async function sendReport() {
       body: JSON.stringify({
         kind,
         note: text,
-        client: "2d",
+        client: clientName,
         sessionId: room?.sessionId,
         screenshot: shotOn.checked ? shot : null,
         info,
