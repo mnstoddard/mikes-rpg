@@ -6,10 +6,14 @@ import { Server } from "colyseus";
 import { WebSocketTransport } from "@colyseus/ws-transport";
 import { WorldRoom } from "./WorldRoom";
 import { store, storageName } from "./storage";
+import { reportsRouter } from "./reports";
 
 const PORT = Number(process.env.PORT ?? 2567);
 
 const app = express();
+app.set("trust proxy", 1); // Render sits in front: use the player's real address (for the report rate limit)
+// Bug reports from inside the game, and the password-protected page to review them.
+app.use(reportsRouter);
 // When the client has been built (npm run build), serve it from the same port.
 const clientDist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../client/dist");
 app.use(express.static(clientDist));
