@@ -114,9 +114,15 @@ function fishingRod(wood: Wood): ItemShape {
     ring.rotation.y = Math.PI / 2;
     seg.add(ring);
     parent.add(seg);
+    seg.name = `rod-seg${i}`;
     pieces.push(seg);
     parent = seg;
   }
+  // The tip, for anything that needs to hang a line from it (the 3D game's fishing line).
+  const tip = new THREE.Object3D();
+  tip.name = "rod-tip";
+  tip.position.y = L / 3;
+  pieces[2].add(tip);
   // Grip and reel.
   g.add(rod(0.026, 0.024, 0.28, barkMat(wood), 7, 0.02));
   const reel = rod(0.035, 0.035, 0.025, metalMat("iron"), 10, -0.012);
@@ -126,10 +132,12 @@ function fishingRod(wood: Wood): ItemShape {
   // The line, hanging from the tip, with a red-and-white float.
   const line = rod(0.0015, 0.0015, 0.5, mat(0xf4f1e8), 3, -0.5);
   line.position.set(0, L / 3, 0);
+  line.name = "rod-line";
   pieces[2].add(line);
   const bob = new THREE.Group();
   bob.add(ball(0.022, mat(0xd8382c), 0, 0, 0.012, 0), ball(0.021, mat(0xf4f1e8), 0, 0, -0.01, 0));
   bob.position.y = L / 3 - 0.5;
+  bob.name = "rod-bob";
   pieces[2].add(bob);
   // As you cast, the tip whips back, then forward.
   const s = held(g, new THREE.Vector3(0, 0.14, 0), "Cast", "cast", (f) => {

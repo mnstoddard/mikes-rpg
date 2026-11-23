@@ -13,6 +13,8 @@ import { createCharacter, makeRecipe, type Character, type CharacterRecipe } fro
 import { createMonster, MONSTER_BY_ID, type Monster } from "../monsters";
 import { createItem, type Item } from "../items";
 import { createWeapon } from "../weapons";
+import { createFood } from "../food";
+import { isWeapon, parseWeapon } from "../../../shared/gear";
 import { createEnv, type EnvPiece } from "../environment";
 import { tileCenter } from "./terrain";
 import { lookToRecipe } from "./look";
@@ -45,10 +47,12 @@ function healthBar(): { el: HTMLDivElement; set: (hp: number, max: number) => vo
 
 // ---------------------------------------------------------------- arm swings
 
-type Move = "chop" | "strike" | "dig" | "cast" | "hold";
+type Move = "chop" | "strike" | "dig" | "cast" | "hold" | "punch";
 /** Right shoulder and elbow angles through each move: [time 0-1, shoulder, elbow] (the Items Gallery's swings). */
 const ARM: Record<Move, { seconds: number; keys: [number, number, number][] }> = {
   hold: { seconds: 1, keys: [[0, -0.9, -0.6], [1, -0.9, -0.6]] },
+  // Bare fists: a quick jab straight forward (the left fist takes turns, see update).
+  punch: { seconds: 0.55, keys: [[0, -1.0, -1.9], [0.3, -1.25, -2.1], [0.5, -1.55, -0.15], [0.62, -1.5, -0.2], [1, -1.0, -1.9]] },
   chop: { seconds: 0.95, keys: [[0, -0.9, -0.6], [0.4, -2.9, -1.0], [0.58, -0.35, -0.05], [0.7, -0.4, -0.1], [1, -0.9, -0.6]] },
   strike: { seconds: 0.6, keys: [[0, -0.9, -0.6], [0.35, -1.8, -1.3], [0.55, -0.6, -0.15], [1, -0.9, -0.6]] },
   dig: { seconds: 1.2, keys: [[0, -0.7, -0.1], [0.35, -0.4, 0], [0.5, -0.4, 0], [0.8, -1.3, -0.7], [1, -0.7, -0.1]] },
@@ -103,6 +107,14 @@ export class Person {
   onHit?: (x: number, y: number) => void;
   private faceTile = { x: 0, y: 0 };
   private recipeText = "";
+  /** The weapon in their hand ("" = bare fists). */
+  private weapon = "";
+  /** Running (they move faster and the legs go quicker). */
+  running = false;
+  /** A fish being pulled out of the water (fishing). */
+  private catching?: { fish: THREE.Object3D; t: number; from: THREE.Vector3; dispose: () => void };
+  private rodTip?: THREE.Object3D;
+  private rodSegs: THREE.Object3D[] = [];
 
   constructor(recipe: CharacterRecipe, opts: { name: string; me?: boolean; npc?: boolean; badge?: string }) {
     this.hero = createCharacter(recipe);
@@ -186,6 +198,36 @@ export class Person {
 
   get moving() { return this.t < 1; }
 
+  /** The weapon they hold now (item id, or "" for fists). Shows next time they fight. */
+  setWeapon(item: string) {
+    if (item === this.weapon) return;
+    this.weapon = item;
+    if (this.action === "fighting") { const a = this.action; this.action = ""; this.setAction(a, this.faceTile.x, this.faceTile.y); }
+  }
+
+  /** A fish bites: the rod bends hard and they pull it up out of the water, into their hand. */
+  catchFish(item: string) {
+    if (this.action !== "fishing" || !this.bobber) return;
+    this.catching?.dispose();
+    let fish: THREE.Object3D;
+    let dispose: () => void;
+    try {
+      const f = createFood(`fish-${item}`, { seed: 2 });
+      fish = f.object;
+      dispose = () => { fish.parent?.remove(fish); f.dispose(); };
+    } catch {
+      fish = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 4), new THREE.MeshStandardMaterial({ color: 0xc0c8d0 }));
+      dispose = () => { fish.parent?.remove(fish); (fish as THREE.Mesh).geometry.dispose(); };
+    }
+    // Fish models are life size; make sure even a minnow shows.
+    const b = new THREE.Box3().setFromObject(fish);
+    const len = Math.max(0.05, b.max.x - b.min.x, b.max.z - b.min.z);
+    fish.scale.setScalar(Math.max(1, 0.35 / len));
+    fish.traverse((o) => { if ((o as THREE.Mesh).isMesh) o.castShadow = true; });
+    this.root.parent?.add(fish);
+    this.catching = { fish, t: 0, from: this.bobber.group.position.clone(), dispose };
+  }
+
   setAction(action: string, faceX: number, faceY: number) {
     this.faceTile = { x: faceX, y: faceY };
     if (action === this.action) return;
@@ -197,8 +239,10 @@ export class Person {
     this.face.copy(tileCenter(faceX, faceY));
     const d = this.face.clone().sub(this.root.position);
     if (d.lengthSq() > 0.01) this.wantYaw = Math.atan2(d.x, d.z);
-    if (a.weapon) {
-      const w = createWeapon("sword", { metal: "bronze", wood: "pine" } as never);
+    if (a.weapon && isWeapon(this.weapon)) {
+      // What they really hold (a dagger, a sword, a staff...).
+      const { type, metal, wood } = parseWeapon(this.weapon);
+      const w = createWeapon(type, { metal, wood } as never);
       const mount = new THREE.Group();
       mount.rotation.x = Math.PI / 2;
       const inner = new THREE.Group();
@@ -217,6 +261,12 @@ export class Person {
       this.hero.joints.handR.add(holder);
       holder.traverse((o) => { if ((o as THREE.Mesh).isMesh) o.castShadow = true; });
       this.held = { obj: holder, dispose: () => { holder.parent?.remove(holder); item.dispose(); } };
+      if (action === "fishing") {
+        // The line hangs from the rod's real tip (not from somewhere above the hand).
+        this.rodTip = item.object.getObjectByName("rod-tip") ?? undefined;
+        this.rodSegs = [item.object.getObjectByName("rod-seg1"), item.object.getObjectByName("rod-seg2")].filter((o): o is THREE.Object3D => !!o);
+        for (const n of ["rod-line", "rod-bob"]) { const o = item.object.getObjectByName(n); if (o) o.visible = false; }
+      }
     }
     if (action === "fishing") {
       const group = new THREE.Group();
@@ -235,6 +285,10 @@ export class Person {
   private dropHeld() {
     this.held?.dispose();
     this.held = undefined;
+    this.rodTip = undefined;
+    this.rodSegs = [];
+    this.catching?.dispose();
+    this.catching = undefined;
     if (this.bobber) {
       this.bobber.group.parent?.remove(this.bobber.group);
       this.bobber.line.parent?.remove(this.bobber.line);
@@ -254,9 +308,10 @@ export class Person {
     this.yaw += dy * Math.min(1, dt * 12);
     this.hero.object.rotation.y = this.yaw;
     const walking = this.t < 1;
-    this.hero.setAnim(walking ? "walk" : "idle");
+    this.hero.setAnim(walking ? (this.running ? "run" : "walk") : "idle");
     this.hero.update(dt, time);
-    const a = ACTIONS[this.action];
+    const fists = this.action === "fighting" && !isWeapon(this.weapon);
+    const a = fists ? { move: "punch" as Move, hits: false } : ACTIONS[this.action];
     if (a && !walking) {
       const secs = Math.max(ARM[a.move].seconds, a.hits ? TICK_MS / 1000 * 1.5 : 0);
       const before = this.swingT;
@@ -265,14 +320,43 @@ export class Person {
       const J = this.hero.joints;
       J.shoulderR.rotation.set(sh, 0, -0.2);
       J.elbowR.rotation.set(el, 0, 0);
+      if (fists) {
+        // Fists up, guarding; the left jabs half a beat after the right.
+        const [sl, elL] = armAngles("punch", (this.swingT + 0.5) % 1);
+        J.shoulderL.rotation.set(sl, 0, 0.2);
+        J.elbowL.rotation.set(elL, 0, 0);
+      }
       if (a.hits && before < 0.55 && this.swingT >= 0.55) this.onHit?.(this.faceTile.x, this.faceTile.y);
     }
     if (this.bobber) {
       const b = this.bobber.group;
       b.position.y = -0.1 + Math.sin(time * 3) * 0.03;
+      // A fish on the line: the float dips, the rod bends hard, then the fish comes up out of the water to you.
+      let bend = 0;
+      const c = this.catching;
+      if (c) {
+        c.t += dt;
+        const T = 1.3;
+        const f = Math.min(1, c.t / T);
+        bend = f < 0.35 ? f / 0.35 : f < 0.75 ? 1 : 1 - (f - 0.75) / 0.25;
+        if (f < 0.35) { b.position.y = -0.1 - 0.12 * (f / 0.35); c.fish.visible = false; }
+        else {
+          // Up out of the water in an arc, wriggling, toward the hand.
+          const k = Math.min(1, (f - 0.35) / 0.55);
+          const hand = new THREE.Vector3();
+          this.hero.joints.handR.getWorldPosition(hand);
+          c.fish.visible = true;
+          c.fish.position.lerpVectors(c.from, hand, k);
+          c.fish.position.y += Math.sin(k * Math.PI) * 1.4;
+          c.fish.rotation.set(Math.sin(time * 30) * 0.4, k * 3, Math.PI / 2 * (1 - k));
+          b.position.lerpVectors(c.from, hand, k * 0.95);
+        }
+        if (f >= 1) { c.dispose(); this.catching = undefined; b.position.copy(c.from); }
+      }
+      this.rodSegs.forEach((sg) => { sg.rotation.z = bend * 0.45; });
       const tip = new THREE.Vector3();
-      this.hero.joints.handR.getWorldPosition(tip);
-      tip.y += 1.2;
+      if (this.rodTip) this.rodTip.getWorldPosition(tip);
+      else { this.hero.joints.handR.getWorldPosition(tip); tip.y += 1.2; }
       const pos = this.bobber.line.geometry.attributes.position as THREE.BufferAttribute;
       pos.setXYZ(0, tip.x, tip.y, tip.z);
       pos.setXYZ(1, b.position.x, b.position.y + 0.05, b.position.z);
@@ -471,6 +555,9 @@ export function makeStation(npc: NpcDef): StationView {
     parts.push({ update: (dt, t) => item.update(dt, t), dispose: () => item.dispose() });
     const box = new THREE.Box3().setFromObject(item.object);
     tag.obj.position.y = box.max.y + 0.4;
+  } else if (npc.id.startsWith("radiant_")) {
+    // The Radiants' statues are part of the hall already: just their name.
+    tag.obj.position.y = 3.4;
   } else if (npc.id.startsWith("lantern_") || npc.id.startsWith("round_")) {
     const lamp: EnvPiece = createEnv("decor-lamp", { variant: npc.id.startsWith("round_") ? 0 : 1, seed: 4 });
     root.add(lamp.object);
@@ -506,11 +593,17 @@ export function makeStation(npc: NpcDef): StationView {
     tag.obj.position.y = 3;
   }
   root.traverse((o) => { if ((o as THREE.Mesh).isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  // A ❗ over it when your quest wants you here.
+  const alert = label("alert3d", "❗");
+  alert.obj.position.y = tag.obj.position.y + 0.5;
+  alert.obj.visible = false;
+  root.add(alert.obj);
   return {
     root,
+    alert,
     update: (dt, t, night) => parts.forEach((p) => p.update(dt, t, night)),
     setLit,
-    dispose: () => { tag.obj.element.remove(); parts.forEach((p) => p.dispose()); },
+    dispose: () => { tag.obj.element.remove(); alert.obj.element.remove(); parts.forEach((p) => p.dispose()); },
   };
 }
 

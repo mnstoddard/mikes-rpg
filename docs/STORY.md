@@ -145,7 +145,7 @@ fighting over it.
 
 | Character | Their role in the story |
 |---|---|
-| **Old Maren** | The very **first Kindled**, made by Vael during the old war. She learned what the shrines do and **cut her own thread**, which made her mortal: that's why she grew old. She sweeps the steps of the Heart Shrine in the Lighthall, where the Lightkeepers think she's harmless, so she can meet every new hero and quietly warn the ones who are ready to hear it. Secretly helps the Ashbound. |
+| **Old Maren** | The very **first Kindled**, made by Vael during the old war. She learned what the shrines do and **cut her own thread**, which made her mortal: that's why she grew old. She lives in a little cottage on the lake shore, near enough to the Lighthall that the Lightkeepers think she's harmless, and teaches every new hero the basics so she can quietly warn the ones who are ready to hear it. Secretly helps the Ashbound. |
 | **Captain Bryn** | Captain of the Heartvale watch. Puts bounties on the Ashbound because the Lightkeepers ask him to. Later, he has to decide whose side he's on. |
 | **Shopkeeper Tam** | A trader whose routes are closing as the land dies. Smuggles supplies to the Ashbound, for a price. |
 | **Forester Holt** | Notices the trees around the shrines dying first. |

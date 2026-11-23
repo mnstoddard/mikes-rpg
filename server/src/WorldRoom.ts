@@ -40,7 +40,7 @@ import {
   stackName, takeFromEntry, takeItem, usedSlots,
 } from "../../shared/bag";
 import { carriedWeight, carryCapacity, kg, weightOf } from "../../shared/weight";
-import { buyWithCharisma, maxStamina, sellWithCharisma, tradingXp, walkBonus } from "../../shared/stats";
+import { RUN_COST, RUN_REFILL, RUN_REST_MS, RUN_SPEED, buyWithCharisma, maxStamina, sellWithCharisma, tradingXp, walkBonus } from "../../shared/stats";
 import {
   CHEST_MAX, CHEST_RENT, CHEST_START, CHEST_STEP, GUILD_BOUNTY_COUNT, GuildBounty, GuildView, RANKS, REAGENTS, expandCost, guildBountyName,
   guildRenown, guildReward, newGuildBoard, newGuildBounty, rankFor, validGuildBounty,
@@ -146,6 +146,8 @@ export class Player extends Schema {
   @type("boolean") partyLead = false;
   @type("number") rank = 0; // Lightkeeper rank (shared/story.ts RANKS): others see your cloak
   @type("number") tithe = 0; // Tithe marks (Soul Debt): others see the gold links by your health bar
+  @type("string") held = ""; // the weapon in your hand (item id, "" for bare fists), so others see what you fight with
+  @type("boolean") running = false; // running (shared/stats.ts RUN_SPEED): others see you run
   @type("string") look = ""; // how your 3D character looks: the Character Workshop's recipe as JSON (shared/look.ts), "" until you make one
 
   // Server-only (not synced to everyone):
@@ -171,6 +173,9 @@ export class Player extends Schema {
   stamina = MAX_STAMINA; // each action costs some; food and time bring it back (max from Endurance)
   maxStamina = MAX_STAMINA;
   regenTicks = 0; // ticks since the last stamina came back on its own
+  winded = 0; // stamina used up for now by running (it all comes back once you stop: shared/stats.ts RUN_COST)
+  lastRunAt = 0; // when they last ran a tile (ms)
+  outOfBreath = false; // told them they're out of breath (once per run)
   locked: boolean[] = []; // per entry: locked items can't be sold or dropped by accident
   talkTo: NpcDef | null = null; // person the player is walking over to talk to
   quest: QuestProgress = newQuestProgress(); // where they are in the main quest (Maren's chapter, then the trainers')
@@ -392,6 +397,15 @@ export class WorldRoom extends Room<WorldState> {
       p.walkDir = { x: dx, y: dy };
       const next = this.keyStep(p);
       p.path = next ? [next] : [];
+    });
+
+    // Run (Shift, or the 🏃 button): faster, using stamina for the moment (it comes back once you stop).
+    this.onMessage("run", (client, msg: { on: boolean }) => {
+      const p = this.state.players.get(client.sessionId);
+      if (!p) return;
+      p.running = !!msg?.on;
+      p.outOfBreath = false;
+      p.stepMs = this.stepMsOf(p);
     });
 
     this.onMessage("chop", (client, msg: { x: number; y: number }) => {
@@ -901,7 +915,7 @@ export class WorldRoom extends Room<WorldState> {
       const step = this.step(p);
       if (!step) this.say(client, tutorialDone(p.quest) ? "Welcome back!" : "Welcome back! Talk to anyone with a ❗ for your next lesson.");
       else if (p.quest.active === "awakening" && p.quest.ch.awakening?.step === 0) this.say(client, "✨ You open your eyes on the steps of the Heart Shrine. Light pours over you. Someone is kneeling beside you: talk to Sister Celene (the ❗, just below the shrine).");
-      else if (p.quest.active === "maren" && p.quest.ch.maren?.step === 0) this.say(client, `Welcome! Go and talk to ${GUIDE_NAME} (the ❗ on the Lighthall's steps${areaAt(p.x, p.y)?.id === "lighthall" ? ": walk out of the big doors at the bottom of this hall" : ", just north of you"}). She'll show you how to get started.`);
+      else if (p.quest.active === "maren" && p.quest.ch.maren?.step === 0) this.say(client, `Welcome! Go and talk to ${GUIDE_NAME} in her cottage by the lake (${areaAt(p.x, p.y)?.id === "lighthall" ? "walk out of the big doors at the bottom of this hall, then " : ""}west along the road: your 🗺️ map shows her ❗). She'll show you how to get started.`);
       else this.say(client, `Welcome back! Your task: ${step.task}.`);
       for (const note of p.loginNotes.splice(0)) this.say(client, note);
     });
@@ -924,6 +938,8 @@ export class WorldRoom extends Room<WorldState> {
       const m = this.state.monsters.get(String(msg?.id));
       if (!p || !m || !m.alive || areaAt(m.x, m.y) !== areaAt(p.x, p.y)) return;
       if (isDanger(m.x, m.y) && !isDanger(p.x, p.y) && !gateOpen(p.quest)) return this.say(client, this.notReady());
+      // No fighting until Huntmaster Kael has taught you how (the tutorial comes first).
+      if (!isUnlocked(p.unlocked, "melee")) return this.say(client, `⚔️ ${this.notTaught("melee")} Until then, leave the monsters be.`);
       const blocked = this.fightBlock(p);
       if (blocked) return this.say(client, blocked);
       this.stopActions(p);
@@ -1271,6 +1287,14 @@ export class WorldRoom extends Room<WorldState> {
       }
       // Health comes back very slowly (1 a minute), mana faster (1 every 6 seconds).
       const client = this.clients.getById(sessionId);
+      // Catching your breath after running: it all comes back a few seconds after you stop.
+      if (p.winded > 0 && Date.now() - p.lastRunAt > RUN_REST_MS) {
+        const could = this.canRun(p);
+        p.winded = Math.max(0, p.winded - RUN_REFILL);
+        if (this.canRun(p) !== could) p.stepMs = this.stepMsOf(p);
+        if (!p.winded) p.outOfBreath = false;
+        if (client) this.sendStamina(client, p);
+      }
       if (tick % 5 === 0) this.expireBuffs(p, client);
       let vitals = false;
       if (p.hp < p.maxHp && ++p.healthTicks >= HEALTH_REGEN_TICKS) { p.healthTicks = 0; p.hp++; vitals = true; }
@@ -1309,6 +1333,7 @@ export class WorldRoom extends Room<WorldState> {
       p.x = next.x;
       p.y = next.y;
       p.dirty = true;
+      if (this.canRun(p)) this.runStep(p, now);
       // Walked onto a door: through it you go.
       const door = !p.path.length ? doorAt(p.x, p.y) : null;
       if (door) {
@@ -1439,6 +1464,7 @@ export class WorldRoom extends Room<WorldState> {
       if (client) this.say(client, this.fullReason(p, gotItem));
       return this.stopActions(p);
     }
+    if (skill === "fishing") this.broadcast("caught", { id: sessionId, item: gotItem }); // everyone sees the fish come out of the water
     if (!this.roll(p, skill, "staminaSave")) this.useStamina(p, skill);
     this.questEvent(p, client, { kind: "gather", skill: gather, resource, withTool: !!belt });
     this.wearTool(p, client, tool, wearFor(res.level));
@@ -1569,7 +1595,25 @@ export class WorldRoom extends Room<WorldState> {
   private stepMsOf(p: Player) {
     const now = worldNow();
     const speed = 1 + walkBonus(p.levels.dexterity) + (buffPower(p.buffs, "swift", now) + buffPower(p.buffs, "haste", now)) / 100;
-    return Math.round(TICK_MS / Math.max(0.5, speed - metalSlow(p.gear)));
+    return Math.round(TICK_MS / Math.max(0.5, speed - metalSlow(p.gear)) / (this.canRun(p) ? RUN_SPEED : 1));
+  }
+
+  /** Running, with breath left for another tile. */
+  private canRun(p: Player) {
+    return p.running && p.stamina - p.winded >= RUN_COST;
+  }
+
+  /** A tile run: a little breath used up for now. Out of breath, you're back to walking. */
+  private runStep(p: Player, now: number) {
+    p.winded += RUN_COST;
+    p.lastRunAt = now;
+    const client = this.clients.find((c) => this.state.players.get(c.sessionId) === p);
+    if (!this.canRun(p)) {
+      p.stepMs = this.stepMsOf(p);
+      if (client && !p.outOfBreath) this.say(client, "😮‍💨 You're out of breath, so you slow to a walk. Stop running for a few seconds and your stamina comes back.");
+      p.outOfBreath = true;
+    }
+    if (client) this.sendStamina(client, p);
   }
 
   /** Potion buffs that are running, for the bar under your health. */
@@ -1615,7 +1659,7 @@ export class WorldRoom extends Room<WorldState> {
   }
 
   private sendStamina(client: Client, p: Player) {
-    client.send("stamina", { stamina: p.stamina, max: p.maxStamina });
+    client.send("stamina", { stamina: p.stamina, max: p.maxStamina, winded: Math.min(p.winded, p.stamina) });
   }
 
   /** "1 tin ore" if you're short of something for this recipe (locked items don't count), else null. */
@@ -3190,6 +3234,7 @@ export class WorldRoom extends Room<WorldState> {
   }
 
   private sendGear(client: Client, p: Player) {
+    p.held = p.gear.weapon?.item ?? "";
     client.send("gear", { gear: p.gear, spell: p.spell });
   }
 
@@ -3287,6 +3332,7 @@ export class WorldRoom extends Room<WorldState> {
     const chapter = chapterById(p.quest.active!);
     prog.step++;
     prog.count = 0;
+    prog.got = []; // a fresh list for the next step (the last step's people don't count twice)
     p.dirty = true;
     this.leadStep(p);
     let step = this.step(p);
@@ -3384,7 +3430,7 @@ export class WorldRoom extends Room<WorldState> {
         this.say(client, `${chapter.name}: ${npc.kind === "person" ? "I'll have something more for you later." : ""} (📜 ${chapter.title}: ${opensAfter(q, chapter.id).toLowerCase()}.)`);
         return false;
       }
-      this.say(client, `${chapter.name}: Come and see me for a lesson once ${GUIDE_NAME} has shown you the basics. She's on the Lighthall's steps, in the town square.`);
+      this.say(client, `${chapter.name}: Come and see me for a lesson once ${GUIDE_NAME} has shown you the basics. She lives in the cottage on the lake shore, west along the road.`);
       return false;
     }
     if (q.active !== chapter.id) {
@@ -3437,17 +3483,23 @@ export class WorldRoom extends Room<WorldState> {
     for (const [item, n] of take) takeItem(p, item, n);
     for (const g of gifts) this.give(p, g.item, 1, g.durability, true); // gifts never count against weight, so the lessons can't get stuck
     if (step.coins) p.coins += step.coins;
-    this.dialog(client, step.lines ?? [], speaker);
-    if (take.length) this.say(client, `You hand over ${take.map(([item, n]) => (n === 1 ? aOr(ITEMS[item].single) : `${n} ${plural(ITEMS[item].name)}`)).join(" and ")}.`);
+    // What they hand over goes at the end of what they say, so it's clear what you got and where it went.
+    const lines = [...(step.lines ?? [])];
     if (gifts.length || step.coins) {
       const names = [...new Set(gifts.map((g) => g.item))].map((item) => {
         const n = gifts.filter((g) => g.item === item).length;
         if (n === 1) return aOr(ITEMS[item].single);
         return `${n} ${plural(ITEMS[item].name)}`;
       });
-      if (step.coins) names.push(formatMoney(step.coins));
-      this.say(client, `${chapter.name} gives you ${names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0]}.`);
+      if (step.coins) names.push(`${formatMoney(step.coins)} coins`);
+      const list = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0];
+      const where = gifts.length && step.coins ? "They're in your 🎒 bag (coins at the bottom)." : gifts.length ? "Look in your 🎒 bag." : "Coins show at the bottom of your 🎒 bag.";
+      lines.push(`🎁 ${speaker} gives you ${list}. ${where}`);
+      this.say(client, `🎁 ${speaker} gives you ${list}.`);
+      if (step.coins) client.send("reward", { text: `+${formatMoney(step.coins)}` });
     }
+    this.dialog(client, lines, speaker);
+    if (take.length) this.say(client, `You hand over ${take.map(([item, n]) => (n === 1 ? aOr(ITEMS[item].single) : `${n} ${plural(ITEMS[item].name)}`)).join(" and ")}.`);
     for (const [skill, xp] of Object.entries(step.xp ?? {}) as [SkillId, number][]) this.addSkillXp(p, client, skill, xp);
     // Alchemist Moss tells you the Tithe tonic's secret recipe.
     if (chapter.id === "tonics" && !p.discovered.includes("tithe")) {
@@ -3507,10 +3559,10 @@ export class WorldRoom extends Room<WorldState> {
     if (step && prog && step.goal.kind === "visit" && step.goal.npcs.includes(npc.id)) {
       if (prog.got?.includes(npc.id)) return false;
       prog.got = [...(prog.got ?? []), npc.id];
-      prog.count = prog.got.length;
+      prog.count = prog.got.filter((id) => (step.goal as { npcs: string[] }).npcs.includes(id)).length;
       p.dirty = true;
       const lines = step.visitLines?.[npc.id];
-      if (lines) this.dialog(client, lines, npc.name);
+      if (lines) this.dialog(client, lines, step.speaker ?? npc.name);
       if (prog.count >= step.goal.npcs.length) this.advance(p, client);
       else { this.say(client, `📜 ${prog.count} of ${step.goal.npcs.length} ${step.goal.names}.`); this.sendQuest(client, p); }
       this.saveSoon(p);

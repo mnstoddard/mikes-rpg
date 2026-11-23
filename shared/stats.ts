@@ -19,6 +19,16 @@ export const carryCapacity = (dexterity: number) => 440 + 10 * dexterity;
 /** Walking: 1% faster per Dexterity level above 1, capped at 30% (reached at Dexterity 31). */
 export const WALK_BONUS_CAP = 0.3;
 export const walkBonus = (dexterity: number) => Math.min(WALK_BONUS_CAP, 0.01 * Math.max(0, dexterity - 1));
+/**
+ * Running: hold Shift or tap 🏃 to run 80% faster. Each tile you run uses 1 of
+ * your stamina for the moment ("out of breath"), so you can run as many tiles
+ * as you have stamina. Stop running (or stand still) and after RUN_REST_MS it
+ * all comes back, RUN_REFILL a tick: running never costs stamina for good.
+ */
+export const RUN_SPEED = 1.8;
+export const RUN_COST = 1;
+export const RUN_REST_MS = 2500;
+export const RUN_REFILL = 8;
 /** Prices: 0.3% better per Charisma level above 1 (about 29% at 99), both selling and buying. */
 export const priceBonus = (charisma: number) => 0.003 * Math.max(0, charisma - 1);
 /** Trading (a Charisma skill): another 0.2% better per level above 1 (about 20% at 99), on top of Charisma. */

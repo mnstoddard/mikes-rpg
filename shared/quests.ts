@@ -130,6 +130,8 @@ export interface QuestStep {
   rank?: 1 | 2;
   /** Talk steps: Kael's old Warden weapon, picked for how you fight. */
   warden?: boolean;
+  /** Visit steps: who's talking in visitLines, if it's always the same person (Brother Oren's tour). */
+  speaker?: string;
   /** Visit steps: what each person says (or what you see) when you visit them. */
   visitLines?: Partial<Record<NpcId, string[]>>;
   /** Reach steps: what you see at each place. */
@@ -199,20 +201,20 @@ const ODO = "Farmer Odo";
 const LESSONS: Chapter[] = [
   // ---------------- Old Maren: Living off the land ----------------
   {
-    id: "maren", title: "Living off the land", giver: "maren", name: MAREN, where: "on the Lighthall's steps, in the town square",
+    id: "maren", title: "Living off the land", giver: "maren", name: MAREN, where: "in her cottage on the lake shore, west along the road from the square",
     steps: [
       {
-        task: `Talk to ${MAREN} (look for the ❗ on the Lighthall's steps, in the town square)`, goal: { kind: "talk" }, unlocks: ["fishing"],
+        task: `Talk to ${MAREN} in her cottage by the lake (west along the road from the square)`, goal: { kind: "talk" }, unlocks: ["fishing"],
         lines: [
           "Well now, a fresh face! I'm Maren. I fished these waters for forty years before my knees gave out.",
           "Everyone starts with empty hands, so let's begin with the oldest skill there is: fishing.",
-          "Walk west along the road to the lake and click the water's edge. You've no rod, so it'll be slow. Bring me back one minnow.",
+          "The lake is right outside my door. Click the water's edge. You've no rod, so it'll be slow. Bring me back one minnow.",
         ],
       },
       {
-        task: "Catch a minnow by hand at the lake (west along the road)",
+        task: "Catch a minnow by hand at the lake (right outside Maren's cottage)",
         goal: { kind: "gather", skill: "fishing", resource: "minnow", count: 1, byHand: true },
-        hint: "Follow the road west to the lake and click the water at its edge. By hand it takes a while, so be patient.",
+        hint: "The lake is right outside my cottage: click the water at its edge. By hand it takes a while, so be patient.",
       },
       {
         task: `Bring your minnow back to ${MAREN}`, goal: { kind: "talk" },
@@ -265,7 +267,7 @@ const LESSONS: Chapter[] = [
         task: `Tell ${MAREN} what you picked`, goal: { kind: "talk" }, unlocks: ["cooking"],
         lines: [
           "Good choice! And don't fret about picking wrong: resetting a tree is free, and all your points come back. Here's a few coins for learning that.",
-          "Now, raw minnows won't keep you going for long. Take this pine log to the stove right here and cook your fish into a stew. Pick Stew, tap your minnow to put it in the pot, and pick the Pine log to burn.",
+          "Now, raw minnows won't keep you going for long. Take this pine log to my stove, right here, and cook your fish into a stew. Pick Stew, tap your minnow to put it in the pot, and pick the Pine log to burn.",
         ],
         give: [LOG],
         coins: 25,
@@ -354,7 +356,7 @@ const LESSONS: Chapter[] = [
         lines: [
           "Cooking 3! Cooking is Dexterity, which lets you carry more and walk faster. You've learned all I have to teach.",
           "Now it's time you met the trainers. Forester Holt, Miner Greta and Smith Brann live on Trainer Row, east of the square, on the north side of the road. Shopkeeper Tam and Woodworker Rook are just west of the square. Everyone works indoors: walk onto a door to go in.",
-          "Huntmaster Kael's lodge is down the south road, by the gate to the Dark Forest. Archmage Ysolde runs the Mages' Guild to the south-west, and Captain Bryn here by the bounty board always has work.",
+          "Huntmaster Kael's lodge is down the south road, by the gate to the Dark Forest. Archmage Ysolde runs the Mages' Guild to the south-west, and Captain Bryn, by the bounty board in the town square, always has work.",
           "Visit them in any order you like. Anyone with a ❗ over their head has a lesson for you, and each one ends with a reward. Your 📜 Quests tab keeps track.",
         ],
         coins: 50,
@@ -583,7 +585,7 @@ const LESSONS: Chapter[] = [
         lines: [
           "So you want to fight? I'm Kael. South of here, past the gate, is the Dark Forest. Wolves, goblins, giant spiders and worse, and they attack anyone who wanders in.",
           "See the ❤ bar at the top left? That's your health. Fighting skills are Strength, and Strength raises your max health. If it runs out, you'll wake up at the Heart Shrine in the Lighthall, a bit shaken but with all your things.",
-          "Let's start small. Here's a bronze dagger. Weapons and armor go in your gear strip, under the tool belt. Click the dagger in your bag and press \"Hold\".",
+          "Let's start small. With nothing in your hand you fight with your fists: it works, but only just. So here's a bronze dagger. Weapons and armor go in your gear strip, under the tool belt. Click the dagger in your bag and press \"Hold\".",
         ],
         give: [DAGGER],
       },

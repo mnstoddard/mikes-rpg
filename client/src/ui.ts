@@ -42,7 +42,7 @@ import { isSoulGem, soulCapacity, soulFill } from "../../shared/jewelry";
 import { ENCHANTS, ENCHANT_IDS, EnchantId, INLAYS, Inlay, cappedGem, describeEnchant, enchantForGem, enchantKind, enchantsOf, fits, isSpent, soulPower } from "../../shared/enchanting";
 import {
   BASE_INGREDIENTS, DISHES, DISH_IDS, DishId, FOOD_KINDS, FUEL_STAMINA, INGREDIENTS, IngredientId, MAX_STAMINA, RAW_FISH_STAMINA, STAMINA_COST,
-  fireStamina, fitsDish, foodStamina, ingredientStamina, isFood, isIngredient, isMeal, mealBaseStamina, mealId, parseMeal,
+  fireStamina, fitsDish, foodStamina, ingredientStamina, isFood, isIngredient, isMeal, mealBaseStamina, mealId, mealRichness, parseMeal,
 } from "../../shared/cooking";
 import { ARROW_LEVEL, ARROW_RECOVER, BAITS, BAIT_IDS, BaitId, CLOTH_LEVEL, SOFT_LEVEL, THREAD_LEVEL, WOOD_LEVEL, arrowId, isArrow, isBait } from "../../shared/handicraft";
 import { TreeRanks, treeBonus } from "../../shared/skilltree";
@@ -1869,7 +1869,11 @@ function renderCraft() {
     const needs = gearNeeds(output)!;
     facts.unshift(`${gearEffect(output)}, ${gearDurability(output)} uses, to use: ${findSkill(needs.skill).def.name} ${needs.level}`);
   }
-  if (isMeal(output)) facts.unshift(`Gives ${staminaOf(output)} stamina`);
+  if (isMeal(output)) {
+    facts.unshift(`Gives ${staminaOf(output)} stamina`);
+    const rich = mealRichness(output);
+    if (rich < 0.995) detail.append(el("craft-info", `🔥 A rich meal is harder to get right: ${Math.round((1 - rich) * 100)}% lower starting chance (the more stamina a meal gives, the harder it is).`));
+  }
   if (isBait(output)) facts.unshift(`Lasts ${BAITS[output].uses} catches`);
   if (isArrow(output)) facts.unshift(`Adds up to ${METAL_DAMAGE[output.slice(7) as Material]} to a bow's hit`);
   if (isPotion(output) && !secret) facts.unshift(describeEffect(potionEffect(output, level)) + " (stronger as your Alchemy goes up)");
@@ -2571,16 +2575,25 @@ function renderInfo() {
 const staminaEl = document.getElementById("stamina")!;
 let staminaNow = MAX_STAMINA;
 let staminaMax = MAX_STAMINA;
+/** Stamina used up for the moment by running (it comes back once you stop). */
+let staminaWinded = 0;
 const vitals = { hp: 50, maxHp: 50, mana: 50, maxMana: 50 };
 
-function vitalRow(label: string, now: number, max: number, color: string, title: string) {
+function vitalRow(label: string, now: number, max: number, color: string, title: string, ghost = 0) {
   const row = el("vital");
   row.title = title;
   const bar = el("stamina-bar");
   const fill = document.createElement("div");
-  fill.style.width = `${Math.floor((now / max) * 100)}%`;
+  fill.style.width = `${Math.floor(((now - ghost) / max) * 100)}%`;
   fill.style.background = color;
   bar.appendChild(fill);
+  // Running: the part you're out of breath for shows faded (it comes back once you stop).
+  if (ghost > 0) {
+    const back = el("breath");
+    back.style.width = `${Math.floor((ghost / max) * 100)}%`;
+    bar.appendChild(back);
+    now -= ghost;
+  }
   row.append(el("stamina-label", `${label} ${now}/${max}`), bar);
   return row;
 }
@@ -2594,7 +2607,7 @@ function renderVitalBars() {
       `Health ${vitals.hp} of ${vitals.maxHp}. Monsters take it away. Drink a health potion to get it back (it also comes back 1 a minute). At 0 you wake up at the nearest shrine that can raise you.`),
     vitalRow("⚡", staminaNow, staminaMax, staminaNow < 10 ? "#e74c3c" : staminaNow < 30 ? "#f1c40f" : "#f5c542",
       `Stamina ${staminaNow} of ${staminaMax}. Chopping costs ${c.woodcutting}, mining ${c.mining}, digging ${c.foraging}, smelting ${c.smelting}, smithing ${c.smithing}, cooking ${c.cooking}, fishing ${c.fishing}, each weapon attack ${c.melee}. ` +
-      "It comes back 1 every 30 seconds. Eat fish or a meal (click it in your bag) for more."),
+      "It comes back 1 every 30 seconds. Eat fish or a meal (click it in your bag) for more. Running (Shift or 🏃) uses it for a moment: stop for a few seconds and it all comes back.", staminaWinded),
     vitalRow("🔮", vitals.mana, vitals.maxMana, "#4a7bd9", `Mana ${vitals.mana} of ${vitals.maxMana}. Spells use it. It comes back 1 every 6 seconds.`),
   );
   // Potion buffs: an icon and the minutes (or seconds) left for each. Tithe marks first.
@@ -2620,9 +2633,10 @@ function renderVitalBars() {
   queueMicrotask(drawParty); // keep the party panel just under the bars (it is set up later in this file)
 }
 
-export function renderStamina(stamina: number, max: number) {
+export function renderStamina(stamina: number, max: number, winded = 0) {
   staminaNow = stamina;
   staminaMax = max;
+  staminaWinded = Math.max(0, Math.min(stamina, winded));
   renderVitalBars();
   renderInfo(); // the Eat button turns off when you're full
 }

@@ -210,6 +210,7 @@ export function makeTree(shape: TreeShape, rng: Rng): Tree {
   // The stump: always there. The top sits on it.
   const stump = makeStump(rng, shape);
   object.add(stump);
+  const cutFace = stump.getObjectByName("cut")!;
   for (const b of shape.base ?? []) object.add(b);
 
   // pivot: where the tree hinges when it falls (the cut).
@@ -311,7 +312,7 @@ export function makeTree(shape: TreeShape, rng: Rng): Tree {
         const t = Math.min(1, growT / 1.6);
         // Grows with a little springy overshoot.
         pivot.scale.setScalar(t < 1 ? Math.max(0.001, easeOutBack(t)) : 1);
-        if (t >= 1) state = "standing";
+        if (t >= 1) { state = "standing"; cutFace.visible = false; }
       }
 
       // Bits of leaves and wood chips flying.
@@ -356,6 +357,7 @@ export function makeTree(shape: TreeShape, rng: Rng): Tree {
     fell() {
       if (state !== "standing") return;
       state = "falling";
+      cutFace.visible = true;
       fallT = 0;
       fallDir = rng() * Math.PI * 2;
     },
@@ -389,28 +391,43 @@ function makeStump(rng: Rng, shape: TreeShape): THREE.Group {
   const r = shape.trunkRadius;
   const h = shape.cutHeight;
   const sides = 7;
-  const side = new THREE.CylinderGeometry(r, r * 1.25, h, sides, 1, true);
+  // A touch narrower at the top than the trunk above it, so the standing tree shows no seam there.
+  const side = new THREE.CylinderGeometry(r * 0.95, r * 1.18, h, sides, 1, true);
   side.translate(0, h / 2, 0);
-  const sideMesh = new THREE.Mesh(jitterSafe(side, rng, r * 0.12), mat(shape.bark, shape.barkMat));
+  const jittered = jitterSafe(side, rng, r * 0.12);
+  // Keep the top ring round (no jitter), tucked inside the trunk.
+  const sp = jittered.attributes.position as THREE.BufferAttribute;
+  for (let i = 0; i < sp.count; i++) {
+    if (sp.getY(i) < h - 1e-3) continue;
+    const a = Math.atan2(sp.getZ(i), sp.getX(i));
+    sp.setXYZ(i, Math.cos(a) * r * 0.95, h, Math.sin(a) * r * 0.95);
+  }
+  jittered.computeVertexNormals();
+  const sideMesh = new THREE.Mesh(jittered, mat(shape.bark, shape.barkMat));
   sideMesh.castShadow = true;
   sideMesh.receiveShadow = true;
   g.add(sideMesh);
 
   // The cut face: pale wood with a darker ring and a dot in the middle.
-  const top = new THREE.Mesh(new THREE.CircleGeometry(r * 0.98, sides), mat(shape.heartwood));
+  // The cut face only shows once the tree is chopped down (it looked like a cut ring on standing trees).
+  const cut = new THREE.Group();
+  cut.name = "cut";
+  cut.visible = false;
+  g.add(cut);
+  const top = new THREE.Mesh(new THREE.CircleGeometry(r * 0.95, sides), mat(shape.heartwood));
   top.rotation.x = -Math.PI / 2;
   top.position.y = h + 0.002;
   top.receiveShadow = true;
-  g.add(top);
+  cut.add(top);
   const ringColor = new THREE.Color(shape.heartwood).multiplyScalar(0.82).getHex();
   const ring = new THREE.Mesh(new THREE.RingGeometry(r * 0.45, r * 0.55, sides), mat(ringColor));
   ring.rotation.x = -Math.PI / 2;
   ring.position.y = h + 0.004;
-  g.add(ring);
+  cut.add(ring);
   const dot = new THREE.Mesh(new THREE.CircleGeometry(r * 0.14, 5), mat(ringColor));
   dot.rotation.x = -Math.PI / 2;
   dot.position.y = h + 0.006;
-  g.add(dot);
+  cut.add(dot);
 
   // Roots poking out at the base.
   const roots = 3 + Math.floor(rng() * 3);

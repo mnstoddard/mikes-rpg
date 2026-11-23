@@ -17,7 +17,7 @@ import {
   ALL_TOOL_IDS, BAR_IDS, BarId, Belt, MATERIALS, MATERIAL_IDS, METALS, METAL_IDS, TOOL_TYPES, TOOL_TYPE_IDS, ToolType, WOODS, WOOD_IDS,
   ROD_START_SUCCESS, barId, headCount, isTool, maxDurability, metalOfBar, parseTool, toolBonus, toolForSkill, toolId, wearFor,
 } from "./tools";
-import { DISHES, DISH_IDS, DishId, SHOP_STEW, isMeal, mealLevel, mealXp, parseMeal } from "./cooking";
+import { DISHES, DISH_IDS, DishId, SHOP_STEW, isMeal, mealLevel, mealRichness, mealXp, parseMeal } from "./cooking";
 import {
   ARROWS_PER_CRAFT, ARROW_LEVEL, BAITS, BAIT_IDS, BaitId, CLOTH_LEVEL, SOFT_LEVEL, TANNING, THREAD_LEVEL, WOOD_LEVEL, arrowId, isArrow, isBait,
 } from "./handicraft";
@@ -219,7 +219,8 @@ function mealRecipe(item: ItemId): Recipe | undefined {
   const meal = parseMeal(item);
   if (!meal) return undefined;
   const d = DISHES[meal.dish];
-  return { output: item, skill: "cooking", inputs: ITEMS[item].inputs!, level: mealLevel(item as never), xp: mealXp(item as never), mastery: meal.dish, start: d.start, needsTool: true };
+  // Richer meals (more stamina) start harder to cook (shared/cooking.ts richness).
+  return { output: item, skill: "cooking", inputs: ITEMS[item].inputs!, level: mealLevel(item as never), xp: mealXp(item as never), mastery: meal.dish, start: d.start * mealRichness(item as never), needsTool: true };
 }
 
 /** Potions (shared/alchemy.ts): made on the spot too, one id per potion and bonus. */

@@ -15,6 +15,7 @@ export type NpcId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kae
   | "archmage" | "altar" | "guildboard" | "repairer" | "alchemy_table" | "chest" | "chest_east" | "chest_forest" | "chest_farm" | "chest_inn"
   // The Lighthall (the Lightkeepers' temple) and its people.
   | "heart_shrine" | "aldric" | "celene" | "vale" | "oren" | "lisette" | "tomas" | "wynne" | "plinth"
+  | "radiant_1" | "radiant_2" | "radiant_3" | "radiant_4"
   // The story (shared/story.ts): lanterns to light, the shrines out in Heartvale, and Rhys.
   | "lantern_1" | "lantern_2" | "lantern_3" | "lantern_4" | "lantern_5" | "lantern_6"
   | "round_1" | "round_2" | "round_3" | "round_4" | "round_5" | "round_6"
@@ -36,11 +37,11 @@ export interface NpcDef {
 export const NPCS: NpcDef[] = [
   {
     // The guide (shared/quests.ts). Click her to talk; a ❗ shows when she has something for you.
-    id: "maren", name: "Old Maren", kind: "person", ...at("maren"), color: 0x2e86c1, badge: "🎣",
+    id: "maren", name: "Old Maren", kind: "person", ...at("maren.maren"), color: 0x2e86c1, badge: "🎣",
     greeting: "",
   },
   {
-    id: "stove", name: "Stove", kind: "station", ...at("stove"), color: 0x3a3a3a,
+    id: "stove", name: "Stove", kind: "station", ...at("maren.stove"), color: 0x3a3a3a,
     greeting: "The stove is ready. Pick a dish, put ingredients in the pot, and pick a log to burn.",
   },
   {
@@ -201,6 +202,23 @@ export const NPCS: NpcDef[] = [
   {
     id: "plinth", name: "Empty plinth", kind: "station", ...at("lighthall.plinth"), color: 0xbdb6a0,
     greeting: "A plinth with no statue. Someone has scratched the name off the stone.",
+  },
+  // Four of the Radiants' statues (Brother Oren's tour, in shared/story.ts). Their plaques:
+  {
+    id: "radiant_1", name: "Halric the Dawnbringer", kind: "station", ...at("lighthall.radiant_1"), color: 0xf3efe4,
+    greeting: "HALRIC THE DAWNBRINGER. He held the Greyspine pass for three days, and fell eleven times. \"Again.\"",
+  },
+  {
+    id: "radiant_2", name: "Ysra of the Saltmere", kind: "station", ...at("lighthall.radiant_2"), color: 0xf3efe4,
+    greeting: "YSRA OF THE SALTMERE. She lit the coast's shrines from a fishing boat. Someone has left a seashell at her feet.",
+  },
+  {
+    id: "radiant_3", name: "Tilda Ashwalker", kind: "station", ...at("lighthall.radiant_3"), color: 0xf3efe4,
+    greeting: "TILDA ASHWALKER. She walked into the Withering and led two hundred people home.",
+  },
+  {
+    id: "radiant_4", name: "Orla the Kind", kind: "station", ...at("lighthall.radiant_4"), color: 0xf3efe4,
+    greeting: "ORLA THE KIND. A healer through the Grey Fever. The stone of her hands is worn smooth where people touch them.",
   },
   // ---- The story: lanterns, shrines and Rhys (shared/story.ts) ----
   ...([1, 2, 3, 4, 5, 6] as const).map((n): NpcDef => ({

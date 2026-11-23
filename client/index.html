@@ -278,7 +278,9 @@
     #stamina { top: calc(42px + env(safe-area-inset-top)); left: calc(8px + env(safe-area-inset-left)); width: 140px; padding: 5px 8px; font-size: 12px; color: #fff; }
     .stamina-label { margin-bottom: 3px; }
     .stamina-bar { height: 8px; background: #1d170f; border: 1px solid #6b5a3e; border-radius: 4px; overflow: hidden; }
+    .stamina-bar { display: flex; }
     .stamina-bar div { height: 100%; background: #f5c542; transition: width .3s; }
+    .stamina-bar div.breath { background: repeating-linear-gradient(45deg, #f5c54266 0 3px, #f5c54222 3px 6px); }
     @media (max-width: 640px), (max-height: 500px) {
       #stamina { top: calc(36px + env(safe-area-inset-top)); width: 110px; padding: 3px 6px; font-size: 11px; }
     }

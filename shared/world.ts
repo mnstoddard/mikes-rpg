@@ -14,7 +14,7 @@
 //   ^ cliff   h hedge   q well   x barricade   | fence   + gate   ! warning sign
 //   r roof    u gold roof (the Lighthall)   H wooden wall   p floorboards   D door   J locked door
 //   A white stone wall   a white stone floor   o glowing floor   z gold carpet   S statue
-//   W purple wall   _ purple rug (the Mages' Guild)   n table   b bookshelf   e crates and beds
+//   W purple wall   _ purple rug (the Mages' Guild)   n table   b bookshelf   e crates   y bed
 //   C cave floor   K cave wall   G crystal floor   V gravestone   l stony ground   * dig patch   f farm lot
 //   Trees: T pine  O oak  B birch  M maple  Y yew  I ironwood  E elderwood
 //   Rocks: # copper or tin (it was stone)  c copper  t tin  i iron  k coal  v silver  g gold  m mithril
@@ -273,8 +273,6 @@ function buildOverworld(): Canvas {
   c.fill(96, 64, 106, 65, "a"); // the white steps
   pendingDoors.push({ ...lh!, area: "lighthall", label: "Enter the Lighthall", sign: "✨ The Lighthall" });
   places.lighthallSteps = { x: 101, y: 65 };
-  places.maren = { x: 98, y: 66 };
-  places.stove = { x: 96, y: 66 };
   places.board = { x: 110, y: 69 };
   places.bryn = { x: 112, y: 69 };
   c.set(90, 70, "q"); // the well
@@ -287,6 +285,9 @@ function buildOverworld(): Canvas {
   const rook = building(c, 63, 76, 9, 7, { side: "n", at: 4 });
   pendingDoors.push({ ...rook!, area: "rook", label: "Enter Woodworker Rook's workshop", sign: "🪚 Woodworker Rook" });
   places.tanning_rack = { x: 72, y: 76 };
+  // Old Maren's cottage, on the lake's east shore (her stove is inside).
+  const maren = building(c, 64, 64, 5, 4, { side: "s", at: 2 });
+  pendingDoors.push({ ...maren!, area: "maren", label: "Enter Old Maren's cottage", sign: "🎣 Old Maren" });
   // Wren's hut, by the lake, and the chicken coop north of the road.
   const wren = building(c, 54, 76, 7, 6, { side: "n", at: 3 });
   pendingDoors.push({ ...wren!, area: "wren", label: "Enter Herbalist Wren's hut", sign: "🌱 Herbalist Wren" });
@@ -533,14 +534,18 @@ function insides(): Inside[] {
     c.set(5, 9, "J"); // the ledger room's locked door
     c.fill(10, 13, 10, 14, "a"); c.fill(10, 21, 10, 22, "a");
     c.fill(2, 2, 8, 2, "b"); c.fill(2, 4, 3, 7, "n"); c.fill(6, 4, 8, 4, "e");
-    c.fill(2, 20, 2, 24, "e"); c.fill(8, 20, 8, 24, "e");
+    // Sister Wynne's dormitory: beds along the walls (the way in from the nave stays clear).
+    for (let y = 19; y <= 25; y++) c.set(1, y, "y");
+    for (const y of [19, 24, 25]) c.set(9, y, "y");
     c.fill(2, 10, 4, 10, "b");
     // The east wing: the Hall of Champions (statues of past Radiants) and the library.
     c.fill(26, 1, 26, 25, "A");
     c.fill(27, 18, 35, 18, "A");
     c.fill(26, 12, 26, 14, "a"); c.fill(26, 21, 26, 22, "a");
     for (const [x, y] of [[28, 3], [31, 3], [34, 3], [28, 8], [34, 8], [28, 13], [34, 13]] as const) c.set(x, y, "S");
-    c.fill(28, 20, 34, 20, "b"); c.fill(28, 24, 34, 24, "b");
+    // The library: shelves along both walls, and two rows of free-standing shelves (books on both sides).
+    c.fill(28, 19, 35, 19, "b"); c.fill(28, 25, 35, 25, "b");
+    for (const y of [21, 23]) { c.fill(29, y, 30, y, "b"); c.fill(33, y, 34, y, "b"); }
     // The nave: pillars, a gold carpet from the door to the shrine, and the shrine's glow.
     for (const [x, y] of [[13, 5], [23, 5], [13, 11], [23, 11], [13, 17], [23, 17], [13, 22], [23, 22]] as const) c.set(x, y, "A");
     c.fill(16, 3, 20, 7, "o");
@@ -553,8 +558,16 @@ function insides(): Inside[] {
         heartShrine: { x: 18, y: 5 }, wake: { x: 18, y: 8 }, aldric: { x: 21, y: 9 }, celene: { x: 15, y: 9 },
         vale: { x: 3, y: 14 }, ledgerDoor: { x: 5, y: 9 }, oren: { x: 31, y: 13 }, lisette: { x: 31, y: 22 },
         tomas: { x: 6, y: 11 }, wynne: { x: 5, y: 22 }, plinth: { x: 31, y: 8 },
+        // Four of the Radiants' statues (Brother Oren's tour).
+        radiant_1: { x: 28, y: 13 }, radiant_2: { x: 34, y: 13 }, radiant_3: { x: 28, y: 8 }, radiant_4: { x: 34, y: 8 },
       },
     });
+  }
+  // ---- Old Maren's cottage, by the lake: her stove, her bed, and her fishing things ----
+  {
+    const { c, door } = house(9, 7);
+    c.set(7, 1, "y"); c.fill(4, 1, 5, 1, "b"); c.set(1, 4, "n"); c.set(7, 4, "e");
+    list.push({ id: "maren", name: "Old Maren's cottage", kind: "indoor", canvas: c, doors: [door], spots: { maren: { x: 4, y: 3 }, stove: { x: 2, y: 2 } } });
   }
   // ---- Shops and trainers' houses ----
   {
