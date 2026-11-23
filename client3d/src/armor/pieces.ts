@@ -113,16 +113,28 @@ function buildHelmet(ctx: Ctx) {
   if (look.kind === "metal") {
     const full = v === 1;
     const X = full ? 0.16 : 0.13;
-    shell((d) => {
+    // Below the middle of the head the helmet comes straight down, like a
+    // bucket, instead of curving in under the jaw and chin.
+    const p = new V3(), p0 = new V3();
+    const straight = (d: THREE.Vector3, off: THREE.Vector3, t: number) => {
+      if (t <= 0 || d.y >= 0) return t;
+      headPoint(d, H, p);
+      headPoint(dirN(d.x, 0, d.z), H, p0);
+      const k = 1 + X;
+      off.x += p0.x * k - p.x * (1 + t);
+      off.z += p0.z * k - p.z * (1 + t);
+      return t;
+    };
+    shell((d, off) => {
       if (full) {
         // Covers the whole head and face, with an eye slit.
         if (d.z > 0.45 && Math.abs(d.y - 0.12) < 0.075 && Math.abs(d.x) < 0.62) return -1;
-        return edge(d.y + 0.72, X);
+        return straight(d, off, edge(d.y + 0.72, X));
       }
-      // Open at the face, down to the jaw at the sides (cheek guards) and the neck at the back.
+      // Open at the face, with cheek guards at the sides and a neck guard at the back.
       const front = d.z > 0 ? lerp(-0.08, 0.36, sm(0, 0.8, d.z)) : lerp(-0.08, -0.6, sm(0, 0.8, -d.z));
       const cheek = sm(0.48, 0.66, Math.abs(d.x)) * (d.z < 0.62 ? 1 : 0);
-      return edge(d.y - lerp(front, -0.6, cheek * (v === 0 ? 1 : 0.5)), X);
+      return straight(d, off, edge(d.y - lerp(front, -0.6, cheek * (v === 0 ? 1 : 0.5)), X));
     });
     // A ridge over the top, front to back.
     const rg = new THREE.TorusGeometry(H.ry * (1 + X) * 1.01, R * 0.045, 8, 40, Math.PI * 0.7);
@@ -208,11 +220,18 @@ function buildBody(ctx: Ctx) {
         d.scale.set(1.05, 0.75, 1.0);
         d.rotation.z = -s * 0.42;
       }
-      // Vambraces on the forearms.
-      ctx.add(el, limbGeo(F.foR * 1.32, F.foR * 1.12, F.foLen * 0.6), mats.main, 0, -F.foLen * 0.2, 0);
-      ctx.add(el, new THREE.TorusGeometry(F.foR * 1.36, F.foR * 0.14, 6, 24), mats.trim, 0, -F.foLen * 0.2, 0).rotation.x = Math.PI / 2;
-      // Rerebraces on the upper arms (bigger on Heavy).
-      ctx.add(sh, limbGeo(F.upR * (v === 1 ? 1.32 : 1.22), F.upR * 1.12, F.upLen * (v === 1 ? 0.62 : 0.5)), mats.main, 0, -F.upLen * (v === 1 ? 0.26 : 0.36), 0);
+      // The arm is covered all the way: rerebrace (upper arm) from under the
+      // pauldron to the elbow, a round couter over the elbow, and a vambrace
+      // from the elbow to the wrist, so there are no gaps when the arm bends.
+      const upR = F.upR * (v === 1 ? 1.3 : 1.22);
+      ctx.add(sh, limbGeo(upR, F.upR * 1.12, F.upLen * 0.98), mats.main, 0, -F.upLen * 0.02, 0);
+      const couter = ctx.add(el, ball(Math.max(F.upR * 1.2, F.foR * 1.45), 20, 14), mats.trim, 0, 0, 0);
+      couter.scale.set(1, 1, 1.05);
+      const wing = ctx.add(el, ball(F.upR * 0.75, 14, 10), mats.trim, s * F.upR * 0.5, 0, -F.upR * 0.55);
+      wing.scale.set(0.5, 1, 1);
+      ctx.add(el, limbGeo(F.foR * 1.36, F.foR * 1.14, F.foLen * 0.92), mats.main, 0, -F.foLen * 0.02, 0);
+      ctx.add(el, new THREE.TorusGeometry(F.foR * 1.2, F.foR * 0.14, 6, 24), mats.trim, 0, -F.foLen * 0.93, 0).rotation.x = Math.PI / 2;
+      ctx.add(sh, new THREE.TorusGeometry(F.upR * 1.14, F.upR * 0.12, 6, 24), mats.trim, 0, -F.upLen * 0.9, 0).rotation.x = Math.PI / 2;
     } else if (cloth) {
       ctx.add(sh, ball(F.upR * 1.4, 16, 12), mats.main);
       ctx.add(sh, limbGeo(F.upR * 1.14, F.upR * 1.12, F.upLen), mats.main);
@@ -227,6 +246,8 @@ function buildBody(ctx: Ctx) {
   }
 
   if (metal) {
+    // A collar that closes the gap between the breastplate and the neck.
+    if (v !== 1) ctx.add(J.spine, ringsGeo([{ y: T * 0.9, rx: F.shW * 0.66, rz: F.chD * 0.9 }, { y: T * 0.99, rx: F.neckR * 1.75, rz: F.neckR * 1.65 }, { y: T * 1.03, rx: F.neckR * 1.55, rz: F.neckR * 1.45 }], 32), mats.trim);
     if (v === 1) {
       // Gorget at the neck and a fauld (plates over the hips).
       ctx.add(J.spine, ringsGeo([{ y: T * 0.9, rx: F.shW * 0.72, rz: F.chD * 0.95 }, { y: T * 1.02, rx: F.neckR * 2.0, rz: F.neckR * 1.9 }, { y: T * 1.06, rx: F.neckR * 1.8, rz: F.neckR * 1.7 }], 32), mats.trim);
@@ -321,6 +342,9 @@ function buildLegs(ctx: Ctx) {
   const hb = ctx.add(J.hips, ringsGeo([{ y: -0.03, rx: F.hipW * k, rz: F.hipD * k }, { y: 0.12, rx: F.midW * k, rz: F.midD * k }], 36), metal ? mats.main : mats.trim);
   void hb;
   ctx.add(J.hips, new THREE.BoxGeometry(0.05, 0.045, 0.012), metal ? mats.trim : mats.accent, 0, 0.09, F.midD * k + 0.006);
+  // Close the gap between the legs at the front.
+  const crotch = ctx.add(J.hips, ball(F.hipW * 0.42, 16, 12), mats.main, 0, -0.045, F.hipD * 0.35);
+  crotch.scale.set(1, 0.9, 1.1);
   for (const s of [1, -1]) {
     const hip = s > 0 ? J.hipL : J.hipR, knee = s > 0 ? J.kneeL : J.kneeR;
     ctx.add(hip, limbGeo(F.thighR * (metal ? 1.24 : 1.13), F.thighR * (metal ? 1.06 : 1.0), F.thighL * 0.82), mats.main, 0, -F.thighL * 0.06, 0);
@@ -356,7 +380,11 @@ function buildBoots(ctx: Ctx) {
   const metal = look.kind === "metal", cloth = look.kind === "cloth";
   for (const s of [1, -1]) {
     const knee = s > 0 ? J.kneeL : J.kneeR, ank = s > 0 ? J.ankL : J.ankR;
-    const g = cloth ? 1.12 : metal ? 1.3 : 1.22;
+    if (metal) {
+      metalBoot(ctx, s, knee, ank, v === 1);
+      continue;
+    }
+    const g = cloth ? 1.12 : 1.22;
     const foot = ctx.add(ank, ball(0.5, 24, 16), mats.main, 0, -F.footH * (cloth ? 0.38 : 0.3), 0.04);
     foot.scale.set(F.footW * g, F.footH * (cloth ? 1.35 : 1.7), F.footLen * (cloth ? 1.08 : 1.16));
     if (cloth) {
@@ -368,28 +396,76 @@ function buildBoots(ctx: Ctx) {
       continue;
     }
     const tall = v === 1;
-    const len = F.shinL * (tall ? 0.8 : metal ? 0.42 : 0.4);
-    ctx.add(knee, limbGeo(F.shinR * (metal ? 1.5 : 1.3), F.shinR * (metal ? 1.25 : 1.18), len), mats.main, 0, -F.shinL + len, 0);
+    const len = F.shinL * (tall ? 0.8 : 0.4);
+    ctx.add(knee, limbGeo(F.shinR * 1.3, F.shinR * 1.18, len), mats.main, 0, -F.shinL + len, 0);
     const top = -F.shinL + len;
-    if (metal) {
-      // Sabaton plates over the toes.
-      for (let i = 0; i < 3; i++) {
-        const p = ctx.add(ank, ball(0.5, 16, 8), mats.trim, 0, -F.footH * 0.05 + i * 0.004, 0.04 + F.footLen * (0.12 + i * 0.13));
-        p.scale.set(F.footW * 1.34, F.footH * 0.9, F.footLen * 0.14);
-      }
-      const cuff = ctx.add(knee, new THREE.TorusGeometry(F.shinR * 1.5, F.shinR * 0.18, 6, 24), mats.trim, 0, top, 0);
-      cuff.rotation.x = Math.PI / 2;
-      if (tall) {
-        const kc = ctx.add(knee, ball(F.thighR * 0.9, 16, 12), mats.trim, 0, 0, F.thighR * 0.2);
-        kc.scale.set(1, 1, 0.85);
-      }
-    } else {
+    {
       // Leather: a turned-over cuff, or fur.
       const cuff = ctx.add(knee, new THREE.TorusGeometry(F.shinR * (tall ? 1.4 : 1.3), F.shinR * (tall ? 0.42 : 0.2), 8, 24), tall ? mats.lining : mats.trim, 0, top, 0);
       cuff.rotation.x = Math.PI / 2;
       ctx.add(ank, new THREE.BoxGeometry(F.footW * 1.0, 0.01, F.footLen * 0.5), mats.trim, 0, -F.footH * 0.88, 0.04);
     }
   }
+}
+
+/**
+ * A metal boot (sabaton): a rounded foot, overlapping plates over the top
+ * that get smaller towards a pointed toe cap, a sole, round plates on the
+ * ankles, and a shin guard that follows the leg and flares at the top.
+ * Tall greaves go up to a knee plate.
+ */
+function metalBoot(ctx: Ctx, s: number, knee: THREE.Object3D, ank: THREE.Object3D, tall: boolean) {
+  const { c, mats } = ctx;
+  const F = c.fit;
+  const W = F.footW * 1.22, Hh = F.footH * 1.55, L = F.footLen * 1.12;
+  const cy = -F.footH * 0.32, cz = 0.04;
+  // The foot underneath.
+  const foot = ctx.add(ank, ball(0.5, 28, 18), mats.main, 0, cy, cz);
+  foot.scale.set(W, Hh, L);
+  // A sole, a little wider than the foot.
+  const sole = ctx.add(ank, ball(0.5, 24, 10), mats.trim, 0, cy - Hh * 0.36, cz - L * 0.02);
+  sole.scale.set(W * 1.04, Hh * 0.28, L * 1.03);
+  // Plates over the top of the foot, each band a little bigger than the one in front of it,
+  // so they overlap like a lobster's tail. (Spheres turned so their pole points at the toe.)
+  const band = (t0: number, t1: number, k: number, mat: THREE.Material) => {
+    const g = new THREE.SphereGeometry(0.5, 28, 6, Math.PI, Math.PI, t0, t1 - t0);
+    g.rotateX(Math.PI / 2);
+    const m = ctx.add(ank, g, mat, 0, cy, cz);
+    m.scale.set(W * k, Hh * k, L * k);
+    return m;
+  };
+  band(0, 0.42, 1.05, mats.trim); // toe cap
+  band(0.38, 0.7, 1.07, mats.main);
+  band(0.66, 0.98, 1.09, mats.main);
+  band(0.94, 1.3, 1.11, mats.main);
+  // A raised ridge down the middle of the foot, from the ankle to the toe.
+  const ridge = new THREE.TorusGeometry(0.5, 0.045, 6, 24, Math.PI * 0.42);
+  ridge.rotateZ(Math.PI * 0.08);
+  ridge.rotateY(-Math.PI / 2);
+  const rm = ctx.add(ank, ridge, mats.trim, 0, cy, cz);
+  rm.scale.set(W * 0.4, Hh * 1.1, L * 1.1);
+  // Round plates on both sides of the ankle.
+  for (const side of [1, -1]) {
+    const disc = ctx.add(ank, new THREE.CylinderGeometry(F.shinR * 0.36, F.shinR * 0.36, 0.01, 18), mats.trim, side * F.shinR * 0.95, F.footH * 0.35, -0.008);
+    disc.rotation.z = Math.PI / 2;
+  }
+  // The shin guard, shaped to the leg: narrow at the ankle, wider at the top, then a rolled rim.
+  const top = tall ? F.shinL * 0.9 : F.shinL * 0.48;
+  // The leg narrows from 1.12 shinR at the knee to 0.75 at the ankle: follow it, just outside.
+  const legR = (y: number) => F.shinR * lerp(0.75, 1.12, (y + F.shinL) / F.shinL);
+  const at = (f: number, grow = 1.04) => new THREE.Vector2(legR(-F.shinL + top * f) * grow + 0.004, -F.shinL + top * f);
+  const pts = [new THREE.Vector2(F.shinR * 0.88, -F.shinL - F.footH * 0.1), at(0.15), at(0.5), at(0.9), at(1, 1.08)];
+  const r1 = pts[4].x;
+  const shaft = ctx.add(knee, new THREE.LatheGeometry(pts, 32), mats.main);
+  shaft.scale.z = 1.06;
+  const rimTop = ctx.add(knee, new THREE.TorusGeometry(r1, F.shinR * 0.06, 6, 32), mats.trim, 0, -F.shinL + top, 0);
+  rimTop.rotation.x = Math.PI / 2;
+  rimTop.scale.y = 1.06;
+  if (tall) {
+    const kc = ctx.add(knee, ball(F.thighR * 0.8, 16, 12), mats.trim, 0, -F.thighR * 0.1, F.thighR * 0.35);
+    kc.scale.set(1.05, 0.95, 0.7);
+  }
+  void s;
 }
 
 // ---------- Shields ----------

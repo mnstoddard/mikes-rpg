@@ -60,6 +60,8 @@ export interface ArmorEntry {
   facts: [string, string][];
   /** Mike's review. Updated from the Armor Gallery. */
   status: ReviewStatus;
+  /** The style (variant) Mike chose for the game. */
+  style: number;
 }
 
 const TYPE_PIECE: Record<ArmorType, PieceKind> = { helmet: "helmet", platebody: "platebody", platelegs: "platelegs", boots: "boots", shield: "shield" };
@@ -86,21 +88,21 @@ const entries: ArmorEntry[] = [];
 const TYPES: ArmorType[] = ["helmet", "platebody", "platelegs", "boots", "shield"];
 for (const m of METAL_SETS)
   for (const t of TYPES)
-    entries.push({ id: `${t}_${m}`, name: `${METALS[m].name} ${ARMOR[t].name.toLowerCase()}`, set: m, piece: TYPE_PIECE[t], look: m, planned: false, facts: gameFacts(t, m), status: "waiting" });
+    entries.push({ id: `${t}_${m}`, name: `${METALS[m].name} ${ARMOR[t].name.toLowerCase()}`, set: m, piece: TYPE_PIECE[t], look: m, planned: false, facts: gameFacts(t, m), status: "waiting", style: 0 });
 for (const m of ["leather", "cloth"] as const)
   for (const t of TYPES) {
     const name = SOFT_NAMES[m][t];
     if (!name) continue;
-    entries.push({ id: `${t}_${m}`, name, set: m, piece: TYPE_PIECE[t], look: m, planned: false, facts: gameFacts(t, m), status: "waiting" });
+    entries.push({ id: `${t}_${m}`, name, set: m, piece: TYPE_PIECE[t], look: m, planned: false, facts: gameFacts(t, m), status: "waiting", style: 0 });
   }
 const SOFT_PLANNED: Record<ArmorType, string> = { helmet: "Primeval cap", platebody: "Primeval jerkin", platelegs: "Primeval chaps", boots: "Primeval boots", shield: "Primeval buckler" };
 for (const t of TYPES) {
-  entries.push({ id: `${t}_aurelite`, name: `Aurelite ${ARMOR[t].name.toLowerCase()}`, set: "aurelite", piece: TYPE_PIECE[t], look: "aurelite", planned: true, facts: [["Slot", SLOT_NAMES[ARMOR[t].slot]], ["In the game", "Planned (no numbers yet)"]], status: "waiting" });
+  entries.push({ id: `${t}_aurelite`, name: `Aurelite ${ARMOR[t].name.toLowerCase()}`, set: "aurelite", piece: TYPE_PIECE[t], look: "aurelite", planned: true, facts: [["Slot", SLOT_NAMES[ARMOR[t].slot]], ["In the game", "Planned (no numbers yet)"]], status: "waiting", style: 0 });
 }
 for (const t of TYPES) {
-  entries.push({ id: `${t}_primeval`, name: SOFT_PLANNED[t], set: "primeval", piece: TYPE_PIECE[t], look: "primeval", planned: true, facts: [["Slot", SLOT_NAMES[ARMOR[t].slot]], ["In the game", "Planned (no numbers yet)"]], status: "waiting" });
+  entries.push({ id: `${t}_primeval`, name: SOFT_PLANNED[t], set: "primeval", piece: TYPE_PIECE[t], look: "primeval", planned: true, facts: [["Slot", SLOT_NAMES[ARMOR[t].slot]], ["In the game", "Planned (no numbers yet)"]], status: "waiting", style: 0 });
 }
-const honours: Omit<ArmorEntry, "set" | "planned" | "status" | "facts">[] = [
+const honours: Omit<ArmorEntry, "set" | "planned" | "status" | "facts" | "style">[] = [
   { id: "outfit_plain_robe", name: "Plain robe", piece: "platebody", with: ["platelegs"], look: "plain", about: "What you wake up in on the shrine steps (Prologue: Awakening)." },
   { id: "cloak_ember", name: "Ember cloak", piece: "cloak", look: "ember", about: "Rank Ember: an orange cloak everyone sees (Prologue: Oath of the Flame)." },
   { id: "cloak_flame", name: "Flame cloak", piece: "cloak", look: "flame", about: "Rank Flame: a gold cloak." },
@@ -109,7 +111,19 @@ const honours: Omit<ArmorEntry, "set" | "planned" | "status" | "facts">[] = [
   { id: "outfit_radiant", name: "Radiant robes", piece: "platebody", with: ["platelegs"], look: "radiant", about: "The ceremony outfit for the Radiance Ceremony (Act 2D)." },
   { id: "cloak_threadcut", name: "Thread-cut cloak", piece: "cloak", look: "threadcut", about: "For cutting your own thread: no more Soul Debt (Act 4A: Cut the Thread)." },
 ];
-for (const h of honours) entries.push({ ...h, set: "honours", planned: true, facts: [["Worn on", h.piece === "cloak" ? "Back (new slot)" : h.piece === "gauntlets" ? "Hands (new slot)" : "Body and legs"], ["In the game", "Planned (story reward)"]], status: "waiting" });
+for (const h of honours) entries.push({ ...h, set: "honours", planned: true, facts: [["Worn on", h.piece === "cloak" ? "Back (new slot)" : h.piece === "gauntlets" ? "Hands (new slot)" : "Body and legs"], ["In the game", "Planned (story reward)"]], status: "waiting", style: 0 });
+
+// Mike's reviews (Nov 23, from the Armor Gallery). Every piece is approved in
+// its first style, except: shields use the Tower style for now ("maybe we will
+// do some different shields that have different properties later"), and the
+// bronze helmet, platebody and boots were changed after his notes and are
+// waiting for him to look again. The fixes apply to every metal.
+const CHOSEN_STYLE: Record<string, number> = { shield_bronze: 2, shield_iron: 2, shield_steel: 2, shield_mithril: 2, shield_aurelite: 2 };
+const WAITING = new Set(["helmet_bronze", "platebody_bronze", "boots_bronze"]);
+for (const e of entries) {
+  e.status = WAITING.has(e.id) ? "waiting" : "approved";
+  e.style = CHOSEN_STYLE[e.id] ?? 0;
+}
 
 export const ARMOR_ENTRIES: ArmorEntry[] = entries;
 export const ARMOR_BY_ID: Record<string, ArmorEntry> = Object.fromEntries(entries.map((e) => [e.id, e]));
@@ -126,6 +140,7 @@ export function lookOf(e: ArmorEntry): ArmorLook {
 export function wearArmor(c: Character, id: string, opts: { variant?: number } = {}): WornPiece {
   const e = ARMOR_BY_ID[id];
   if (!e) throw new Error(`No armor called ${id}`);
+  opts = { variant: e.style, ...opts };
   const look = LOOKS[e.look];
   const worn = [wearPiece(c, e.piece, look, opts.variant ?? 0), ...(e.with ?? []).map((p) => wearPiece(c, p, look, opts.variant ?? 0))];
   return { parts: worn.flatMap((w) => w.parts), remove: () => worn.forEach((w) => w.remove()) };

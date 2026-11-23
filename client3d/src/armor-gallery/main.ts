@@ -36,7 +36,7 @@ let anim: CharacterAnim = "idle";
 let who = 0;
 const reviews: Record<string, Review> = {};
 let saveReview: ((id: string, r: Review) => Promise<void>) | null = null;
-for (const e of ARMOR_ENTRIES) variantOf[e.id] = 0;
+for (const e of ARMOR_ENTRIES) variantOf[e.id] = e.style;
 
 // ---------- Scene ----------
 
