@@ -20,3 +20,7 @@ services:
       # so it isn't written here: set it in the Render dashboard (Environment tab).
       - key: DATABASE_URL
         sync: false
+      # Password for the bug report review page (/admin/reports). Also a secret:
+      # set it in the Render dashboard. Until it's set, the page stays locked.
+      - key: ADMIN_PASSWORD
+        sync: false

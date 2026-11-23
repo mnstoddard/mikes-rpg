@@ -697,6 +697,11 @@ export function showMessage(text: string) {
   if (document.body.classList.contains("history-open")) renderHistory();
 }
 
+/** The last few messages, oldest first (for bug reports). */
+export function recentMessages(n: number) {
+  return history.slice(-n).map((h) => `${h.at.toLocaleTimeString()} ${h.text}`);
+}
+
 function renderHistory() {
   // Only jump to the newest message if you were already at the bottom (not while reading back).
   const atBottom = historyList.scrollHeight - historyList.scrollTop - historyList.clientHeight < 30;

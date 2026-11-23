@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { WorldScene } from "./WorldScene";
+import "./report"; // 🐞 button; starts noting errors right away
 
 // Kept on window so automated browser tests can find the scene.
 (window as any).game = new Phaser.Game({

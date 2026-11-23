@@ -59,6 +59,7 @@ export interface SaveData {
   bounties?: { item: string; count: number }[]; // the bounty board's 5 jobs, e.g. [{ item: "oak_logs", count: 6 }]
   tracked?: string; // the bounty on the quest tracker (its item), if one is picked over Maren's quest
   color?: number; // character colour, picked in Settings (one of shared/colors.ts)
+  look?: string; // the 3D character's look (Character Workshop recipe as JSON, shared/look.ts)
   locked?: string[]; // old: item types that were locked; turned into lockedSlots when loaded
   counts?: number[]; // per entry: how many are in the stack (missing in older saves: 1 each)
   jewels?: Record<string, string | null>; // rings and amulet worn, e.g. { ring1: "ring_gold_ruby_24", ring2: null, amulet: null }
@@ -90,6 +91,20 @@ export interface Account {
   save: SaveData;
 }
 
+/** A bug report or change idea sent from inside the game (any client: 2D, 3D...). */
+export interface Report {
+  id: number;
+  createdAt: string; // ISO time
+  kind: string; // "bug" | "idea"
+  note: string;
+  username: string | null; // filled in by the server from the logged-in player, when it can tell
+  status: string; // "new" | "done"
+  hasScreenshot: boolean;
+  /** Everything else: where the player was, browser, game version, recent messages and errors, save snapshot. */
+  info: Record<string, unknown>;
+}
+export type NewReport = Omit<Report, "id" | "createdAt" | "status" | "hasScreenshot">;
+
 interface Store {
   init(): Promise<void>;
   get(username: string): Promise<Account | null>;
@@ -103,6 +118,12 @@ interface Store {
   /** Things that belong to the world, not one character (e.g. "farms": everyone's plots). */
   getWorld(key: string): Promise<unknown>;
   setWorld(key: string, data: unknown): Promise<void>;
+  /** Bug reports: saved with an optional JPEG/PNG screenshot. Returns the new report's id. */
+  addReport(report: NewReport, screenshot: { type: string; data: Buffer } | null): Promise<number>;
+  /** Newest first. */
+  listReports(opts: { status?: string; limit: number }): Promise<Report[]>;
+  getScreenshot(id: number): Promise<{ type: string; data: Buffer } | null>;
+  setReportStatus(id: number, status: string): Promise<boolean>;
   close(): Promise<void>;
 }
 
@@ -132,6 +153,43 @@ class PostgresStore implements Store {
         data       JSONB NOT NULL,
         updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
       )`);
+    await this.pool.query(`
+      CREATE TABLE IF NOT EXISTS reports (
+        id              SERIAL PRIMARY KEY,
+        created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+        kind            TEXT NOT NULL,
+        note            TEXT NOT NULL,
+        username        TEXT,
+        status          TEXT NOT NULL DEFAULT 'new',
+        info            JSONB NOT NULL DEFAULT '{}'::jsonb,
+        screenshot      BYTEA,
+        screenshot_type TEXT
+      )`);
+  }
+  async addReport(r: NewReport, shot: { type: string; data: Buffer } | null) {
+    const { rows } = await this.pool.query(
+      `INSERT INTO reports (kind, note, username, info, screenshot, screenshot_type)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+      [r.kind, r.note, r.username, JSON.stringify(r.info), shot?.data ?? null, shot?.type ?? null]);
+    return rows[0].id as number;
+  }
+  async listReports(opts: { status?: string; limit: number }) {
+    const { rows } = await this.pool.query(
+      `SELECT id, created_at, kind, note, username, status, info, screenshot IS NOT NULL AS has_shot
+       FROM reports WHERE ($1::text IS NULL OR status = $1) ORDER BY id DESC LIMIT $2`,
+      [opts.status ?? null, opts.limit]);
+    return rows.map((r: any) => ({
+      id: r.id, createdAt: new Date(r.created_at).toISOString(), kind: r.kind, note: r.note,
+      username: r.username, status: r.status, hasScreenshot: r.has_shot, info: r.info ?? {},
+    }));
+  }
+  async getScreenshot(id: number) {
+    const { rows } = await this.pool.query("SELECT screenshot, screenshot_type FROM reports WHERE id = $1", [id]);
+    return rows[0]?.screenshot ? { type: rows[0].screenshot_type, data: rows[0].screenshot as Buffer } : null;
+  }
+  async setReportStatus(id: number, status: string) {
+    const res = await this.pool.query("UPDATE reports SET status = $2 WHERE id = $1", [id, status]);
+    return res.rowCount === 1;
   }
   async getWorld(key: string) {
     const { rows } = await this.pool.query("SELECT data FROM world WHERE key = $1", [key]);
@@ -196,6 +254,51 @@ class FileStore implements Store {
     } catch (err: any) {
       if (err.code !== "ENOENT") throw err;
     }
+    await this.loadReports();
+  }
+  // Reports go in server/data/reports/: reports.json, plus 12.jpg etc. for screenshots.
+  private get reportDir() { return path.join(path.dirname(this.file), "reports"); }
+  private reports: (Report & { screenshotType?: string })[] = [];
+  private reportWriting: Promise<void> = Promise.resolve();
+  private async loadReports() {
+    try {
+      this.reports = JSON.parse(await fs.readFile(path.join(this.reportDir, "reports.json"), "utf8"));
+    } catch (err: any) {
+      if (err.code !== "ENOENT") throw err;
+    }
+  }
+  private flushReports() {
+    this.reportWriting = this.reportWriting.catch(() => {}).then(async () => {
+      const file = path.join(this.reportDir, "reports.json");
+      await fs.writeFile(`${file}.tmp`, JSON.stringify(this.reports, null, 2));
+      await fs.rename(`${file}.tmp`, file);
+    });
+    return this.reportWriting;
+  }
+  private shotFile(id: number, type: string) { return path.join(this.reportDir, `${id}.${type === "image/png" ? "png" : "jpg"}`); }
+  async addReport(r: NewReport, shot: { type: string; data: Buffer } | null) {
+    await fs.mkdir(this.reportDir, { recursive: true });
+    const id = (this.reports.at(-1)?.id ?? 0) + 1;
+    if (shot) await fs.writeFile(this.shotFile(id, shot.type), shot.data);
+    this.reports.push({ ...r, id, createdAt: new Date().toISOString(), status: "new", hasScreenshot: !!shot, screenshotType: shot?.type });
+    await this.flushReports();
+    return id;
+  }
+  async listReports(opts: { status?: string; limit: number }) {
+    return this.reports.filter((r) => !opts.status || r.status === opts.status).slice(-opts.limit).reverse()
+      .map(({ screenshotType: _t, ...r }) => r);
+  }
+  async getScreenshot(id: number) {
+    const r = this.reports.find((x) => x.id === id);
+    if (!r?.screenshotType) return null;
+    try { return { type: r.screenshotType, data: await fs.readFile(this.shotFile(id, r.screenshotType)) }; } catch { return null; }
+  }
+  async setReportStatus(id: number, status: string) {
+    const r = this.reports.find((x) => x.id === id);
+    if (!r) return false;
+    r.status = status;
+    await this.flushReports();
+    return true;
   }
   async getWorld(key: string) { return this.world[key] ?? null; }
   async setWorld(key: string, data: unknown) {
@@ -237,7 +340,7 @@ class FileStore implements Store {
     acct.passwordHash = passwordHash;
     await this.flush();
   }
-  async close() { await this.writing; await this.worldWriting; }
+  async close() { await this.writing; await this.worldWriting; await this.reportWriting; }
   private flush() {
     // Write one at a time, to a temp file first, so a crash can't leave half a file.
     this.writing = this.writing.catch(() => {}).then(async () => {

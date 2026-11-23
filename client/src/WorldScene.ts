@@ -21,6 +21,7 @@ import { DISCIPLINES, DisciplineId, DisciplineView, SkillId, SkillXp, emptySkill
 import { ItemMasteryXp, MasteryId } from "../../shared/mastery";
 import { showLogin } from "./login";
 import { setTreeActions } from "./tree";
+import { setReportRoom } from "./report";
 import { nightSightOn, renderTreeRanks, setBuffs, setDiscovered, setServerOffset, tickBuffs } from "./ui";
 import type { TreeRanks } from "../../shared/skilltree";
 import type { QuestView } from "../../shared/quests";
@@ -141,6 +142,7 @@ export class WorldScene extends Phaser.Scene {
   /** Hook the scene up to a joined room (first login, or after reconnecting). */
   private attach(room: Room, reconnected = false) {
     this.room = room;
+    setReportRoom(room);
     room.onMessage("message", (text: string) => showMessage(text));
     room.onMessage("disciplines", (disciplines: DisciplineView) => {
       this.lastDisciplines = disciplines;

@@ -361,6 +361,19 @@
     #history-list div { padding: 1px 0; border-bottom: 1px solid rgba(107, 90, 62, .35); }
     #history-list .h-time { color: #8a8070; font-size: 11px; margin-right: 6px; }
     #history .buttons, #settings .buttons { display: flex; gap: 6px; margin-top: 10px; }
+    /* 🐞 Report a bug or note a change */
+    #report-btn { font-size: 20px; }
+    #report { display: none; left: 50%; top: 8%; transform: translateX(-50%); width: min(360px, calc(100vw - 32px)); padding: 12px 14px; z-index: 9; max-height: calc(100vh - 60px); overflow-y: auto; }
+    body.report-open #report { display: block; }
+    #report h3 { margin: 0 0 8px; font-size: 16px; color: #ffd84a; font-weight: normal; text-align: center; }
+    #report-kind { display: flex; gap: 6px; margin-bottom: 8px; }
+    #report-kind .shop-btn { padding: 6px 0; }
+    #report-kind .shop-btn.active { border-color: #ffd84a; background: #7a6338; }
+    #report-note { box-sizing: border-box; width: 100%; font: inherit; font-size: 16px; -webkit-user-select: text; user-select: text; padding: 6px 8px; border: 1px solid #6b5a3e; border-radius: 3px; background: #1d170f; color: #fff; resize: vertical; }
+    #report-shot-row { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #c9bc9c; margin: 6px 0 4px; cursor: pointer; }
+    #report-shot { display: block; max-width: 100%; max-height: 28vh; margin: 0 auto; object-fit: contain; border: 1px solid #6b5a3e; border-radius: 3px; background: #000; }
+    #report-shot.off { opacity: .25; }
+    #report .buttons { display: flex; gap: 6px; margin-top: 10px; }
     /* ⚙️ Settings: name, password, colour, sign out */
     #settings-btn { font-size: 20px; margin-top: 6px; }
     #settings { display: none; left: 50%; top: 10%; transform: translateX(-50%); width: min(320px, calc(100vw - 32px)); padding: 12px 14px; z-index: 8; max-height: calc(100vh - 80px); overflow-y: auto; }
@@ -425,7 +438,7 @@
     <div id="dialog-text"></div>
     <div class="buttons"><span id="dialog-page"></span><button id="dialog-next" class="shop-btn">Next</button></div>
   </div>
-  <div id="zoom"><button id="clock" class="panel btn" aria-label="Time of day" title="Day">☀️</button><button id="zoom-in" class="panel btn" aria-label="Zoom in">+</button><button id="zoom-out" class="panel btn" aria-label="Zoom out">−</button><button id="map-btn" class="panel btn" aria-label="World map" title="World map">🗺️</button><button id="settings-btn" class="panel btn" aria-label="Settings" title="Settings: name, password, colour, sign out">⚙️</button></div>
+  <div id="zoom"><button id="clock" class="panel btn" aria-label="Time of day" title="Day">☀️</button><button id="zoom-in" class="panel btn" aria-label="Zoom in">+</button><button id="zoom-out" class="panel btn" aria-label="Zoom out">−</button><button id="map-btn" class="panel btn" aria-label="World map" title="World map">🗺️</button><button id="settings-btn" class="panel btn" aria-label="Settings" title="Settings: name, password, colour, sign out">⚙️</button><button id="report-btn" class="panel btn" aria-label="Report a bug or note a change" title="Report a bug or note a change (takes a screenshot)">🐞</button></div>
   <div id="worldmap" class="panel"><h3>🗺️ Heartvale <button id="worldmap-close" class="btn" aria-label="Close map">✕</button></h3><div id="worldmap-box"><canvas id="worldmap-canvas"></canvas></div><div id="worldmap-where"></div></div>
   <div id="tabs">
     <button class="panel btn tab" data-tab="quests" aria-label="Quests and bounties" title="Quests and bounties">📜</button>
@@ -532,6 +545,15 @@
     </div>
     <div class="set-section"><button id="sign-out" class="shop-btn">Sign out</button></div>
     <div class="buttons"><button id="settings-close" class="shop-btn" style="flex:1">Close</button></div>
+  </div>
+  <div id="report" class="panel">
+    <h3>🐞 Report a bug or note a change</h3>
+    <div id="report-kind"><button type="button" class="shop-btn active" data-kind="bug">🐞 Bug</button><button type="button" class="shop-btn" data-kind="idea">💡 Change idea</button></div>
+    <textarea id="report-note" maxlength="4000" rows="4" placeholder="What happened, or what should change?"></textarea>
+    <label id="report-shot-row"><input id="report-shot-on" type="checkbox" checked /> Include this screenshot</label>
+    <img id="report-shot" alt="Screenshot of the game" />
+    <div id="report-msg" class="set-msg"></div>
+    <div class="buttons"><button id="report-send" class="shop-btn">Send</button><button id="report-close" class="shop-btn">Cancel</button></div>
   </div>
   <div id="login">
     <form class="panel" autocomplete="on">

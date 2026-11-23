@@ -96,6 +96,7 @@ import { canBuyHere } from "../../shared/shops";
 import { CHAPTERS, gateMet, litLanterns, oathSworn, opensAfter, rankOf, talkWith } from "../../shared/quests";
 import { BLESS_MINUTES, BLESS_POWER, RANKS as LIGHT_RANKS, STORY_ITEMS, SPOT_NAMES, TITHE_MAX, TITHE_SHARE, isStoryItem, titheCost } from "../../shared/story";
 import { AREAS, DOORS, PLACES } from "../../shared/map";
+import { cleanLook } from "../../shared/look";
 import {
   CROPS, CROP_IDS, CropId, FARM_CHEST_PRICE, FarmView, LOTS, LOT_SIZE, MASTERY_EXTRA, PLANT_XP, PLOT_SIZES, SEED_BACK, SEED_BACK_PER_LEVEL, SeedId,
   cropOfSeed, decodeCrop, encodeCrop, inPlot, isSeed, lotAt, plotPrice, seedId, tileOf, timeLeft,
@@ -145,6 +146,7 @@ export class Player extends Schema {
   @type("boolean") partyLead = false;
   @type("number") rank = 0; // Lightkeeper rank (shared/story.ts RANKS): others see your cloak
   @type("number") tithe = 0; // Tithe marks (Soul Debt): others see the gold links by your health bar
+  @type("string") look = ""; // how your 3D character looks: the Character Workshop's recipe as JSON (shared/look.ts), "" until you make one
 
   // Server-only (not synced to everyone):
   path: Point[] = [];
@@ -310,11 +312,35 @@ function verbFor(id: ResourceId) {
   return id === "minnow" ? "catch Minnows" : `fish at ${r.node}s`;
 }
 
+// Every world room running on this server, so a bug report can say who sent it.
+const rooms = new Set<WorldRoom>();
+
+/**
+ * For bug reports: the logged-in player behind a connection (the client sends
+ * its room session id), as the server sees them. Null if nobody matches.
+ */
+export function playerForReport(sessionId: string) {
+  for (const room of rooms) {
+    const info = room.reportInfo(sessionId);
+    if (info) return info;
+  }
+  return null;
+}
+
 export class WorldRoom extends Room<WorldState> {
   maxClients = 100;
   state = new WorldState();
 
+  /** Who a bug report came from: name, where they are, and a copy of their save. */
+  reportInfo(sessionId: string) {
+    const p = this.state.players.get(sessionId);
+    if (!p) return null;
+    const area = areaAt(p.x, p.y);
+    return { username: p.name, x: p.x, y: p.y, area: area?.name ?? null, action: p.action, hp: p.hp, maxHp: p.maxHp, save: this.snapshot(p) };
+  }
+
   onCreate() {
+    rooms.add(this);
     // Walking runs on each player's own 600ms step timer, so a click starts you
     // moving right away instead of waiting for the next world tick. Everything
     // else (chopping, trees growing back, saving) runs on the 600ms world tick.
@@ -741,6 +767,15 @@ export class WorldRoom extends Room<WorldState> {
       p.color = msg.color;
       this.saveSoon(p);
       this.say(client, `You're ${PLAYER_COLORS.find((c) => c.color === msg.color)!.name.toLowerCase()} now.`);
+    });
+
+    // The 3D game's character creator: how your character looks (shared/look.ts).
+    this.onMessage("setLook", (client, msg: { look: unknown }) => {
+      const p = this.state.players.get(client.sessionId);
+      const look = cleanLook(msg?.look);
+      if (!p || look === null) return;
+      p.look = look;
+      this.saveSoon(p);
     });
 
     // ⚙️ Settings: change your name (it's also what you log in with).
@@ -4177,6 +4212,7 @@ export class WorldRoom extends Room<WorldState> {
     const p = new Player();
     p.name = account.username;
     p.color = isPlayerColor(account.save.color) ? account.save.color : PLAYER_COLORS[this.state.players.size % PLAYER_COLORS.length].color;
+    p.look = cleanLook(account.save.look) ?? "";
     this.restore(p, account.save);
     p.lastSavedAt = Date.now();
     this.state.players.set(client.sessionId, p);
@@ -4214,6 +4250,7 @@ export class WorldRoom extends Room<WorldState> {
   }
 
   async onDispose() {
+    rooms.delete(this);
     // Normally onLeave already saved everyone; this is a safety net.
     await Promise.all([...this.state.players.values()].map((p) => this.save(p)));
     if (this.farmSaveTimer) { clearTimeout(this.farmSaveTimer); await this.saveFarms(); }
@@ -4390,7 +4427,7 @@ export class WorldRoom extends Room<WorldState> {
     const dest = p.path.length ? p.path[p.path.length - 1] : p;
     const bag = cloneBag(p);
     compact(bag); // leave out unused entries
-    return { saveVersion: SAVE_VERSION, mapRev: MAP_REV, questRev: QUEST_REV, quest: structuredClone(p.quest), x: dest.x, y: dest.y, inventory: bag.inventory, slots: bag.slotOf, coins: p.coins, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: bag.durability, belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), hp: p.hp, hpAt: Date.now(), gear: { ...p.gear }, spell: p.spell, combatMastery: { ...p.combatMastery }, tree: { ...p.tree }, lockedSlots: bag.locked.flatMap((on, i) => (on ? [i] : [])), bounties: p.bounties.map((b) => ({ ...b })), tracked: p.tracked ?? undefined, color: p.color, counts: bag.counts, jewels: { ...p.jewels }, discovered: [...p.discovered], books: [...p.books], spellBar: p.barFresh ? undefined : [...p.spellBar], buffs: structuredClone(p.buffs), guild: this.guildSave(p), farmChest: p.farmChest || undefined, renownRank: p.renownRank || undefined, title: p.title || undefined, tithe: p.tithe || undefined, titheXp: p.tithe ? Math.floor(p.titheXp) : undefined, boardDay: p.boardDay || undefined, guildDay: p.guildDay || undefined };
+    return { saveVersion: SAVE_VERSION, mapRev: MAP_REV, questRev: QUEST_REV, quest: structuredClone(p.quest), x: dest.x, y: dest.y, inventory: bag.inventory, slots: bag.slotOf, coins: p.coins, skillXp: { ...p.skillXp }, mastery: { ...p.mastery }, durability: bag.durability, belt: { ...p.belt }, stamina: p.stamina, staminaAt: Date.now(), hp: p.hp, hpAt: Date.now(), gear: { ...p.gear }, spell: p.spell, combatMastery: { ...p.combatMastery }, tree: { ...p.tree }, lockedSlots: bag.locked.flatMap((on, i) => (on ? [i] : [])), bounties: p.bounties.map((b) => ({ ...b })), tracked: p.tracked ?? undefined, color: p.color, look: p.look || undefined, counts: bag.counts, jewels: { ...p.jewels }, discovered: [...p.discovered], books: [...p.books], spellBar: p.barFresh ? undefined : [...p.spellBar], buffs: structuredClone(p.buffs), guild: this.guildSave(p), farmChest: p.farmChest || undefined, renownRank: p.renownRank || undefined, title: p.title || undefined, tithe: p.tithe || undefined, titheXp: p.tithe ? Math.floor(p.titheXp) : undefined, boardDay: p.boardDay || undefined, guildDay: p.guildDay || undefined };
   }
 
   private async save(p: Player) {

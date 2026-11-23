@@ -139,12 +139,15 @@ export function headPoint(d: THREE.Vector3, H: HeadShape, out: THREE.Vector3) {
  * direction (negative = tucked inside the head, hidden) and can push the
  * point by `off`. Hair, beards, hats and helmets are all made this way.
  */
-export function shellGeo(H: HeadShape, w: number, h: number, fn: ((d: THREE.Vector3, off: THREE.Vector3) => number) | null) {
+export function shellGeo(H: HeadShape, w: number, h: number, fn: ((d: THREE.Vector3, off: THREE.Vector3, cc: { c: number }) => number) | null, withColor = false) {
   const g = new THREE.SphereGeometry(1, w, h), p = g.attributes.position, d = new V3(), o = new V3(), off = new V3();
+  const cc = { c: 1 }, col: number[] = [];
   for (let i = 0; i < p.count; i++) {
     d.fromBufferAttribute(p, i).normalize();
     off.set(0, 0, 0);
-    const t = fn ? fn(d, off) : 0;
+    cc.c = 1;
+    const t = fn ? fn(d, off, cc) : 0;
+    col.push(cc.c, cc.c, cc.c);
     headPoint(d, H, o);
     if (t < 0) o.multiplyScalar(1 + Math.max(t, -0.12));
     else {
@@ -153,5 +156,6 @@ export function shellGeo(H: HeadShape, w: number, h: number, fn: ((d: THREE.Vect
     }
     p.setXYZ(i, o.x, o.y, o.z);
   }
+  if (withColor) g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
   return smoothFix(g);
 }
