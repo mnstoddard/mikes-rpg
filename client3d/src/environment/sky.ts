@@ -17,8 +17,19 @@ export interface SkyDome {
   /** 0: smooth colours. 1: low-poly bands of colour. */
   setStyle(style: number): void;
   setTime(t: TimeOfDay): void;
+  /** Grey storm sky with lightning. */
+  setStorm(on: boolean): void;
+  /** How bright a lightning flash is right now (0 to 1), to light the scene. */
+  flash: number;
   update(dt: number, time: number): void;
 }
+
+/** Storm sky colours for each time of day. */
+const STORM = {
+  day: { top: 0x5a626c, mid: 0x7e868e, low: 0x9ea4a8 },
+  sunset: { top: 0x3e3c48, mid: 0x6a5e62, low: 0x9a7e6e },
+  night: { top: 0x0e1016, mid: 0x1c2028, low: 0x2a2e36 },
+} as const;
 
 /** The dome. It follows the camera, so it always looks infinitely far away. */
 export function createSkyDome(): SkyDome {
@@ -64,9 +75,39 @@ export function createSkyDome(): SkyDome {
 
   let style = 0;
   let time: TimeOfDay = "day";
+  let storm = false;
+  // Lightning: a jagged bolt that flashes now and then.
+  const boltMat = new THREE.MeshBasicMaterial({ color: 0xe8f0ff, fog: false, transparent: true, opacity: 0, depthWrite: false, toneMapped: false });
+  const bolt = new THREE.Group();
+  const makeBolt = () => {
+    bolt.clear();
+    let x = 0, y = 0;
+    const r2 = makeRng(Math.floor(Math.random() * 1e6) + 1);
+    const seg = (x0: number, y0: number, x1: number, y1: number, w: number) => {
+      const len = Math.hypot(x1 - x0, y1 - y0);
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(w, len), boltMat);
+      m.position.set((x0 + x1) / 2, (y0 + y1) / 2, 0);
+      m.rotation.z = -Math.atan2(x1 - x0, y1 - y0);
+      bolt.add(m);
+    };
+    for (let i = 0; i < 9; i++) {
+      const nx = x + (r2() - 0.5) * 14, ny = y - 9 - r2() * 5;
+      seg(x, y, nx, ny, 2.2 - i * 0.15);
+      if (r2() < 0.3) seg(nx, ny, nx + (r2() - 0.5) * 18, ny - 8, 1);
+      x = nx;
+      y = ny;
+    }
+    const a = Math.random() * Math.PI * 2;
+    bolt.position.set(Math.cos(a) * (R - 40), 115, Math.sin(a) * (R - 40));
+    bolt.lookAt(0, 115, 0);
+  };
+  group.add(bolt);
+  let flashT = 0, nextFlash = 3;
+  const flashCol = new THREE.Color(0xcfd8ff);
   const paint = () => {
     const s = SKY_TIMES[time];
-    const top = new THREE.Color(s.top), mid = new THREE.Color(s.mid), low = new THREE.Color(s.low);
+    const sc = storm ? STORM[time] : s;
+    const top = new THREE.Color(sc.top), mid = new THREE.Color(sc.mid), low = new THREE.Color(sc.low);
     const c = new THREE.Color();
     const pos = geo.attributes.position as THREE.BufferAttribute;
     const dir = new THREE.Vector3(...s.dir).normalize();
@@ -80,7 +121,7 @@ export function createSkyDome(): SkyDome {
       else c.copy(mid).lerp(top, Math.min(1, (y - 0.35) / 0.55));
       // A warm glow on the side of the sky where the sun is.
       const toward = Math.max(0, fx * dir.x + fz * dir.z) * (1 - Math.abs(y));
-      if (time !== "night") c.lerp(sunCol, toward * (time === "sunset" ? 0.45 : 0.12));
+      if (time !== "night" && !storm) c.lerp(sunCol, toward * (time === "sunset" ? 0.45 : 0.12));
       for (let k = 0; k < 3; k++) c.toArray(colors, (i + k) * 3);
     }
     (geo.attributes.color as THREE.BufferAttribute).needsUpdate = true;
@@ -91,19 +132,27 @@ export function createSkyDome(): SkyDome {
     halo.lookAt(0, 0, 0);
     (sun.material as THREE.MeshBasicMaterial).color.setHex(time === "sunset" ? 0xffb070 : 0xfff4c8);
     (halo.material as THREE.MeshBasicMaterial).color.setHex(time === "sunset" ? 0xff9a60 : 0xfff4c8);
-    sun.visible = halo.visible = time !== "night";
-    moon.visible = time !== "day";
+    sun.visible = halo.visible = time !== "night" && !storm;
+    moon.visible = time !== "day" && !storm;
     const md = time === "night" ? new THREE.Vector3(-0.4, 0.55, -0.7) : new THREE.Vector3(0.6, 0.35, -0.7);
     moon.position.copy(md.normalize().multiplyScalar(R - 30));
     moon.lookAt(0, 0, 0);
     (moonFace.material as THREE.MeshBasicMaterial).opacity = 1;
     (shadow.material as THREE.MeshBasicMaterial).color.copy(time === "night" ? mid : new THREE.Color(s.top).lerp(mid, 0.5));
-    stars.visible = time !== "day";
+    stars.visible = time !== "day" && !storm;
+    for (let i = 0; i < colors.length; i++) base[i] = colors[i];
     starMat.opacity = time === "night" ? 1 : 0.25;
   };
+  const base = new Float32Array(colors.length);
   paint();
-  return {
+  const api: SkyDome = {
     object: group,
+    flash: 0,
+    setStorm(on) {
+      if (on === storm) return;
+      storm = on;
+      paint();
+    },
     setStyle(s) {
       style = s;
       paint();
@@ -112,54 +161,110 @@ export function createSkyDome(): SkyDome {
       time = t;
       paint();
     },
-    update(_dt, t) {
+    update(dt, t) {
       if (stars.visible) starMat.size = 2 + Math.sin(t * 2.3) * 0.35;
       void twinkle;
+      let f = 0;
+      if (storm) {
+        nextFlash -= dt;
+        if (nextFlash <= 0) {
+          makeBolt();
+          flashT = 0.55;
+          nextFlash = 2.5 + Math.random() * 5;
+        }
+        if (flashT > 0) {
+          flashT -= dt;
+          // Two or three quick flickers.
+          f = Math.max(0, Math.sin((0.55 - flashT) * 34)) * (flashT / 0.55);
+        }
+      }
+      boltMat.opacity = f;
+      if (f > 0 || api.flash > 0) {
+        const k = f * (time === "night" ? 0.6 : 0.35);
+        for (let i = 0; i < colors.length; i += 3) {
+          colors[i] = base[i] + (flashCol.r - base[i]) * k;
+          colors[i + 1] = base[i + 1] + (flashCol.g - base[i + 1]) * k;
+          colors[i + 2] = base[i + 2] + (flashCol.b - base[i + 2]) * k;
+        }
+        (geo.attributes.color as THREE.BufferAttribute).needsUpdate = true;
+      }
+      api.flash = f;
     },
   };
+  return api;
 }
 
 // ---------------------------------------------------------------- clouds
-
-const CLOUDS = [
-  { color: 0xffffff, flat: 0.8, n: 12 }, // puffy
-  { color: 0xf6f8fa, flat: 0.45, n: 14 }, // flat-bottomed
-  { color: 0x6a7280, flat: 0.6, n: 16 }, // storm
-];
 
 export interface CloudOptions {
   variant: number;
   seed: number;
 }
 
-/** Clouds drifting slowly across the sky in a ring round the middle. */
+/**
+ * Clouds drifting slowly round the sky.
+ * Puffy: tall, round heaps (fair-weather clouds).
+ * Flat-bottomed: long, low, layered clouds with a straight flat base.
+ * Storm: dozens of big dark clouds that fill the sky, lower down.
+ */
 export function clouds(o: CloudOptions): EnvPiece {
-  const p = CLOUDS[o.variant] ?? CLOUDS[0];
   const rng = makeRng(o.seed);
   const group = new THREE.Group();
   const list: { m: THREE.Mesh; r: number; a: number; speed: number }[] = [];
-  const material = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, emissive: 0x404858, emissiveIntensity: 0.25 });
+  const storm = o.variant === 2;
+  const material = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, emissive: storm ? 0x60666e : 0x8a96a8, emissiveIntensity: 0.5 });
   (material as any).__own = true;
-  for (let i = 0; i < p.n; i++) {
+  const n = storm ? 46 : 18;
+  for (let i = 0; i < n; i++) {
     const c = new Parts();
-    const blobs = 4 + Math.floor(rng() * 4);
-    for (let k = 0; k < blobs; k++) {
-      const r = 2.2 + rng() * 2.4;
-      const g = new THREE.IcosahedronGeometry(r, 0);
-      g.translate((k - blobs / 2) * 2.6 + (rng() - 0.5), rng() * 1.5, (rng() - 0.5) * 2.5);
-      c.add(g, jitter(p.color, rng, 0.04));
+    if (o.variant === 0) {
+      // A heap: a wide base row, a smaller row on top, a round crown.
+      const rows: [number, number][] = [[4, 2.4], [3, 2.6], [1, 3.0]];
+      let y = 0;
+      rows.forEach(([count, r], row) => {
+        for (let k = 0; k < count; k++) {
+          const rr = r * (0.85 + rng() * 0.3);
+          const g = new THREE.IcosahedronGeometry(rr, 1);
+          g.translate((k - (count - 1) / 2) * r * 1.3 + (rng() - 0.5), y + rr * 0.4, (rng() - 0.5) * 2);
+          c.add(g, jitter(row === 0 ? 0xeef0f4 : 0xffffff, rng, 0.03));
+        }
+        y += r * 1.1;
+      });
+    } else if (o.variant === 1) {
+      // Long flat layers.
+      const blobs = 6 + Math.floor(rng() * 4);
+      for (let k = 0; k < blobs; k++) {
+        const r = 2.4 + rng() * 1.8;
+        const g = new THREE.IcosahedronGeometry(r, 0);
+        g.scale(1.8, 0.5, 1.1);
+        g.translate((k - blobs / 2) * 3.6 + (rng() - 0.5), rng() * 0.8, (rng() - 0.5) * 3);
+        c.add(g, jitter(0xf4f6f8, rng, 0.03));
+      }
+    } else {
+      const blobs = 6 + Math.floor(rng() * 5);
+      for (let k = 0; k < blobs; k++) {
+        const r = 3 + rng() * 3;
+        const g = new THREE.IcosahedronGeometry(r, 0);
+        g.translate((k - blobs / 2) * 3.4 + (rng() - 0.5) * 2, rng() * 2.2, (rng() - 0.5) * 5);
+        c.add(g, jitter(rng() < 0.5 ? 0x747a84 : 0x868c96, rng, 0.06));
+      }
     }
     const m = c.build(material, false)!;
-    // Flatten the bottoms.
+    // Flatten the bottoms: a hard, straight cut for flat-bottomed and storm clouds.
     const pos = m.geometry.attributes.position as THREE.BufferAttribute;
-    for (let k = 0; k < pos.count; k++) if (pos.getY(k) < 0) pos.setY(k, pos.getY(k) * (1 - p.flat));
+    for (let k = 0; k < pos.count; k++) {
+      const y = pos.getY(k);
+      if (o.variant === 0 && y < 0) pos.setY(k, y * 0.45);
+      if (o.variant !== 0 && y < 0) pos.setY(k, y * 0.08);
+    }
     m.geometry.computeVertexNormals();
-    const s = 0.7 + rng() * 0.8;
-    m.scale.set(s, s * 0.8, s);
-    const r = 60 + rng() * 80;
-    const a = rng() * Math.PI * 2;
-    list.push({ m, r, a, speed: 0.004 + rng() * 0.006 });
-    m.position.y = 28 + rng() * 22;
+    const s = storm ? 1 + rng() * 0.8 : (o.variant === 0 ? 1.1 : 0.8) + rng() * 0.7;
+    m.scale.set(s, s * (storm ? 0.7 : 1), s);
+    const r = storm ? 10 + rng() * 140 : 95 + rng() * 85;
+    // Spread evenly round the sky, so there are always some in view.
+    const a = ((i + rng() * 0.6) / n) * Math.PI * 2;
+    list.push({ m, r, a, speed: (0.004 + rng() * 0.006) * (storm ? 2.5 : 1) });
+    m.position.y = storm ? 22 + rng() * 14 : o.variant === 1 ? 42 + rng() * 14 : 45 + rng() * 22;
     group.add(m);
   }
   let blow = 0;
@@ -168,12 +273,12 @@ export function clouds(o: CloudOptions): EnvPiece {
     update(dt, _t, env) {
       blow = Math.max(0, blow - dt * 0.3);
       for (const c of list) {
-        c.a += dt * c.speed * (1 + env.wind * 2 + blow * 20);
+        c.a += (dt * c.speed * (1 + env.wind * 2 + blow * 20) * 60) / Math.max(30, c.r);
         c.m.position.x = Math.cos(c.a) * c.r;
         c.m.position.z = Math.sin(c.a) * c.r;
         c.m.rotation.y = -c.a;
       }
-      material.emissiveIntensity = 0.25 * (1 - env.night * 0.8);
+      material.emissiveIntensity = 0.5 * (1 - env.night * 0.85);
     },
     poke: () => (blow = 1),
     dispose: () => disposeGroup(group),
@@ -182,26 +287,29 @@ export function clouds(o: CloudOptions): EnvPiece {
 
 // ---------------------------------------------------------------- weather
 
-/** Rain, fog, snow or fireflies, filling a box round the middle of the scene. */
+/**
+ * Rain, fog, snow, fireflies or a thunderstorm, filling a 40 m box. The
+ * gallery keeps the box centred on what you're looking at.
+ */
 export function weather(o: CloudOptions): EnvPiece {
   const rng = makeRng(o.seed);
   const group = new THREE.Group();
-  const SIZE = 24, TOP = 14;
+  const SIZE = 40, TOP = 16;
   if (o.variant === 1) {
     // Fog: low drifting banks of mist (and the scene's fog closes in).
-    const m = mat(0xe8eef2, { opacity: 0.32 });
+    const m = mat(0xe8eef2, { opacity: 0.2 });
     const banks: { o: THREE.Mesh; s: number; x: number }[] = [];
-    for (let i = 0; i < 14; i++) {
+    for (let i = 0; i < 30; i++) {
       const g = new THREE.IcosahedronGeometry(2 + rng() * 2, 0);
       const b = new THREE.Mesh(g, m);
-      b.scale.set(1.6, 0.35, 1);
-      b.position.set((rng() - 0.5) * SIZE, 0.4 + rng() * 0.8, (rng() - 0.5) * SIZE);
+      b.scale.set(1.8, 0.2, 1.2);
+      b.position.set((rng() - 0.5) * SIZE, 0.3 + rng() * 0.6, (rng() - 0.5) * SIZE);
       group.add(b);
       banks.push({ o: b, s: 0.2 + rng() * 0.3, x: b.position.x });
     }
     return {
       object: group,
-      fog: { color: 0xc8d2d8, near: 10, far: 60 },
+      fog: { color: 0xc8d2d8, near: 14, far: 70 },
       update(_dt, t) {
         for (const b of banks) b.o.position.x = ((b.x + t * b.s + SIZE / 2) % SIZE) - SIZE / 2;
       },
@@ -230,9 +338,10 @@ export function weather(o: CloudOptions): EnvPiece {
       dispose: () => disposeGroup(group),
     };
   }
-  // Rain (streaks) or snow (flakes).
+  // Rain (streaks), a thunderstorm (heavy rain) or snow (flakes).
   const snow = o.variant === 2;
-  const N = snow ? 900 : 1400;
+  const thunder = o.variant === 4;
+  const N = snow ? 2000 : thunder ? 4200 : 2800;
   const geo = new THREE.BufferGeometry();
   const pos = new Float32Array(N * (snow ? 3 : 6));
   const seeds = new Float32Array(N * 3);
@@ -250,11 +359,11 @@ export function weather(o: CloudOptions): EnvPiece {
   let heavy = 0;
   return {
     object: group,
-    fog: snow ? { color: 0xdfe6ee, near: 10, far: 70 } : { color: 0x8a96a2, near: 8, far: 60 },
+    fog: snow ? { color: 0xdfe6ee, near: 12, far: 80 } : thunder ? { color: 0x6a727c, near: 10, far: 70 } : { color: 0x8a96a2, near: 14, far: 90 },
     update(dt, t, env) {
       heavy = Math.max(0, heavy - dt * 0.3);
-      const fall = snow ? 1.1 : 14 * (1 + heavy);
-      const slant = (snow ? 0.3 : 1.2) * (0.5 + env.wind);
+      const fall = snow ? 1.1 : (thunder ? 19 : 14) * (1 + heavy);
+      const slant = (snow ? 0.3 : thunder ? 2.4 : 1.2) * (0.5 + env.wind);
       for (let i = 0; i < N; i++) {
         const y = TOP - ((seeds[i * 3 + 1] + t * fall) % TOP);
         let x = seeds[i * 3] + (TOP - y) * slant * 0.1, z = seeds[i * 3 + 2];

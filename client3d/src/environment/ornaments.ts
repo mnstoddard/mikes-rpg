@@ -234,47 +234,79 @@ export const vines: Builder = (o) => {
   const stems = new Parts();
   const leaves = new Parts();
   const sway = new Swayer();
-  // A few stems climbing up from the ground, wandering left and right.
-  for (let s = 0; s < 5; s++) {
-    let x = -0.9 + s * 0.45 + (rng() - 0.5) * 0.2, y = 0;
-    const top = 1.6 + rng() * 1.2;
-    while (y < top) {
-      const nx = x + (rng() - 0.5) * 0.35, ny = y + 0.18 + rng() * 0.12;
-      const len = Math.hypot(nx - x, ny - y);
-      const g = new THREE.CylinderGeometry(0.015, 0.02, len, 4);
-      g.rotateZ(-Math.atan2(nx - x, ny - y));
-      g.translate((x + nx) / 2, (y + ny) / 2, 0.03);
-      stems.add(g, p.thorn ? 0x3a2e26 : 0x5a4a2a);
-      if (p.thorn && rng() < 0.7) {
-        const th = new THREE.ConeGeometry(0.015, 0.07, 3);
-        th.rotateZ(rng() < 0.5 ? 1.2 : -1.2);
-        th.translate(nx, ny, 0.04);
-        stems.add(th, 0x8a7a6a);
-      }
-      for (let k = 0; k < 2; k++) {
-        const lf = new THREE.ConeGeometry(0.07 + rng() * 0.03, 0.14, 3);
-        lf.scale(1, 1, 0.2);
-        lf.rotateZ((rng() - 0.5) * 2.5);
-        lf.rotateX(-0.4);
-        lf.translate(nx + (rng() - 0.5) * 0.15, ny + (rng() - 0.5) * 0.1, 0.06);
-        leaves.add(lf, jitter(p.leaf[Math.floor(rng() * p.leaf.length)], rng, 0.08));
-      }
-      if (p.flower && rng() < 0.4) {
-        // Little hanging flower clusters.
+  const stemColor = p.thorn ? 0x3a2e26 : 0x5a4a2a;
+  // One stem segment from (x0, y0) to (x1, y1), flat against the wall.
+  const segment = (x0: number, y0: number, x1: number, y1: number, r0: number, r1: number) => {
+    const len = Math.hypot(x1 - x0, y1 - y0);
+    const g = new THREE.CylinderGeometry(r1, r0, len + r0, 5);
+    g.rotateZ(-Math.atan2(x1 - x0, y1 - y0));
+    g.translate((x0 + x1) / 2, (y0 + y1) / 2, 0.03);
+    stems.add(g, stemColor);
+    // A joint ball so bends look smooth and joined.
+    const j = new THREE.IcosahedronGeometry(r1 * 1.05, 0);
+    j.translate(x1, y1, 0.03);
+    stems.add(j, stemColor);
+  };
+  // A leaf sitting right on the stem, pointing out to one side.
+  const leaf = (x: number, y: number, side: number, size: number) => {
+    const lf = new THREE.ConeGeometry(0.06 * size, 0.15 * size, 3);
+    lf.scale(1, 1, 0.2);
+    lf.translate(0, 0.075 * size, 0);
+    lf.rotateZ(side * (0.7 + rng() * 0.6));
+    lf.rotateX(-0.35);
+    lf.translate(x, y, 0.05);
+    leaves.add(lf, jitter(p.leaf[Math.floor(rng() * p.leaf.length)], rng, 0.08));
+    if (p.thorn && rng() < 0.6) {
+      const th = new THREE.ConeGeometry(0.014, 0.07, 3);
+      th.rotateZ(-side * 1.2);
+      th.translate(x, y, 0.045);
+      stems.add(th, 0x8a7a6a);
+    }
+  };
+  // Grow a stem upwards, wandering, sending off side branches as it goes.
+  const grow = (x: number, y: number, ang: number, steps: number, r: number, depth: number) => {
+    for (let i = 0; i < steps; i++) {
+      const len = 0.16 + rng() * 0.06;
+      ang += (rng() - 0.5) * 0.7 - ang * 0.25; // keep heading mostly up
+      const nx = Math.max(-1.9, Math.min(1.9, x + Math.sin(ang) * len)), ny = y + Math.cos(ang) * len;
+      const nr = Math.max(0.008, r * 0.93);
+      segment(x, y, nx, ny, r, nr);
+      leaf(nx, ny, i % 2 ? 1 : -1, depth === 0 ? 1.1 : 0.9);
+      if (rng() < 0.5) leaf((x + nx) / 2, (y + ny) / 2, i % 2 ? -1 : 1, 0.8);
+      if (p.flower && rng() < 0.22) {
+        // A hanging flower cluster on a little stalk.
         for (let k = 0; k < 4; k++) {
-          const f = new THREE.IcosahedronGeometry(0.035, 0);
-          f.translate(nx + (rng() - 0.5) * 0.06, ny - 0.05 - k * 0.05, 0.09);
+          const f = new THREE.IcosahedronGeometry(0.035 - k * 0.004, 0);
+          f.translate(nx + 0.02, ny - 0.05 - k * 0.045, 0.08);
           leaves.add(f, jitter(p.flower, rng, 0.1));
         }
       }
+      if (depth < 2 && i > 1 && rng() < (depth === 0 ? 0.45 : 0.25)) grow(nx, ny, ang + (rng() < 0.5 ? -1 : 1) * (0.7 + rng() * 0.4), Math.floor(steps * 0.5), nr * 0.8, depth + 1);
       x = nx;
       y = ny;
+      r = nr;
+      if (y > 2.9) break;
     }
+  };
+  // Three main stems rising from roots at the foot of the wall.
+  for (const sx of [-0.8, 0.1, 0.9]) {
+    const bx = sx + (rng() - 0.5) * 0.2;
+    for (let k = 0; k < 3; k++) {
+      const root = new THREE.ConeGeometry(0.02, 0.18, 4);
+      root.rotateZ(Math.PI / 2 + (k - 1) * 0.6);
+      root.translate(bx + (k - 1) * 0.06, 0.02, 0.05);
+      stems.add(root, stemColor);
+    }
+    grow(bx, 0, (rng() - 0.5) * 0.4, 11 + Math.floor(rng() * 5), 0.03, 0);
   }
-  group.add(stems.build()!);
+  // Stand a little off the wall so they show over rough stone.
+  const sm = stems.build()!;
+  sm.position.z = 0.08;
+  group.add(sm);
   const lm = leaves.build(mat(0xffffff, { vertexColors: true, double: true }))!;
+  lm.position.z = 0.08;
   group.add(lm);
-  sway.add(lm, 0.01, 0);
+  sway.add(lm, 0.008, 0);
   return make(group, 0, (dt, t, env) => sway.update(dt, t, env.wind), () => (sway.gust = 1));
 };
 

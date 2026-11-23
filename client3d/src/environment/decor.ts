@@ -2,6 +2,7 @@
 // (grass tufts, flowers, rocks, bushes...) and street furniture (lamps, wells,
 // gravestones, barrels, signposts). Each stands on y = 0, centred on x = z = 0.
 import * as THREE from "three";
+import { createCharacter } from "../character";
 import { EnvPiece, NightLights, Parts, Rng, Swayer, disposeGroup, glowMat, jitter, lamp, makeRng, mat, mesh, mix, rockGeo } from "./kit";
 
 export interface DecorOptions {
@@ -602,26 +603,75 @@ export const barrels: Builder = (o) => {
       p.add(lid, 0xa87a4c);
     }
   } else if (o.variant === 1) {
-    const spots: [number, number, number, number][] = [[0, 0, 0, 0.7], [0.75, 0, 0.1, 0.6], [0.1, 0.7, 0.05, 0.55], [0.4, 0, 0.75, 0.5]];
-    for (const [x, y, z, s] of spots) {
-      p.box(s, s, s, jitter(0xa87a4c, rng, 0.06), x, y + s / 2, z, rng() * 0.3);
-      for (const dy of [-1, 1]) p.box(s + 0.02, 0.06, s + 0.02, 0x6e4a2c, x, y + s / 2 + (dy * s) / 2.6, z, 0);
-      const d = new THREE.BoxGeometry(0.05, s * 1.25, 0.02);
-      d.rotateZ(0.78);
-      d.translate(x, y + s / 2, z + s / 2 + 0.01);
-      p.add(d, 0x6e4a2c);
-    }
+    // Wooden crates: slats with small gaps, corner posts and a nailed-on lid.
+    const crate = (x: number, y: number, z: number, sz: number, ry: number) => {
+      const wood = jitter(0xb88a56, rng, 0.06), dark = shade(wood), post = 0x7a5432;
+      const g = new Parts();
+      g.box(sz - 0.04, sz - 0.04, sz - 0.04, 0x4a3020, 0, sz / 2, 0); // dark inside, seen through gaps
+      const n = 4, sh = (sz - 0.06) / n;
+      for (let i = 0; i < n; i++) {
+        const yy = 0.03 + (i + 0.5) * sh;
+        g.box(sz - 0.02, sh - 0.025, 0.03, jitter(wood, rng, 0.05), 0, yy, sz / 2 - 0.015);
+        g.box(sz - 0.02, sh - 0.025, 0.03, jitter(wood, rng, 0.05), 0, yy, -sz / 2 + 0.015);
+        g.box(0.03, sh - 0.025, sz - 0.02, jitter(wood, rng, 0.05), sz / 2 - 0.015, yy, 0);
+        g.box(0.03, sh - 0.025, sz - 0.02, jitter(wood, rng, 0.05), -sz / 2 + 0.015, yy, 0);
+      }
+      for (const [cx, cz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) g.box(0.07, sz, 0.07, post, (cx * (sz - 0.05)) / 2, sz / 2, (cz * (sz - 0.05)) / 2);
+      // Lid planks and a diagonal brace on the front.
+      for (let i = 0; i < 3; i++) g.box(sz, 0.035, sz / 3 - 0.015, jitter(wood, rng, 0.05), 0, sz + 0.017, -sz / 3 + (i * sz) / 3);
+      const brace = new THREE.BoxGeometry(0.06, Math.hypot(sz, sz) * 0.88, 0.025);
+      brace.rotateZ(Math.PI / 4);
+      brace.translate(0, sz / 2, sz / 2 + 0.015);
+      g.add(brace, dark);
+      const m = g.build()!;
+      m.position.set(x, y, z);
+      m.rotation.y = ry;
+      group.add(m);
+    };
+    const group = new THREE.Group();
+    crate(0, 0, 0, 0.7, 0.05);
+    crate(0.78, 0, 0.08, 0.62, -0.12);
+    crate(0.08, 0.735, 0.02, 0.55, 0.3);
+    crate(0.35, 0, 0.78, 0.5, 0.5);
+    return make(group);
   } else {
-    for (let k = 0; k < 5; k++) {
-      const g = new THREE.SphereGeometry(0.3, 7, 5);
-      g.scale(1, 1.25, 0.8);
-      const [x, z] = inCircle(rng, 0.5);
-      g.translate(x, 0.34 + (k === 4 ? 0.45 : 0), z);
-      p.add(g, jitter(0xd8c49a, rng, 0.06));
-      const tie = new THREE.CylinderGeometry(0.08, 0.12, 0.1, 6);
-      tie.translate(x, 0.74 + (k === 4 ? 0.45 : 0), z);
-      p.add(tie, 0xa89060);
-    }
+    // Sacks lying on their sides, stacked like bricks: 3, then 2, then 1.
+    const sack = (x: number, y: number, z: number, ry: number) => {
+      const g = new THREE.SphereGeometry(0.3, 8, 6);
+      const pos = g.attributes.position as THREE.BufferAttribute;
+      for (let i = 0; i < pos.count; i++) {
+        // Flat underneath, a little squashed on top, so they sit on each other.
+        let yy = pos.getY(i);
+        if (yy < -0.08) yy = -0.08 - (yy + 0.08) * 0.15;
+        pos.setY(i, yy * 0.75);
+      }
+      g.scale(1.45, 1, 0.85);
+      g.computeVertexNormals();
+      g.translate(0, 0.07, 0);
+      const c = jitter(0xd8c49a, rng, 0.06);
+      const sp = new Parts();
+      sp.add(g, c);
+      // The tied end.
+      const neck = new THREE.CylinderGeometry(0.06, 0.1, 0.1, 6);
+      neck.rotateZ(Math.PI / 2);
+      neck.translate(0.47, 0.08, 0);
+      sp.add(neck, 0xa89060);
+      const tuft = new THREE.ConeGeometry(0.09, 0.12, 6);
+      tuft.rotateZ(Math.PI / 2);
+      tuft.translate(0.56, 0.08, 0);
+      sp.add(tuft, c);
+      sp.box(0.3, 0.012, 0.3, shade(c), 0, 0.2, 0); // a seam on top
+      const m = sp.build()!;
+      m.position.set(x, y, z);
+      m.rotation.y = ry;
+      group.add(m);
+    };
+    const group = new THREE.Group();
+    const w = 0.5, h = 0.3;
+    for (let i = 0; i < 3; i++) sack(0, 0, (i - 1) * w, (rng() - 0.5) * 0.12 + (i % 2) * Math.PI);
+    for (let i = 0; i < 2; i++) sack(0.02, h, (i - 0.5) * w, (rng() - 0.5) * 0.12 + (i % 2 ? 0 : Math.PI));
+    sack(-0.02, h * 2, 0, 0.08);
+    return make(group);
   }
   const group = new THREE.Group();
   group.add(p.build()!);
@@ -642,18 +692,25 @@ export const signpost: Builder = (o) => {
     p.box(0.05, 0.16, 0.01, 0xffffff, 0, 1.46, 0.12);
     p.box(0.05, 0.05, 0.01, 0xffffff, 0, 1.33, 0.12);
   } else {
-    // Arrows pointing different ways.
-    const arrows: [number, number, number][] = [[1.6, 0.4, 0x9c6a42], [1.3, -0.6, 0xa87a4c], [1.0, 2.4, 0x8a5c36]];
+    // Arrow boards pointing out from the post, all pointing away from it.
+    const shape = new THREE.Shape();
+    shape.moveTo(-0.12, -0.09);
+    shape.lineTo(0.68, -0.09);
+    shape.lineTo(0.68, -0.15);
+    shape.lineTo(0.86, 0);
+    shape.lineTo(0.68, 0.15);
+    shape.lineTo(0.68, 0.09);
+    shape.lineTo(-0.12, 0.09);
+    shape.closePath();
+    const arrows: [number, number, number][] = [[1.6, 0.4, 0x9c6a42], [1.33, -0.9, 0xa87a4c], [1.06, 2.1, 0x8a5c36]];
     for (const [y, ry, c] of arrows) {
       const a = new Parts();
-      a.box(0.7, 0.18, 0.05, c, 0.35, 0, 0);
-      const tip = new THREE.CircleGeometry(0.13, 3);
-      tip.translate(0.75, 0, 0);
-      a.add(tip, c);
-      const t2 = new THREE.CircleGeometry(0.13, 3);
-      t2.rotateY(Math.PI);
-      t2.translate(0.75, 0, 0);
-      a.add(t2, c);
+      const g = new THREE.ExtrudeGeometry(shape, { depth: 0.05, bevelEnabled: false });
+      g.translate(0, 0, -0.085);
+      a.add(g, c);
+      // Painted lines, like writing, on both faces.
+      for (const fz of [-0.087, -0.033]) a.box(0.42, 0.025, 0.004, 0x3a2a1c, 0.32, 0, fz);
+      a.box(0.05, 0.05, 0.02, 0x3a3a3e, 0.0, 0, -0.022); // nail
       const m = a.build()!;
       m.position.y = y;
       m.rotation.y = ry;
@@ -667,45 +724,60 @@ export const signpost: Builder = (o) => {
 export const statue: Builder = (o) => {
   const group = new THREE.Group();
   const p = new Parts();
-  const stone = 0xeeeae2;
-  p.box(1.2, 0.3, 1.2, 0xd8d4cc, 0, 0.15, 0);
-  p.box(0.95, 0.9, 0.95, stone, 0, 0.75, 0);
-  p.box(1.1, 0.12, 1.1, 0xd9b44a, 0, 1.26, 0);
-  // A robed figure.
-  const robe = new THREE.CylinderGeometry(0.22, 0.42, 1.5, 8);
-  robe.translate(0, 2.07, 0);
-  p.add(robe, stone);
-  const head = new THREE.IcosahedronGeometry(0.2, 1);
-  head.translate(0, 3.0, 0);
-  p.add(head, stone);
-  const hood = new THREE.ConeGeometry(0.26, 0.45, 8);
-  hood.translate(0, 3.12, -0.04);
-  p.add(hood, stone);
-  const arm = new THREE.CylinderGeometry(0.07, 0.09, 0.8, 6);
-  arm.rotateZ(o.variant === 0 ? -2.6 : -0.3);
-  arm.translate(o.variant === 0 ? 0.36 : 0.3, o.variant === 0 ? 2.9 : 2.2, 0.05);
-  p.add(arm, stone);
+  const stone = new THREE.MeshStandardMaterial({ color: 0xeeeae2, roughness: 0.55 });
+  (stone as any).__own = true;
+  p.box(1.3, 0.3, 1.3, 0xd8d4cc, 0, 0.15, 0);
+  p.box(1.0, 0.9, 1.0, 0xf0ece4, 0, 0.75, 0);
+  p.box(1.15, 0.12, 1.15, 0xd9b44a, 0, 1.26, 0);
   group.add(p.build(mat(0xffffff, { vertexColors: true, roughness: 0.5 }))!);
+  // A person from the Character Workshop, carved in white stone.
+  const lantern = o.variant === 0;
+  const hero = createCharacter(lantern
+    ? { hairStyle: "long", top: "robe", bottom: "skirt", frame: 0.6, beard: "none" }
+    : { hairStyle: "short", top: "robe", bottom: "skirt", beard: "wizard", glasses: "round" });
+  hero.setAnim("idle");
+  for (let i = 0; i < 30; i++) hero.update(0.1, 0);
+  hero.setAnim(null);
+  const J = hero.joints;
+  if (lantern) {
+    // Right arm held high.
+    J.shoulderR.rotation.set(-0.1, 0, -2.75);
+    J.elbowR.rotation.set(-0.25, 0, 0);
+  } else {
+    // Holding an open book in front.
+    J.shoulderL.rotation.set(-0.9, 0, 0.25);
+    J.elbowL.rotation.set(-1.1, 0, 0);
+    J.shoulderR.rotation.set(-0.9, 0, -0.25);
+    J.elbowR.rotation.set(-1.1, 0, 0);
+    J.head.rotation.x = 0.35;
+  }
+  hero.object.traverse((c) => {
+    const m = c as THREE.Mesh;
+    if (m.isMesh) {
+      m.material = stone;
+      m.castShadow = true;
+    }
+  });
+  hero.object.scale.setScalar(1.15);
+  hero.object.position.y = 1.32;
+  group.add(hero.object);
   const lights = new NightLights();
-  if (o.variant === 0) {
-    // Holding up the Lighthall's lantern.
+  if (lantern) {
     const glow = glowMat(0xfff2c0, 0xffd060);
     lights.addMat(glow, 0.8, 2.8);
-    const lt = mesh(new THREE.OctahedronGeometry(0.16, 0), glow);
-    lt.position.set(0.62, 3.42, 0.05);
-    group.add(lt);
+    const lt = mesh(new THREE.OctahedronGeometry(0.12, 0), glow);
+    lt.position.set(0, -0.2, 0);
+    J.handR.add(lt);
     const l = lamp(0xffd080, 10);
-    l.position.copy(lt.position);
-    group.add(l);
+    J.handR.add(l);
     lights.addLight(l, 7);
-    return make(group, (dt, t, env) => {
-      lights.update(dt, t, env);
-      lt.rotation.y = t * 0.8;
-    });
+    return { object: group, update: (dt, t, env) => { lights.update(dt, t, env); lt.rotation.y = t * 0.8; }, dispose: () => { hero.dispose(); disposeGroup(group); } };
   }
-  // Or holding a book.
   const book = new Parts();
-  book.box(0.3, 0.05, 0.22, 0xd9b44a, 0.36, 1.85, 0.25);
-  group.add(book.build()!);
-  return make(group);
+  book.box(0.32, 0.03, 0.24, 0xd9b44a, 0, 0, 0);
+  book.box(0.3, 0.035, 0.005, 0xb8962e, 0, 0.005, 0);
+  const bm = book.build()!;
+  bm.position.set(0.12, -0.12, 0.1);
+  J.handL.add(bm);
+  return { object: group, update() {}, dispose: () => { hero.dispose(); disposeGroup(group); } };
 };

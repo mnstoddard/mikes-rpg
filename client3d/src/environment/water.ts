@@ -324,7 +324,7 @@ export const sea: Builder = (o) => {
   // Drop the sheet's dry part under the sand.
   for (let i = 0; i < wp.count; i += 3) {
     const cx = (wp.getX(i) + wp.getX(i + 1) + wp.getX(i + 2)) / 3, cz = (wp.getZ(i) + wp.getZ(i + 1) + wp.getZ(i + 2)) / 3;
-    if (cz < shoreZ(cx) - 0.8) for (let k = 0; k < 3; k++) wp.setY(i + k, -5);
+    if (cz < shoreZ(cx) - 0.8) for (let k = 0; k < 3; k++) wp.setXYZ(i + k, cx, -5, cz);
   }
   const rest = Float32Array.from(wp.array as Float32Array);
   group.add(water.mesh);
@@ -375,15 +375,19 @@ export const sea: Builder = (o) => {
 export const waterfall: Builder = (o) => {
   const rng = makeRng(o.seed);
   const group = new THREE.Group();
-  const tall = o.variant === 0, wide = o.variant === 1, steps = o.variant === 2;
-  const H = tall ? 6 : wide ? 4 : 4.5;
+  const wide = o.variant === 1, cascade = o.variant === 2;
+  const H = o.variant === 0 ? 6 : wide ? 4 : 4.8;
   const fallW = wide ? 4.5 : 1.8;
-  // The cliff behind: rock layers in a U shape.
+  // Each tier: water leaves a lip at `top` (at depth z) and falls to `bot`.
+  const tiers = cascade
+    ? [{ top: H, bot: H * 0.66, z: -1.3 }, { top: H * 0.66, bot: H * 0.33, z: -0.45 }, { top: H * 0.33, bot: 0, z: 0.4 }]
+    : [{ top: H, bot: 0, z: -1.3 }];
+  const out = cascade ? 0.3 : 0.45; // how far the water arcs out from the lip
+  // The cliff behind: rock layers with a notch where the water runs.
   const cliff = new Parts();
   for (let y = 0; y < H; y += 0.75) {
     for (let x = -6; x < 6; x += 0.9) {
       if (Math.abs(x + 0.45) < fallW / 2 + 0.1 && y > 0) {
-        // Behind the water: a darker wet rock face set back.
         cliff.box(0.95, 0.78, 0.8, jitter(0x4e4a44, rng, 0.08), x + 0.45, y + 0.38, -2.2);
         continue;
       }
@@ -391,9 +395,27 @@ export const waterfall: Builder = (o) => {
       cliff.box(0.95, 0.8, 1.6, c, x + 0.45, y + 0.4, -1.6 + (rng() - 0.5) * 0.2 - y * 0.04);
     }
   }
-  // Grass on top, and the stream above running to the lip.
   cliff.box(12.2, 0.25, 3, 0x76ae48, 0, H + 0.1, -2.4);
+  // Rock shelves for the cascade, each with a shallow pool on top.
+  const shelfWater = new Parts();
+  tiers.forEach((t, i) => {
+    if (i === 0) return;
+    const back = -2.4, front = t.z + 0.12;
+    const d = front - back;
+    for (let x = -fallW / 2 - 0.7; x < fallW / 2 + 0.7; x += 0.55) {
+      cliff.box(0.6, 0.4 + rng() * 0.1, d, jitter(0x7a7268, rng, 0.08), x + 0.27, t.top - 0.22, back + d / 2);
+    }
+    // A little rim of stones along the front edge.
+    for (let x = -fallW / 2 - 0.5; x < fallW / 2 + 0.5; x += 0.35) {
+      const g = rockGeo(0.13 + rng() * 0.05, rng, 0.6);
+      g.translate(x, t.top + 0.03, front - 0.08);
+      cliff.add(g, jitter(0x6e6a62, rng, 0.1));
+    }
+    shelfWater.box(fallW + 0.6, 0.05, d - 0.3, 0x6ab8d8, 0, t.top + 0.02, back + d / 2 - 0.1);
+  });
   group.add(cliff.build()!);
+  const sw = shelfWater.build(mat(0xffffff, { vertexColors: true, opacity: 0.85, roughness: 0.1 }), false);
+  if (sw) group.add(sw);
   // The pool at the bottom.
   const poolDepth = (x: number, z: number) => Math.max(0, 1 - Math.hypot(x / 3.4, (z + 0.6) / 2.2)) * 1.6;
   const ground = basin(12, 8, 0.8, poolDepth, grassLand, 0x6a6a5a, 0x8e8a82);
@@ -404,45 +426,45 @@ export const waterfall: Builder = (o) => {
   const pp = pool.mesh.geometry.attributes.position as THREE.BufferAttribute;
   for (let i = 0; i < pp.count; i += 3) {
     const cx = (pp.getX(i) + pp.getX(i + 1) + pp.getX(i + 2)) / 3, cz = (pp.getZ(i) + pp.getZ(i + 1) + pp.getZ(i + 2)) / 3;
-    if (poolDepth(cx, cz) <= 0.0) for (let k = 0; k < 3; k++) pp.setY(i + k, -5);
+    if (poolDepth(cx, cz) <= 0.0) for (let k = 0; k < 3; k++) pp.setXYZ(i + k, cx, -5, cz);
   }
   const prest = Float32Array.from(pp.array as Float32Array);
   group.add(pool.mesh);
-  // The falling water: a ribbon of thin strips, each one rippling down.
-  const fallMat = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.1, metalness: 0.1, transparent: true, opacity: 0.82, side: THREE.DoubleSide });
+  // The falling water: one rippling ribbon per tier, pouring off its lip.
+  const fallMat = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.1, metalness: 0.1, transparent: true, opacity: 0.84, side: THREE.DoubleSide });
   (fallMat as any).__own = true;
-  const cols = Math.round(fallW / 0.3), rows = Math.round(H / 0.3);
-  const fgeo = new THREE.PlaneGeometry(fallW, H + 0.2, cols, rows).toNonIndexed();
-  fgeo.translate(0, H / 2, -1.3);
-  const fpos = fgeo.attributes.position as THREE.BufferAttribute;
-  const frest = Float32Array.from(fpos.array as Float32Array);
-  const fcol = new Float32Array(fpos.count * 3);
-  fgeo.setAttribute("color", new THREE.BufferAttribute(fcol, 3));
-  const fall = mesh(fgeo, fallMat, false);
-  group.add(fall);
-  // Step ledges for the cascade.
-  if (steps) {
-    const st = new Parts();
-    for (const y of [H * 0.33, H * 0.66]) st.box(fallW + 0.6, 0.25, 0.9, 0x6e6a62, 0, y, -1.05);
-    group.add(st.build()!);
-  }
-  // Splash bits and mist at the bottom.
-  const spray: { m: THREE.Mesh; p: number; x: number; a: number }[] = [];
+  const falls = tiers.map((t) => {
+    const h = t.top - t.bot + 0.15;
+    const cols = Math.round(fallW / 0.3), rows = Math.max(3, Math.round(h / 0.3));
+    const g = new THREE.PlaneGeometry(fallW, h, cols, rows).toNonIndexed();
+    g.translate(0, t.bot + h / 2 - 0.05, 0);
+    const pos = g.attributes.position as THREE.BufferAttribute;
+    const rest = Float32Array.from(pos.array as Float32Array);
+    const col = new Float32Array(pos.count * 3);
+    g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+    group.add(mesh(g, fallMat, false));
+    return { t, g, pos, rest, col, h };
+  });
+  // Splash bits and mist where each tier lands.
+  const spray: { m: THREE.Mesh; p: number; x: number; a: number; y: number; z: number }[] = [];
   const sprayMat = mat(0xffffff, { opacity: 0.75 });
-  for (let i = 0; i < 26; i++) {
-    const m = mesh(new THREE.IcosahedronGeometry(0.06 + rng() * 0.06, 0), sprayMat, false);
-    spray.push({ m, p: rng(), x: (rng() - 0.5) * fallW, a: rng() * 6.28 });
-    group.add(m);
-  }
   const mistMat = mat(0xffffff, { opacity: 0.25 });
-  const mist: THREE.Mesh[] = [];
-  for (let i = 0; i < 5; i++) {
-    const m = mesh(new THREE.IcosahedronGeometry(0.6 + rng() * 0.4, 0), mistMat, false);
-    m.position.set((rng() - 0.5) * fallW, 0.2, -0.6 + rng() * 0.6);
-    m.scale.y = 0.5;
-    mist.push(m);
-    group.add(m);
-  }
+  const mist: { m: THREE.Mesh; y: number }[] = [];
+  tiers.forEach((t) => {
+    const landZ = t.z + out + 0.1;
+    for (let i = 0; i < (cascade ? 12 : 26); i++) {
+      const m = mesh(new THREE.IcosahedronGeometry(0.05 + rng() * 0.06, 0), sprayMat, false);
+      spray.push({ m, p: rng(), x: (rng() - 0.5) * fallW, a: rng() * 6.28, y: t.bot, z: landZ });
+      group.add(m);
+    }
+    for (let i = 0; i < (cascade ? 2 : 5); i++) {
+      const m = mesh(new THREE.IcosahedronGeometry((cascade ? 0.4 : 0.6) + rng() * 0.4, 0), mistMat, false);
+      m.position.set((rng() - 0.5) * fallW, t.bot + 0.2, landZ + rng() * 0.4);
+      m.scale.y = 0.5;
+      mist.push({ m, y: t.bot + 0.2 });
+      group.add(m);
+    }
+  });
   const c1 = new THREE.Color(0xe8f8ff), c2 = new THREE.Color(0x6ab8d8), c = new THREE.Color();
   let gush = 0;
   return {
@@ -450,36 +472,36 @@ export const waterfall: Builder = (o) => {
     update(dt, t, env) {
       gush = Math.max(0, gush - dt * 0.5);
       const speed = 3 + gush * 3;
-      for (let i = 0; i < fpos.count; i++) {
-        const x = frest[i * 3], y = frest[i * 3 + 1];
-        const h = y / H; // 1 at the top
-        // Water curves out over the lip, then falls straight.
-        let z = -1.3 + Math.sin((1 - h) * Math.PI * 0.5) * 0.4 * (steps ? 0.3 : 1);
-        if (steps) z += (y < H * 0.33 ? 0.25 : y < H * 0.66 ? 0.12 : 0);
-        fpos.setXYZ(i, x + Math.sin(y * 3 + t * 2 + x) * 0.03, y, z + Math.sin(y * 5 + t * speed * 2 + x * 4) * 0.04);
+      for (const f of falls) {
+        for (let i = 0; i < f.pos.count; i++) {
+          const x = f.rest[i * 3], y = f.rest[i * 3 + 1];
+          const k = Math.max(0, Math.min(1, (f.t.top - y) / Math.max(0.5, f.h))); // 0 at the lip, 1 at the bottom
+          // Water curves out over the lip, then drops.
+          const z = f.t.z + Math.sin(Math.min(1, k * 2.2) * Math.PI * 0.5) * out;
+          f.pos.setXYZ(i, x + Math.sin(y * 3 + t * 2 + x) * 0.03, y, z + Math.sin(y * 5 + t * speed * 2 + x * 4) * 0.04);
+        }
+        f.pos.needsUpdate = true;
+        for (let i = 0; i < f.pos.count; i += 3) {
+          const x = (f.rest[i * 3] + f.rest[i * 3 + 3] + f.rest[i * 3 + 6]) / 3, y = (f.rest[i * 3 + 1] + f.rest[i * 3 + 4] + f.rest[i * 3 + 7]) / 3;
+          const s2 = Math.sin(y * 2.2 + t * speed * 2.2 + Math.sin(x * 7) * 3) * 0.5 + 0.5;
+          c.copy(c2).lerp(c1, Math.min(1, Math.pow(s2, 3) * 0.9 + (y < f.t.bot + 0.5 ? 0.6 : 0) + (y > f.t.top - 0.2 ? 0.3 : 0)));
+          for (let k = 0; k < 3; k++) c.toArray(f.col, (i + k) * 3);
+        }
+        (f.g.attributes.color as THREE.BufferAttribute).needsUpdate = true;
       }
-      fpos.needsUpdate = true;
-      // Streaks of white moving down.
-      for (let i = 0; i < fpos.count; i += 3) {
-        const x = (frest[i * 3] + frest[i * 3 + 3] + frest[i * 3 + 6]) / 3, y = (frest[i * 3 + 1] + frest[i * 3 + 4] + frest[i * 3 + 7]) / 3;
-        const s = Math.sin(y * 2.2 + t * speed * 2.2 + Math.sin(x * 7) * 3) * 0.5 + 0.5;
-        c.copy(c2).lerp(c1, Math.pow(s, 3) * 0.9 + (y < 0.6 ? 0.6 : 0));
-        for (let k = 0; k < 3; k++) c.toArray(fcol, (i + k) * 3);
-      }
-      (fgeo.attributes.color as THREE.BufferAttribute).needsUpdate = true;
-      for (const s of spray) {
-        const k = (t * (0.9 + gush) + s.p) % 1;
-        s.m.position.set(s.x + Math.cos(s.a) * k * 0.9, Math.sin(k * Math.PI) * (0.7 + gush * 0.6), -0.9 + Math.sin(s.a) * k * 0.5 + k * 0.6);
-        s.m.scale.setScalar(1 - k * 0.6);
+      for (const s2 of spray) {
+        const k = (t * (0.9 + gush) + s2.p) % 1;
+        s2.m.position.set(s2.x + Math.cos(s2.a) * k * 0.7, s2.y + Math.sin(k * Math.PI) * (cascade ? 0.4 : 0.7) * (1 + gush * 0.8), s2.z + Math.sin(s2.a) * k * 0.4 + k * 0.4);
+        s2.m.scale.setScalar(1 - k * 0.6);
       }
       mist.forEach((m, i) => {
-        m.position.y = 0.25 + Math.sin(t * 0.7 + i) * 0.12;
-        m.rotation.y = t * 0.2 + i;
+        m.m.position.y = m.y + Math.sin(t * 0.7 + i) * 0.1;
+        m.m.rotation.y = t * 0.2 + i;
       });
       for (let i = 0; i < pp.count; i++) {
         if (prest[i * 3 + 1] < -1) continue;
         const x = prest[i * 3], z = prest[i * 3 + 2];
-        const r = Math.hypot(x, z + 3);
+        const r = Math.hypot(x, z - (tiers[tiers.length - 1].z + out - 2));
         pp.setY(i, -0.1 + Math.sin(r * 5 - t * 5) * 0.025 * Math.max(0, 1 - r / 5) * (1 + gush * 2) + Math.sin(x * 2 + t) * 0.01 * (1 + env.wind));
       }
       pp.needsUpdate = true;

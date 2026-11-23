@@ -240,26 +240,47 @@ export const cliff: WallBuilder = (o) => {
   const rng = makeRng(o.seed);
   const parts = new Parts();
   const snowy = o.variant === 1;
-  // Layers of rock that step back as they go up.
-  const layers = Math.round(H / 0.9);
-  for (let i = 0; i < layers; i++) {
-    const y = (i / layers) * H;
-    const h = H / layers;
-    const back = i * 0.12;
-    for (let x = -L / 2; x < L / 2 - 0.01; ) {
-      const w = Math.min(0.6 + rng() * 0.9, L / 2 - x);
-      const c = jitter(i % 2 ? 0x8a8072 : 0x7a7064, rng, 0.08);
-      parts.box(w + 0.02, h * (0.9 + rng() * 0.15), 1.2, c, x + w / 2, y + h / 2, -0.6 - back + (rng() - 0.5) * 0.18);
-      x += w;
+  const capColor = snowy ? 0xf2f6fa : 0x76ae48;
+  // A solid core so you never see through it.
+  parts.box(L, H * 0.85, 1.6, 0x6e665c, 0, (H * 0.85) / 2, -1.4);
+  // Columns of big rough boulders, each column a different height, so the
+  // top edge is jagged and the face steps back a little as it rises.
+  for (let x = -L / 2 + 0.45; x < L / 2; x += 0.85) {
+    const colH = H * (0.82 + rng() * 0.3);
+    let y = 0;
+    while (y < colH - 0.3) {
+      const r = 0.5 + rng() * 0.3;
+      const g = rockGeo(r, rng, 0.7);
+      g.scale(1.15, 1, 0.55); // flat-faced slabs make a rock face, not a heap
+      g.rotateY(rng() * 6);
+      const back = (y / H) * 0.6;
+      g.translate(x + (rng() - 0.5) * 0.25, y + r * 0.6, -0.4 - back + (rng() - 0.5) * 0.2);
+      const band = Math.floor(y / 1.1) % 2;
+      parts.add(g, jitter(band ? 0x8a8072 : 0x7a7064, rng, 0.08));
+      y += r * 1.0;
+    }
+    const top = y + 0.1;
+    // The cap (grass or snow) sitting on top of this column, spilling over.
+    const cap = rockGeo(0.62, rng, 0.35);
+    cap.scale(1.15, 1, 1.6);
+    cap.translate(x, top, -0.7 - (top / H) * 0.6);
+    parts.add(cap, jitter(capColor, rng, 0.03));
+    const lip = new THREE.ConeGeometry(0.14, 0.35 + rng() * 0.35, 4);
+    lip.rotateX(Math.PI);
+    lip.translate(x + (rng() - 0.5) * 0.3, top - 0.2, -0.3 - (top / H) * 0.6);
+    parts.add(lip, snowy ? 0xe6eef6 : 0x6a9e3c);
+    if (snowy && rng() < 0.5) {
+      // Snow caught on a ledge part way up.
+      const ledge = rockGeo(0.3, rng, 0.3);
+      ledge.translate(x, colH * (0.35 + rng() * 0.3), -0.05);
+      parts.add(ledge, 0xeef3f8);
     }
   }
-  // A grassy (or snowy) lip on top with a few hanging bits.
-  parts.box(L + 0.02, 0.22, 1.5, snowy ? 0xf2f6fa : 0x76ae48, 0, H + 0.08, -0.9 - layers * 0.12 + 0.12);
-  for (let x = -L / 2 + 0.2; x < L / 2; x += 0.35 + rng() * 0.3) {
-    const g = new THREE.ConeGeometry(0.1, 0.25 + rng() * 0.25, 4);
-    g.rotateX(Math.PI);
-    g.translate(x, H - 0.1, -0.1 - layers * 0.12 + 0.12);
-    parts.add(g, snowy ? 0xe6eef6 : 0x6a9e3c);
+  // Fallen rocks at the foot.
+  for (let i = 0; i < L * 0.8; i++) {
+    const g = rockGeo(0.12 + rng() * 0.18, rng, 0.6);
+    g.translate((rng() - 0.5) * L, 0.05, 0.2 + rng() * 0.5);
+    parts.add(g, jitter(0x7e766a, rng, 0.08));
   }
   return piece(fromParts(parts));
 };
@@ -295,14 +316,35 @@ export const fence: WallBuilder = (o) => {
   const rng = makeRng(o.seed);
   const parts = new Parts();
   if (o.variant === 2) {
-    // A low dry-stone wall.
-    for (let y = 0.12; y < 0.9; y += 0.22) {
-      for (let x = -L / 2 + 0.15; x < L / 2; x += 0.3 + rng() * 0.1) {
-        const g = rockGeo(0.17 + rng() * 0.06, rng, 0.6);
-        g.translate(x, y, (rng() - 0.5) * 0.08);
-        parts.add(g, jitter(0x8f8b80, rng, 0.12));
+    // A low dry-stone wall: a solid core faced with tight courses of flat
+    // stones, and a row of stones standing on edge along the top.
+    const T = 0.5, Hw = 0.85;
+    parts.box(L, Hw, T - 0.06, 0x6e6a62, 0, Hw / 2, 0);
+    const stone = (w: number, h: number, d: number, x: number, y: number, z: number, tilt = 0) => {
+      const g = new THREE.BoxGeometry(w, h, d);
+      const pos = g.attributes.position as THREE.BufferAttribute;
+      for (let k = 0; k < pos.count; k++) pos.setXYZ(k, pos.getX(k) * (0.92 + rng() * 0.12), pos.getY(k) * (0.9 + rng() * 0.15), pos.getZ(k) * (0.9 + rng() * 0.2));
+      if (tilt) g.rotateZ(tilt);
+      g.translate(x, y, z);
+      parts.add(g, jitter(rng() < 0.5 ? 0x9a968a : 0x8a867a, rng, 0.08));
+    };
+    let y = 0;
+    let row = 0;
+    while (y < Hw - 0.12) {
+      const h = 0.13 + rng() * 0.06;
+      for (const side of [-1, 1]) {
+        let x = -L / 2 + (row % 2 ? 0.12 : 0);
+        while (x < L / 2) {
+          const w = Math.min(0.28 + rng() * 0.22, L / 2 - x + 0.02);
+          stone(w + 0.02, h + 0.015, 0.16, x + w / 2, y + h / 2, side * (T / 2 - 0.06));
+          x += w;
+        }
       }
+      y += h;
+      row++;
     }
+    // Coping: flat stones standing on edge along the top.
+    for (let x = -L / 2 + 0.07; x < L / 2; x += 0.13) stone(0.11, 0.24, T + 0.02, x, Hw + 0.08, 0, (rng() - 0.5) * 0.25);
     return piece(fromParts(parts));
   }
   const picket = o.variant === 1;

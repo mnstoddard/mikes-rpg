@@ -121,6 +121,11 @@ let sceneParts: EnvPiece[] = [];
 let sceneGroup: THREE.Group | null = null;
 let inside: "cave" | "room" | undefined;
 let weatherFog: { color: number; near: number; far: number } | undefined;
+/** Scene weather: -1 means the scene's own; 99 clear; otherwise a weather style. */
+let sceneWeather = -1;
+let storming = false;
+let weatherPieces: EnvPiece[] = [];
+let baseHemi = 1;
 
 /** The earth slab under a display, so it floats like the other galleries' islands. */
 function slab(w: number, d: number, color = 0x7a5a3c) {
@@ -169,7 +174,7 @@ function display(id: string, x: number, variant = variantOf[id]): Shown {
     piece.object.position.x = -x; // built in world space; the holder moves it back
     holder.add(slab(S, S, id.startsWith("floor") ? 0x5e5248 : 0x7a5a3c));
   } else if (t.kind === "wall" || t.kind === "door") {
-    const L = id === "wall-bridge" ? 0 : t.kind === "door" ? 3 : TILE * 2;
+    const L = id === "wall-bridge" ? 0 : t.kind === "door" ? 3 : id === "wall-cliff" ? 6.6 : TILE * 2;
     const g = add(createEnv(groundFor(id), { variant: variantOf[groundFor(id)], x0: -3.5 + x, z0: -2.5, w: 7, d: 5 }));
     g.object.position.x = -x;
     if (id !== "wall-bridge") holder.add(slab(7, 5, groundFor(id).startsWith("floor") ? 0x5e5248 : 0x7a5a3c));
@@ -222,7 +227,9 @@ function display(id: string, x: number, variant = variantOf[id]): Shown {
   } else if (t.kind === "decor") {
     const gid = groundFor(id);
     const S = id === "decor-statue" || id === "decor-well" ? 5 : 4;
-    const g = add(createEnv(gid, { variant: variantOf[gid], x0: -S / 2 + x, z0: -S / 2, w: S, d: S }));
+    // Small things sit on flat ground (sand dunes would bury the shells).
+    const gv = gid === "ground-sand" && variantOf[gid] === 2 ? 0 : variantOf[gid];
+    const g = add(createEnv(gid, { variant: gv, x0: -S / 2 + x, z0: -S / 2, w: S, d: S }));
     g.object.position.x = -x;
     holder.add(slab(S, S, gid.startsWith("floor") ? 0x5e5248 : 0x7a5a3c));
     piece = createEnv(id, { variant, seed });
@@ -268,6 +275,8 @@ function clearShown() {
   }
   inside = undefined;
   weatherFog = undefined;
+  weatherPieces = [];
+  storming = false;
 }
 
 function spacing(id: string) {
@@ -285,14 +294,15 @@ function frameOne(id: string) {
   if (t.kind === "patch") frame(0, 0, 10, new THREE.Vector3(0.5, 0.75, 0.8));
   else if (t.kind === "wall" || t.kind === "door") frame(0, 1.4, id === "wall-cliff" ? 15 : id === "wall-bridge" ? 13 : 10);
   else if (t.kind === "roof") frame(0, 2.6, 15, new THREE.Vector3(0.6, 0.45, 0.8));
-  else if (t.kind === "ornament") frame(0, (shown[0]?.piece as any)?.mountY ?? 1.5, 5.2, new THREE.Vector3(0.35, 0.2, 1));
+  else if (t.kind === "ornament") frame(0, id === "orn-vines" ? 1.4 : (shown[0]?.piece as any)?.mountY ?? 1.5, id === "orn-vines" ? 6 : 5.2, new THREE.Vector3(0.35, 0.2, 1));
   else if (t.kind === "decor") {
     const tall = id === "decor-lamp" || id === "decor-statue" || id === "decor-well";
     const small = /beach|mushrooms|tufts|flowers/.test(id);
     frame(0, tall ? 1.6 : small ? 0.2 : 0.5, tall ? 8 : small ? 3 : 4.6, new THREE.Vector3(0.5, 0.55, 0.8));
   }
   else if (t.kind === "water") frame(0, 0, id === "water-fall" ? 17 : id === "water-river" ? 19 : 15, new THREE.Vector3(0.35, 0.55, 1), id === "water-fall" ? 1 : 0);
-  else frame(0, 26, 30, new THREE.Vector3(0.1, -0.75, 1));
+  else if (t.kind === "weather") frame(0, 2, 16, new THREE.Vector3(0.3, 0.3, 1));
+  else frame(0, 20, 40, new THREE.Vector3(0, -0.3, 1), -40);
 }
 
 function rebuild(keepCamera = false) {
@@ -304,7 +314,24 @@ function rebuild(keepCamera = false) {
     sceneParts = built.pieces;
     scene.add(sceneGroup);
     inside = built.inside;
-    weatherFog = built.fog;
+    const w = sceneWeather === -1 ? built.weather ?? 99 : sceneWeather;
+    if (!inside && w !== 99) {
+      const wp = createEnv("sky-weather", { variant: w, seed: 5 });
+      wp.object.userData.envId = "sky-weather";
+      sceneGroup.add(wp.object);
+      sceneParts.push(wp);
+      weatherPieces.push(wp);
+      weatherFog = wp.fog;
+      if (w === 4) {
+        // A thunderstorm: storm clouds fill the sky instead of the usual ones.
+        storming = true;
+        sceneGroup.children.forEach((c) => c.userData.envId === "sky-clouds" && (c.visible = false));
+        const sc = createEnv("sky-clouds", { variant: 2, seed: 9 });
+        sc.object.userData.envId = "sky-clouds";
+        sceneGroup.add(sc.object);
+        sceneParts.push(sc);
+      }
+    }
     person.position.set(built.personAt?.[0] ?? built.target.x + 1.2, 0, built.personAt?.[1] ?? built.target.z + 2);
     person.rotation.y = 0.4;
     if (!keepCamera) frame(built.target.x, built.target.y, built.dist, built.dir, built.target.z);
@@ -315,6 +342,8 @@ function rebuild(keepCamera = false) {
     person.rotation.y = -0.6;
     if (!keepCamera) frameOne(current);
     weatherFog = shown[0].piece.fog;
+    if (t.kind === "weather") weatherPieces.push(shown[0].piece);
+    storming = (current === "sky-dome" && variantOf[current] === 2) || (current === "sky-weather" && variantOf[current] === 4) || (current === "sky-clouds" && variantOf[current] === 2);
   } else {
     // Every variant side by side.
     const n = t.variants.length;
@@ -331,7 +360,10 @@ function rebuild(keepCamera = false) {
     }
   }
   // The sky's own entry changes the dome's style; everything else uses the picked style.
-  sky.setStyle(mode !== "scene" && current === "sky-dome" ? variantOf["sky-dome"] : variantOf["sky-dome"]);
+  // The sky's style (smooth or bands) is the one picked; "Stormy" is shown in storms.
+  const pickedStyle = variantOf["sky-dome"] === 2 ? 1 : variantOf["sky-dome"];
+  sky.setStyle(mode === "one" && current === "sky-dome" && variantOf[current] < 2 ? variantOf[current] : pickedStyle);
+  sky.setStorm(storming);
   person.visible = showPerson && t.kind !== "clouds" && t.kind !== "dome";
   grid.visible = showGrid && mode !== "scene";
   applyTime();
@@ -356,9 +388,17 @@ function applyTime() {
   bloom.strength = s.bloom;
   let fogColor = s.fog as number, near = 60, far = 260;
   if (weatherFog) {
-    fogColor = timeOfDay === "night" ? 0x2a3450 : weatherFog.color;
+    // Weather fog takes on the colour of the time of day.
+    fogColor = new THREE.Color(weatherFog.color).lerp(new THREE.Color(s.fog), timeOfDay === "day" ? 0.15 : timeOfDay === "sunset" ? 0.55 : 0.85).getHex();
     near = weatherFog.near;
     far = weatherFog.far;
+  }
+  if (storming && !inside) {
+    // Dark under the storm clouds.
+    sun.intensity *= 0.3;
+    hemi.intensity *= 0.75;
+    hemi.color.setHex(timeOfDay === "night" ? 0x4a5470 : 0xaab4c0);
+    bloom.strength = Math.max(bloom.strength, 0.5);
   }
   if (inside === "cave") {
     hemi.color.setHex(0x6a7088);
@@ -384,6 +424,7 @@ function applyTime() {
   } else {
     scene.background = null;
   }
+  baseHemi = hemi.intensity;
   const fogObj = scene.fog as THREE.Fog;
   fogObj.color.setHex(fogColor);
   fogObj.near = near;
@@ -424,7 +465,11 @@ function loop() {
   sceneParts.forEach((p) => p.update(dt, t, env));
   sky.update(dt, t);
   sky.object.position.copy(camera.position);
+  // Lightning lights up the whole scene for a moment.
+  hemi.intensity = baseHemi + sky.flash * (timeOfDay === "night" ? 2.2 : 1.4);
   controls.update();
+  // Rain, snow and fog stay round what you're looking at.
+  for (const w of weatherPieces) w.object.position.set(controls.target.x, 0, controls.target.z);
   // Keep the sun's shadow box round what you're looking at.
   const d = new THREE.Vector3(...SKY_TIMES[timeOfDay].dir).normalize().multiplyScalar(40);
   sun.position.copy(controls.target).add(d);
@@ -547,6 +592,7 @@ function updateHud() {
   const sel = $<HTMLSelectElement>("scene");
   sel.value = sceneId;
   $("scene-ctl").hidden = mode !== "scene";
+  $("weather-ctl").hidden = mode !== "scene" || !!inside;
   $("grid-ctl").hidden = mode === "scene";
   $("scene-about").textContent = mode === "scene" ? `${SCENES[sceneId].about} Click anything in the scene to review it.` : "";
 }
@@ -601,6 +647,10 @@ for (const [id, s] of Object.entries(SCENES)) {
   sceneSel.appendChild(o);
 }
 sceneSel.onchange = () => openScene(sceneSel.value as SceneId);
+$<HTMLSelectElement>("weather").onchange = (e) => {
+  sceneWeather = Number((e.target as HTMLSelectElement).value);
+  rebuild(true);
+};
 
 $("act").onclick = () => {
   if (mode === "scene") {
