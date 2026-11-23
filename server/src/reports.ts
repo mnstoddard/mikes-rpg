@@ -14,13 +14,17 @@
 //   Answers { ok: true, id } or { ok: false, error }.
 //
 // Reviewing them (needs the ADMIN_PASSWORD environment variable; any username):
-//   /admin/reports                  a page listing every report with its screenshot
-//   /admin/api/reports?status=new   the same as JSON (for scripts, or Claude)
+//   /admin/reports                  the report browser: filter bugs / ideas, to do / done,
+//                                   search, screenshots, full details, mark done, delete
+//   /admin/api/reports?status=new   the list as JSON (for scripts, or Claude); no save copies
+//   /admin/api/reports/:id          one report as JSON, with everything
 //   /admin/reports/:id/screenshot   one report's picture
 //   POST /admin/api/reports/:id     JSON { status: "new" | "done" } to tick one off
+//   DELETE /admin/api/reports/:id   throw one away for good
 import express, { type Request, type Response, type NextFunction } from "express";
 import { timingSafeEqual } from "node:crypto";
-import { store } from "./storage";
+import { readFileSync } from "node:fs";
+import { store, type Report } from "./storage";
 import { playerForReport } from "./WorldRoom";
 
 const MAX_NOTE = 4000;
@@ -113,10 +117,24 @@ function adminOnly(req: Request, res: Response, next: NextFunction) {
   res.set("WWW-Authenticate", 'Basic realm="Game reports"').status(401).type("text").send("Password needed.");
 }
 
+/** The list leaves out each report's copy of the player's save (it's big); the single report has it. */
+function withoutSave(r: Report): Report {
+  const player = r.info.player as Record<string, unknown> | null | undefined;
+  if (!player || typeof player !== "object" || !("save" in player)) return r;
+  const { save: _save, ...rest } = player;
+  return { ...r, info: { ...r.info, player: rest } };
+}
+
 reportsRouter.get("/admin/api/reports", adminOnly, async (req, res) => {
   const status = STATUSES.has(String(req.query.status)) ? String(req.query.status) : undefined;
-  const limit = Math.min(500, Math.max(1, Number(req.query.limit) || 200));
-  res.json(await store.listReports({ status, limit }));
+  const limit = Math.min(1000, Math.max(1, Number(req.query.limit) || 500));
+  res.json((await store.listReports({ status, limit })).map(withoutSave));
+});
+
+reportsRouter.get("/admin/api/reports/:id", adminOnly, async (req, res) => {
+  const report = await store.getReport(Number(req.params.id));
+  if (!report) return void res.status(404).json({ ok: false, error: "No report with that number." });
+  res.json(report);
 });
 
 reportsRouter.get("/admin/reports/:id/screenshot", adminOnly, async (req, res) => {
@@ -131,75 +149,14 @@ reportsRouter.post("/admin/api/reports/:id", adminOnly, express.json(), async (r
   res.json({ ok: await store.setReportStatus(Number(req.params.id), status) });
 });
 
-reportsRouter.get("/admin/reports", adminOnly, (_req, res) => {
-  res.type("html").send(ADMIN_PAGE);
+reportsRouter.delete("/admin/api/reports/:id", adminOnly, async (req, res) => {
+  const ok = await store.deleteReport(Number(req.params.id));
+  if (ok) console.log(`Report #${req.params.id} deleted`);
+  res.json({ ok });
 });
 
-const ADMIN_PAGE = `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Game reports</title>
-<style>
-  body { margin: 0; background: #1b1610; color: #f2e6c9; font: 15px/1.45 sans-serif; }
-  header { position: sticky; top: 0; background: #2a2218; border-bottom: 2px solid #6b5a3e; padding: 10px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-  h1 { margin: 0; font-size: 18px; color: #ffd84a; font-weight: normal; margin-right: auto; }
-  button, select { font: inherit; background: #5a4a2f; color: #fff; border: 1px solid #6b5a3e; border-radius: 3px; padding: 5px 10px; cursor: pointer; }
-  main { padding: 12px 16px; display: grid; gap: 12px; max-width: 1100px; margin: 0 auto; }
-  .r { background: #2a2218; border: 1px solid #6b5a3e; border-radius: 4px; padding: 12px; display: grid; grid-template-columns: minmax(0, 340px) 1fr; gap: 14px; }
-  .r.done { opacity: .55; }
-  .r img { width: 100%; border-radius: 3px; cursor: zoom-in; background: #000; }
-  .noshot { color: #9a8a6a; font-style: italic; }
-  .top { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
-  .tag { font-size: 12px; padding: 1px 7px; border-radius: 10px; background: #6b3a2e; }
-  .tag.idea { background: #2e5a6b; }
-  .when { color: #b8a888; font-size: 13px; }
-  .note { white-space: pre-wrap; margin: 6px 0 8px; font-size: 16px; color: #fff; }
-  .meta { font-size: 13px; color: #c9b998; }
-  details { margin-top: 6px; font-size: 12px; }
-  pre { white-space: pre-wrap; word-break: break-word; background: #120e09; padding: 8px; border-radius: 3px; max-height: 300px; overflow: auto; }
-  .empty { text-align: center; color: #9a8a6a; padding: 40px; }
-  @media (max-width: 700px) { .r { grid-template-columns: 1fr; } }
-</style></head><body>
-<header><h1>🐞 Game reports</h1>
-  <select id="filter"><option value="new">New only</option><option value="">All</option><option value="done">Done</option></select>
-  <button id="reload">Reload</button></header>
-<main id="list"><div class="empty">Loading…</div></main>
-<script>
-const list = document.getElementById("list");
-const filter = document.getElementById("filter");
-const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-async function load() {
-  const res = await fetch("/admin/api/reports" + (filter.value ? "?status=" + filter.value : ""));
-  const reports = await res.json();
-  if (!reports.length) { list.innerHTML = '<div class="empty">No reports here yet.</div>'; return; }
-  list.innerHTML = reports.map((r) => {
-    const p = r.info.player || {};
-    const where = p.x != null ? esc(p.area || "?") + " (" + p.x + ", " + p.y + ")" : "not logged in";
-    const meta = [
-      "Player: <b>" + esc(r.username || "unknown") + "</b>", "Where: " + where,
-      "Game: " + esc(r.info.client) + " " + esc(r.info.serverVersion),
-      r.info.screen ? "Screen: " + esc(r.info.screen) : "", r.info.panel ? "Open: " + esc(r.info.panel) : "",
-    ].filter(Boolean).join(" · ");
-    const shot = r.hasScreenshot
-      ? '<a href="/admin/reports/' + r.id + '/screenshot" target="_blank"><img loading="lazy" src="/admin/reports/' + r.id + '/screenshot" alt="Screenshot"></a>'
-      : '<div class="noshot">No screenshot</div>';
-    return '<div class="r ' + esc(r.status) + '">' + shot + '<div>'
-      + '<div class="top"><b>#' + r.id + '</b><span class="tag ' + esc(r.kind) + '">' + (r.kind === "idea" ? "Change idea" : "Bug") + '</span>'
-      + '<span class="when">' + new Date(r.createdAt).toLocaleString() + '</span>'
-      + '<button style="margin-left:auto" data-id="' + r.id + '" data-to="' + (r.status === "done" ? "new" : "done") + '">'
-      + (r.status === "done" ? "Mark as new" : "✓ Mark done") + '</button></div>'
-      + '<div class="note">' + esc(r.note || "(no note)") + '</div><div class="meta">' + meta + '</div>'
-      + '<details><summary>All details</summary><pre>' + esc(JSON.stringify(r.info, null, 2)) + '</pre></details>'
-      + '</div></div>';
-  }).join("");
-}
-list.onclick = async (e) => {
-  const b = e.target.closest("button[data-id]");
-  if (!b) return;
-  b.disabled = true;
-  await fetch("/admin/api/reports/" + b.dataset.id, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: b.dataset.to }) });
-  load();
-};
-filter.onchange = load;
-document.getElementById("reload").onclick = load;
-load();
-</script></body></html>`;
+// The report browser: a small web page (admin-reports.html, next to this file).
+const ADMIN_PAGE = readFileSync(new URL("./admin-reports.html", import.meta.url), "utf8");
+reportsRouter.get("/admin/reports", adminOnly, (_req, res) => {
+  res.type("html").set("Cache-Control", "no-store").send(ADMIN_PAGE);
+});
