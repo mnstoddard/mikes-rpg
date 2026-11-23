@@ -18,6 +18,8 @@ export interface BuiltScene {
   /** Inside places and caves: dim light, no sky. */
   inside?: "cave" | "room";
   fog?: { color: number; near: number; far: number };
+  /** The scene's usual weather style (left out: clear). */
+  weather?: number;
   /** Where the stand-in person stands. */
   personAt?: [number, number];
 }
@@ -62,6 +64,7 @@ export function buildScene(id: SceneId, pick: Pick): BuiltScene {
   let inside: BuiltScene["inside"];
   let fog: BuiltScene["fog"];
   let personAt: BuiltScene["personAt"];
+  let weather: number | undefined;
 
   if (id === "town") {
     ground("ground-cobble", -10, -4, 10, 3);
@@ -169,8 +172,7 @@ export function buildScene(id: SceneId, pick: Pick): BuiltScene {
     put("decor-log", {}, [-5, 0, -1], 0.6);
     put("decor-rocks", {}, [7, 0, 3]);
     put("decor-tufts", {}, [-8, 0, 5], 0, 2);
-    const w = put("sky-weather", {}, [0, 0, 0], 0, 1);
-    fog = w.fog;
+    weather = 1; // fog
     target = new THREE.Vector3(0, 1, -0.5);
     dist = 24;
   } else if (id === "cave") {
@@ -253,5 +255,5 @@ export function buildScene(id: SceneId, pick: Pick): BuiltScene {
     dist = 24;
   }
   void TILE;
-  return { group, pieces, target, dist, dir: dir.normalize(), inside, fog, personAt };
+  return { group, pieces, target, dist, dir: dir.normalize(), inside, fog, personAt, weather };
 }
