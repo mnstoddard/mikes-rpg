@@ -25,6 +25,21 @@ like `http://192.168.1.20:5173`; open that on their device.
 - **Settings:** the ⚙️ button (top right, under the zoom buttons) lets you change your name (it's your login too), your password (needs the old one) and your character's colour, or **Sign out**.
 - **Moving and sorting your bag:** drag an item onto another slot to swap them (a slot of several axes moves together) (mouse or finger; a short tap still opens the item). The ⇅ button at the top left of the inventory sorts it: tools, weapons, armor, food, potions, bars, logs, ore, fish, then everything else. Locks and uses left move with the item.
 
+## 🐞 Reporting bugs and noting changes
+
+While playing, tap the 🐞 button (top right, under ⚙️). It takes a screenshot of
+the game exactly as it is, then asks for a note: pick **Bug** or **Change idea**,
+type what happened or what should change, and tap **Send**. The server adds who
+you are, where you're standing, the game version, your recent messages and any
+recent errors, and stores it all in the database.
+
+To read them, open `/admin/reports` on the game's address (for example
+`https://<your-game>.onrender.com/admin/reports`). It asks for a password: any
+username, and the password is the `ADMIN_PASSWORD` set in the Render dashboard
+(Environment tab). Tick reports off with **Mark done**. The same list as JSON is at
+`/admin/api/reports?status=new`. Other clients (like the 3D game) send reports the
+same way: see the top of `server/src/reports.ts`.
+
 ## The tutorial: Old Maren
 
 Every new character starts with empty hands next to **Old Maren**, a retired

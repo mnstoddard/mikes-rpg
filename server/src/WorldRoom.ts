@@ -310,11 +310,35 @@ function verbFor(id: ResourceId) {
   return id === "minnow" ? "catch Minnows" : `fish at ${r.node}s`;
 }
 
+// Every world room running on this server, so a bug report can say who sent it.
+const rooms = new Set<WorldRoom>();
+
+/**
+ * For bug reports: the logged-in player behind a connection (the client sends
+ * its room session id), as the server sees them. Null if nobody matches.
+ */
+export function playerForReport(sessionId: string) {
+  for (const room of rooms) {
+    const info = room.reportInfo(sessionId);
+    if (info) return info;
+  }
+  return null;
+}
+
 export class WorldRoom extends Room<WorldState> {
   maxClients = 100;
   state = new WorldState();
 
+  /** Who a bug report came from: name, where they are, and a copy of their save. */
+  reportInfo(sessionId: string) {
+    const p = this.state.players.get(sessionId);
+    if (!p) return null;
+    const area = areaAt(p.x, p.y);
+    return { username: p.name, x: p.x, y: p.y, area: area?.name ?? null, action: p.action, hp: p.hp, maxHp: p.maxHp, save: this.snapshot(p) };
+  }
+
   onCreate() {
+    rooms.add(this);
     // Walking runs on each player's own 600ms step timer, so a click starts you
     // moving right away instead of waiting for the next world tick. Everything
     // else (chopping, trees growing back, saving) runs on the 600ms world tick.
@@ -4214,6 +4238,7 @@ export class WorldRoom extends Room<WorldState> {
   }
 
   async onDispose() {
+    rooms.delete(this);
     // Normally onLeave already saved everyone; this is a safety net.
     await Promise.all([...this.state.players.values()].map((p) => this.save(p)));
     if (this.farmSaveTimer) { clearTimeout(this.farmSaveTimer); await this.saveFarms(); }

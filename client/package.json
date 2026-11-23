@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "colyseus.js": "^0.16.22",
+    "html-to-image": "1.11.13",
     "phaser": "^3.90.0"
   },
   "devDependencies": {
