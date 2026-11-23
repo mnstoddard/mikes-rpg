@@ -9,12 +9,12 @@ and the server finds the path (A*) and moves players one tile per 600ms tick.
 1. Install **Node.js 22 LTS** from https://nodejs.org (the big green button).
 2. Open a terminal in this folder (on Windows: right-click the folder → "Open in Terminal").
 3. Run once:  `npm install`
-4. Run:       `npm run dev`
-5. Open http://localhost:5173 in two browser tabs, click **Create account** in each
+4. Run:       `npm run dev`  (the 3D game; `npm run dev:2d` runs the older 2D game on port 5173)
+5. Open http://localhost:5174 in two browser tabs, click **Create account** in each
    (pick any username and a password of 6+ characters), and click around.
 
 Other people on your home Wi-Fi can join too: the terminal prints a "Network" address
-like `http://192.168.1.20:5173`; open that on their device.
+like `http://192.168.1.20:5174`; open that on their device.
 
 ## Controls
 

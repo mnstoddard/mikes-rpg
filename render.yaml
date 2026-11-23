@@ -1,5 +1,6 @@
 # Render Blueprint: one free web service that runs the game server and
-# serves the built Phaser client from the same address (WebSockets included).
+# serves the built 3D game from the same address (WebSockets included).
+# (Set CLIENT=2d in the Render dashboard to show the older 2D game instead.)
 # Render redeploys automatically every time new code lands on main.
 services:
   - type: web

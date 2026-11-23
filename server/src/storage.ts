@@ -59,6 +59,7 @@ export interface SaveData {
   bounties?: { item: string; count: number }[]; // the bounty board's 5 jobs, e.g. [{ item: "oak_logs", count: 6 }]
   tracked?: string; // the bounty on the quest tracker (its item), if one is picked over Maren's quest
   color?: number; // character colour, picked in Settings (one of shared/colors.ts)
+  look?: string; // the 3D character's look (Character Workshop recipe as JSON, shared/look.ts)
   locked?: string[]; // old: item types that were locked; turned into lockedSlots when loaded
   counts?: number[]; // per entry: how many are in the stack (missing in older saves: 1 each)
   jewels?: Record<string, string | null>; // rings and amulet worn, e.g. { ring1: "ring_gold_ruby_24", ring2: null, amulet: null }

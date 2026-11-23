@@ -8,7 +8,7 @@
 import * as THREE from "three";
 import type { CharacterRecipe } from "./recipe";
 import {
-  HeadShape, V3, YV, ZV, ball, clamp, dirN, headPoint, lerp, limbGeo, mixHex, ringsGeo, shellGeo, sm,
+  HeadShape, V3, hash, YV, ZV, ball, clamp, dirN, headPoint, lerp, limbGeo, mixHex, ringsGeo, shellGeo, sm,
 } from "./shapes";
 
 /** The character's joints. Rotate these to pose it; add things to them to make them move with it. */
@@ -62,6 +62,22 @@ const shadeHex = (h: string, k: number) => {
   return "#" + (k < 0 ? c.lerp(new THREE.Color(0), -k) : c.lerp(new THREE.Color(0xffffff), k)).getHexString();
 };
 
+interface EyeShape {
+  e?: number; W?: number; H?: number; ir?: number; sparkle?: number; lid?: number;
+  iy?: number; oy?: number; t1?: number; t2?: number; b1?: number; b2?: number; wing?: number;
+  dots?: number; happy?: number;
+}
+const EYE_SHAPES: Record<string, EyeShape> = {
+  classic: { e: 1, W: 56, H: 62, ir: 0.66 }, big: { e: 1, W: 60, H: 68, ir: 0.8, sparkle: 1 }, wide: { e: 1, W: 58, H: 74, ir: 0.58 },
+  sleepy: { e: 1, W: 56, H: 62, ir: 0.66, lid: 1 },
+  almond: { W: 68, H: 40, iy: 6, oy: -4, t1: 1.5, t2: 1.3, b1: 0.95, b2: 0.95, ir: 0.95 },
+  cat: { W: 68, H: 38, iy: 12, oy: -20, t1: 1.45, t2: 1.15, b1: 1.0, b2: 0.6, ir: 0.95, wing: 1 },
+  gentle: { W: 64, H: 42, iy: -6, oy: 16, t1: 1.25, t2: 1.5, b1: 0.85, b2: 0.75, ir: 0.95 },
+  narrow: { W: 64, H: 44, iy: 2, oy: -4, t1: 0.5, t2: 0.6, b1: 1.3, b2: 1.25, ir: 0.8 },
+  dots: { dots: 1 }, happy: { happy: 1 },
+};
+
+/** Painted cartoon eyes (the Character Workshop's ten eye shapes), wrapped onto the face like a sticker. */
 function paintEye(P: CharacterRecipe, s: number, closed: boolean) {
   const c = document.createElement("canvas");
   c.width = c.height = 256;
@@ -69,90 +85,143 @@ function paintEye(P: CharacterRecipe, s: number, closed: boolean) {
   const cx = 128, cy = 128, ink = "#2b1d20";
   x.lineCap = "round";
   x.lineJoin = "round";
+  const S = EYE_SHAPES[P.eyeStyle] || EYE_SHAPES.classic;
   const ell = (rx: number, ry: number, dx = 0, dy = 0) => {
     x.beginPath();
     x.ellipse(cx + dx, cy + dy, rx, ry, 0, 0, Math.PI * 2);
   };
-  const st = P.eyeStyle, big = st === "big", W = big ? 60 : 56, Hh = big ? 68 : 62;
-  if (closed) {
-    x.beginPath();
-    x.moveTo(cx - W * 0.95, cy + 2);
-    x.quadraticCurveTo(cx, cy + 30, cx + W * 0.95, cy + 2);
+  if (S.happy || (closed && !S.dots)) {
+    const W = S.W || 56;
     x.strokeStyle = ink;
     x.lineWidth = 11;
+    x.beginPath();
+    if (S.happy) { x.moveTo(cx - W * 0.85, cy + 16); x.quadraticCurveTo(cx, cy - 38, cx + W * 0.85, cy + 16); }
+    else { x.moveTo(cx - W * 0.95, cy + 2); x.quadraticCurveTo(cx, cy + 28, cx + W * 0.95, cy + 2); }
     x.stroke();
     if (P.lashes === "on") {
+      x.lineWidth = 7;
       x.beginPath();
-      x.moveTo(cx + s * W * 0.9, cy + 4);
-      x.lineTo(cx + s * (W * 0.9 + 18), cy - 8);
-      x.lineWidth = 8;
+      const ox = cx + s * W * 0.88, oy = S.happy ? cy + 10 : cy + 4;
+      x.moveTo(ox, oy);
+      x.lineTo(ox + s * 16, oy - (S.happy ? 2 : 10));
       x.stroke();
     }
     return c;
   }
-  if (st === "dots") {
-    ell(30, 40);
-    x.fillStyle = ink;
-    x.fill();
-    x.fillStyle = "#fff";
-    ell(10, 12, 9, -14);
-    x.fill();
-    ell(5, 5, -9, 16);
-    x.fill();
-  } else {
-    ell(W, Hh);
-    x.fillStyle = "#fffdf8";
-    x.fill();
-    x.save();
-    ell(W, Hh);
-    x.clip();
-    const ir = big ? 46 : 38, iry = big ? 56 : 46;
-    const g = x.createLinearGradient(0, cy - iry, 0, cy + iry);
-    g.addColorStop(0, shadeHex(P.eyeColor, -0.5));
-    g.addColorStop(0.5, P.eyeColor);
-    g.addColorStop(1, shadeHex(P.eyeColor, 0.4));
-    ell(ir, iry, 0, 6);
-    x.fillStyle = g;
-    x.fill();
-    ell(ir * 0.5, iry * 0.52, 0, 6);
-    x.fillStyle = ink;
-    x.fill();
-    if (st === "sleepy") {
-      x.fillStyle = shadeHex(P.skin, -0.08);
-      x.fillRect(cx - W - 4, cy - Hh - 4, W * 2 + 8, Hh + 2);
-    }
-    x.restore();
-    const hy = st === "sleepy" ? 14 : -16;
-    x.fillStyle = "#fff";
-    ell(big ? 14 : 12, big ? 16 : 13, 12, hy);
-    x.fill();
-    ell(6, 6, -12, hy + (st === "sleepy" ? 18 : 34));
-    x.fill();
-    x.strokeStyle = ink;
-    x.lineWidth = 9;
-    x.beginPath();
-    if (st === "sleepy") {
-      x.moveTo(cx - W, cy + 1);
-      x.quadraticCurveTo(cx, cy + 8, cx + W, cy + 1);
-    } else x.ellipse(cx, cy, W, Hh, 0, Math.PI * 1.05, Math.PI * 1.95);
-    x.stroke();
-    x.lineWidth = 3;
-    x.globalAlpha = 0.35;
-    ell(W, Hh);
-    x.stroke();
-    x.globalAlpha = 1;
+  if (closed && S.dots) {
+    x.strokeStyle = ink; x.lineWidth = 9; x.beginPath();
+    x.moveTo(cx - 24, cy + 4); x.quadraticCurveTo(cx, cy + 16, cx + 24, cy + 4); x.stroke();
+    return c;
   }
+  if (S.dots) {
+    ell(30, 40); x.fillStyle = ink; x.fill();
+    x.fillStyle = "#fff"; ell(10, 12, 9, -14); x.fill(); ell(5, 5, -9, 16); x.fill();
+    return c;
+  }
+  const W = S.W!, Hh = S.H!;
+  let outline: () => void, top: () => void, iy = cy + 6, ir: number, iry: number;
+  const ix = cx;
+  if (S.e) {
+    outline = () => ell(W, Hh);
+    top = () => { x.beginPath(); x.ellipse(cx, cy, W, Hh, 0, Math.PI * 1.05, Math.PI * 1.95); };
+    ir = W * S.ir!; iry = ir * 1.18;
+  } else {
+    const I = [cx - s * W, cy + S.iy!], O = [cx + s * W, cy + S.oy!];
+    const tp = () => { x.moveTo(I[0], I[1]); x.bezierCurveTo(cx - s * W * 0.55, cy - Hh * S.t1!, cx + s * W * 0.5, cy - Hh * S.t2!, O[0], O[1]); };
+    outline = () => { x.beginPath(); tp(); x.bezierCurveTo(cx + s * W * 0.5, cy + Hh * S.b2!, cx - s * W * 0.55, cy + Hh * S.b1!, I[0], I[1]); x.closePath(); };
+    top = () => { x.beginPath(); tp(); };
+    ir = Hh * S.ir!; iry = ir; iy = cy + (S.iy! + S.oy!) * 0.25 + 2;
+  }
+  outline(); x.fillStyle = "#fffdf8"; x.fill();
+  x.save(); outline(); x.clip();
+  const g = x.createLinearGradient(0, iy - iry, 0, iy + iry);
+  g.addColorStop(0, shadeHex(P.eyeColor, -0.5)); g.addColorStop(0.5, P.eyeColor); g.addColorStop(1, shadeHex(P.eyeColor, 0.4));
+  x.beginPath(); x.ellipse(ix, iy, ir, iry, 0, 0, Math.PI * 2); x.fillStyle = g; x.fill();
+  x.beginPath(); x.ellipse(ix, iy, ir * 0.5, iry * 0.52, 0, 0, Math.PI * 2); x.fillStyle = ink; x.fill();
+  // A soft shadow under the upper lid.
+  const sh = x.createLinearGradient(0, cy - Hh, 0, cy - Hh * 0.3);
+  sh.addColorStop(0, "rgba(40,20,20,0.35)"); sh.addColorStop(1, "rgba(40,20,20,0)");
+  x.fillStyle = sh; x.fillRect(0, 0, 256, cy);
+  if (S.lid) { x.fillStyle = shadeHex(P.skin, -0.08); x.fillRect(cx - W - 4, cy - Hh - 4, W * 2 + 8, Hh + 2); }
+  x.restore();
+  const hy = S.lid ? 14 : 0;
+  x.fillStyle = "#fff";
+  ell(ir * 0.3, ir * 0.32, ix - cx + ir * 0.35, iy - cy - iry * 0.38 + hy); x.fill();
+  ell(ir * 0.13, ir * 0.13, ix - cx - ir * 0.35, iy - cy + iry * 0.42); x.fill();
+  if (S.sparkle) { ell(ir * 0.09, ir * 0.09, ix - cx + ir * 0.05, iy - cy - iry * 0.6 + hy); x.fill(); }
+  x.strokeStyle = ink; x.lineWidth = 9;
+  if (S.lid) { x.beginPath(); x.moveTo(cx - W, cy + 1); x.quadraticCurveTo(cx, cy + 8, cx + W, cy + 1); x.stroke(); }
+  else { top(); x.stroke(); }
+  if (S.wing) { x.beginPath(); x.moveTo(cx + s * W * 0.9, cy + S.oy! + 1); x.lineTo(cx + s * (W + 20), cy + S.oy! - 12); x.stroke(); }
+  if (!S.lid) { x.lineWidth = 3; x.globalAlpha = 0.3; outline(); x.stroke(); x.globalAlpha = 1; }
   if (P.lashes === "on") {
-    x.strokeStyle = ink;
-    x.lineWidth = 8;
+    x.strokeStyle = ink; x.lineWidth = 7;
     for (let k = 0; k < 3; k++) {
-      const a = (st === "sleepy" ? 0.03 : -0.42) - k * 0.28;
-      const px = cx + s * Math.cos(a) * W * 0.98, py = cy + Math.sin(a) * (st === "sleepy" ? 6 : Hh) * 0.98;
-      x.beginPath();
-      x.moveTo(px, py);
-      x.lineTo(px + s * (16 - k * 3), py - 14 + k * 2);
-      x.stroke();
+      let px: number, py: number;
+      if (S.e) { const a = (S.lid ? 0.03 : -0.42) - k * 0.28; px = cx + s * Math.cos(a) * W * 0.98; py = cy + Math.sin(a) * (S.lid ? 6 : Hh) * 0.98; }
+      else { px = cx + s * W * (0.95 - k * 0.22); py = cy + S.oy! - k * (Hh * 0.35) - 4; }
+      x.beginPath(); x.moveTo(px, py); x.lineTo(px + s * (15 - k * 3), py - 13 + k * 2); x.stroke();
     }
+  }
+  return c;
+}
+
+/** Painted mouths: filled, tapered shapes instead of a thin line. */
+function paintMouth(P: CharacterRecipe) {
+  const c = document.createElement("canvas");
+  c.width = c.height = 256;
+  const x = c.getContext("2d")!;
+  const cx = 128, cy = 118;
+  const hw = 74 * P.mouthWidth, ink = "#5a1f26", lipShade = shadeHex(P.skin, -0.22);
+  x.lineCap = "round"; x.lineJoin = "round";
+  type F = (u: number) => number;
+  const band = (yFn: F, wFn: F, x0 = -1, x1 = 1, fill = ink) => {
+    const N = 40, up: number[][] = [], dn: number[][] = [];
+    for (let i = 0; i <= N; i++) {
+      const u = lerp(x0, x1, i / N), px = cx + u * hw, y = yFn(u), w = wFn(u);
+      up.push([px, y - w / 2]); dn.push([px, y + w / 2]);
+    }
+    x.beginPath(); x.moveTo(up[0][0], up[0][1]);
+    up.forEach((p) => x.lineTo(p[0], p[1]));
+    dn.reverse().forEach((p) => x.lineTo(p[0], p[1]));
+    x.closePath(); x.fillStyle = fill; x.fill();
+  };
+  const taper = (m: number, lo = 2): F => (u) => lo + m * Math.pow(Math.max(0, 1 - u * u), 0.8);
+  const lipHint = (yFn: F, k = 1) => {
+    x.strokeStyle = lipShade; x.globalAlpha = 0.5; x.lineWidth = 7; x.beginPath();
+    for (let i = 0; i <= 20; i++) {
+      const u = lerp(-0.45, 0.45, i / 20), y = yFn(u) + 16 * k;
+      if (i) x.lineTo(cx + u * hw, y); else x.moveTo(cx + u * hw, y);
+    }
+    x.stroke(); x.globalAlpha = 1;
+  };
+  const dot = (px: number, py: number) => { x.fillStyle = ink; x.beginPath(); x.arc(px, py, 3.2, 0, Math.PI * 2); x.fill(); };
+  const ex = P.mouth;
+  if (ex === "smile") { const y: F = (u) => cy + 18 - 26 * u * u; band(y, taper(21, 5)); lipHint(y); dot(cx + hw * 1.02, cy - 10); dot(cx - hw * 1.02, cy - 10); }
+  else if (ex === "neutral") { const y: F = (u) => cy + 4 + 3 * u * u; band(y, taper(13, 4), -0.72, 0.72); lipHint(y, 1.1); }
+  else if (ex === "frown") { const y: F = (u) => cy - 2 + 22 * u * u; band(y, taper(16, 4), -0.9, 0.9); lipHint(y, 1.1); }
+  else if (ex === "smirk") {
+    const y: F = (u) => cy + 10 + 8 * u * u - 18 * Math.max(0, u) * u;
+    band(y, (u) => 4 + 15 * Math.pow(Math.max(0, 1 - ((u + 0.15) / 1.15) ** 2), 0.8), -0.85, 1);
+    dot(cx + hw * 1.03, cy + 1); lipHint(y);
+  } else if (ex === "oh") {
+    x.beginPath(); x.ellipse(cx, cy + 8, hw * 0.36, 34, 0, 0, Math.PI * 2); x.fillStyle = ink; x.fill();
+    x.save(); x.clip(); x.fillStyle = "#e0727c"; x.beginPath(); x.ellipse(cx, cy + 40, hw * 0.3, 18, 0, 0, Math.PI * 2); x.fill(); x.restore();
+  } else {
+    // Grin: an open D-shaped mouth with teeth and a tongue.
+    const topY: F = (u) => cy - 14 + 8 * u * u, botY: F = (u) => cy - 14 + 62 * Math.pow(1 - u * u, 1.1) + 8 * u * u;
+    const shape = () => {
+      x.beginPath();
+      for (let i = 0; i <= 30; i++) { const u = lerp(-1, 1, i / 30); if (i) x.lineTo(cx + u * hw, topY(u)); else x.moveTo(cx + u * hw, topY(u)); }
+      for (let i = 30; i >= 0; i--) { const u = lerp(-1, 1, i / 30); x.lineTo(cx + u * hw, botY(u)); }
+      x.closePath();
+    };
+    shape(); x.fillStyle = ink; x.fill();
+    x.save(); shape(); x.clip();
+    x.fillStyle = "#fffaf2"; x.fillRect(cx - hw, cy - 18, hw * 2, 20);
+    x.fillStyle = "#e0727c"; x.beginPath(); x.ellipse(cx, cy + 46, hw * 0.55, 22, 0, 0, Math.PI * 2); x.fill();
+    x.restore();
+    x.strokeStyle = ink; x.lineWidth = 4; shape(); x.stroke(); lipHint(botY, 0.55);
   }
   return c;
 }
@@ -187,38 +256,86 @@ function eyeDecalGeo(H: HeadShape, e: THREE.Vector3, span: number, tilt: number)
 
 const soft = (d: THREE.Vector3) => 0.5 + 0.5 * Math.sin(d.x * 11 + 1.3) * Math.sin(d.y * 9 + 0.7) * Math.sin(d.z * 12 + 2.1);
 const edge = (g: number, X: number) => (g >= -0.03 ? X * sm(-0.03, 0.06, g) - 0.01 : (g + 0.03) * 1.5 - 0.01);
-type ShellFn = ((d: THREE.Vector3, off: THREE.Vector3) => number) | null;
+type ShellFn = ((d: THREE.Vector3, off: THREE.Vector3, cc: { c: number }) => number) | null;
 
+/**
+ * Hair clumps: the angle around a point on the head (the crown, or a ponytail tie), split into n locks.
+ * Returns how close d is to the middle of a lock (1) or the groove between locks (0), and which lock.
+ */
+function grooves(d: THREE.Vector3, axis: THREE.Vector3, n: number, noise: number, seed: number): [number, number] {
+  const e1 = new V3().crossVectors(axis, Math.abs(axis.y) < 0.9 ? YV : new V3(1, 0, 0)).normalize(), e2 = new V3().crossVectors(axis, e1);
+  const u = d.clone().addScaledVector(axis, -d.dot(axis));
+  let ph = Math.atan2(u.dot(e2), u.dot(e1));
+  ph += noise * Math.sin(ph * 2 + seed);
+  const x = (ph / (2 * Math.PI) + 0.5) * n, k = ((Math.floor(x) % n) + n) % n, f = x - Math.floor(x);
+  const fade = sm(0.08, 0.45, u.length());
+  return [lerp(0.75, Math.pow(0.5 - 0.5 * Math.cos(2 * Math.PI * f), 0.75), fade), k];
+}
+
+/** Soft, clumped hair (the Workshop's newest look): locks with grooves between them, shaded by vertex colour. */
 function hairStyles(P: CharacterRecipe, R: number): Record<CharacterRecipe["hairStyle"], ShellFn> {
   const bangs = P.bangs, L = P.hairLength, front = 0.46 - bangs * 0.4;
   const hl = (d: THREE.Vector3) => (d.z >= 0 ? lerp(0.1, front, sm(0, 1, d.z)) : lerp(0.1, -0.5, sm(0, 1, -d.z)));
-  const tight = (d: THREE.Vector3) => edge(d.y - hl(d), 0.04 + 0.025 * Math.max(0, d.y));
-  const short = (d: THREE.Vector3) => edge(d.y - hl(d), 0.055 + 0.06 * Math.max(0, d.y) + 0.035 * bangs * Math.max(0, d.z) * sm(0.15, 0.45, d.y));
+  const C = dirN(0, 0.72, -0.69), FRONT = dirN(0, 0.3, 0.95);
   const faceZone = (d: THREE.Vector3) => d.z > 0.42 && d.y < front + 0.02;
+  const shadeOf = (r: number, k: number, cc: { c: number }, lo = 0.68) => { cc.c = (lo + (1.06 - lo) * r) * (0.9 + 0.2 * hash(k, 3, 7)); };
+  const shortFn = (n: number, noise: number, lumpy: boolean): ShellFn => (d, _off, cc) => {
+    const [r, k] = grooves(d, C, n, noise, 1.7);
+    const hv = hash(k, 1, 2);
+    const reach = 0.07 * r * (d.z > 0.3 ? 1 + bangs : 1) * (0.7 + 0.6 * hv);
+    const t = 0.035 + 0.035 * Math.max(0, d.y) + (0.04 + 0.025 * hv) * r + 0.035 * bangs * Math.max(0, d.z) * sm(0.15, 0.45, d.y)
+      + (lumpy ? (0.06 + 0.08 * L) * r * r * hv * sm(0.15, 0.8, d.y) : 0);
+    shadeOf(r, k, cc);
+    return edge(d.y - (hl(d) - reach), t);
+  };
+  const tightFn = (axis: THREE.Vector3): ShellFn => (d, _off, cc) => {
+    const [r, k] = grooves(d, axis, 34, 0.05, 2.3);
+    shadeOf(r, k, cc, 0.78);
+    return edge(d.y - (hl(d) - 0.03 * r), 0.035 + 0.022 * r);
+  };
+  const pigL = tightFn(dirN(0.82, 0.22, -0.45))!, pigR = tightFn(dirN(-0.82, 0.22, -0.45))!;
   return {
     bald: null,
     buzz: (d) => edge(d.y - (hl(d) + 0.04), 0.022),
-    short, spiky: short, ponytail: tight, bun: tight, pigtails: tight,
-    messy: (d) => edge(d.y - (hl(d) - 0.04), 0.06 + 0.05 * Math.max(0, d.y) + 0.08 * soft(d)),
-    quiff: (d) => edge(d.y - hl(d), 0.05 + 0.04 * Math.max(0, d.y) + 0.26 * sm(0.2, 0.85, d.z) * sm(0.25, 0.75, d.y)),
-    bob: (d, off) => {
-      const vis = d.y > hl(d) || (!faceZone(d) && d.y > -0.72 && !(d.y < -0.45 && d.z > 0.12));
+    short: shortFn(22, 0.08, false), spiky: shortFn(15, 0.12, true), messy: shortFn(17, 0.25, false),
+    ponytail: tightFn(dirN(0, 0.35, -0.94)), bun: tightFn(dirN(0, 0.62, -0.78)),
+    pigtails: (d, off, cc) => (d.x >= 0 ? pigL : pigR)(d, off, cc),
+    quiff: (d, _off, cc) => {
+      const [r, k] = grooves(d, FRONT, 24, 0.08, 0.9);
+      const hv = hash(k, 4, 1);
+      shadeOf(r, k, cc);
+      return edge(d.y - (hl(d) - 0.04 * r), 0.04 + 0.03 * Math.max(0, d.y) + (0.035 + 0.02 * hv) * r + 0.26 * sm(0.2, 0.85, d.z) * sm(0.25, 0.75, d.y));
+    },
+    bob: (d, off, cc) => {
+      const [r, k] = grooves(d, C, 30, 0.08, 0.4);
+      shadeOf(r, k, cc);
+      const lim = -0.66 - 0.07 * r;
+      const vis = d.y > hl(d) - 0.04 * r || (!faceZone(d) && d.y > lim && !(d.y < -0.45 && d.z > 0.12));
       if (!vis) return -1;
       off.x += d.x * R * 0.14 * Math.max(0, -d.y);
-      return 0.09 + 0.025 * Math.max(0, d.y);
+      return 0.06 + 0.045 * r + 0.02 * Math.max(0, d.y);
     },
-    long: (d, off) => {
-      const vis = d.y > hl(d) || (!faceZone(d) && !(d.y < -0.4 && d.z > 0.1));
+    long: (d, off, cc) => {
+      const [r, k] = grooves(d, C, 30, 0.1, 0.4);
+      shadeOf(r, k, cc);
+      const hv = hash(k, 5, 5);
+      const vis = d.y > hl(d) - 0.04 * r || (!faceZone(d) && !(d.y < -0.4 && d.z > 0.1));
       if (!vis) return -1;
       if (d.y < 0.15 && d.z < 0.42) {
-        const k = sm(0.15, -1, d.y) * (d.z < 0 ? 1 : lerp(1, 0.45, d.z / 0.42));
-        off.y -= R * (0.5 + 2.6 * L) * k;
-        off.x += Math.sign(d.x) * R * 0.28 * k * Math.abs(d.x);
-        off.z -= R * 0.2 * k;
+        const kk = sm(0.15, -1, d.y) * (d.z < 0 ? 1 : lerp(1, 0.45, d.z / 0.42));
+        off.y -= R * (0.5 + 2.6 * L) * kk * (0.86 + 0.14 * r) * (0.95 + 0.1 * hv);
+        off.x += Math.sign(d.x) * R * 0.28 * kk * Math.abs(d.x);
+        off.z -= R * 0.2 * kk;
       }
-      return 0.08;
+      return 0.055 + 0.05 * r;
     },
-    mohawk: (d) => (Math.abs(d.x) < 0.17 && d.y > Math.max(-0.45, hl(d) - 0.25) ? 0.05 + (0.2 + 0.25 * L) * sm(-0.45, 0.45, d.y) : -1),
+    mohawk: (d, _off, cc) => {
+      const [r, k] = grooves(d, dirN(0, -0.3, -1), 14, 0.03, 0.2);
+      shadeOf(r, k, cc, 0.8);
+      return Math.abs(d.x) < 0.22 && d.y > Math.max(-0.45, hl(d) - (d.z > 0.3 ? -0.03 : 0.15))
+        ? 0.04 + (0.14 + 0.22 * L) * sm(-0.45, 0.45, d.y) * (0.85 + 0.15 * r) * sm(0.22, 0.08, Math.abs(d.x))
+        : -1;
+    },
     afro: (d) => edge(d.y - (hl(d) - 0.06), 0.28 + 0.14 * L + 0.08 * soft(d)),
   };
 }
@@ -390,20 +507,13 @@ export function buildBody(P: CharacterRecipe, opts: BuildOptions = {}): BuiltBod
   // Mouth.
   {
     const mg = onHead(skull, dirN(0, -0.5, 0.86), 1, 0.6);
-    const w = R * 0.17 * P.mouthWidth, tb = R * 0.035;
-    const arc = (rot: number, y: number, len = 2.1) => {
-      const m = add(mg, new THREE.TorusGeometry(w, tb, 10, 28, len), mouthM, 0, y, 0, false);
-      m.rotation.z = rot;
-      return m;
-    };
-    if (P.mouth === "smile") arc(-Math.PI / 2 - 1.05, w * 0.55);
-    else if (P.mouth === "frown") arc(Math.PI / 2 - 1.05, -w * 0.75);
-    else if (P.mouth === "smirk") arc(-Math.PI / 2 - 0.6, w * 0.5, 1.5).position.x = w * 0.2;
-    else if (P.mouth === "neutral") add(mg, ball(0.5), mouthM, 0, 0, 0, false).scale.set(w * 1.8, tb * 1.8, tb * 1.2);
-    else {
-      add(mg, new THREE.CircleGeometry(w * 1.05, 12, Math.PI, Math.PI), mouthM, 0, w * 0.15, tb * 0.3, false);
-      add(mg, new THREE.BoxGeometry(w * 1.7, w * 0.22, tb * 0.6), white, 0, w * 0.04, tb * 0.5, false);
-    }
+    const mt = new THREE.CanvasTexture(paintMouth(P));
+    mt.colorSpace = THREE.SRGBColorSpace;
+    mt.anisotropy = 4;
+    disposables.push(mt);
+    const mm = new THREE.MeshStandardMaterial({ map: mt, transparent: true, roughness: 0.55, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2 });
+    disposables.push(mm);
+    add(skull, eyeDecalGeo(H, dirN(0, -0.5, 0.86), 0.36, 0), mm, 0, 0, 0, false).renderOrder = 2;
     if (["mustache", "full", "wizard"].includes(P.beard))
       for (const s of [1, -1]) {
         const m = add(mg, ball(R * 0.13, 7, 5), hairM, s * R * 0.12, R * 0.13, R * 0.04);
@@ -444,7 +554,15 @@ export function buildBody(P: CharacterRecipe, opts: BuildOptions = {}): BuiltBod
   };
   if (!opts.hideHair) {
     const styles = hairStyles(P, R), hf = styles[P.hairStyle];
-    if (hf) hairAdd(skull, shellGeo(H, 80, 60, hf), hairM);
+    if (hf) {
+      const plain = P.hairStyle === "buzz" || P.hairStyle === "afro";
+      if (plain) hairAdd(skull, shellGeo(H, 80, 60, hf), hairM);
+      else {
+        const shellM = M(P.hairColor, { r: 0.55 });
+        shellM.vertexColors = true;
+        hairAdd(skull, shellGeo(H, 112, 84, hf, true), shellM);
+      }
+    }
     if (P.hairStyle === "spiky") {
       const n = 16;
       for (let i = 0; i < n; i++) {
