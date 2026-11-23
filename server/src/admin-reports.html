@@ -1,0 +1,339 @@
+<!doctype html>
+<!-- The report browser (served at /admin/reports, behind ADMIN_PASSWORD). Plain HTML + JS, no build step. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Game reports</title>
+<style>
+  :root { --bg: #1b1610; --panel: #2a2218; --line: #6b5a3e; --text: #f2e6c9; --dim: #b8a888; --gold: #ffd84a; --bug: #8a3b2c; --idea: #2e5a6b; --ok: #3d6b34; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, sans-serif; }
+  button, input, select { font: inherit; color: inherit; }
+  button { background: #5a4a2f; color: #fff; border: 1px solid var(--line); border-radius: 4px; padding: 6px 12px; cursor: pointer; }
+  button:hover { filter: brightness(1.15); }
+  button:disabled { opacity: .5; cursor: default; }
+
+  header { position: sticky; top: 0; z-index: 5; background: var(--panel); border-bottom: 2px solid var(--line); padding: 10px 16px; }
+  .bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; max-width: 1300px; margin: 0 auto; }
+  h1 { margin: 0 auto 0 0; font-size: 19px; color: var(--gold); font-weight: 600; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; background: transparent; padding: 5px 11px; }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button.on { background: var(--line); color: #fff; }
+  .seg .n { opacity: .75; font-size: 12px; margin-left: 4px; }
+  #q { background: #120e09; border: 1px solid var(--line); border-radius: 5px; padding: 5px 10px; min-width: 0; width: 200px; }
+  .bar2 { margin-top: 8px; }
+
+  main { max-width: 1300px; margin: 0 auto; padding: 14px 16px 40px; }
+  #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; cursor: pointer; display: flex; flex-direction: column; text-align: left; padding: 0; color: var(--text); }
+  .card:hover, .card:focus-visible { border-color: var(--gold); outline: none; filter: none; }
+  .card.done { opacity: .55; }
+  .thumb { aspect-ratio: 16 / 9; background: #000 center / cover no-repeat; display: flex; align-items: center; justify-content: center; color: #776a52; font-size: 13px; width: 100%; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .body { padding: 9px 11px 11px; display: flex; flex-direction: column; gap: 5px; flex: 1; }
+  .top { display: flex; gap: 7px; align-items: center; font-size: 13px; color: var(--dim); }
+  .tag { font-size: 12px; padding: 1px 8px; border-radius: 10px; background: var(--bug); color: #fff; white-space: nowrap; }
+  .tag.idea { background: var(--idea); }
+  .tag.donetag { background: var(--ok); }
+  .ago { margin-left: auto; white-space: nowrap; }
+  .note { color: #fff; white-space: pre-wrap; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .who { font-size: 13px; color: var(--dim); margin-top: auto; }
+  .empty { text-align: center; color: #9a8a6a; padding: 60px 20px; grid-column: 1 / -1; }
+
+  /* Detail view */
+  #detail { position: fixed; inset: 0; z-index: 10; background: rgba(0,0,0,.75); display: none; align-items: flex-start; justify-content: center; padding: 24px 16px; overflow: auto; }
+  #detail.open { display: flex; }
+  .sheet { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; width: 100%; max-width: 1100px; overflow: hidden; }
+  .sheet-head { display: flex; gap: 8px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .sheet-head h2 { margin: 0 auto 0 0; font-size: 17px; font-weight: 600; display: flex; gap: 8px; align-items: center; }
+  .sheet-main { display: grid; grid-template-columns: minmax(0, 3fr) minmax(260px, 2fr); }
+  .shot { background: #000; display: flex; align-items: center; justify-content: center; min-height: 200px; }
+  .shot img { width: 100%; display: block; cursor: zoom-in; }
+  .shot .none { color: #776a52; padding: 40px; }
+  .info { padding: 14px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .bignote { font-size: 17px; color: #fff; white-space: pre-wrap; overflow-wrap: anywhere; }
+  dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font-size: 14px; }
+  dt { color: var(--dim); }
+  dd { margin: 0; overflow-wrap: anywhere; }
+  h3 { margin: 0 0 4px; font-size: 13px; color: var(--dim); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  ul.errs { margin: 0; padding-left: 18px; font-size: 13px; color: #ffb4a0; font-family: ui-monospace, monospace; }
+  details { font-size: 12px; }
+  summary { cursor: pointer; color: var(--dim); }
+  pre { white-space: pre-wrap; word-break: break-word; background: #120e09; padding: 8px; border-radius: 4px; max-height: 420px; overflow: auto; margin: 6px 0 0; }
+  .danger { background: #6b2a22; }
+  .primary { background: var(--ok); }
+  .keys { font-size: 12px; color: #9a8a6a; padding: 8px 14px; border-top: 1px solid var(--line); }
+  kbd { background: #120e09; border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; font-size: 11px; }
+  #toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: #120e09; border: 1px solid var(--line); padding: 8px 14px; border-radius: 6px; z-index: 20; display: none; }
+
+  @media (max-width: 800px) {
+    .sheet-main { grid-template-columns: 1fr; }
+    #detail { padding: 0; }
+    .sheet { border-radius: 0; border: 0; min-height: 100%; }
+    #q { width: 100%; }
+    .keys { display: none; }
+  }
+</style></head><body>
+<header>
+  <div class="bar">
+    <h1>🐞 Game reports</h1>
+    <input id="q" type="search" placeholder="Search notes, players, places…" aria-label="Search">
+    <button id="reload" title="Check for new reports">↻ Reload</button>
+  </div>
+  <div class="bar bar2">
+    <div class="seg" id="kindSeg" role="group" aria-label="Type">
+      <button data-v="">All</button><button data-v="bug">🐞 Bugs</button><button data-v="idea">💡 Change ideas</button>
+    </div>
+    <div class="seg" id="statusSeg" role="group" aria-label="Status">
+      <button data-v="new">To do</button><button data-v="done">Done</button><button data-v="">All</button>
+    </div>
+    <div class="seg" id="sortSeg" role="group" aria-label="Order">
+      <button data-v="new">Newest first</button><button data-v="old">Oldest first</button>
+    </div>
+  </div>
+</header>
+<main><div id="grid"><div class="empty">Loading…</div></div></main>
+
+<div id="detail" role="dialog" aria-modal="true" aria-label="Report">
+  <div class="sheet">
+    <div class="sheet-head">
+      <h2 id="dTitle"></h2>
+      <button id="dPrev" title="Previous (←)">← Prev</button>
+      <button id="dNext" title="Next (→)">Next →</button>
+      <button id="dDone" class="primary"></button>
+      <button id="dDelete" class="danger" title="Delete this report for good">Delete</button>
+      <button id="dClose" title="Close (Esc)">✕</button>
+    </div>
+    <div class="sheet-main">
+      <div class="shot" id="dShot"></div>
+      <div class="info">
+        <div class="bignote" id="dNote"></div>
+        <dl id="dFacts"></dl>
+        <div id="dErrs"></div>
+        <details id="dAll"><summary>All details (browser, save copy, everything)</summary><pre id="dJson">Loading…</pre></details>
+      </div>
+    </div>
+    <div class="keys"><kbd>←</kbd> <kbd>→</kbd> previous / next · <kbd>D</kbd> mark done / to do · <kbd>Esc</kbd> close</div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const shotUrl = (r) => "/admin/reports/" + r.id + "/screenshot";
+
+// What's being shown. Remembered in this browser so the page opens the way you left it.
+let prefs = { kind: "", status: "new", sort: "new" };
+try { prefs = Object.assign(prefs, JSON.parse(localStorage.getItem("reportPrefs") || "{}")); } catch {}
+const savePrefs = () => { try { localStorage.setItem("reportPrefs", JSON.stringify(prefs)); } catch {} };
+
+let all = [];      // every report from the server, newest first
+let shown = [];    // the ones that pass the filters, in display order
+let openId = null; // the report open in the detail view
+
+function ago(iso) {
+  const s = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (s < 60) return "just now";
+  if (s < 3600) return Math.floor(s / 60) + " min ago";
+  if (s < 86400) return Math.floor(s / 3600) + " h ago";
+  if (s < 86400 * 30) return Math.floor(s / 86400) + " d ago";
+  return new Date(iso).toLocaleDateString();
+}
+const player = (r) => (r.info && r.info.player) || {};
+const where = (r) => { const p = player(r); return p.x != null ? (p.area || "Somewhere") + " (" + p.x + ", " + p.y + ")" : ""; };
+const kindName = (k) => k === "idea" ? "💡 Change idea" : "🐞 Bug";
+
+function toast(text) {
+  const t = $("toast"); t.textContent = text; t.style.display = "block";
+  clearTimeout(toast.timer); toast.timer = setTimeout(() => (t.style.display = "none"), 2500);
+}
+
+// ---- Loading ----
+async function api(path, opts) {
+  const res = await fetch(path, opts);
+  if (!res.ok) throw new Error((await res.text()) || res.statusText);
+  return res.json();
+}
+async function load() {
+  try {
+    all = await api("/admin/api/reports?limit=1000");
+    render();
+    const fromHash = Number(location.hash.slice(1));
+    if (fromHash && !openId) openDetail(fromHash);
+  } catch (err) {
+    $("grid").innerHTML = '<div class="empty">Couldn’t load reports: ' + esc(err.message) + '</div>';
+  }
+}
+
+// ---- The list ----
+function matches(r, words) {
+  if (!words.length) return true;
+  const hay = [r.id, "#" + r.id, r.note, r.username, where(r), r.info && r.info.client, r.info && r.info.panel].join(" ").toLowerCase();
+  return words.every((w) => hay.includes(w));
+}
+function render() {
+  const words = $("q").value.toLowerCase().split(/\s+/).filter(Boolean);
+  const byKind = all.filter((r) => !prefs.kind || r.kind === prefs.kind);
+  shown = byKind.filter((r) => (!prefs.status || r.status === prefs.status) && matches(r, words));
+  if (prefs.sort === "old") shown.reverse();
+
+  // Little counts on the buttons: Type counts use the chosen status, Status counts use the chosen type.
+  const st = (r) => !prefs.status || r.status === prefs.status;
+  setSeg("kindSeg", prefs.kind, { "": all.filter(st).length, bug: all.filter((r) => r.kind === "bug" && st(r)).length, idea: all.filter((r) => r.kind === "idea" && st(r)).length });
+  setSeg("statusSeg", prefs.status, { new: byKind.filter((r) => r.status === "new").length, done: byKind.filter((r) => r.status === "done").length, "": byKind.length });
+  setSeg("sortSeg", prefs.sort);
+
+  if (!shown.length) {
+    const what = all.length ? "Nothing matches these filters." : "No reports yet. Tap the 🐞 button in the game to send one.";
+    $("grid").innerHTML = '<div class="empty">' + what + '</div>';
+    return;
+  }
+  $("grid").innerHTML = shown.map((r) => {
+    const thumb = r.hasScreenshot
+      ? '<div class="thumb"><img loading="lazy" src="' + shotUrl(r) + '" alt=""></div>'
+      : '<div class="thumb">No screenshot</div>';
+    const who = [r.username ? "👤 " + esc(r.username) : "Not logged in", where(r) ? "📍 " + esc(where(r)) : ""].filter(Boolean).join(" · ");
+    return '<button class="card ' + esc(r.status) + '" data-id="' + r.id + '">' + thumb
+      + '<div class="body"><div class="top"><span class="tag ' + esc(r.kind) + '">' + kindName(r.kind) + '</span>'
+      + (r.status === "done" ? '<span class="tag donetag">✓ Done</span>' : "")
+      + '<span>#' + r.id + '</span><span class="ago" title="' + esc(new Date(r.createdAt).toLocaleString()) + '">' + ago(r.createdAt) + '</span></div>'
+      + '<div class="note">' + esc(r.note || "(no note)") + '</div>'
+      + '<div class="who">' + who + '</div></div></button>';
+  }).join("");
+}
+function setSeg(id, value, counts) {
+  for (const b of $(id).querySelectorAll("button")) {
+    b.classList.toggle("on", b.dataset.v === value);
+    if (counts) {
+      let n = b.querySelector(".n");
+      if (!n) { n = document.createElement("span"); n.className = "n"; b.appendChild(n); }
+      n.textContent = counts[b.dataset.v] ?? "";
+    }
+  }
+}
+for (const [seg, key] of [["kindSeg", "kind"], ["statusSeg", "status"], ["sortSeg", "sort"]]) {
+  $(seg).onclick = (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    prefs[key] = b.dataset.v; savePrefs(); render();
+  };
+}
+$("q").oninput = render;
+$("reload").onclick = () => { load(); toast("Reloaded"); };
+$("grid").onclick = (e) => { const c = e.target.closest(".card"); if (c) openDetail(Number(c.dataset.id)); };
+
+// ---- The detail view ----
+function openDetail(id) {
+  const r = all.find((x) => x.id === id);
+  if (!r) { toast("Report #" + id + " isn’t here (deleted?)"); history.replaceState(null, "", location.pathname); return; }
+  openId = id;
+  history.replaceState(null, "", "#" + id);
+  $("detail").classList.add("open");
+  document.body.style.overflow = "hidden";
+
+  $("dTitle").innerHTML = '<span class="tag ' + esc(r.kind) + '">' + kindName(r.kind) + '</span> #' + r.id;
+  $("dShot").innerHTML = r.hasScreenshot
+    ? '<a href="' + shotUrl(r) + '" target="_blank" title="Open full size"><img src="' + shotUrl(r) + '" alt="Screenshot"></a>'
+    : '<div class="none">No screenshot with this one</div>';
+  $("dNote").textContent = r.note || "(no note)";
+
+  const p = player(r), i = r.info || {};
+  const facts = [
+    ["Sent", new Date(r.createdAt).toLocaleString() + " (" + ago(r.createdAt) + ")"],
+    ["Status", r.status === "done" ? "✓ Done" : "To do"],
+    ["Player", r.username || "Not logged in"],
+    ["Where", where(r)],
+    ["Doing", p.action],
+    ["Health", p.hp != null ? p.hp + " / " + p.maxHp : ""],
+    ["Open panel", i.panel],
+    ["Game", [i.client, i.serverVersion].filter(Boolean).join(" · build ")],
+    ["Screen", i.screen],
+    ["Browser", shortBrowser(i.userAgent)],
+  ].filter(([, v]) => v !== undefined && v !== null && v !== "");
+  $("dFacts").innerHTML = facts.map(([k, v]) => "<dt>" + esc(k) + "</dt><dd>" + esc(v) + "</dd>").join("");
+
+  const errs = Array.isArray(i.recentErrors) ? i.recentErrors : [];
+  $("dErrs").innerHTML = errs.length ? "<h3>Errors just before</h3><ul class=\"errs\">" + errs.map((e) => "<li>" + esc(e) + "</li>").join("") + "</ul>" : "";
+
+  $("dDone").textContent = r.status === "done" ? "↺ Back to to do" : "✓ Mark done";
+  const at = shown.findIndex((x) => x.id === id);
+  $("dPrev").disabled = at <= 0;
+  $("dNext").disabled = at < 0 || at >= shown.length - 1;
+
+  // The full report (with the save copy) only loads when you open "All details".
+  $("dJson").textContent = "Loading…";
+  $("dAll").open = false;
+}
+$("dAll").ontoggle = async () => {
+  if (!$("dAll").open || openId == null) return;
+  const id = openId;
+  try {
+    const full = await api("/admin/api/reports/" + id);
+    if (id === openId) $("dJson").textContent = JSON.stringify(full, null, 2);
+  } catch (err) { $("dJson").textContent = "Couldn’t load: " + err.message; }
+};
+function shortBrowser(ua) {
+  if (!ua) return "";
+  const os = /iPhone|iPad/.test(ua) ? "iPhone/iPad" : /Android/.test(ua) ? "Android" : /Mac OS/.test(ua) ? "Mac" : /Windows/.test(ua) ? "Windows" : /Linux/.test(ua) ? "Linux" : "";
+  const br = /Edg\//.test(ua) ? "Edge" : /Chrome\//.test(ua) ? "Chrome" : /Firefox\//.test(ua) ? "Firefox" : /Safari\//.test(ua) ? "Safari" : "";
+  return [br, os].filter(Boolean).join(" on ") || ua.slice(0, 80);
+}
+function closeDetail() {
+  openId = null;
+  $("detail").classList.remove("open");
+  document.body.style.overflow = "";
+  history.replaceState(null, "", location.pathname);
+}
+function step(dir) {
+  const at = shown.findIndex((x) => x.id === openId);
+  const next = shown[at + dir];
+  if (at >= 0 && next) openDetail(next.id);
+}
+async function toggleDone() {
+  const r = all.find((x) => x.id === openId); if (!r) return;
+  const to = r.status === "done" ? "new" : "done";
+  $("dDone").disabled = true;
+  try {
+    await api("/admin/api/reports/" + r.id, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: to }) });
+    // Remember the next one before the list changes, so ticking one off moves you along.
+    const at = shown.findIndex((x) => x.id === r.id);
+    const next = shown[at + 1] || shown[at - 1];
+    r.status = to;
+    render();
+    toast(to === "done" ? "#" + r.id + " marked done" : "#" + r.id + " is back on the to do list");
+    if (shown.some((x) => x.id === r.id)) openDetail(r.id);
+    else if (next) openDetail(next.id);
+    else closeDetail();
+  } catch (err) { toast("Couldn’t save: " + err.message); }
+  $("dDone").disabled = false;
+}
+async function remove() {
+  const r = all.find((x) => x.id === openId); if (!r) return;
+  if (!confirm("Delete report #" + r.id + " for good? This can’t be undone.")) return;
+  try {
+    await api("/admin/api/reports/" + r.id, { method: "DELETE" });
+    const at = shown.findIndex((x) => x.id === r.id);
+    const next = shown[at + 1] || shown[at - 1];
+    all = all.filter((x) => x.id !== r.id);
+    render();
+    toast("#" + r.id + " deleted");
+    if (next) openDetail(next.id); else closeDetail();
+  } catch (err) { toast("Couldn’t delete: " + err.message); }
+}
+$("dPrev").onclick = () => step(-1);
+$("dNext").onclick = () => step(1);
+$("dDone").onclick = toggleDone;
+$("dDelete").onclick = remove;
+$("dClose").onclick = closeDetail;
+$("detail").onclick = (e) => { if (e.target === $("detail")) closeDetail(); };
+document.addEventListener("keydown", (e) => {
+  if (openId == null || e.target.tagName === "INPUT" || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === "Escape") closeDetail();
+  else if (e.key === "ArrowLeft") step(-1);
+  else if (e.key === "ArrowRight") step(1);
+  else if (e.key === "d" || e.key === "D") toggleDone();
+});
+window.onhashchange = () => { const id = Number(location.hash.slice(1)); if (id && id !== openId) openDetail(id); };
+
+load();
+</script></body></html>

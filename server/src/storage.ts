@@ -122,13 +122,23 @@ interface Store {
   addReport(report: NewReport, screenshot: { type: string; data: Buffer } | null): Promise<number>;
   /** Newest first. */
   listReports(opts: { status?: string; limit: number }): Promise<Report[]>;
+  getReport(id: number): Promise<Report | null>;
   getScreenshot(id: number): Promise<{ type: string; data: Buffer } | null>;
   setReportStatus(id: number, status: string): Promise<boolean>;
+  /** Throw a report away for good (and its screenshot). */
+  deleteReport(id: number): Promise<boolean>;
   close(): Promise<void>;
 }
 
 // Usernames are matched case-insensitively ("mike" and "Mike" are the same account).
 export const usernameKey = (username: string) => username.trim().toLowerCase();
+
+function reportFromRow(r: any): Report {
+  return {
+    id: r.id, createdAt: new Date(r.created_at).toISOString(), kind: r.kind, note: r.note,
+    username: r.username, status: r.status, hasScreenshot: r.has_shot, info: r.info ?? {},
+  };
+}
 
 class PostgresStore implements Store {
   private pool: pg.Pool;
@@ -178,10 +188,13 @@ class PostgresStore implements Store {
       `SELECT id, created_at, kind, note, username, status, info, screenshot IS NOT NULL AS has_shot
        FROM reports WHERE ($1::text IS NULL OR status = $1) ORDER BY id DESC LIMIT $2`,
       [opts.status ?? null, opts.limit]);
-    return rows.map((r: any) => ({
-      id: r.id, createdAt: new Date(r.created_at).toISOString(), kind: r.kind, note: r.note,
-      username: r.username, status: r.status, hasScreenshot: r.has_shot, info: r.info ?? {},
-    }));
+    return rows.map(reportFromRow);
+  }
+  async getReport(id: number) {
+    const { rows } = await this.pool.query(
+      `SELECT id, created_at, kind, note, username, status, info, screenshot IS NOT NULL AS has_shot
+       FROM reports WHERE id = $1`, [id]);
+    return rows[0] ? reportFromRow(rows[0]) : null;
   }
   async getScreenshot(id: number) {
     const { rows } = await this.pool.query("SELECT screenshot, screenshot_type FROM reports WHERE id = $1", [id]);
@@ -189,6 +202,10 @@ class PostgresStore implements Store {
   }
   async setReportStatus(id: number, status: string) {
     const res = await this.pool.query("UPDATE reports SET status = $2 WHERE id = $1", [id, status]);
+    return res.rowCount === 1;
+  }
+  async deleteReport(id: number) {
+    const res = await this.pool.query("DELETE FROM reports WHERE id = $1", [id]);
     return res.rowCount === 1;
   }
   async getWorld(key: string) {
@@ -288,6 +305,12 @@ class FileStore implements Store {
     return this.reports.filter((r) => !opts.status || r.status === opts.status).slice(-opts.limit).reverse()
       .map(({ screenshotType: _t, ...r }) => r);
   }
+  async getReport(id: number) {
+    const found = this.reports.find((x) => x.id === id);
+    if (!found) return null;
+    const { screenshotType: _t, ...r } = found;
+    return r;
+  }
   async getScreenshot(id: number) {
     const r = this.reports.find((x) => x.id === id);
     if (!r?.screenshotType) return null;
@@ -297,6 +320,14 @@ class FileStore implements Store {
     const r = this.reports.find((x) => x.id === id);
     if (!r) return false;
     r.status = status;
+    await this.flushReports();
+    return true;
+  }
+  async deleteReport(id: number) {
+    const i = this.reports.findIndex((x) => x.id === id);
+    if (i < 0) return false;
+    const [r] = this.reports.splice(i, 1);
+    if (r.screenshotType) await fs.rm(this.shotFile(id, r.screenshotType), { force: true });
     await this.flushReports();
     return true;
   }
