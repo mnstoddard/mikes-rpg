@@ -150,6 +150,7 @@ export class Player extends Schema {
 
   // Server-only (not synced to everyone):
   path: Point[] = [];
+  walkDir: Point | null = null; // the way they're holding the keyboard (WASD) to walk, one tile at a time; null when not
   target: Point | null = null; // tree or water the player is heading to / working on
   activity: SkillId | null = null; // what they'll do when they get there
   resource: ResourceId | null = null; // which type of tree / rock / fish
@@ -374,6 +375,23 @@ export class WorldRoom extends Room<WorldState> {
       if (!isWalkable(msg.x, msg.y)) return;
       this.stopActions(p);
       p.path = findPath({ x: p.x, y: p.y }, { x: msg.x, y: msg.y });
+    });
+
+    // Walking with the keyboard (WASD): the client says which way the keys point
+    // (dx and dy are each -1, 0 or 1) whenever that changes, and 0,0 when they're let go.
+    // You keep stepping that way, one tile at a time, until then.
+    this.onMessage("walk", (client, msg: { dx: number; dy: number }) => {
+      const p = this.state.players.get(client.sessionId);
+      const dx = msg?.dx, dy = msg?.dy;
+      if (!p || ![-1, 0, 1].includes(dx) || ![-1, 0, 1].includes(dy)) return;
+      if (!dx && !dy) {
+        if (p.walkDir) { p.walkDir = null; p.path = []; }
+        return;
+      }
+      this.stopActions(p);
+      p.walkDir = { x: dx, y: dy };
+      const next = this.keyStep(p);
+      p.path = next ? [next] : [];
     });
 
     this.onMessage("chop", (client, msg: { x: number; y: number }) => {
@@ -1273,6 +1291,11 @@ export class WorldRoom extends Room<WorldState> {
   private stepPlayers() {
     const now = Date.now();
     this.state.players.forEach((p) => {
+      // Holding a direction key: line up the next tile that way.
+      if (p.walkDir && !p.path.length && !p.fighting && !p.target && !p.talkTo && !p.crafting) {
+        const next = this.keyStep(p);
+        if (next) p.path = [next];
+      }
       if (!p.path.length || now < p.nextStepAt) return;
       // The Dark Forest's gate stays shut until Old Maren says you're ready.
       if (isDanger(p.path[0].x, p.path[0].y) && !isDanger(p.x, p.y) && !gateOpen(p.quest)) {
@@ -1303,6 +1326,22 @@ export class WorldRoom extends Room<WorldState> {
       // Keep a steady pace; if they'd been standing still, start the clock from now.
       p.nextStepAt = Math.max(p.nextStepAt + p.stepMs, now + p.stepMs - STEP_LOOP_MS);
     });
+  }
+
+  /**
+   * The next tile when walking with the keys. Same rules as clicking (no cutting
+   * the corner of a wall); if a diagonal is blocked you slide along the wall instead.
+   */
+  private keyStep(p: Player): Point | null {
+    const d = p.walkDir;
+    if (!d) return null;
+    const tries = d.x && d.y ? [d, { x: d.x, y: 0 }, { x: 0, y: d.y }] : [d];
+    for (const t of tries) {
+      if (!isWalkable(p.x + t.x, p.y + t.y)) continue;
+      if (t.x && t.y && (!isWalkable(p.x + t.x, p.y) || !isWalkable(p.x, p.y + t.y))) continue;
+      return { x: p.x + t.x, y: p.y + t.y };
+    }
+    return null;
   }
 
   /** Walk next to a tree, rock or the water, then start working it on the next tick. */
@@ -2661,7 +2700,7 @@ export class WorldRoom extends Room<WorldState> {
     this.addSkillXp(p, client, "defense", xp);
     if (p.hp <= 0) return this.die(p, sessionId, def.name);
     // Fight back automatically if you were just standing there.
-    if (!p.fighting && !p.path.length && !p.target && !p.crafting && !this.fightBlock(p)) {
+    if (!p.fighting && !p.path.length && !p.walkDir && !p.target && !p.crafting && !this.fightBlock(p)) {
       p.fighting = monsterId;
       p.attackTimer = 99;
     }
@@ -3966,6 +4005,7 @@ export class WorldRoom extends Room<WorldState> {
   }
 
   private stopActions(p: Player) {
+    p.walkDir = null;
     p.fighting = null;
     p.target = null;
     p.activity = null;
