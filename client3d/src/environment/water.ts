@@ -396,23 +396,44 @@ export const waterfall: Builder = (o) => {
     }
   }
   cliff.box(12.2, 0.25, 3, 0x76ae48, 0, H + 0.1, -2.4);
-  // Rock shelves for the cascade, each with a shallow pool on top.
+  // Rock shelves for the cascade, each with a shallow pool on top. The whole
+  // cascade sits in a slot cut into the cliff: rock walls on both sides come
+  // forward past the lowest lip, so you only see water stepping down, never
+  // the ends of the ledges.
   const shelfWater = new Parts();
-  tiers.forEach((t, i) => {
-    if (i === 0) return;
-    const back = -2.4, front = t.z + 0.12;
-    const d = front - back;
-    for (let x = -fallW / 2 - 0.7; x < fallW / 2 + 0.7; x += 0.55) {
-      cliff.box(0.6, 0.4 + rng() * 0.1, d, jitter(0x7a7268, rng, 0.08), x + 0.27, t.top - 0.22, back + d / 2);
+  if (cascade) {
+    const front = tiers[tiers.length - 1].z + 0.45;
+    const slotW = fallW + 0.1;
+    for (const side of [-1, 1]) {
+      const inner = side * (slotW / 2);
+      for (let y = 0; y < H; y += 0.75) {
+        for (let z = -0.8; z < front; z += 0.8) {
+          const d = Math.min(0.8, front - z);
+          const w = 0.9 + rng() * 0.15;
+          const c = jitter(Math.floor(y / 0.75) % 2 ? 0x8a8072 : 0x7a7064, rng, 0.08);
+          cliff.box(w, 0.8, d + 0.02, c, inner + side * (w / 2), y + 0.4, z + d / 2);
+          // A second column further out so the slot walls are thick.
+          cliff.box(0.95, 0.8, d + 0.02, jitter(c, rng, 0.04), inner + side * (w + 0.47), y + 0.4, z + d / 2 - 0.1 - y * 0.03);
+        }
+      }
+      // Grass along the top of each slot wall, and a few boulders at its foot.
+      cliff.box(2.1, 0.25, front + 0.8 + 0.1, 0x76ae48, inner + side * 1.0, H + 0.1, (front - 0.8) / 2);
+      for (let i = 0; i < 3; i++) {
+        const g = rockGeo(0.25 + rng() * 0.2, rng, 0.6);
+        g.translate(inner + side * (0.4 + rng() * 1.2), 0.1, front + 0.1 + rng() * 0.3);
+        cliff.add(g, jitter(0x7a7064, rng, 0.08));
+      }
     }
-    // A little rim of stones along the front edge.
-    for (let x = -fallW / 2 - 0.5; x < fallW / 2 + 0.5; x += 0.35) {
-      const g = rockGeo(0.13 + rng() * 0.05, rng, 0.6);
-      g.translate(x, t.top + 0.03, front - 0.08);
-      cliff.add(g, jitter(0x6e6a62, rng, 0.1));
-    }
-    shelfWater.box(fallW + 0.6, 0.05, d - 0.3, 0x6ab8d8, 0, t.top + 0.02, back + d / 2 - 0.1);
-  });
+    tiers.forEach((t, i) => {
+      if (i === 0) return;
+      const back = -2.4, lip = t.z + 0.12;
+      const d = lip - back;
+      // The ledge fills the slot exactly, wall to wall.
+      cliff.box(slotW + 0.1, 0.5, d, jitter(0x6e665c, rng, 0.05), 0, t.top - 0.25, back + d / 2);
+      // Water covers the whole ledge right up to the lip.
+      shelfWater.box(slotW, 0.06, d, 0x6ab8d8, 0, t.top + 0.03, back + d / 2 + 0.01);
+    });
+  }
   group.add(cliff.build()!);
   const sw = shelfWater.build(mat(0xffffff, { vertexColors: true, opacity: 0.85, roughness: 0.1 }), false);
   if (sw) group.add(sw);

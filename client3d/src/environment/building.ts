@@ -241,29 +241,41 @@ export const cliff: WallBuilder = (o) => {
   const parts = new Parts();
   const snowy = o.variant === 1;
   const capColor = snowy ? 0xf2f6fa : 0x76ae48;
-  // A solid core so you never see through it.
-  parts.box(L, H * 0.85, 1.6, 0x6e665c, 0, (H * 0.85) / 2, -1.4);
-  // Columns of big rough boulders, each column a different height, so the
-  // top edge is jagged and the face steps back a little as it rises.
+  // No flat block behind: the whole cliff is packed boulders, three rows
+  // deep, overlapping enough that you never see through it.
   for (let x = -L / 2 + 0.45; x < L / 2; x += 0.85) {
     const colH = H * (0.82 + rng() * 0.3);
+    // Back rows first: big, rough boulders filling the body of the cliff.
+    for (const [zb, sc] of [[-2.0, 0.95], [-1.25, 0.9]] as const) {
+      let yb = 0;
+      while (yb < colH * sc - 0.2) {
+        const r = 0.62 + rng() * 0.25;
+        const g = rockGeo(r, rng, 0.8);
+        g.scale(1.05, 1, 0.9);
+        g.rotateY(rng() * 6);
+        g.translate(x + (rng() - 0.5) * 0.3, yb + r * 0.6, zb - (yb / H) * 0.3 + (rng() - 0.5) * 0.2);
+        parts.add(g, jitter(0x746a5e, rng, 0.08));
+        yb += r * 0.95;
+      }
+    }
+    // Front row: flat-faced boulders that make the rock face.
     let y = 0;
     while (y < colH - 0.3) {
       const r = 0.5 + rng() * 0.3;
       const g = rockGeo(r, rng, 0.7);
-      g.scale(1.15, 1, 0.55); // flat-faced slabs make a rock face, not a heap
+      g.scale(1.15, 1, 0.75);
       g.rotateY(rng() * 6);
       const back = (y / H) * 0.6;
-      g.translate(x + (rng() - 0.5) * 0.25, y + r * 0.6, -0.4 - back + (rng() - 0.5) * 0.2);
+      g.translate(x + (rng() - 0.5) * 0.25, y + r * 0.6, -0.45 - back + (rng() - 0.5) * 0.2);
       const band = Math.floor(y / 1.1) % 2;
       parts.add(g, jitter(band ? 0x8a8072 : 0x7a7064, rng, 0.08));
       y += r * 1.0;
     }
-    const top = y + 0.1;
+    const top = y - 0.12;
     // The cap (grass or snow) sitting on top of this column, spilling over.
-    const cap = rockGeo(0.62, rng, 0.35);
-    cap.scale(1.15, 1, 1.6);
-    cap.translate(x, top, -0.7 - (top / H) * 0.6);
+    const cap = rockGeo(0.62, rng, 0.5);
+    cap.scale(1.15, 1, 2.6);
+    cap.translate(x, top, -1.2 - (top / H) * 0.4);
     parts.add(cap, jitter(capColor, rng, 0.03));
     const lip = new THREE.ConeGeometry(0.14, 0.35 + rng() * 0.35, 4);
     lip.rotateX(Math.PI);
@@ -343,8 +355,20 @@ export const fence: WallBuilder = (o) => {
       y += h;
       row++;
     }
-    // Coping: flat stones standing on edge along the top.
-    for (let x = -L / 2 + 0.07; x < L / 2; x += 0.13) stone(0.11, 0.24, T + 0.02, x, Hw + 0.08, 0, (rng() - 0.5) * 0.25);
+    // Coping: a solid bed of mortar-dark stone along the top, then a tight
+    // row of capstones pressed together with no gaps, alternating tall and
+    // short for a little pattern.
+    parts.box(L, 0.08, T, 0x6e6a62, 0, Hw + 0.04, 0);
+    {
+      let x = -L / 2, k = 0;
+      while (x < L / 2 - 0.01) {
+        const w = Math.min(0.16 + rng() * 0.05, L / 2 - x);
+        const tall = k % 2 === 0;
+        stone(w + 0.03, tall ? 0.26 : 0.2, T + 0.04, x + w / 2, Hw + 0.08 + (tall ? 0.13 : 0.1), 0);
+        x += w;
+        k++;
+      }
+    }
     return piece(fromParts(parts));
   }
   const picket = o.variant === 1;
