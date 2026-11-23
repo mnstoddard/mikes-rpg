@@ -85,25 +85,43 @@ export function makeRing(metal: JewelMetalLook, gemId: GemId | null, _rng?: Rng)
 /** An amulet lying flat: a chain loop and a pendant (with a gem, if it has one). */
 export function makeAmulet(metal: JewelMetalLook, gemId: GemId | null): THREE.Group {
   const g = new THREE.Group();
-  // The chain: little links around an oval.
-  const link = new THREE.TorusGeometry(0.006, 0.0015, 3, 6);
-  for (let i = 0; i < 26; i++) {
-    const a = (i / 26) * Math.PI * 2;
-    const l = mesh(link, metalMat(metal));
-    l.position.set(Math.cos(a) * 0.07, 0.003, Math.sin(a) * 0.09 - 0.03);
-    l.rotation.set(Math.PI / 2, 0, a + (i % 2 ? Math.PI / 2 : 0));
-    g.add(l);
+  // The chain: oval links that hook through each other, every other one
+  // standing up, following an oval that ends at the pendant's bail.
+  const rx = 0.07, rz = 0.085, cz = -0.02;
+  const n = 44;
+  const linkGeo = new THREE.TorusGeometry(0.0055, 0.0014, 4, 8);
+  linkGeo.scale(1.55, 1, 1);
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2;
+    const x = Math.cos(a) * rx, z = Math.sin(a) * rz + cz;
+    // Leave a gap at the front where the pendant hangs.
+    if (z > cz + rz * 0.93 && Math.abs(x) < 0.012) continue;
+    const tx = -Math.sin(a) * rx, tz = Math.cos(a) * rz;
+    const turn = new THREE.Group();
+    turn.position.set(x, 0.0035, z);
+    turn.rotation.y = -Math.atan2(tz, tx);
+    const l = mesh(linkGeo, metalMat(metal));
+    // Flat, standing, flat, standing... so each link threads through the next.
+    if (i % 2 === 0) l.rotation.x = Math.PI / 2;
+    else l.position.y = 0.002;
+    turn.add(l);
+    g.add(turn);
   }
+  // The bail: a small loop joining the chain to the pendant.
+  const bail = mesh(new THREE.TorusGeometry(0.008, 0.0022, 5, 10), metalMat(metal, true));
+  bail.position.set(0, 0.005, cz + rz + 0.002);
+  bail.rotation.y = Math.PI / 2;
+  g.add(bail);
   const pendant = mesh(new THREE.CylinderGeometry(0.026, 0.026, 0.006, 8), metalMat(metal));
-  pendant.position.set(0, 0.004, 0.08);
+  pendant.position.set(0, 0.004, 0.092);
   g.add(pendant);
   const rim = mesh(new THREE.TorusGeometry(0.026, 0.003, 4, 16), metalMat(metal, true));
   rim.rotation.x = Math.PI / 2;
-  rim.position.set(0, 0.007, 0.08);
+  rim.position.set(0, 0.007, 0.092);
   g.add(rim);
   if (gemId) {
     const stone = gem(0.014, GEM_COLOR[gemId], 8, 0.35);
-    stone.position.set(0, 0.012, 0.08);
+    stone.position.set(0, 0.012, 0.092);
     g.add(stone);
   }
   return g;

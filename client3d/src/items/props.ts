@@ -127,15 +127,38 @@ function anvil(): ItemShape {
   ring.rotation.x = -Math.PI / 2;
   ring.position.y = 0.451;
   object.add(ring);
+  // The anvil, shaped like a real smith's anvil: wide feet, a narrow waist,
+  // a long flat steel face with a squared heel at the back, and a rounded
+  // horn that curves gently down to a blunt tip.
   const iron = metalMat("iron");
-  object.add(box(0.26, 0.06, 0.2, iron, 0, 0.48, 0)); // foot
-  object.add(box(0.14, 0.14, 0.12, iron, 0, 0.58, 0)); // waist
-  object.add(box(0.46, 0.08, 0.17, metalMat("steel"), -0.02, 0.69, 0)); // face
-  const horn = mesh(new THREE.ConeGeometry(0.06, 0.26, 6), iron);
-  horn.rotation.z = Math.PI / 2;
-  horn.position.set(0.33, 0.69, 0);
-  horn.scale.z = 0.8;
-  object.add(horn);
+  const body = new THREE.Group();
+  body.position.set(-0.06, 0.45, 0);
+  object.add(body);
+  const side: [number, number][] = [
+    [-0.2, 0], [0.17, 0], [0.17, 0.03], [0.09, 0.06], [0.065, 0.14], [0.13, 0.19], [0.14, 0.21], [0.14, 0.27],
+    [-0.22, 0.27], [-0.22, 0.215], [-0.12, 0.19], [-0.075, 0.14], [-0.1, 0.06], [-0.2, 0.03],
+  ];
+  body.add(slab(side, 0.13, iron, 0.006));
+  // The hardened steel face on top, and the square "hardy" hole near the heel.
+  body.add(box(0.37, 0.012, 0.142, metalMat("steel"), -0.04, 0.282, 0));
+  body.add(box(0.024, 0.004, 0.024, mat(0x1a1a1c), -0.17, 0.289, 0));
+  // The horn: round, tapering, drooping a little, with a blunt rounded end.
+  const L = 0.2;
+  const hornGeo = new THREE.CylinderGeometry(0.009, 0.04, L, 10, 8);
+  hornGeo.translate(0, L / 2, 0);
+  hornGeo.rotateZ(-Math.PI / 2); // now runs along +X
+  const hp = hornGeo.attributes.position as THREE.BufferAttribute;
+  for (let i = 0; i < hp.count; i++) {
+    const t = hp.getX(i) / L;
+    hp.setY(i, hp.getY(i) * 0.85 - 0.028 * t * t);
+  }
+  hornGeo.computeVertexNormals();
+  const horn = mesh(hornGeo, iron);
+  horn.position.set(0.14, 0.236, 0);
+  body.add(horn);
+  const tip = ball(0.0095, iron, 1, 0.14 + L, 0.236 - 0.028, 0);
+  tip.scale.y = 0.85;
+  body.add(tip);
   // A hammer resting on the stump and a glowing bar on the face.
   const bar = makeBar("iron");
   bar.position.set(-0.05, 0.73, 0);

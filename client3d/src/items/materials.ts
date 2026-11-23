@@ -83,23 +83,28 @@ export function buildBars(metal: MetalLook, stack: boolean): ItemShape {
   return { object };
 }
 
-/** Leather: a folded, slightly curled square of tanned hide with stitched edges. */
+/** Leather: a whole tanned hide laid flat, with four legs, a neck and a tail. */
 export function buildLeather(rng: Rng): ItemShape {
   const object = new THREE.Group();
-  const pts: [number, number][] = [];
-  for (let i = 0; i < 10; i++) {
-    const a = (i / 10) * Math.PI * 2;
-    const r = 0.16 * (0.85 + rng() * 0.2);
-    pts.push([Math.cos(a) * r * 1.2, Math.sin(a) * r]);
-  }
-  const hide = slab(pts, 0.012, mat(0x8a5a32, { roughness: 0.9 }));
-  hide.rotation.x = -Math.PI / 2;
-  hide.position.y = 0.006;
-  const top = slab(pts.map(([x, y]) => [x * 0.8, y * 0.8]), 0.012, mat(0x9b6a3e, { roughness: 0.9 }));
-  top.rotation.x = -Math.PI / 2;
-  top.rotation.z = 0.4;
-  top.position.y = 0.02;
-  object.add(hide, top);
+  // Half the outline (nose to tail along x, one side in y); the other side is a mirror.
+  const half: [number, number][] = [
+    [0.19, 0.03], [0.14, 0.045], [0.125, 0.095], [0.15, 0.15], [0.122, 0.168], [0.088, 0.105],
+    [0.02, 0.085], [-0.06, 0.09], [-0.095, 0.115], [-0.11, 0.172], [-0.145, 0.165], [-0.14, 0.095],
+    [-0.17, 0.05], [-0.19, 0.014], [-0.25, 0.006],
+  ];
+  const j = (p: [number, number]): [number, number] => [p[0] + between(rng, -0.005, 0.005), p[1] + between(rng, -0.005, 0.005)];
+  const outline: [number, number][] = [
+    [0.21, 0], ...half.map(j), [-0.265, 0], ...half.slice().reverse().map(([x, y]) => j([x, -y])),
+  ];
+  // A darker rim underneath and the lighter tanned face on top.
+  const rim = slab(outline, 0.004, mat(0x8a5a32, { roughness: 0.95 }));
+  rim.rotation.x = -Math.PI / 2;
+  rim.position.y = 0.002;
+  const face = slab(outline.map(([x, y]) => [x * 0.95, y * 0.93]), 0.003, mat(0xb88452, { roughness: 0.9 }));
+  face.rotation.x = -Math.PI / 2;
+  face.position.y = 0.0035;
+  object.add(rim, face);
+  object.rotation.y = 0.5;
   return { object };
 }
 
@@ -118,14 +123,45 @@ export function buildThread(): ItemShape {
   return { object };
 }
 
-/** Cloth: a folded stack of woven cloth (blue-grey, like the cloth armor). */
+/** Cloth: a length of woven cloth folded back and forth, the end draped over the front. */
 export function buildCloth(): ItemShape {
   const object = new THREE.Group();
-  const colors = [0x6a7fa8, 0x7a8fb8, 0x6a7fa8];
-  colors.forEach((c, i) => object.add(box(0.26 - i * 0.01, 0.022, 0.18 - i * 0.008, mat(c, { roughness: 1 }), 0, 0.011 + i * 0.022, 0)));
-  // A hanging fold over the front.
-  const fold = box(0.24, 0.012, 0.06, mat(0x7a8fb8, { roughness: 1 }), 0, 0.04, 0.1);
-  fold.rotation.x = 1.1;
-  object.add(fold);
+  // The side view of the folds: a zig-zag path with round bends at each end.
+  // It is drawn in (z, y), then widened into a thick strip and stretched across x.
+  const L = 0.09, h = 0.018, t = 0.011;
+  const path: [number, number][] = [];
+  const bend = (cz: number, cy: number, dir: number) => {
+    for (let k = 1; k < 8; k++) {
+      const a = -Math.PI / 2 + (k / 8) * Math.PI;
+      path.push([cz + dir * Math.cos(a) * (h / 2), cy + Math.sin(a) * (h / 2)]);
+    }
+  };
+  let y = t / 2;
+  for (let layer = 0; layer < 3; layer++) {
+    const dir = layer % 2 === 0 ? 1 : -1;
+    path.push([-dir * L, y], [dir * L, y]);
+    if (layer < 2) { bend(dir * L, y + h / 2, dir); y += h; }
+  }
+  // The end drapes over the front edge and hangs down.
+  for (let k = 1; k <= 6; k++) {
+    const a = (k / 6) * (Math.PI / 2);
+    path.push([L + Math.sin(a) * 0.012, y - 0.012 + Math.cos(a) * 0.012]);
+  }
+  path.push([L + 0.015, y - 0.03], [L + 0.017, 0.006]);
+  // Offset the path both ways to get a closed outline.
+  const outer: [number, number][] = [], inner: [number, number][] = [];
+  path.forEach((p, i) => {
+    const a = path[Math.max(0, i - 1)], b = path[Math.min(path.length - 1, i + 1)];
+    let nx = -(b[1] - a[1]), ny = b[0] - a[0];
+    const len = Math.hypot(nx, ny) || 1;
+    nx /= len; ny /= len;
+    outer.push([p[0] + nx * t / 2, p[1] + ny * t / 2]);
+    inner.push([p[0] - nx * t / 2, p[1] - ny * t / 2]);
+  });
+  const cloth = slab([...outer, ...inner.reverse()], 0.24, mat(0x6a7fa8, { roughness: 1 }));
+  cloth.rotation.y = -Math.PI / 2;
+  object.add(cloth);
+  // A woven stripe near each edge, to read as cloth.
+  for (const x of [-0.105, 0.105]) object.add(box(0.008, 0.001, 2 * L, mat(0x8a9fc8, { roughness: 1 }), x, y + t / 2 + 0.0004, 0));
   return { object };
 }

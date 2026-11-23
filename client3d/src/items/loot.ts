@@ -25,14 +25,34 @@ function feather(rng: Rng): THREE.Group {
 }
 
 function ratTail(): THREE.Group {
+  // One smooth tail that tapers to a point, lying in a lazy S-curve on the ground.
   const g = new THREE.Group();
-  const m = mat(0xd8a0a0, { roughness: 0.6 });
-  for (let i = 0; i < 8; i++) {
-    const s = rod(0.008 - i * 0.0009, 0.007 - i * 0.0009, 0.035, m, 5);
-    s.rotation.z = Math.PI / 2;
-    s.position.set(-0.12 + i * 0.033, 0.008, Math.sin(i * 0.8) * 0.02);
-    g.add(s);
+  const pts: THREE.Vector3[] = [];
+  for (let i = 0; i <= 8; i++) {
+    const t = i / 8;
+    pts.push(new THREE.Vector3(-0.13 + t * 0.26, 0, Math.sin(t * Math.PI * 1.6) * 0.03));
   }
+  const curve = new THREE.CatmullRomCurve3(pts);
+  const segs = 40, radial = 7;
+  const geo = new THREE.TubeGeometry(curve, segs, 1, radial, false);
+  // Taper: thick at the base (where it was cut), thin at the tip.
+  const pos = geo.attributes.position as THREE.BufferAttribute;
+  const c = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i++) {
+    const ring = Math.floor(i / (radial + 1));
+    const t = ring / segs;
+    curve.getPointAt(t, c);
+    const r = 0.009 * (1 - t) + 0.0012;
+    pos.setXYZ(i, c.x + (pos.getX(i) - c.x) * r, c.y + (pos.getY(i) - c.y) * r, c.z + (pos.getZ(i) - c.z) * r);
+  }
+  geo.computeVertexNormals();
+  const tail = mesh(geo, mat(0xd8a0a0, { roughness: 0.55 }));
+  tail.position.y = 0.009;
+  g.add(tail);
+  // A little tuft of grey fur at the cut end.
+  const tuft = ball(0.012, mat(0x8a8078, { roughness: 1 }), 0, -0.132, 0.01, 0);
+  tuft.scale.set(0.8, 0.9, 1);
+  g.add(tuft);
   return g;
 }
 
