@@ -18,6 +18,7 @@ import { createTree, TREE_TYPES, type Tree, type TreeKind } from "../trees";
 import { createRock, ROCK_TYPES, type Rock, type RockKind } from "../rocks";
 import { createFood } from "../food";
 import { Instancer } from "./instancer";
+import { bed, bookshelf, goodsShelf, tableTop } from "./furniture";
 
 export const CHUNK = 8;
 /** How far from you (in tiles) chunks are built. */
@@ -55,7 +56,7 @@ function floorOf(t: Tile, area: AreaDef): Ground | null {
 }
 
 /** Tiles with something standing on them get the ground of their neighbours underneath. */
-const STANDS_ON = new Set<Tile>(["tree", "rock", "dig", "sign", "fence", "gate", "hedge", "well", "barricade", "statue", "grave", "crates", "table", "shelf", "door", "lockeddoor"]);
+const STANDS_ON = new Set<Tile>(["tree", "rock", "dig", "sign", "fence", "gate", "hedge", "well", "barricade", "statue", "grave", "crates", "table", "shelf", "bed", "door", "lockeddoor"]);
 
 function groundUnder(x: number, y: number, area: AreaDef): Ground {
   for (let r = 1; r <= 3; r++) {
@@ -63,7 +64,7 @@ function groundUnder(x: number, y: number, area: AreaDef): Ground {
     for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
       if (areaAt(x + dx, y + dy) !== area) continue;
       const t = MAP[y + dy]?.[x + dx];
-      const g = t && t !== "bridge" ? floorOf(t, area) : null;
+      const g = t && t !== "bridge" && t !== "carpet" ? floorOf(t, area) : null;
       if (!g) continue;
       const k = `${g.id}:${g.variant}`;
       const c = counts.get(k) ?? { g, n: 0 };
@@ -81,6 +82,8 @@ function groundAt(x: number, y: number, area: AreaDef): Ground | null {
   const t = MAP[y][x];
   // Outside, buildings stand on the ground of the street round them.
   if (area.kind === "outdoor" && (t === "house" || t === "roof" || t === "goldroof" || t === "wall" || t === "marblewall" || t === "door")) return groundUnder(x, y, area);
+  // Carpets are drawn whole, one rug per carpet (see buildAreaWide), on the floor round them.
+  if (t === "carpet") return groundUnder(x, y, area);
   const f = floorOf(t, area);
   if (f) return f;
   if (STANDS_ON.has(t)) return groundUnder(x, y, area);
@@ -168,6 +171,19 @@ export class Terrain {
   private wantArea: AreaDef | null = null;
   /** Lamps and shrines that can be lit (story): id -> setLit. */
   readonly signs: { text: string; at: THREE.Vector3 }[] = [];
+  /** Invisible boxes over the outside doors, so tapping the door itself works. */
+  private doorPicks: THREE.Mesh[] = [];
+
+  /**
+   * How tall whatever stands on this tile is, in metres (0 for open ground):
+   * buildings outside, walls inside. The camera stays out of them.
+   */
+  blockHeight(x: number, y: number): number {
+    if (areaAt(x, y) !== this.area) return 0;
+    const t = MAP[y]?.[x];
+    if (this.area.kind === "outdoor") return buildingHeight(x, y);
+    return t === "wall" || t === "house" || t === "marblewall" || t === "lockeddoor" ? 2.2 : 0;
+  }
 
   constructor() {
     this.instancer = new Instancer(this.root);
@@ -184,6 +200,7 @@ export class Terrain {
     for (const c of [...this.chunks.values()]) this.dropChunk(c);
     for (const o of this.areaObjects) { this.root.remove(o.object); o.dispose?.(); }
     this.areaObjects = [];
+    this.doorPicks.length = 0;
     this.signs.length = 0;
     this.area = a;
     this.buildAreaWide(a);
@@ -321,9 +338,9 @@ export class Terrain {
 
   // ---- clicking ----
 
-  /** Objects worth raycasting (trees, rocks), before falling back to the ground. */
+  /** Objects worth raycasting (trees, rocks, doors), before falling back to the ground. */
   pickables(): THREE.Object3D[] {
-    const out = this.instancer.meshes();
+    const out: THREE.Object3D[] = [...this.instancer.meshes(), ...this.doorPicks];
     for (const n of this.nodes.values()) if (n.live) out.push(n.live.object);
     return out;
   }
@@ -332,6 +349,9 @@ export class Terrain {
   tileOfHit(hit: THREE.Intersection): Pick | null {
     const id = this.instancer.idAt(hit);
     if (id) { const n = this.nodes.get(id); if (n) return { x: n.x, y: n.y }; }
+    // Bookshelves can be clicked (to read a book).
+    const m = id && /^p(-?\d+),(-?\d+)$/.exec(id);
+    if (m && MAP[+m[2]]?.[+m[1]] === "shelf") return { x: +m[1], y: +m[2] };
     for (let o: THREE.Object3D | null = hit.object; o; o = o.parent) if (o.userData.tile) return o.userData.tile as Pick;
     return null;
   }
@@ -564,8 +584,13 @@ export class Terrain {
         const prop = PROPS[t];
         if (prop) {
           const [id, variant] = prop(x, y);
-          const r = t === "gate" || t === "barricade" || t === "lockeddoor" ? 0 : t === "statue" || t === "grave" || t === "sign" || t === "well" ? 0 : Math.floor(h * 4) * Math.PI / 2;
-          addInst(`p${x},${y}`, `${id}:${variant}`, () => (id.startsWith("box-") ? boxProp(id) : createEnv(id, { variant, seed: 3, length: TILE }).object), m4(x, y, r));
+          const r = facing(t, x, y, h);
+          addInst(`p${x},${y}`, `${id}:${variant}`, () => (id.startsWith("box-") ? boxProp(id, variant) : createEnv(id, { variant, seed: 3, length: TILE }).object), m4(x, y, r));
+          // Things laid out on tables (the General Store's goods, books in the Lighthall...).
+          if (t === "table") {
+            const v = Math.floor(hash2(x, y, 31) * 5);
+            if (TABLE_ROOMS.has(a.id)) addInst(`t${x},${y}`, `table-top:${a.id}:${v}`, () => tableTop(a.id, v)!, m4(x, y, r));
+          }
         } else if (a.kind === "outdoor") {
           // A sprinkle of grass tufts, flowers and reeds, the same for everyone.
           const deco = sprinkle(t, x, y, h);
@@ -594,12 +619,29 @@ export class Terrain {
       for (const b of findBuildings()) {
         const built = makeBuilding(b);
         add(built.object, (dt, t, night) => built.update(dt, t, night), () => built.dispose());
+        // Tap anywhere on a door (not just the step in front of it) to walk through it.
+        for (const d of b.doors) {
+          const pick = new THREE.Mesh(DOOR_PICK, PICK_MAT);
+          pick.position.copy(tileCenter(d.x, d.y)).setY(1.3);
+          pick.userData.tile = { x: d.x, y: d.y };
+          pick.visible = false;
+          this.doorPicks.push(pick);
+          this.root.add(pick);
+          this.areaObjects.push({ object: pick });
+        }
       }
     } else if (hasWater(a)) {
       const pool = new THREE.Mesh(new THREE.PlaneGeometry(a.w * TILE, a.h * TILE, 20, 20), this.water.material);
       pool.rotation.x = -Math.PI / 2;
       pool.position.set((a.x + a.w / 2) * TILE, -0.16, (a.y + a.h / 2) * TILE);
       add(pool);
+    }
+    // Carpets: one whole rug each (drawn tile by tile, the border and diamonds didn't line up).
+    for (const r of carpets(a)) {
+      const rug = createEnv("floor-rug", { variant: a.id === "guild" ? 0 : a.id === "lighthall" ? 1 : 2, x0: r.x * TILE, z0: r.y * TILE, w: r.w * TILE, d: r.h * TILE, seed: 1 });
+      rug.object.position.y = 0.035;
+      rug.object.traverse((o) => { if ((o as THREE.Mesh).isMesh) o.receiveShadow = true; });
+      add(rug.object, undefined, () => rug.dispose());
     }
     for (const d of DOORS) {
       if (!d.sign || areaAt(d.x, d.y) !== a) continue;
@@ -620,8 +662,39 @@ const PROPS: Partial<Record<Tile, (x: number, y: number) => [string, number]>> =
   gate: () => ["wall-gate", 0],
   lockeddoor: () => ["wall-door", 2],
   table: () => ["box-table", 0],
-  shelf: () => ["box-shelf", 0],
+  shelf: (x, y) => [areaAt(x, y)?.id === "tam" ? "box-goods" : "box-shelf", Math.floor(hash2(x, y, 23) * 3)],
+  bed: (x, y) => ["box-bed", Math.floor(hash2(x, y, 24) * 4)],
 };
+
+/** Rooms whose tables have things on them (furniture.ts tableTop). */
+const TABLE_ROOMS = new Set(["tam", "lighthall", "guild", "inn", "maren"]);
+
+const BLOCKING = new Set<Tile>(["wall", "house", "marblewall", "lockeddoor", "cavewall", "void"]);
+
+/**
+ * Which way a prop faces. Shelves and tables line up with their row (no more
+ * shelves turned every which way); a bed puts its head against the wall; most
+ * other things face south, and crates and barrels are turned at random.
+ */
+function facing(t: Tile, x: number, y: number, h: number): number {
+  const at = (dx: number, dy: number) => MAP[y + dy]?.[x + dx];
+  if (t === "shelf" || t === "table") {
+    const rowX = at(1, 0) === t || at(-1, 0) === t, rowY = at(0, 1) === t || at(0, -1) === t;
+    if (rowY && !rowX) return Math.PI / 2;
+    if (rowX) return 0;
+    // On its own: back against a wall if there is one.
+    return BLOCKING.has(at(-1, 0)!) || BLOCKING.has(at(1, 0)!) ? Math.PI / 2 : 0;
+  }
+  if (t === "bed") {
+    // The head (-z) goes against a wall: north, west, east or south.
+    if (BLOCKING.has(at(-1, 0)!)) return Math.PI / 2;
+    if (BLOCKING.has(at(1, 0)!)) return -Math.PI / 2;
+    if (BLOCKING.has(at(0, -1)!)) return 0;
+    return Math.PI;
+  }
+  if (t === "crates") return Math.floor(h * 4) * Math.PI / 2;
+  return 0;
+}
 
 function sprinkle(t: Tile, x: number, y: number, h: number): [string, number] | null {
   const nearWater = MAP[y - 1]?.[x] === "water" || MAP[y + 1]?.[x] === "water" || MAP[y]?.[x - 1] === "water" || MAP[y]?.[x + 1] === "water";
@@ -639,7 +712,10 @@ function sprinkle(t: Tile, x: number, y: number, h: number): [string, number] | 
 }
 
 /** Simple furniture the library doesn't have yet. */
-function boxProp(id: string): THREE.Object3D {
+function boxProp(id: string, variant = 0): THREE.Object3D {
+  if (id === "box-shelf") return bookshelf(5 + variant);
+  if (id === "box-goods") return goodsShelf(5 + variant);
+  if (id === "box-bed") return bed(9 + variant);
   const g = new THREE.Group();
   const wood = new THREE.MeshStandardMaterial({ color: 0x8a5a34, roughness: 0.85 });
   const dark = new THREE.MeshStandardMaterial({ color: 0x5c3a1a, roughness: 0.85 });
@@ -700,6 +776,27 @@ function hasWater(a: AreaDef) {
   return false;
 }
 
+// ---------------------------------------------------------------- carpets
+
+/** The carpets in an area, as rectangles of carpet tiles (each drawn as one rug). */
+function carpets(a: AreaDef): { x: number; y: number; w: number; h: number }[] {
+  const out: { x: number; y: number; w: number; h: number }[] = [];
+  const seen = new Set<number>();
+  for (let y = a.y; y < a.y + a.h; y++) for (let x = a.x; x < a.x + a.w; x++) {
+    if (MAP[y][x] !== "carpet" || seen.has(y * 100000 + x)) continue;
+    let w = 0;
+    while (MAP[y][x + w] === "carpet") w++;
+    let h = 0;
+    while (MAP[y + h]?.[x] === "carpet" && MAP[y + h][x + w - 1] === "carpet") h++;
+    for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) seen.add(yy * 100000 + xx);
+    out.push({ x, y, w, h });
+  }
+  return out;
+}
+
+const DOOR_PICK = new THREE.BoxGeometry(1.7, 2.6, 0.8);
+const PICK_MAT = new THREE.MeshBasicMaterial();
+
 // ---------------------------------------------------------------- buildings seen from outside
 
 interface Building { x: number; y: number; w: number; h: number; roof: string; wall: string; doors: { x: number; y: number }[] }
@@ -741,11 +838,19 @@ function findBuildings(): Building[] {
   return out;
 }
 
+/** How tall each outdoor building is, by tile (filled in as the buildings are made). */
+const HEIGHTS = new Map<number, number>();
+/** How tall the building on this outdoor tile is (0 if there isn't one). */
+function buildingHeight(x: number, y: number): number {
+  return HEIGHTS.get(y * 100000 + x) ?? 0;
+}
+
 function makeBuilding(b: Building): { object: THREE.Object3D; update: (dt: number, t: number, night: number) => void; dispose: () => void } {
   const seed = b.x * 31 + b.y;
   const wall = b.wall === "A" ? "marble" : b.wall === "W" ? "guild" : b.x >= 160 && b.y < 60 ? "plank" : "timber";
   const roof = b.roof === "u" ? "gold" : wall === "plank" ? "thatch" : "tile";
   const built = house({ tw: b.w, td: b.h - 0.5, wall, wallVariant: wall === "timber" ? seed % 3 : 0, roof, roofVariant: roof === "gold" ? 1 : seed % 3, seed });
+  for (let yy = b.y; yy < b.y + b.h; yy++) for (let xx = b.x; xx < b.x + b.w; xx++) HEIGHTS.set(yy * 100000 + xx, built.height);
   const object = new THREE.Group();
   built.piece.object.position.set((b.x + b.w / 2) * TILE, 0, (b.y + (b.h - 0.5) / 2) * TILE);
   object.add(built.piece.object);
@@ -755,10 +860,12 @@ function makeBuilding(b: Building): { object: THREE.Object3D; update: (dt: numbe
   for (const d of b.doors) {
     const door = createEnv("wall-door", { variant: b.wall === "A" ? 1 : 0, seed });
     const side = d.y === b.y + b.h - 1 ? "s" : d.y === b.y ? "n" : d.x === b.x ? "w" : "e";
-    if (side === "s") door.object.position.set((d.x + 0.5) * TILE, 0, frontZ + 0.02);
-    else if (side === "n") { door.object.position.set((d.x + 0.5) * TILE, 0, b.y * TILE - 0.02); door.object.rotation.y = Math.PI; }
-    else if (side === "w") { door.object.position.set(b.x * TILE - 0.02, 0, (d.y + 0.5) * TILE); door.object.rotation.y = -Math.PI / 2; }
-    else { door.object.position.set((b.x + b.w) * TILE + 0.02, 0, (d.y + 0.5) * TILE); door.object.rotation.y = Math.PI / 2; }
+    // Out from the wall a little, so the wall's stones and beams can't poke through the door.
+    const out = 0.12;
+    if (side === "s") door.object.position.set((d.x + 0.5) * TILE, 0, frontZ + out);
+    else if (side === "n") { door.object.position.set((d.x + 0.5) * TILE, 0, b.y * TILE - out); door.object.rotation.y = Math.PI; }
+    else if (side === "w") { door.object.position.set(b.x * TILE - out, 0, (d.y + 0.5) * TILE); door.object.rotation.y = -Math.PI / 2; }
+    else { door.object.position.set((b.x + b.w) * TILE + out, 0, (d.y + 0.5) * TILE); door.object.rotation.y = Math.PI / 2; }
     object.add(door.object);
     parts.push(door);
     const lantern = createEnv("orn-lantern", { variant: b.wall === "W" ? 2 : 0, seed });

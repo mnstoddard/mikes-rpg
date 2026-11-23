@@ -198,6 +198,16 @@ export function mealBaseStamina(item: MealId): number {
   return Math.round(ingredients.reduce((sum, i) => sum + ingredientStamina(dish, i), 0)) + fireStamina(dish, wood);
 }
 
+/**
+ * Richer meals are harder to get right. A meal that gives more than RICH_FROM
+ * stamina (before Mastery) starts with a lower success chance: this is what
+ * the dish's starting chance is multiplied by (1 up to 30 stamina, 0.75 at 80,
+ * 0.5 at 180, about 0.4 at 250). Mastery still climbs from there.
+ */
+export const RICH_FROM = 30;
+export const richness = (stamina: number) => 1 / (1 + Math.max(0, stamina - RICH_FROM) / 150);
+export const mealRichness = (item: MealId) => richness(mealBaseStamina(item));
+
 /** Cooking XP for one meal: its ingredients' XP plus the dish's own. */
 export function mealXp(item: MealId): number {
   const { dish, ingredients } = parseMeal(item)!;

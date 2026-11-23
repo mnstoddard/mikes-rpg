@@ -302,14 +302,33 @@ export const hedge: WallBuilder = (o) => {
   const rng = makeRng(o.seed);
   const parts = new Parts();
   const wild = o.variant === 1, flowering = o.variant === 2;
-  if (!wild) parts.box(L - 0.05, H - 0.1, 0.8, 0x4e8a34, 0, (H - 0.1) / 2, 0);
-  for (let x = -L / 2 + 0.25; x < L / 2; x += 0.35) {
-    for (let y = 0.3; y < H; y += 0.4) {
-      for (const z of [-0.3, 0.3]) {
-        const r = wild ? 0.32 + rng() * 0.2 : 0.22;
-        const g = new THREE.IcosahedronGeometry(r, 0);
-        g.translate(x + (rng() - 0.5) * 0.1, y + (wild ? rng() * 0.2 : 0), z * (wild ? 1.1 : 1));
-        parts.add(g, jitter(0x5a9a3c, rng, 0.1));
+  if (wild) {
+    for (let x = -L / 2 + 0.25; x < L / 2; x += 0.35) {
+      for (let y = 0.3; y < H; y += 0.4) {
+        for (const z of [-0.3, 0.3]) {
+          const r = 0.32 + rng() * 0.2;
+          const g = new THREE.IcosahedronGeometry(r, 0);
+          g.translate(x + (rng() - 0.5) * 0.1, y + rng() * 0.2, z * 1.1);
+          parts.add(g, jitter(0x5a9a3c, rng, 0.1));
+        }
+      }
+    }
+  } else {
+    // A trimmed hedge: rounded, boulder-like clumps of leaves packed so tight
+    // there's no gap to see through, and no box showing anywhere.
+    parts.box(L - 0.5, H - 0.5, 0.45, 0x3e7428, 0, (H - 0.5) / 2 + 0.1, 0); // a dark core, hidden inside
+    const n = Math.max(2, Math.round((L - 0.2) / 0.32));
+    for (let i = 0; i < n; i++) {
+      const x = -L / 2 + 0.2 + (i + 0.5) * ((L - 0.4) / n);
+      for (const [y, zs] of [[0.32, [-0.2, 0.2]], [0.72, [-0.2, 0.2]], [1.08, [-0.16, 0.16]], [1.3, [0]]] as const) {
+        for (const z of zs) {
+          const r = (y > 1.2 ? 0.27 : 0.3) + rng() * 0.07;
+          const g = new THREE.IcosahedronGeometry(r, 1);
+          g.scale(1, 0.85, 0.9);
+          g.rotateY(rng() * 3);
+          g.translate(x + (rng() - 0.5) * 0.08, y + (rng() - 0.5) * 0.06, z + (rng() - 0.5) * 0.05);
+          parts.add(g, jitter(0x5a9a3c, rng, 0.08));
+        }
       }
     }
   }
@@ -456,6 +475,8 @@ export const door: WallBuilder = (o) => {
   frame.box(0.14, H + 0.1, 0.16, 0x4e3220, W / 2 + 0.07, (H + 0.1) / 2, 0);
   frame.box(W + 0.28, 0.14, 0.16, 0x4e3220, 0, H + 0.07, 0);
   frame.box(W + 0.5, 0.08, 0.5, 0x8e8a80, 0, 0.04, 0.2); // doorstep
+  // The dark doorway behind the door: it hides the wall (nothing pokes through), and shows when the door opens.
+  frame.box(W + 0.02, H + 0.02, 0.04, 0x1e140c, 0, H / 2, -0.07);
   if (arched) {
     const a = new THREE.CylinderGeometry(W / 2 + 0.14, W / 2 + 0.14, 0.16, 12, 1, false, -Math.PI / 2, Math.PI);
     a.rotateX(-Math.PI / 2);

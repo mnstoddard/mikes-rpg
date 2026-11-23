@@ -16,7 +16,7 @@ export const TILE_COLORS: Record<Tile, number> = {
   house: 0x7a4f2a, boards: 0xa47a4c, dig: 0x4a8f3c, field: 0x5b8a34, cave: 0x3d3846, cavewall: 0x1f1b24, crystal: 0x33405a,
   void: 0x000000, door: 0x5c3a1a, lockeddoor: 0x3e2712, cobble: 0x9a958b, sand: 0xe0cc8e, withered: 0x8c8a4e, cliff: 0x5e5650,
   hedge: 0x2f6a2a, well: 0x9a958b, barricade: 0xb89b6a, roof: 0x8e3b2b, goldroof: 0xe2bd52, marblewall: 0xe2ddd0, marble: 0xf3efe4,
-  glow: 0xfff1b8, carpet: 0xb8862b, statue: 0xf3efe4, table: 0xa47a4c, shelf: 0xa47a4c, crates: 0xa47a4c, grave: 0x23432a, gravel: 0x7f8a5a,
+  glow: 0xfff1b8, carpet: 0xb8862b, statue: 0xf3efe4, table: 0xa47a4c, shelf: 0xa47a4c, crates: 0xa47a4c, bed: 0xc8c0e8, grave: 0x23432a, gravel: 0x7f8a5a,
 };
 /** The Dark Forest's ground is darker and bluer, so you can see where danger starts. */
 const DARK_COLORS: Partial<Record<Tile, number>> = { grass: 0x23432a, path: 0x6b5a42, fence: 0x23432a, gate: 0x6b5a42, dig: 0x23432a, sand: 0x9c8e62, gravel: 0x3f4a32 };
@@ -49,7 +49,7 @@ function groundUnder(x: number, y: number, t: Tile, area: AreaDef | null): Tile 
   if (t === "dig") return area?.kind === "cave" ? "cave" : charAt(x, y + 1) === "l" ? "gravel" : "grass";
   if (t === "sign" || t === "fence" || t === "gate" || t === "grave") return "grass";
   if (t === "well" || t === "statue") return t === "well" ? "cobble" : "marble";
-  if (t === "table" || t === "shelf" || t === "crates") {
+  if (t === "table" || t === "shelf" || t === "crates" || t === "bed") {
     const below = MAP[y + 1]?.[x];
     return below === "marble" || below === "carpet" || below === "glow" ? "marble" : below === "floor" ? "floor" : area?.kind === "outdoor" ? "grass" : "boards";
   }
@@ -165,6 +165,11 @@ function paint(g: Phaser.GameObjects.Graphics, px: number, py: number, l: Look) 
     case "crates":
       g.fillStyle(0x8b5a2b).fillRect(px + 2, py + 6, 28, 24);
       g.lineStyle(2, 0x5c3a1a).strokeRect(px + 2, py + 6, 28, 24).lineBetween(px + 2, py + 6, px + 30, py + 30).lineBetween(px + 30, py + 6, px + 2, py + 30);
+      break;
+    case "bed":
+      g.fillStyle(0x6e4a2c).fillRect(px + 7, py + 2, 18, 28);
+      g.fillStyle(0xf2efe6).fillRect(px + 9, py + 3, 14, 7);
+      g.fillStyle(0x7d8fc9).fillRect(px + 8, py + 11, 16, 18);
       break;
     case "grave":
       g.fillStyle(0x8a8a90).fillRoundedRect(px + 9, py + 6, 14, 20, { tl: 7, tr: 7, bl: 0, br: 0 });

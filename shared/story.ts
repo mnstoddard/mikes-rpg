@@ -124,20 +124,48 @@ export const PROLOGUE_START: Chapter[] = [
         task: "Meet four Lightkeepers: Oren, Lisette, Tomas and Wynne", goal: { kind: "visit", npcs: ["oren", "lisette", "tomas", "wynne"], names: "Lightkeepers" },
         hint: "Brother Oren is in the Hall of Champions (east), Sister Lisette in the library (south-east), Brother Tomas in the stores (west) and Sister Wynne in the dormitory (south-west).",
         visitLines: {
-          oren: ["These statues are the Radiants: the greatest heroes the shrines ever raised. Every one of them woke where you woke.",
-            "That empty plinth? Oh, an old mistake. A name that didn't deserve to be kept. Don't trouble yourself with it."],
+          oren: ["Welcome, welcome! I'm Brother Oren. I keep the Hall of Champions: the statues of the Radiants, the greatest heroes the shrines ever raised. Every one of them woke where you woke.",
+            "Go and meet the others first. Then come back, and I'll walk you round properly. Every new Kindled ought to know whose footsteps they're following."],
           lisette: ["Welcome to the library! Every Kindled's deeds are written down here, so the light remembers them even if you don't.",
             "The oldest books are older than the town. The very oldest are in the ledger room, and only the Keepers read those."],
           tomas: ["The stores, yes, and that gold-locked door is the ledger room. Keepers only, I'm afraid. Just old accounts. Very dull.",
             "Now, if you ever need anything, you only have to ask. The Lighthall gives freely."],
-          wynne: ["You'll always have a bed here. The doors never close to a Kindled.",
-            "And if you're ever hurt out there, don't be afraid. The shrine always brings you home."],
+          wynne: ["Welcome to the dormitory. You'll always have a bed here. The doors never close to a Kindled.",
+            "Let me tell you what happens when you fall out there, so it doesn't frighten you. When your health runs out, the shrine's light gathers you up and makes you again, on the shrine's steps.",
+            "You'll wake up weak and dizzy, and we'll bring you in here and nurse you back onto your feet. Nobody is left alone on the cold stone.",
+            "But it isn't free. Each time the light remakes you, it keeps a little piece back. Once you've taken the Oath, every fall leaves a Tithe mark, and a share of everything you learn goes to the shrine until it's paid. So try not to fall too often, hm?"],
         },
       },
       {
-        task: "Look at the empty plinth in the Hall of Champions", goal: { kind: "visit", npcs: ["plinth"], names: "empty plinth" },
-        hint: "The Hall of Champions is through the east arch. The empty plinth is at the far end.",
-        visitLines: { plinth: ["A plinth with no statue. Someone has scratched the name off the stone, very carefully, letter by letter.", "You can just make out the first letter. It might be an M."] },
+        // Brother Oren's tour of the Hall of Champions: he tells you about each Radiant, and who the Lightkeepers are.
+        task: "Take Brother Oren's tour: the 4 Radiants and the empty plinth", goal: { kind: "visit", npcs: ["radiant_1", "radiant_2", "radiant_3", "radiant_4", "plinth"], names: "stops on Oren's tour" },
+        hint: "Brother Oren is waiting in the Hall of Champions, through the east arch. Click each statue with a ❗, and the empty plinth at the far end, and he'll tell you about it. Start with the two nearest him.",
+        speaker: "Brother Oren",
+        visitLines: {
+          radiant_1: [
+            "Let's start at the beginning. Long ago, the Sundering War nearly ended Elderra. The old kingdom of Aurel fell, and there was almost no one left to fight.",
+            "So the Archmage Vael built the shrines, and the shrines raised the first Kindled: heroes made of light, who came back every time they fell.",
+            "This is Halric the Dawnbringer, one of those very first. He held the Greyspine pass on his own for three days. He fell eleven times, and the shrine raised him eleven times. On the twelfth morning the enemy simply ran out of courage.",
+          ],
+          radiant_2: [
+            "Ysra of the Saltmere. When the war ended, the Archmage was gone, and someone had to look after his shrines. That someone is us: the Lightkeepers.",
+            "We aren't soldiers. We keep the shrines lit, we welcome every Kindled who wakes, and we write down every deed, so the light remembers you even when you can't.",
+            "Ysra rowed the whole Saltmere coast in a fishing boat, lighting shrines in villages that had been dark for a hundred years. The fisherfolk still leave shells at her feet.",
+          ],
+          radiant_3: [
+            "Tilda Ashwalker. When the Withering first crept out of the Barrens, she walked straight into it and brought a whole village home. Two hundred people, on foot, through the dust.",
+            "The Withering is still out there, friend. That's why the land needs heroes like you, and why the shrines raise more of you every year.",
+          ],
+          radiant_4: [
+            "And Orla the Kind. A healer, not a fighter. Through the Grey Fever she went from house to house, and every time the fever took her, the shrine sent her back to keep working.",
+            "When a Kindled has done enough, we honor them with a Radiance Ceremony. Their light goes back into the Heart Shrine, to raise the heroes who come after. There's no higher honor. Every statue in this hall is someone who was given it.",
+            "None of them are with us now, of course. That's what it means. They gave everything.",
+          ],
+          plinth: [
+            "(Brother Oren hurries you past the empty plinth. Someone has scratched the name off the stone, very carefully, letter by letter. You can just make out the first letter. It might be an M.)",
+            "That? An old mistake. A name that didn't deserve to be kept. Don't trouble yourself with it. Come on, Keeper Aldric will be waiting.",
+          ],
+        },
       },
       {
         task: `Go back to ${ALDRIC}`, goal: { kind: "talk" },
@@ -188,8 +216,8 @@ export const PROLOGUE_START: Chapter[] = [
         task: `Talk to ${ALDRIC}`, goal: { kind: "talk" },
         lines: [
           "One more thing. You'll need to feed yourself, and earn your way. Old Maren can teach you that.",
-          "She sweeps the shrine steps outside. Harmless. She's been here forever, and she teaches every new hero the basics.",
-          "The Lightkeepers pay every trainer in town to teach the Kindled, so every lesson is a gift from the Lighthall. Off you go. Maren's the one with the ❗ on the steps.",
+          "She lives in the little cottage on the lake shore, west along the road. Harmless. She's been here forever, and she teaches every new hero the basics.",
+          "The Lightkeepers pay every trainer in town to teach the Kindled, so every lesson is a gift from the Lighthall. Off you go: out of the great doors, then west along the road to the lake. Your 🗺️ map shows her ❗.",
         ],
       },
     ],
@@ -570,7 +598,7 @@ export const ACT_ONE: Chapter[] = [
     ],
   },
   {
-    id: "marens_question", act: "act1", title: "Maren's Question", giver: "maren", name: "Old Maren", where: "on the Lighthall's steps, in the town square", after: ["first_tithe"],
+    id: "marens_question", act: "act1", title: "Maren's Question", giver: "maren", name: "Old Maren", where: "in her cottage on the lake shore, west along the road from the square", after: ["first_tithe"],
     steps: [
       {
         task: "Talk to Old Maren", goal: { kind: "talk" },
@@ -578,7 +606,7 @@ export const ACT_ONE: Chapter[] = [
           "Come here, child. Closer. Quietly now.",
           "Have you died yet? Since the Oath, I mean. Have they put their gold on you?",
           "When you woke... did it feel like something was taken? Like you came back a little less?",
-          "No. Don't answer. Not here, not on these steps. Just keep this, and remember I asked.",
+          "No. Don't answer. Not here, not even with the door shut. Just keep this, and remember I asked.",
         ],
         give: [{ item: "marens_charm" }],
       },

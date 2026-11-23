@@ -13,6 +13,32 @@ export interface GameUpdate { version: string; date: string; title: string; chan
 
 export const UPDATES: GameUpdate[] = [
   {
+    version: "0.3",
+    date: "2026-11-23",
+    title: "The Lighthall tour, running, and a minimap",
+    changes: [
+      { text: "The Lighthall carpet is one even, symmetrical rug.", reports: [3] },
+      { text: "The Lighthall library has proper rows of bookshelves, with books on both sides.", reports: [4] },
+      { text: "Click a bookshelf to take down a book and read it: the history of Elderra, the shrines, the towns and the people. None of it is needed for a quest; it's there if you're curious.", reports: [5] },
+      { text: "Brother Oren now gives you a tour of the Hall of Champions: each Radiant's statue, and the empty plinth. It tells the story of the Sundering War and who the Lightkeepers are.", reports: [6] },
+      { text: "A minimap in the top left, turned the way you're facing. It shows ❗ and 📍 quest targets, and an arrow on its edge points the way to ones further off. Tap it for the big map.", reports: [7] },
+      { text: "Sister Wynne's dormitory has beds instead of crates, and she explains what happens when you fall and what it costs.", reports: [8] },
+      { text: "When someone gives you something, the chat says exactly what it was and that it's in your 🎒 bag.", reports: [9] },
+      { text: "The camera no longer goes inside buildings and walls: it moves in closer instead.", reports: [10] },
+      { text: "Clicking anywhere on a door works, not just the tile in front of it.", reports: [11] },
+      { text: "Walls no longer poke through doors.", reports: [12] },
+      { text: "Old Maren now lives in her own cottage by the lake, with her stove inside, instead of cooking out in the square.", reports: [13] },
+      { text: "Hedges and bushes are rounder, tighter clumps, with no green box showing.", reports: [14] },
+      { text: "Trees no longer look cut through; the stump only shows once a tree is chopped down.", reports: [15] },
+      { text: "The fishing line comes from the tip of the rod.", reports: [16] },
+      { text: "When a fish bites, the rod bends and you pull the fish out of the water.", reports: [17] },
+      { text: "No fighting until Huntmaster Kael has taught you combat. With no weapon you fight with your fists.", reports: [18] },
+      { text: "Running: tap 🏃 or hold Shift. It uses up your breath while you run, and your breath comes back a few seconds after you stop.", reports: [19] },
+      { text: "Meals that give a lot of stamina are harder to cook without burning.", reports: [20] },
+      { text: "The General Store has goods on its shelves and things for sale on its tables.", reports: [21] },
+    ],
+  },
+  {
     version: "0.2",
     date: "2026-11-23",
     title: "Robes that move, and phones that fit",

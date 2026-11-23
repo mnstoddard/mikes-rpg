@@ -83,3 +83,10 @@
   .cr-buttons { margin-top: 6px; }
   .cr-buttons button { padding: 7px 0; }
 }
+
+/* The minimap (top left, under the health and stamina bars). */
+#minimap { position: fixed; left: calc(8px + env(safe-area-inset-left)); top: 150px; width: 128px; height: 128px; padding: 0; border-radius: 50%; cursor: pointer; z-index: 2; box-sizing: border-box; }
+@media (max-width: 600px), (max-height: 500px) { #minimap { width: 96px; height: 96px; } }
+/* The 🏃 run button lights up while you run. */
+#run3d { font-size: 20px; }
+#run3d.on { border-color: #ffd84a; background: #7a6338; }

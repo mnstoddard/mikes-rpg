@@ -21,7 +21,7 @@ export { CHARACTER_PRESETS, DEFAULT_RECIPE, makeRecipe, recipeFromCode } from ".
 export type { Fit, Joints } from "./body";
 export * as shapes from "./shapes";
 
-export type CharacterAnim = "idle" | "walk" | "wave" | "cheer" | "pose";
+export type CharacterAnim = "idle" | "walk" | "run" | "wave" | "cheer" | "pose";
 export const CHARACTER_ANIMS: [CharacterAnim, string][] = [["idle", "Idle"], ["walk", "Walk"], ["wave", "Wave"], ["cheer", "Cheer"], ["pose", "Hero pose"]];
 
 /** Friendly names for the joints most things need. */
@@ -86,6 +86,26 @@ function targetPose(anim: CharacterAnim, t: number, rest: number): Pose {
     p.hips[1] = -0.08 * s;
     p.tail[0] = 0.25 * c;
     p.tail[2] = 0.15 * s;
+  } else if (anim === "run") {
+    // Running: quicker, longer strides, arms pumping, leaning into it.
+    const w = t * 9, s = Math.sin(w), c = Math.cos(w);
+    p.hipL[0] = -0.8 * s;
+    p.hipR[0] = 0.8 * s;
+    p.kneeL[0] = 0.25 + 1.2 * Math.max(0, c);
+    p.kneeR[0] = 0.25 + 1.2 * Math.max(0, -c);
+    p.ankL[0] = -(p.hipL[0] + p.kneeL[0]) * 0.5;
+    p.ankR[0] = -(p.hipR[0] + p.kneeR[0]) * 0.5;
+    p.shL[0] = 0.75 * s;
+    p.shR[0] = -0.75 * s;
+    p.elL[0] = -1.2;
+    p.elR[0] = -1.2;
+    p.bob = -0.05 * Math.abs(c) + 0.02;
+    p.spine[1] = 0.15 * s;
+    p.spine[0] = 0.2;
+    p.head[0] = -0.12;
+    p.hips[1] = -0.1 * s;
+    p.tail[0] = 0.4 * c;
+    p.tail[2] = 0.2 * s;
   } else if (anim === "wave") {
     idle();
     p.shR[2] = -2.6;

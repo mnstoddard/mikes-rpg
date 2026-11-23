@@ -49,7 +49,7 @@ function drawBase(): HTMLCanvasElement {
 }
 
 /** Where a spot inside a building shows on the outdoor map: at the building's door. */
-function outdoorSpot(p: { x: number; y: number }): { x: number; y: number } | null {
+export function outdoorSpot(p: { x: number; y: number }): { x: number; y: number } | null {
   const a = areaAt(p.x, p.y);
   if (!a) return null;
   if (a === OUTDOORS) return p;
@@ -125,6 +125,11 @@ export function setWorldMapMarks(list: string[], places: { x: number; y: number;
   marks = list;
   spots = places;
   render();
+}
+
+/** What the 🗺️ map marks now (for the 3D game's minimap): people with something for you, and quest spots. */
+export function worldMapMarks() {
+  return { marks, spots };
 }
 
 export function toggleWorldMap(show = !open) {

@@ -10,6 +10,8 @@ import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRe
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { getStateCallbacks, Room } from "colyseus.js";
 import { AreaDef, MAP, OUTDOORS, TICK_MS, areaAt, doorAt, isWalkable } from "../../../shared/map";
+import { bookAt } from "../../../shared/lore";
+import { Minimap } from "./minimap";
 import { CombatMasteryId, CombatMasteryXp, MONSTERS, MonsterId, SpellId, combatMasteryName } from "../../../shared/combat";
 import type { Gear } from "../../../shared/gear";
 import { RESOURCES, ResourceId, fishAt, isFishingSpot, nodeAt, treeKey } from "../../../shared/foraging";
@@ -83,6 +85,7 @@ export class World3D {
   private yaw = 0;
   private pitch = 0.95;
   private dist = 24;
+  private camDist = 24; // how far the camera really is (closer when a wall is in the way)
   private focus = new THREE.Vector3();
 
   private room?: Room;
@@ -110,7 +113,11 @@ export class World3D {
   // Walking with the keyboard (WASD).
   private keys = new Set<string>();
   private walkSent = "0,0"; // the direction we last told the server ("dx,dy")
-  private walkPaused = false; // a click took over; keys wait until you press or let go of one
+  private pendingBook: { x: number; y: number } | null = null; // a shelf we're walking to, to read
+  private walkPaused = false;
+  private runToggle = false; // the 🏃 button
+  private runShift = false; // holding Shift
+  private minimap = new Minimap(); // a click took over; keys wait until you press or let go of one
 
   /** Turn on only the nearest few lamps (every point light costs on every pixel). */
   private pickLights() {
@@ -210,7 +217,9 @@ export class World3D {
     const me = this.room ? this.players.get(this.room.sessionId) : undefined;
     if (me) this.focus.lerp(me.root.position, Math.min(1, dt * 10));
     this.updateWalk();
-    this.placeCamera();
+    this.placeCamera(dt);
+    const mine = this.room?.state.players?.get(this.room.sessionId);
+    this.minimap.update(mine ? { x: mine.x, y: mine.y } : null, this.focus.x / TILE, this.focus.z / TILE, this.here, this.yaw);
     const night = this.nightLevel();
     this.terrain.update(dt, this.time, night, 0.6);
     // Only people, monsters and stations near you are drawn (and animated).
@@ -242,13 +251,31 @@ export class World3D {
     this.labels.render(this.scene, this.camera);
   };
 
-  private placeCamera() {
+  private placeCamera(dt = 0) {
     const f = this.focus;
-    const off = new THREE.Vector3(Math.sin(this.yaw) * Math.cos(this.pitch), Math.sin(this.pitch), Math.cos(this.yaw) * Math.cos(this.pitch)).multiplyScalar(this.dist);
+    const dir = new THREE.Vector3(Math.sin(this.yaw) * Math.cos(this.pitch), Math.sin(this.pitch), Math.cos(this.yaw) * Math.cos(this.pitch));
+    // Don't go through buildings or walls: come in closer, in front of the first one in the way.
+    const free = this.freeDist(dir);
+    this.camDist = dt ? Math.min(free, this.camDist + (free - this.camDist) * Math.min(1, dt * 4)) : free;
+    const off = dir.multiplyScalar(this.camDist);
     this.camera.position.copy(f).add(off);
     this.camera.lookAt(f.x, f.y + 1, f.z);
     // The sun's shadow box follows you.
     this.sun.target.position.copy(f);
+  }
+
+  /** How far the camera can sit from you along this direction before a wall or building is in the way. */
+  private freeDist(dir: THREE.Vector3): number {
+    const f = this.focus;
+    const fx = Math.floor(f.x / TILE), fy = Math.floor(f.z / TILE);
+    const step = 0.25;
+    for (let d = 1; d < this.dist; d += step) {
+      const x = f.x + dir.x * d, y = f.y + 1 + dir.y * d, z = f.z + dir.z * d;
+      const tx = Math.floor(x / TILE), ty = Math.floor(z / TILE);
+      if (tx === fx && ty === fy) continue;
+      if (this.terrain.blockHeight(tx, ty) > y - 0.3) return Math.max(MIN_DIST * 0.5, d - 0.6);
+    }
+    return this.dist;
   }
 
   private resize() {
@@ -318,6 +345,7 @@ export class World3D {
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
       // W A S D walk (forward is the way the camera faces).
+      if (e.key === "Shift" && !this.runShift) { this.runShift = true; this.sendRun(); }
       if (WALK_KEYS.includes(e.code) && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
         if (!this.keys.has(e.code)) { this.keys.add(e.code); this.walkPaused = false; }
@@ -332,13 +360,27 @@ export class World3D {
     });
     window.addEventListener("keyup", (e) => {
       if (this.keys.delete(e.code)) this.walkPaused = false;
+      if (e.key === "Shift" && this.runShift) { this.runShift = false; this.sendRun(); }
     });
     // Switching to another window would miss the key being let go: stop walking.
-    window.addEventListener("blur", () => this.keys.clear());
+    window.addEventListener("blur", () => { this.keys.clear(); if (this.runShift) { this.runShift = false; this.sendRun(); } });
     document.getElementById("zoom-in")!.onclick = () => this.setDist(this.dist / 1.25);
     document.getElementById("zoom-out")!.onclick = () => this.setDist(this.dist * 1.25);
     const rot = document.getElementById("rotate3d");
     if (rot) rot.onclick = () => { this.yaw += Math.PI / 4; this.saveCamera(); };
+    const run = document.getElementById("run3d");
+    if (run) run.onclick = () => { this.runToggle = !this.runToggle; this.sendRun(); };
+  }
+
+  /** Running: the 🏃 button turns it on and off, and holding Shift runs too. */
+  private sendRun() {
+    const on = this.runToggle || this.runShift;
+    this.showRun(on);
+    this.room?.send("run", { on });
+  }
+
+  private showRun(on: boolean) {
+    document.getElementById("run3d")?.classList.toggle("on", on);
   }
 
   /** Which tile direction (dx, dy) the held keys point, turned to match the camera. */
@@ -425,6 +467,7 @@ export class World3D {
     if (!t) return;
     const { x, y } = t;
     this.closePanels();
+    this.pendingBook = null;
     // Clicking takes over from the keys (until you press or let go of one).
     if (this.walkSent !== "0,0") {
       this.room.send("walk", { dx: 0, dy: 0 });
@@ -438,6 +481,7 @@ export class World3D {
     if (monster) { this.room.send("attack", { id: monster }); return; }
     else if (other && !npc) { this.room.send("partyInvite", { id: other }); return; }
     else if (npc) this.room.send("talk", { id: npc.id });
+    else if (MAP[y]?.[x] === "shelf") { this.readShelf(x, y); return; }
     else if (this.isStandingTree(x, y)) this.room.send("chop", { x, y });
     else if (this.isFullRock(x, y)) this.room.send("mine", { x, y });
     else if (this.isFullPatch(x, y)) this.room.send("dig", { x, y });
@@ -535,6 +579,7 @@ export class World3D {
     });
     room.onMessage("quest", (q: QuestView) => {
       this.npcs.forEach((p, id) => { if (p.alert) p.alert.obj.visible = q.marks.includes(id as never); });
+      this.stations.forEach((s, id) => { if (s.alert) s.alert.obj.visible = q.marks.includes(id as never); });
       setWorldMapMarks(q.marks, q.spots);
       renderQuest(q);
       this.showStory(q);
@@ -565,7 +610,9 @@ export class World3D {
     room.onMessage("hit", (h: { on: "monster" | "player"; id: string; damage: number; miss: boolean; spell: SpellId | null; from: string }) => this.showHit(h));
     room.onMessage("died", () => this.showDeath());
     room.onMessage("dialog", (msg: { name: string; lines: string[] }) => { this.marker.visible = false; openDialog(msg.name, msg.lines); });
-    room.onMessage("stamina", (msg: { stamina: number; max: number }) => renderStamina(msg.stamina, msg.max));
+    room.onMessage("stamina", (msg: { stamina: number; max: number; winded?: number }) => renderStamina(msg.stamina, msg.max, msg.winded ?? 0));
+    room.onMessage("reward", (msg: { text: string }) => this.floatText(msg.text, "#ffd84a", true));
+    room.onMessage("caught", (msg: { id: string; item: string }) => this.players.get(msg.id)?.catchFish(msg.item));
     room.onMessage("belt", (belt: Belt) => renderBelt(belt));
     room.onMessage("station", (msg: { npc: string }) => { this.marker.visible = false; openCraft(msg.npc); });
     setGuildActions({
@@ -696,6 +743,11 @@ export class World3D {
         view.setAction(action, player.faceX, player.faceY);
         if (isMe && action !== "idle") this.marker.visible = false;
       });
+      $(player).listen("held", (item: string) => view.setWeapon(item || ""));
+      $(player).listen("running", (on: boolean) => {
+        view.running = !!on;
+        if (isMe) { if (!on && !this.runShift) this.runToggle = false; this.showRun(!!on); }
+      });
       $(player).listen("faceX", () => view.setAction(player.action, player.faceX, player.faceY));
       $(player).listen("hp", () => { view.bar.set(player.hp, player.maxHp); this.refreshParty(); });
       $(player).listen("maxHp", () => { view.bar.set(player.hp, player.maxHp); this.refreshParty(); });
@@ -738,6 +790,10 @@ export class World3D {
     const a = areaAt(player.x, player.y) ?? OUTDOORS;
     view.root.userData.show = a === this.here || isMe;
     if (!isMe) return;
+    if (this.pendingBook && Math.max(Math.abs(this.pendingBook.x - player.x), Math.abs(this.pendingBook.y - player.y)) <= 1) {
+      const b = this.pendingBook; this.pendingBook = null;
+      this.openBook(b.x, b.y);
+    }
     if (this.marker.visible && Math.floor(this.marker.position.x / TILE) === player.x && Math.floor(this.marker.position.z / TILE) === player.y) this.marker.visible = false;
     if (a !== this.here) {
       // Through a door: the server stopped your keyboard walk, so wait for a fresh key press.
@@ -860,6 +916,32 @@ export class World3D {
       this.scene.add(ring, pin.obj);
       this.spotMarks.push(ring, pin.obj);
     }
+  }
+
+  /** Click a bookshelf: walk up to it, then take a book down and read it. */
+  private readShelf(x: number, y: number) {
+    const me = this.room && this.room.state.players.get(this.room.sessionId);
+    if (!me) return;
+    if (Math.max(Math.abs(me.x - x), Math.abs(me.y - y)) <= 1) { this.openBook(x, y); return; }
+    // The free tile next to the shelf that's closest to us.
+    let best: { x: number; y: number } | null = null, bd = Infinity;
+    for (const [dx, dy] of [[0, 1], [0, -1], [1, 0], [-1, 0], [1, 1], [-1, 1], [1, -1], [-1, -1]]) {
+      const nx = x + dx, ny = y + dy;
+      if (!isWalkable(nx, ny) || areaAt(nx, ny) !== this.here) continue;
+      const d = Math.hypot(nx - me.x, ny - me.y);
+      if (d < bd) { bd = d; best = { x: nx, y: ny }; }
+    }
+    if (!best) { this.openBook(x, y); return; }
+    this.pendingBook = { x, y };
+    this.room!.send("move", best);
+    this.marker.position.copy(tileCenter(best.x, best.y)).setY(0.08);
+    this.marker.visible = true;
+  }
+
+  private openBook(x: number, y: number) {
+    const book = bookAt(this.here.id, x, y);
+    this.marker.visible = false;
+    openDialog(`📖 ${book.title}`, book.pages);
   }
 
   // ---------------------------------------------------------------- floating text and effects
