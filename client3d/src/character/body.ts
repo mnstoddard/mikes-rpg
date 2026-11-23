@@ -7,6 +7,7 @@
 // things can be shaped to fit any body.
 import * as THREE from "three";
 import type { CharacterRecipe } from "./recipe";
+import { drape } from "./drape";
 import {
   HeadShape, V3, hash, YV, ZV, ball, clamp, dirN, headPoint, lerp, limbGeo, mixHex, ringsGeo, shellGeo, sm,
 } from "./shapes";
@@ -402,6 +403,8 @@ export function buildBody(P: CharacterRecipe, opts: BuildOptions = {}): BuiltBod
   const bust = 0.045 * fem * (1 + 0.4 * bw);
 
   const hipsY = thighL + shinL + footH;
+  // Leg sizes for robes and skirts that bend around the legs (the feet are filled in below).
+  const fitLegs = { thighR, shinR, footH, footLen: 0.17, footW: shinR * 1.5 + 0.03 };
   const hips = G(root, 0, hipsY, 0);
   J.hips = hips;
   J.hipsY = hipsY;
@@ -409,10 +412,12 @@ export function buildBody(P: CharacterRecipe, opts: BuildOptions = {}): BuiltBod
   add(hips, ringsGeo([{ y: -0.075, rx: hipW * 0.5, rz: hipD * 0.55 }, { y: -0.02, rx: hipW * 0.93, rz: hipD * 0.93 }, { y: 0.05, rx: hipW, rz: hipD }, { y: 0.12, rx: midW, rz: midD }]), top === "robe" ? shirt : pants);
 
   // Skirts, tunic and robe hems hanging from the hips.
+  // They bend out around the legs as they move (see drape.ts), so a stride doesn't poke through.
   const hem = (len: number, flare: number, mat: THREE.MeshStandardMaterial) => {
-    const m = add(hips, new THREE.CylinderGeometry(hipW * 1.07, hipW * flare, len, 40, 1, true), mat, 0, 0.12 - len / 2, 0);
+    const m = add(hips, new THREE.CylinderGeometry(hipW * 1.07, hipW * flare, len, 40, 10, true), mat, 0, 0.12 - len / 2, 0);
     m.scale.z = Math.max(0.75, (hipD / hipW) * 1.12);
     mat.side = THREE.DoubleSide;
+    drape([m], J, fitLegs, { top: 0.12, bottom: 0.12 - len, rTop: hipW * 1.07, rBottom: hipW * flare, zs: m.scale.z });
     return m;
   };
   if (top === "robe") hem(0.12 + hipsY - 0.06, 2.1, shirt);
@@ -675,6 +680,8 @@ export function buildBody(P: CharacterRecipe, opts: BuildOptions = {}): BuiltBod
 
   // Legs.
   const footLen = 0.17 + 0.02 * bw, footW = shinR * 1.5 + 0.03;
+  fitLegs.footLen = footLen;
+  fitLegs.footW = footW;
   for (const s of [1, -1]) {
     const n = s > 0 ? "L" : "R";
     const hp = G(hips, s * hipW * 0.48, 0, 0);

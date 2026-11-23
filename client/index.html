@@ -144,6 +144,8 @@
     }
     /* Phone held sideways: little height, so put the inventory in 7 columns. */
     @media (max-height: 500px) {
+      /* Too short for the whole bag: it scrolls instead of running off the top of the screen. */
+      .sidepanel { box-sizing: border-box; max-height: calc(100vh - 76px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); max-height: calc(100dvh - 76px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); overflow-y: auto; overscroll-behavior: contain; }
       #slots { grid-template-columns: repeat(7, 34px); grid-auto-rows: 30px; }
       .slot { font-size: 20px; }
     }
@@ -379,6 +381,7 @@
     #settings { display: none; left: 50%; top: 10%; transform: translateX(-50%); width: min(320px, calc(100vw - 32px)); padding: 12px 14px; z-index: 8; max-height: calc(100vh - 80px); overflow-y: auto; }
     body.settings-open #settings { display: block; }
     .set-section { padding: 8px 0; border-top: 1px solid rgba(107, 90, 62, .5); }
+    #game-version { margin-top: 8px; text-align: center; font-size: 11px; color: #9a8a6a; }
     .set-label { font-size: 12px; color: #c9bc9c; margin-bottom: 4px; }
     .set-row { display: flex; gap: 6px; }
     #settings input { flex: 1; min-width: 0; font: inherit; font-size: 16px; -webkit-user-select: text; user-select: text; padding: 5px 7px; border: 1px solid #6b5a3e; border-radius: 3px; background: #1d170f; color: #fff; }
@@ -545,6 +548,7 @@
     </div>
     <div class="set-section"><button id="sign-out" class="shop-btn">Sign out</button></div>
     <div class="buttons"><button id="settings-close" class="shop-btn" style="flex:1">Close</button></div>
+    <div id="game-version"></div>
   </div>
   <div id="report" class="panel">
     <h3>🐞 Report a bug or note a change</h3>

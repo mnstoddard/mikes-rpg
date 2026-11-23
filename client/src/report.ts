@@ -8,6 +8,11 @@ import type Phaser from "phaser";
 import type { Room } from "colyseus.js";
 import { toCanvas } from "html-to-image";
 import { recentMessages } from "./ui";
+import { GAME_VERSION } from "../../shared/version";
+
+// Show which version this is, at the bottom of Settings.
+const versionEl = document.getElementById("game-version");
+if (versionEl) versionEl.textContent = `Version ${GAME_VERSION}`;
 
 const MAX_WIDTH = 1280; // screenshots are shrunk to this width to keep them small
 const MAX_ERRORS = 20;
@@ -107,6 +112,7 @@ function gatherInfo() {
   const game = (window as any).game as Phaser.Game | undefined;
   const cam = game?.scene?.getScenes(true)[0]?.cameras?.main;
   return {
+    gameVersion: GAME_VERSION,
     page: location.href,
     screen: `${window.innerWidth}x${window.innerHeight} @${window.devicePixelRatio}x`,
     touch: "ontouchstart" in window,

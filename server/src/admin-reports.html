@@ -246,6 +246,7 @@ function openDetail(id) {
     ["Doing", p.action],
     ["Health", p.hp != null ? p.hp + " / " + p.maxHp : ""],
     ["Open panel", i.panel],
+    ["Version", i.gameVersion ? "v" + i.gameVersion : ""],
     ["Game", [i.client, i.serverVersion].filter(Boolean).join(" · build ")],
     ["Screen", i.screen],
     ["Browser", shortBrowser(i.userAgent)],
