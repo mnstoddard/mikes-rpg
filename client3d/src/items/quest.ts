@@ -91,20 +91,38 @@ function note(sealed: boolean, rng: Rng): THREE.Group {
     wax.position.z = -0.005;
     g.add(wax);
   } else {
-    // A crumpled scrap, scorched at the edge, with black scrawl.
-    const paperMat = mat(0xd8c8a0, { roughness: 1 }).clone();
-    paperMat.side = THREE.DoubleSide;
-    paperMat.userData.own = true;
-    const paper = mesh(rough(new THREE.PlaneGeometry(0.13, 0.1, 4, 3), rng, 0.012), paperMat);
-    paper.rotation.x = -Math.PI / 2;
-    paper.position.y = 0.008;
-    g.add(paper);
+    // One torn page lying flat. The right edge is burnt away: a dark,
+    // ragged band sits flush on the paper, and the scrawl is drawn on it.
+    const t = 0.0016;
+    const top: [number, number][] = [], bot: [number, number][] = [];
+    for (let i = 0; i <= 6; i++) {
+      const x = -0.065 + i * 0.019;
+      top.push([x, 0.05 + between(rng, -0.004, 0.004)]);
+      bot.push([x, -0.05 + between(rng, -0.004, 0.004)]);
+    }
+    // The burnt edge: a wobbly line down the right side.
+    const burn: [number, number][] = [];
+    for (let i = 0; i <= 5; i++) burn.push([0.058 + between(rng, -0.008, 0.008), 0.05 - i * 0.02]);
+    const left: [number, number][] = [[-0.068, 0.02], [-0.064, -0.01], [-0.069, -0.03]];
+    const outline: [number, number][] = [...bot.slice(0, 6), ...burn.slice().reverse(), ...top.slice(0, 6).reverse(), ...left];
+    const page = slab(outline, t, mat(0xd8c8a0, { roughness: 1 }));
+    page.rotation.x = -Math.PI / 2;
+    page.position.y = t / 2;
+    g.add(page);
+    // The scorch: a band just inside the burnt edge, a hair thicker so it shows on top.
+    const scorch: [number, number][] = [...burn, ...burn.slice().reverse().map(([x, y]) => [x - 0.014 - rng() * 0.006, y] as [number, number])];
+    const char = slab(scorch, t + 0.0006, mat(0x3a2414, { roughness: 1 }));
+    char.rotation.x = -Math.PI / 2;
+    char.position.y = (t + 0.0006) / 2;
+    g.add(char);
+    // Black scrawl, flush on the paper.
+    const ink = mat(0x1a1410, { roughness: 0.8 });
     for (let i = 0; i < 4; i++) {
-      const line = box(between(rng, 0.04, 0.09), 0.001, 0.004, mat(0x1a1410), between(rng, -0.01, 0.01), 0.016, -0.03 + i * 0.018);
-      line.rotation.y = between(rng, -0.15, 0.15);
+      const w = between(rng, 0.05, 0.085);
+      const line = box(w, 0.0004, 0.0035, ink, -0.012 + (0.085 - w) * -0.3, t + 0.0002, -0.03 + i * 0.019);
+      line.rotation.y = between(rng, -0.06, 0.06);
       g.add(line);
     }
-    g.add(box(0.03, 0.002, 0.1, mat(0x3a2a1a, { roughness: 1 }), 0.06, 0.01, 0));
   }
   return g;
 }
