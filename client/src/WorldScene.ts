@@ -70,6 +70,9 @@ interface TreeView { tree: Phaser.GameObjects.GameObject & { setVisible(v: boole
 /** Outdoors the sea shows past the map's edge; inside places float in black. */
 const SEA = 0x2d6fa3;
 
+/** Keys that walk you, and which way (by key position, so other keyboard layouts work too). */
+const WALK: Record<string, [number, number]> = { KeyW: [0, -1], KeyS: [0, 1], KeyA: [-1, 0], KeyD: [1, 0] };
+
 export class WorldScene extends Phaser.Scene {
   private room?: Room;
   private players = new Map<string, PlayerView>();
@@ -247,8 +250,22 @@ export class WorldScene extends Phaser.Scene {
     window.addEventListener("keydown", (e) => {
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
+      if (WALK[e.code] && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); keys.add(e.code); sendWalk(); return; }
       if (e.key >= "1" && e.key <= "8" && !e.ctrlKey && !e.metaKey && !e.altKey) castSlot(Number(e.key) - 1);
     });
+    // W A S D walk (W is north, up the screen); letting go stops you.
+    const keys = new Set<string>();
+    let walkSent = "0,0";
+    const sendWalk = () => {
+      let dx = 0, dy = 0;
+      for (const k of keys) { dx += WALK[k][0]; dy += WALK[k][1]; }
+      const key = `${dx},${dy}`;
+      if (key === walkSent) return;
+      walkSent = key;
+      room.send("walk", { dx, dy });
+    };
+    window.addEventListener("keyup", (e) => { if (keys.delete(e.code)) sendWalk(); });
+    window.addEventListener("blur", () => { keys.clear(); sendWalk(); });
     // Soul trap glows: steady, then blinking for the last few seconds.
     this.time.addEvent({ delay: 200, loop: true, callback: () => this.updateTrapGlows() });
     room.onMessage("combatmastery", (m: CombatMasteryXp) => renderCombatMastery(m));

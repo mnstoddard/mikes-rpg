@@ -58,6 +58,8 @@ const MIN_DIST = 7;
 const MAX_DIST = 42;
 const CAM_KEY = "rpg3d.camera";
 const TAP_SLOP = 10;
+/** The keys that walk you: forward, left, back and right (by position, so other keyboard layouts work too). */
+const WALK_KEYS = ["KeyW", "KeyA", "KeyS", "KeyD"];
 /** People, monsters and stations further than this (metres, each way) aren't drawn. */
 const CULL_M = 60;
 /** At most this many lamps light the scene at once (the nearest ones), so it stays fast. */
@@ -105,6 +107,10 @@ export class World3D {
   private lastHover = 0;
   private loading = document.getElementById("loading3d");
   private lightTimer = 0;
+  // Walking with the keyboard (WASD).
+  private keys = new Set<string>();
+  private walkSent = "0,0"; // the direction we last told the server ("dx,dy")
+  private walkPaused = false; // a click took over; keys wait until you press or let go of one
 
   /** Turn on only the nearest few lamps (every point light costs on every pixel). */
   private pickLights() {
@@ -203,6 +209,7 @@ export class World3D {
     this.time += dt;
     const me = this.room ? this.players.get(this.room.sessionId) : undefined;
     if (me) this.focus.lerp(me.root.position, Math.min(1, dt * 10));
+    this.updateWalk();
     this.placeCamera();
     const night = this.nightLevel();
     this.terrain.update(dt, this.time, night, 0.6);
@@ -309,7 +316,13 @@ export class World3D {
     el.addEventListener("wheel", (e) => { e.preventDefault(); this.setDist(this.dist * (e.deltaY > 0 ? 1.1 : 0.9)); }, { passive: false });
     window.addEventListener("keydown", (e) => {
       const t = e.target as HTMLElement | null;
-      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      // W A S D walk (forward is the way the camera faces).
+      if (WALK_KEYS.includes(e.code) && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        if (!this.keys.has(e.code)) { this.keys.add(e.code); this.walkPaused = false; }
+        return;
+      }
       if (e.key === "ArrowLeft" || e.key === "q" || e.key === "Q") { this.yaw += 0.12; this.saveCamera(); }
       else if (e.key === "ArrowRight" || e.key === "e" || e.key === "E") { this.yaw -= 0.12; this.saveCamera(); }
       else if (e.key === "ArrowUp") { this.pitch = Math.min(1.35, this.pitch + 0.06); this.saveCamera(); }
@@ -317,10 +330,52 @@ export class World3D {
       // Number keys 1-8 cast the spell in that slot of the spell bar.
       else if (e.key >= "1" && e.key <= "8" && !e.ctrlKey && !e.metaKey && !e.altKey) castSlot(Number(e.key) - 1);
     });
+    window.addEventListener("keyup", (e) => {
+      if (this.keys.delete(e.code)) this.walkPaused = false;
+    });
+    // Switching to another window would miss the key being let go: stop walking.
+    window.addEventListener("blur", () => this.keys.clear());
     document.getElementById("zoom-in")!.onclick = () => this.setDist(this.dist / 1.25);
     document.getElementById("zoom-out")!.onclick = () => this.setDist(this.dist * 1.25);
     const rot = document.getElementById("rotate3d");
     if (rot) rot.onclick = () => { this.yaw += Math.PI / 4; this.saveCamera(); };
+  }
+
+  /** Which tile direction (dx, dy) the held keys point, turned to match the camera. */
+  private keyDirection(): { dx: number; dy: number } {
+    const k = this.keys;
+    const fwd = (k.has("KeyW") ? 1 : 0) - (k.has("KeyS") ? 1 : 0);
+    const right = (k.has("KeyD") ? 1 : 0) - (k.has("KeyA") ? 1 : 0);
+    // Not while making your character (its window covers the game).
+    if (this.walkPaused || (!fwd && !right) || document.getElementById("creator")) return { dx: 0, dy: 0 };
+    // The camera sits at (sin yaw, cos yaw) from you, so it looks along -(sin yaw, cos yaw).
+    const s = Math.sin(this.yaw), c = Math.cos(this.yaw);
+    const vx = -s * fwd + c * right, vz = -c * fwd - s * right;
+    // Snap to the nearest of the 8 ways you can step.
+    const a = Math.round(Math.atan2(vz, vx) / (Math.PI / 4)) * (Math.PI / 4);
+    return { dx: Math.round(Math.cos(a)) || 0, dy: Math.round(Math.sin(a)) || 0 };
+  }
+
+  /** Each frame: tell the server when the keyboard direction changes (or stops). */
+  private updateWalk() {
+    if (!this.room) return;
+    const { dx, dy } = this.keyDirection();
+    const key = `${dx},${dy}`;
+    if (key === this.walkSent) return;
+    if (this.walkSent === "0,0") { this.closePanels(); this.marker.visible = false; }
+    this.walkSent = key;
+    this.room.send("walk", { dx, dy });
+  }
+
+  private closePanels() {
+    closeShop();
+    closeRepair();
+    closeCraft();
+    closeBounties();
+    closeGuild();
+    closeChest();
+    closeInfo();
+    closeDialog();
   }
 
   private setDist(d: number) {
@@ -369,14 +424,13 @@ export class World3D {
     const t = this.tileAt(sx, sy);
     if (!t) return;
     const { x, y } = t;
-    closeShop();
-    closeRepair();
-    closeCraft();
-    closeBounties();
-    closeGuild();
-    closeChest();
-    closeInfo();
-    closeDialog();
+    this.closePanels();
+    // Clicking takes over from the keys (until you press or let go of one).
+    if (this.walkSent !== "0,0") {
+      this.room.send("walk", { dx: 0, dy: 0 });
+      this.walkSent = "0,0";
+      this.walkPaused = true;
+    }
     if (areaAt(x, y) !== this.here) return;
     const npc = npcAt(x, y);
     const monster = this.monsterAt(x, y);
@@ -398,9 +452,17 @@ export class World3D {
   // ---------------------------------------------------------------- joining the server
 
   private attach(room: Room, reconnected = false) {
+    this.walkSent = "0,0";
     this.room = room;
     setReportRoom(room);
     room.onMessage("message", (text: string) => showMessage(text));
+    // Once per browser: tell them about walking with the keyboard.
+    try {
+      if (!localStorage.getItem("rpg3d.wasdTip")) {
+        localStorage.setItem("rpg3d.wasdTip", "1");
+        setTimeout(() => showMessage("Tip: walk with W A S D (forward is the way the camera faces), or click where to go. Q / E turn the camera."), 1500);
+      }
+    } catch { /* ignore */ }
     room.onMessage("disciplines", (disciplines: DisciplineView) => { this.lastDisciplines = disciplines; renderDisciplines(disciplines); });
     room.onMessage("levelup", (msg: { discipline: DisciplineId; level: number }) => this.celebrateLevelUp(msg.discipline));
     room.onMessage("skillxp", (skillXp: SkillXp) => {
@@ -678,6 +740,8 @@ export class World3D {
     if (!isMe) return;
     if (this.marker.visible && Math.floor(this.marker.position.x / TILE) === player.x && Math.floor(this.marker.position.z / TILE) === player.y) this.marker.visible = false;
     if (a !== this.here) {
+      // Through a door: the server stopped your keyboard walk, so wait for a fresh key press.
+      if (this.walkSent !== "0,0") { this.walkSent = "0,0"; this.walkPaused = true; }
       this.showArea(a, player.x, player.y);
       this.marker.visible = false;
       this.focus.copy(tileCenter(player.x, player.y));
