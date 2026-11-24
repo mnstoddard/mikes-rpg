@@ -13,6 +13,17 @@ export interface GameUpdate { version: string; date: string; title: string; chan
 
 export const UPDATES: GameUpdate[] = [
   {
+    version: "0.4",
+    date: "2026-11-24",
+    title: "Play by listening: read-aloud and quest pictures",
+    changes: [
+      { text: "Read aloud: tap 🔊 next to anything people say, books, your quest, the 📜 Quests list and the chat to hear it spoken. Tap it again to stop." },
+      { text: "Turn on 🔊 Read everything out loud for me in ⚙️ Settings, and the game reads what people say, books, gifts, warnings and each new quest step as soon as they appear." },
+      { text: "A gold arrow on the ground by your feet points the way to your quest's next ❗ person or 📍 place (or the door that leads there). It goes away when you're close." },
+      { text: "The quest box shows pictures of what you need, with how many you have (like 🐟 1 / 3, then ✓ once you have them all), so you can follow a quest without reading." },
+    ],
+  },
+  {
     version: "0.3",
     date: "2026-11-23",
     title: "The Lighthall tour, running, and a minimap",

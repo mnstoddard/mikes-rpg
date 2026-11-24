@@ -3746,9 +3746,36 @@ export class WorldRoom extends Room<WorldState> {
       progress = `${progNow.count} / ${g.count}`;
       fraction = progNow.count / g.count;
     }
+    const need = this.questNeeds(p, g, progNow);
     const warning = step.needsTool && !p.belt[step.needsTool] ? `Put your ${TOOL_TYPES[step.needsTool].name.toLowerCase()} back on your belt first!`
       : this.fightBlock(p) ? (step.fightWith === "magic" ? "Hold your staff first!" : step.fightWith === "ranged" ? "Hold your sling first!" : "Hold a weapon first!") : undefined;
-    return { ...base, done: false, quest: chapter.title, giver: chapter.name, task: step.task, progress, fraction, talk: g.kind === "talk", warning };
+    return { ...base, done: false, quest: chapter.title, giver: chapter.name, task: step.task, progress, fraction, talk: g.kind === "talk", warning, need };
+  }
+
+  /** The quest tracker's picture checklist: one picture per thing the step needs, with how many you have. */
+  private questNeeds(p: Player, g: QuestStep["goal"], prog: { count: number; got?: string[] }): QuestView["need"] {
+    const item = (id: ItemId) => ({ icon: ITEMS[id].icon, tint: ITEMS[id].tint });
+    const counted = (pic: { icon: string; tint?: string } | undefined) => pic && "count" in g ? [{ ...pic, have: Math.min(prog.count, g.count), want: g.count }] : undefined;
+    switch (g.kind) {
+      case "have":
+        return (Object.entries(g.items) as [ItemId, number][]).map(([id, n]) => ({ ...item(id), have: Math.min(n, this.countOf(p, id)), want: n }));
+      case "gather":
+        if (g.resource) return counted(item(RESOURCES[g.resource].item));
+        return counted(g.skill ? { icon: findSkill(g.skill).def.icon } : undefined);
+      case "kill":
+        return counted({ icon: g.monster ? MONSTERS[g.monster].icon : "⚔️" });
+      case "craft": {
+        const made = (Object.keys(ITEMS) as ItemId[]).find((id) => id.startsWith(g.prefix));
+        return counted(made ? item(made) : { icon: findSkill(g.skill).def.icon });
+      }
+      case "sell": case "buy": return counted({ icon: "🪙" });
+      case "plant": return counted({ icon: "🌱" });
+      case "harvest": return counted({ icon: "🧺" });
+      case "bounty": return counted({ icon: "📋" });
+      case "visit": return [{ icon: "🏮", have: g.npcs.filter((n) => prog.got?.includes(n)).length, want: g.npcs.length }];
+      case "reach": return [{ icon: "📍", have: g.spots.filter((k) => prog.got?.includes(k)).length, want: g.spots.length }];
+      default: return undefined;
+    }
   }
 
   private sendQuest(client: Client, p: Player) {

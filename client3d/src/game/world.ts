@@ -11,7 +11,7 @@ import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment
 import { getStateCallbacks, Room } from "colyseus.js";
 import { AreaDef, MAP, OUTDOORS, TICK_MS, areaAt, doorAt, isWalkable } from "../../../shared/map";
 import { bookAt } from "../../../shared/lore";
-import { Minimap } from "./minimap";
+import { Minimap, nextGoal } from "./minimap";
 import { CombatMasteryId, CombatMasteryXp, MONSTERS, MonsterId, SpellId, combatMasteryName } from "../../../shared/combat";
 import type { Gear } from "../../../shared/gear";
 import { RESOURCES, ResourceId, fishAt, isFishingSpot, nodeAt, treeKey } from "../../../shared/foraging";
@@ -94,6 +94,8 @@ export class World3D {
   private npcs = new Map<string, Person>();
   private stations = new Map<string, StationView>();
   private marker: THREE.Mesh;
+  /** The gold arrow on the ground by your feet, pointing the way to your quest's next ❗ or 📍. */
+  private guide = new THREE.Group();
   private hud = document.getElementById("hud")!;
   private lastDisciplines?: DisciplineView;
   private skillXpSeen = false;
@@ -161,6 +163,19 @@ export class World3D {
     this.marker.rotation.set(-Math.PI / 2, 0, Math.PI / 4);
     this.marker.visible = false;
     this.scene.add(this.marker);
+
+    const arrow = new THREE.Shape();
+    arrow.moveTo(0.75, 0); arrow.lineTo(0.05, 0.5); arrow.lineTo(0.05, 0.2); arrow.lineTo(-0.55, 0.2);
+    arrow.lineTo(-0.55, -0.2); arrow.lineTo(0.05, -0.2); arrow.lineTo(0.05, -0.5); arrow.closePath();
+    const arrowMesh = new THREE.Mesh(new THREE.ShapeGeometry(arrow), new THREE.MeshBasicMaterial({ color: 0xffd84a, transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide }));
+    const edge = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(arrow.getPoints().map((p) => new THREE.Vector3(p.x, p.y, 0.01))), new THREE.LineBasicMaterial({ color: 0x5a3d00 }));
+    arrowMesh.add(edge);
+    arrowMesh.rotation.x = -Math.PI / 2;
+    arrowMesh.renderOrder = 5;
+    arrowMesh.scale.setScalar(1.3);
+    this.guide.add(arrowMesh);
+    this.guide.visible = false;
+    this.scene.add(this.guide);
 
     try {
       const saved = JSON.parse(localStorage.getItem(CAM_KEY) ?? "null");
@@ -246,10 +261,26 @@ export class World3D {
       }
     }
     if (this.marker.visible) this.marker.rotation.z += dt * 2;
+    this.updateGuide(me);
     if (this.loading) this.loading.style.display = this.room && this.terrain.loadingNear() ? "flex" : "none";
     this.renderer.render(this.scene, this.camera);
     this.labels.render(this.scene, this.camera);
   };
+
+  /** Point the guide arrow at the nearest ❗ or 📍 (or the door that leads there). It hides once you're close, or while a box is open. */
+  private updateGuide(me: { root: THREE.Object3D } | undefined) {
+    const busy = document.body.classList.contains("dialog-open") || document.body.classList.contains("shop-open") || document.body.classList.contains("craft-open");
+    const goal = me && !busy ? nextGoal(me.root.position.x / TILE, me.root.position.z / TILE, this.here) : null;
+    if (!me || !goal) { this.guide.visible = false; return; }
+    const to = tileCenter(goal.x, goal.y);
+    const dx = to.x - me.root.position.x, dz = to.z - me.root.position.z;
+    const d = Math.hypot(dx, dz);
+    if (d < TILE * 2.5) { this.guide.visible = false; return; }
+    this.guide.visible = true;
+    const bob = 1.5 + Math.sin(this.time * 4) * 0.2;
+    this.guide.position.set(me.root.position.x + (dx / d) * bob, me.root.position.y + 0.15, me.root.position.z + (dz / d) * bob);
+    this.guide.rotation.y = Math.atan2(-dz, dx);
+  }
 
   private placeCamera(dt = 0) {
     const f = this.focus;
