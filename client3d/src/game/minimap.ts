@@ -10,6 +10,32 @@ import { outdoorSpot, toggleWorldMap, worldMapMarks } from "../../../client/src/
 
 const R = 13; // tiles from the middle to the edge
 
+/** Where to head for a target: itself if it's in this area, otherwise the right door. */
+export function wayTo(p: { x: number; y: number }, here: AreaDef): { x: number; y: number } | null {
+  const there = areaAt(p.x, p.y);
+  if (!there) return null;
+  if (there === here) return p;
+  if (here === OUTDOORS) return outdoorSpot(p);
+  // Inside: the door to that place if there is one, otherwise the way out.
+  const doors = DOORS.filter((d) => areaAt(d.x, d.y) === here);
+  return doors.find((d) => d.area === there.id) ?? doors.find((d) => d.area === OUTDOORS.id) ?? doors[0] ?? null;
+}
+
+/** The nearest place your quest wants you (a ❗ person or a 📍 spot), as the way to walk from (fx, fy): for the guide arrow. */
+export function nextGoal(fx: number, fy: number, here: AreaDef): { x: number; y: number } | null {
+  const { marks, spots } = worldMapMarks();
+  let best: { x: number; y: number } | null = null, bd = Infinity;
+  const consider = (p: { x: number; y: number } | undefined) => {
+    const at = p && wayTo(p, here);
+    if (!at) return;
+    const d = Math.hypot(at.x + 0.5 - fx, at.y + 0.5 - fy);
+    if (d < bd) { bd = d; best = at; }
+  };
+  for (const id of marks) consider(NPCS.find((n) => n.id === id));
+  for (const s of spots) consider(s);
+  return best;
+}
+
 export class Minimap {
   private canvas: HTMLCanvasElement;
   private grid = document.createElement("canvas");
@@ -84,11 +110,11 @@ export class Minimap {
     const targets: { at: { x: number; y: number }; icon: string }[] = [];
     for (const id of marks) {
       const npc = NPCS.find((n) => n.id === id);
-      const at = npc && this.wayTo(npc, here);
+      const at = npc && wayTo(npc, here);
       if (at) targets.push({ at, icon: "❗" });
     }
     for (const s of spots) {
-      const at = this.wayTo(s, here);
+      const at = wayTo(s, here);
       if (at) targets.push({ at, icon: "📍" });
     }
     const s = Math.sin(yaw), c = Math.cos(yaw);
@@ -125,16 +151,6 @@ export class Minimap {
     }
   }
 
-  /** Where to head for a target: itself if it's in this area, otherwise the right door. */
-  private wayTo(p: { x: number; y: number }, here: AreaDef): { x: number; y: number } | null {
-    const there = areaAt(p.x, p.y);
-    if (!there) return null;
-    if (there === here) return p;
-    if (here === OUTDOORS) return outdoorSpot(p);
-    // Inside: the door to that place if there is one, otherwise the way out.
-    const doors = DOORS.filter((d) => areaAt(d.x, d.y) === here);
-    return doors.find((d) => d.area === there.id) ?? doors.find((d) => d.area === OUTDOORS.id) ?? doors[0] ?? null;
-  }
 
   private drawGrid(gx: number, gy: number, here: AreaDef) {
     const g = this.grid.getContext("2d")!;

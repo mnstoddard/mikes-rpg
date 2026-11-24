@@ -1101,6 +1101,8 @@ export interface QuestView {
   marks: NpcId[];
   /** Something's wrong to fix first (e.g. "Put your rod back on your belt"). */
   warning?: string;
+  /** A picture checklist of what the step needs (🐟 1 / 3 ✓), so you can follow it without reading. */
+  need?: { icon: string; tint?: string; have: number; want: number }[];
   /** Every chapter, for the 📜 tab. */
   chapters: ChapterView[];
   /** Places the current step sends you (for the map): where, and what. */

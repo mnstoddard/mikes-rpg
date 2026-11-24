@@ -48,6 +48,7 @@ import { ARROW_LEVEL, ARROW_RECOVER, BAITS, BAIT_IDS, BaitId, CLOTH_LEVEL, SOFT_
 import { TreeRanks, treeBonus } from "../../shared/skilltree";
 import { setTreeData, treeButton, treeRanks } from "./tree";
 import { toolSvg } from "./toolIcons";
+import { autoRead, autoSpeak, canSpeak, setAutoRead, speakButton, stopSpeaking } from "./speech";
 import {
   CUT_LEVEL, GEMS, JEWEL_BARS, JEWEL_BAR_IDS, JEWEL_METALS, JEWEL_METAL_IDS, JEWEL_SLOTS, JEWEL_TYPES, JewelMetal, JewelSlot, JewelType, Jewels,
   cutChances, describeBonus, emptyJewels, isCutGem, isJewelry, isRough, jewelBonus, jewelId, parseGem,
@@ -687,10 +688,14 @@ const MAX_HISTORY = 500;
 const history: { at: Date; text: string }[] = [];
 const historyList = document.getElementById("history-list")!;
 
+/** Chat messages read aloud by themselves (with "Read aloud automatically" on): someone talking, gifts and warnings. (New quest steps are read from the quest box.) */
+const SAY_ALOUD = /^(🎁|📍|⚠|❗|🎉|🏅|📖)|^\S*\s?[A-Z][\w' ]{1,28}: /u;
+
 export function showMessage(text: string) {
   const line = document.createElement("div");
-  line.textContent = text;
+  line.append(speakButton(() => text), text);
   messagesEl.appendChild(line);
+  if (SAY_ALOUD.test(text) && !text.startsWith("📜")) autoSpeak(text, true);
   while (messagesEl.children.length > MAX_MESSAGES) messagesEl.firstChild!.remove();
   history.push({ at: new Date(), text });
   if (history.length > MAX_HISTORY) history.shift();
@@ -712,7 +717,8 @@ function renderHistory() {
     const time = document.createElement("span");
     time.className = "h-time";
     time.textContent = h.at.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-    row.append(time, h.text);
+    const words = h.text;
+    row.append(time, speakButton(() => words), words);
     historyList.appendChild(row);
   }
   if (atBottom || !historyList.dataset.shown) historyList.scrollTop = historyList.scrollHeight;
@@ -2708,6 +2714,26 @@ function bar(fraction: number) {
   return b;
 }
 
+/** The quest said in words: what to do, and what's wrong first. */
+function questWords(q: QuestView) {
+  const who = q.giver ? `${q.quest}, from ${q.giver}.` : `${q.quest}.`;
+  return [who, q.warning ?? "", `${q.task}.`, q.progress ? `${q.progress}.` : ""].filter(Boolean).join(" ").replace(/\.\./g, ".");
+}
+let spokenQuest: string | null = null;
+
+/** The picture checklist: 🐟 1 / 3, then ✓ once you have them all. */
+function needPictures(need: NonNullable<QuestView["need"]>) {
+  const box = el("q-need");
+  for (const n of need) {
+    const done = n.have >= n.want;
+    const chip = el("q-chip" + (done ? " done" : ""));
+    chip.append(icon("q-pic", n.icon, n.tint));
+    chip.append(el("q-count", done ? (n.want > 1 ? `${n.want} ✓` : "✓") : n.want > 1 ? `${n.have} / ${n.want}` : "☐"));
+    box.append(chip);
+  }
+  return box;
+}
+
 function renderTracker(flash = false) {
   if (document.body.dataset.panel === "quests") renderQuestTab();
   const b = trackedBounty();
@@ -2721,10 +2747,19 @@ function renderTracker(flash = false) {
     questEl.append(el("q-title", "📋 Bounty"), el("q-task", `${b.count} × ${item.name}${isTool(b.item) || isGear(b.item) ? " (unused)" : ""}`),
       el("q-progress", have >= b.count ? `✓ ${b.count} / ${b.count}: hand it in at the board!` : `${have} / ${b.count}`), bar(have / b.count));
   } else if (q) {
-    questEl.append(el("q-title", q.done || !q.giver ? `📜 ${q.quest}` : `📜 ${q.quest} · ${q.giver}`), el("q-task", (q.talk ? "❗ " : "") + q.task));
+    const title = el("q-title", q.done || !q.giver ? `📜 ${q.quest}` : `📜 ${q.quest} · ${q.giver}`);
+    title.prepend(speakButton(() => questWords(q), "Read the quest out loud"));
+    questEl.append(title, el("q-task", (q.talk ? "❗ " : "") + q.task));
     if (q.warning) questEl.append(el("q-warn", `⚠️ ${q.warning}`));
-    if (q.progress) questEl.append(el("q-progress", q.progress));
+    if (q.need?.length) questEl.append(needPictures(q.need));
+    else if (q.progress) questEl.append(el("q-progress", q.progress));
     if (q.fraction != null) questEl.append(bar(q.fraction));
+    // A new step (or a new warning) is read out by itself.
+    const key = `${q.quest}|${q.task}|${q.warning ?? ""}`;
+    if (key !== spokenQuest) {
+      autoSpeak(questWords(q), true);
+      spokenQuest = key;
+    }
   }
   if (bounties.length) questEl.append(el("q-switch", "Tap to switch quest or bounty"));
   if (flash) {
@@ -2739,7 +2774,7 @@ function renderQuestTab() {
   questListEl.replaceChildren();
   const row = (glyph: string, tint: string | undefined, title: string, sub: string, state: string, tracked: boolean, onclick: () => void) => {
     const r = el("qt-row" + (tracked ? " tracked" : ""));
-    r.append(icon("qt-icon", glyph, tint), el("qt-title", title), el("qt-sub", sub), el("qt-state", tracked ? "📍 Tracking" : state));
+    r.append(speakButton(() => `${title}. ${sub}. ${state}`), icon("qt-icon", glyph, tint), el("qt-title", title), el("qt-sub", sub), el("qt-state", tracked ? "📍 Tracking" : state));
     r.title = tracked ? "Showing next to your health" : "Tap to track this";
     r.onclick = onclick;
     return r;
@@ -2750,7 +2785,7 @@ function renderQuestTab() {
   const chapterRow = (c: ChapterView) => {
     const sub = c.state === "done" ? "Done" : c.state === "locked" ? (c.needs ? `Needs ${c.needs}` : c.opens || `Opens after ${GUIDE_NAME}'s lessons`) : c.task ? `${c.task} (step ${c.step + 1} of ${c.of})` : `Talk to ${c.name}, ${c.where}`;
     const r = el("qt-row qt-chapter" + (c.state === "done" ? " done" : ""));
-    r.append(el("qt-icon", glyph[c.state]), el("qt-title", `${c.title} · ${c.name}`), el("qt-sub", sub));
+    r.append(speakButton(() => `${c.title}, from ${c.name}. ${sub}.`), el("qt-icon", glyph[c.state]), el("qt-title", `${c.title} · ${c.name}`), el("qt-sub", sub));
     return r;
   };
   if (q) {
@@ -2810,6 +2845,9 @@ export function openDialog(name: string, lines: string[]) {
 
 function renderDialog() {
   dialogText.textContent = dialogLines[dialogAt];
+  // The first page waits for anything already being said (like what you were just given); Next cuts in.
+  if (dialogAt === 0) autoSpeak(`${dialogName.textContent}. ${dialogLines[0]}`, true);
+  else autoSpeak(dialogLines[dialogAt]);
   dialogPage.textContent = dialogLines.length > 1 ? `${dialogAt + 1} / ${dialogLines.length}` : "";
   dialogNext.textContent = dialogAt < dialogLines.length - 1 ? "Next ▸" : "OK";
 }
@@ -2818,7 +2856,10 @@ dialogNext.onclick = () => {
   if (dialogAt < dialogLines.length - 1) { dialogAt++; renderDialog(); } else closeDialog();
 };
 
+document.getElementById("dialog-speak")?.replaceWith(Object.assign(speakButton(() => dialogLines[dialogAt] ?? "", "Read this out loud again"), { id: "dialog-speak" }));
+
 export function closeDialog() {
+  if (document.body.classList.contains("dialog-open")) stopSpeaking();
   document.body.classList.remove("dialog-open");
 }
 
@@ -2860,7 +2901,17 @@ function setMsg(box: HTMLElement, ok: boolean, text: string) {
   box.className = "set-msg " + (ok ? "ok" : "bad");
 }
 
+const readAloudBox = document.getElementById("set-read-aloud") as HTMLInputElement | null;
+if (readAloudBox) {
+  if (!canSpeak()) readAloudBox.closest(".set-section")?.remove();
+  readAloudBox.onchange = () => {
+    setAutoRead(readAloudBox.checked);
+    if (readAloudBox.checked) autoSpeak("I'll read everything out loud for you. Tap a speaker button to hear something again.");
+  };
+}
+
 function renderSettings() {
+  if (readAloudBox) readAloudBox.checked = autoRead();
   colorsEl.replaceChildren();
   for (const c of PLAYER_COLORS) {
     const b = document.createElement("button");
