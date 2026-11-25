@@ -13,7 +13,8 @@
     "build": "npm run build -w client && npm run build -w client3d",
     "start": "npm start -w server",
     "gallery": "npm run gallery -w client3d",
-    "gallery:armor": "npm run gallery:armor -w client3d"
+    "gallery:armor": "npm run gallery:armor -w client3d",
+    "wiki": "tsx wiki/build.ts"
   },
   "devDependencies": {
     "concurrently": "^9.1.0",

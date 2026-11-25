@@ -499,3 +499,13 @@ release). The list is in `shared/version.ts` and, in words, in `CHANGELOG.md`: a
 update at the top of both. The game shows its version at the bottom of Settings, and each 🐞
 report records the version it was sent from.
 
+
+## The Emberfall Wiki
+
+`wiki/` holds the team's wiki: lore, places, factions and people, plus a page for every
+monster, item, skill, spell, quest, shop and book, made straight from the code in `shared/`.
+It's published at https://claude.ai/artifact/VCLVMsiJ1uVzdFApngjWJP (private to Mike).
+
+**Every update that changes the world updates the wiki in the same pull request:** run
+`npm run wiki` (game pages rebuild themselves), edit or add the story pages in `wiki/pages/`,
+commit `wiki/emberfall-wiki.html`, and republish it to the same link. See `wiki/README.md`.
