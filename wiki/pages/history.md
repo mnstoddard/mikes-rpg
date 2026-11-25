@@ -13,7 +13,7 @@ The game takes place in **year 500 After the Fall**. Oldest first.
 | 1 to 40 | The [[Sundering War]]. Lords fight over the glowing shards. [[King Aldemar]]'s [[Ember Crown]] destroys Brightcrown and makes the western crater. The kingdom falls and the west burns into the Barrens. | "Nobody remembers how the war began." |
 | 40 | The first [[The shrines|shrines]]. The Circle builds the shrines and the first [[Emberborn]] wake, [[Old Maren]] among them. They win the war. | "Archmage Vale built the shrines and saved us." |
 | 60 | 🔒 Vale fakes his death. The Circle becomes [[The Emberguard]], and its leaders [[The Undying]]. | "Vale died soon after the war. No one knows where he's buried." |
-| 60 to 200 | The shrines should have closed. Instead the Emberguard build more, and [[Emberhold]] grows up around their temple, [[The Lighthall]]. | "The Emberguard protect us." |
+| 60 to 200 | The shrines should have closed. Instead the Emberguard build more, and [[Emberhold]] grows up around their temple, [[The Emberhall]]. | "The Emberguard protect us." |
 | about 200 | [[The Mages' Guild]]'s records about the Heartfire stop. The Emberguard took them. | Scholars find it odd. |
 | 200 to 500 | The Emberguard raise hundreds of Emberborn, skim from every death, and drain a champion every few decades in a [[Radiance Ceremony]]. The Heartfire weakens. | "The Radiants went into the light." |
 | about 430 | 🔒 Maren learns the truth and cuts her own thread. Without the siphon feeding her, she starts to age, and slowly to turn to ash. | "Harmless old Maren, she's been here forever." |

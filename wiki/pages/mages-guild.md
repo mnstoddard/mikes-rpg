@@ -13,3 +13,5 @@ Its records about [[The Heartfire]] stop around year 200. Scholars find that odd
 ::: secret
 The Guild is honest, but the emberstone it sells ends up feeding [[The Undying]]. Its missing records were taken by the Emberguard.
 :::
+
+The game still calls them soul gems, and the spell Soul trap, for now (see [[Names]]).

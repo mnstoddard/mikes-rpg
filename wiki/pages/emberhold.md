@@ -5,13 +5,13 @@ summary: The capital town on the edge of Heartvale, and where every player start
 infobox.Levels: 1 to 10
 infobox.Region: [[Heartvale]]
 ---
-**Emberhold** is the capital, on the edge of [[Heartvale]]: the town square with its well and the bounty board, Trainer Row, the lake, the farm to the east, and [[The Mages' Guild]] to the south-west. It grew up around [[The Lighthall]] after the [[Sundering War]].
+**Emberhold** is the capital, on the edge of [[Heartvale]]: the town square with its well and the bounty board, Trainer Row, the lake, the farm to the east, and [[The Mages' Guild]] to the south-west. It grew up around [[The Emberhall]] after the [[Sundering War]].
 
 The well in the square is warm, because it's heated from below.
 
 ## Buildings
 
-- [[The Lighthall]], the Emberguard's temple, where you wake.
+- [[The Emberhall]], the Emberguard's temple, where you wake.
 - [[The General Store]] ([[Shopkeeper Tam]]).
 - [[Smith Brann's smithy]] and the trainers' houses on Trainer Row.
 - [[Woodworker Rook's workshop]], just west of the square.

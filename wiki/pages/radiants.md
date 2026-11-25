@@ -2,9 +2,9 @@ title: Radiants
 category: People
 icon: 🗿
 aliases: The Radiants, Hall of Champions
-summary: The greatest champions the shrines ever made. Their statues stand in the Lighthall's Hall of Champions.
+summary: The greatest champions the shrines ever made. Their statues stand in the Emberhall's Hall of Champions.
 ---
-**The Radiants** are the greatest [[Emberborn]] champions, honoured with a [[Radiance Ceremony]]. Their statues stand in the Hall of Champions in [[The Lighthall]], where [[Brother Oren]] gives tours. One plinth stands empty, its name scratched off.
+**The Radiants** are the greatest [[Emberborn]] champions, honoured with a [[Radiance Ceremony]]. Their statues stand in the Hall of Champions in [[The Emberhall]], where [[Brother Oren]] gives tours. One plinth stands empty, its name scratched off.
 
 | Radiant | Known for |
 |---|---|
@@ -15,7 +15,7 @@ summary: The greatest champions the shrines ever made. Their statues stand in th
 | (the empty plinth) | One letter is left under the dust: S |
 
 ::: secret
-Every one was drained at their Ceremony. Their sparks were poured into [[The Undying]], and a few are still trapped in old soul gems. The empty plinth was [[Sable]]'s. Tilda found out the truth before her Ceremony; her last cairn says *"Don't go down the stair."*
+Every one was drained at their Ceremony. Their sparks were poured into [[The Undying]], and a few are still trapped in old refined emberstones. The empty plinth was [[Sable]]'s. Tilda found out the truth before her Ceremony; her last cairn says *"Don't go down the stair."*
 :::
 
 The game's code still calls Ida "Ysra" (see [[Names]]).
