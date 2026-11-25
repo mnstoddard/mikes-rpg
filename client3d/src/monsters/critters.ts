@@ -1,5 +1,5 @@
 // Small and strange monsters: the chicken, the slime, the giant bat, the
-// will-o'-wisp and the Graveyard ghost (a drained Kindled).
+// will-o'-wisp and the Graveyard ghost (a drained Emberborn).
 import * as THREE from "three";
 import { makeWing } from "./beasts";
 import { Body, Kit, PoseCtx, bump, ease, finish, shade } from "./kit";
@@ -365,7 +365,7 @@ export function wisp(variant: number, seed: number) {
   return finish(k, scene, b, floatY + 0.4);
 }
 
-// ---------- Graveyard ghost (a drained Kindled) ----------
+// ---------- Graveyard ghost (a drained Emberborn) ----------
 
 export function ghost(variant: number, seed: number) {
   void seed;

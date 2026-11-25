@@ -13,10 +13,9 @@
 // When a hand-written page and a game page have the same title (for example
 // "Old Maren"), they become one page: the story first, then "In the game".
 //
-// Names: the game's code still uses some old names (Lightkeepers, Kindled...).
-// RENAMES below swaps them for the lore bible's names in everything the wiki
-// copies from the code, and the Names page lists what still needs changing in
-// the game. When the game is renamed, these swaps simply stop finding anything.
+// Names: the game used to have some old names (Lightkeepers, Kindled...), renamed
+// in version 0.10. RENAMES below still swaps any old name that slips back into the
+// code for the lore bible's name, and the Names page lists the old names.
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -144,7 +143,7 @@ function addPage(p: Partial<Page> & { title: string; category: string }) {
 function gamePage(p: Partial<Page> & { title: string; category: string }, make: () => string) {
   renamedOnPage = false;
   // Everything copied from the code gets the new names (except the Names page, which lists the old ones).
-  const fix = p.title === "Names" ? (t: string) => t : canon;
+  const fix = p.title === "Names" || p.title === "Version history" ? (t: string) => t : canon;  // Old updates keep the names they had.
   const body = fix(make());
   const title = canon(p.title);
   const infobox = (p.infobox ?? []).map(([k, v]) => [k, fix(v)] as [string, string]);
@@ -566,7 +565,7 @@ function shopPages() {
 }
 
 function bookPages() {
-  const where = { lighthall: "the Lighthall library", guild: "the Mages' Guild", town: "town houses and the inn" } as const;
+  const where = { lighthall: "the Emberhall library", guild: "the Mages' Guild", town: "town houses and the inn" } as const;
   gamePage({ title: "Books in the game", category: "Books", icon: "📚", sources: ["shared/lore.ts"], summary: "Every book you can take off a shelf." }, () => [
     "Click a bookshelf to take down a book. None of them are needed for a quest. A few of them don't quite agree with each other, on purpose: the Emberguard's books tell their side of the story. Compare them with [[History]].",
     ...(Object.keys(ALL_BOOKS) as (keyof typeof ALL_BOOKS)[]).map((k) => `## In ${where[k]}\n\n` + ALL_BOOKS[k].map((b) => `### ${canon(b.title)}\n\n` + b.pages.map((p) => `> ${canon(p)}`).join("\n>\n")).join("\n\n")),
@@ -576,7 +575,7 @@ function bookPages() {
 function updatePages() {
   gamePage({ title: "Version history", category: "Updates", icon: "🆕", sources: ["shared/version.ts"], summary: `Every game update. The game is at version ${GAME_VERSION}.` }, () => [
     `The game is at **version ${GAME_VERSION}**. Every update adds 0.1; version 1.0 is saved for the finished game.`,
-    ...UPDATES.map((u) => `## ${u.version} · ${u.date} · ${canon(u.title)}\n\n` + u.changes.map((c) => `- ${canon(c.text)}${c.reports?.length ? ` *(report${c.reports.length > 1 ? "s" : ""} ${c.reports.map((r) => "#" + r).join(", ")})*` : ""}`).join("\n")),
+    ...UPDATES.map((u) => `## ${u.version} · ${u.date} · ${u.title}\n\n` + u.changes.map((c) => `- ${c.text}${c.reports?.length ? ` *(report${c.reports.length > 1 ? "s" : ""} ${c.reports.map((r) => "#" + r).join(", ")})*` : ""}`).join("\n")),
   ].join("\n\n"));
 }
 
@@ -626,10 +625,10 @@ function mechanicsPages() {
 }
 
 function namesPage() {
-  gamePage({ title: "Names", category: "Wiki", icon: "🏷️", sources: ["wiki/build.ts"], summary: "Old names in the game's code, and the lore bible's names the wiki uses." }, () => [
-    "The wiki uses the lore bible's names everywhere. The game's code still uses some old ones; the wiki swaps them automatically in anything it copies from the code. Pages where a swap happened say so at the bottom.",
-    table(["The game says", "The wiki says"], RENAMES.map(([re, to]) => [re.source.replace(/\\b|\(the \)\?|\?|\\/g, ""), to])),
-    "When the game itself is renamed, nothing needs to change here: the swaps just stop finding anything.",
+  gamePage({ title: "Names", category: "Wiki", icon: "🏷️", sources: ["wiki/build.ts"], summary: "Old names from earlier versions of the game, and the names everything uses now." }, () => [
+    "The game and the wiki both use the lore bible's names. Until version 0.10 the game had some older names, listed here so old notes and bug reports still make sense. If an old name ever slips back into the game's text, the wiki swaps it for the new one, and the page it's on says so at the bottom.",
+    table(["Old name", "Name now"], RENAMES.map(([re, to]) => [re.source.replace(/\\b|\(the \)\?|\?|\\/g, ""), to])),
+    "Ids inside the code (like `lighthall` or `soul_trap`) keep their old spelling so saved games keep working. Players never see them.",
   ].join("\n\n"));
 }
 

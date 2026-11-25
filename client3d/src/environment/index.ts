@@ -40,16 +40,16 @@ export const CATEGORIES: Record<EnvCategory, { name: string }> = {
   sky: { name: "Sky" },
 };
 
-/** The sample scenes in the gallery, one for each kind of place in Elderra. */
+/** The sample scenes in the gallery, one for each kind of place in Embervale. */
 export type SceneId = "town" | "farm" | "coast" | "thornwood" | "cave" | "house" | "hall" | "river";
 export const SCENES: Record<SceneId, { name: string; about: string }> = {
-  town: { name: "Town street", about: "Heartvale's cobbled streets, shops and lamps." },
+  town: { name: "Town street", about: "Emberhold's cobbled streets, shops and lamps." },
   farm: { name: "The farm", about: "Fields, fences and the farmhouse." },
   coast: { name: "Saltmere Coast", about: "Sand, sea, rocks and shells." },
   thornwood: { name: "The Thornwood", about: "The Dark Forest: withered ground, brambles, the graveyard." },
   cave: { name: "Caves and the old mine", about: "Cave floor and walls, torches and crystals." },
   house: { name: "Inside a house", about: "Floorboards, wooden walls, a window and a lantern." },
-  hall: { name: "The Lighthall", about: "White stone, gold, the glowing floor and the Mages' Guild colours." },
+  hall: { name: "The Emberhall", about: "White stone, gold, the glowing floor and the Mages' Guild colours." },
   river: { name: "River and lake", about: "The river, a bridge, the lake and a waterfall." },
 };
 
@@ -63,7 +63,7 @@ export interface EnvType {
   kind: EnvKind;
   /** One line about it. */
   about: string;
-  /** Where it's used in Elderra. */
+  /** Where it's used in Embervale. */
   where: string;
   variants: readonly string[];
   /** Its colour (list swatch). */
@@ -101,7 +101,7 @@ const ENTRIES: Entry[] = [
   // ---------- Ground
   { id: "ground-grass", name: "Grass", category: "ground", kind: "patch", about: "The green grass that covers most of Heartvale.", where: "Everywhere outdoors: meadows, the pasture, round town.", variants: ["Soft", "Tufty", "Trimmed lawn"], color: 0x7fb24a, scenes: ["town", "farm", "river", "coast"], build: patch(G.grass) },
   { id: "ground-path", name: "Dirt path", category: "ground", kind: "patch", about: "Packed earth roads between places, with little stones.", where: "The roads out of town, to the farm, the quarry and the Thornwood.", variants: ["Packed", "Cart ruts", "Muddy"], color: 0xb89068, scenes: ["farm", "thornwood", "river"], build: patch(G.path) },
-  { id: "ground-cobble", name: "Cobblestones", category: "ground", kind: "patch", about: "Rounded stones set in mortar, for the town's streets.", where: "Heartvale's streets and the square by the Lighthall.", variants: ["Grey town", "Warm sandstone", "Mossy"], color: 0x9c9a94, scenes: ["town", "hall"], build: patch(G.cobble) },
+  { id: "ground-cobble", name: "Cobblestones", category: "ground", kind: "patch", about: "Rounded stones set in mortar, for the town's streets.", where: "Emberhold's streets and the square by the Emberhall.", variants: ["Grey town", "Warm sandstone", "Mossy"], color: 0x9c9a94, scenes: ["town", "hall"], build: patch(G.cobble) },
   { id: "ground-sand", name: "Sand", category: "ground", kind: "patch", about: "Pale sand with wind ripples.", where: "The Saltmere Coast's beaches.", variants: ["Dry", "Wet", "Dunes"], color: 0xead29a, scenes: ["coast"], build: patch(G.sand) },
   { id: "ground-withered", name: "Withered grass", category: "ground", kind: "patch", about: "Dry, grey grass where the blight has been.", where: "The Thornwood (Dark Forest) and the Barrens.", variants: ["Withered", "Blighted (glowing cracks)"], color: 0x7d7458, scenes: ["thornwood"], build: patch(G.withered) },
   { id: "ground-gravel", name: "Stony ground", category: "ground", kind: "patch", about: "Gravel and loose stones.", where: "The quarry, mountain paths and the graveyard.", variants: ["Gravel"], color: 0x9c988e, scenes: ["thornwood", "river"], build: patch(G.gravel) },
@@ -109,16 +109,16 @@ const ENTRIES: Entry[] = [
   { id: "ground-snow", name: "Snow", category: "ground", kind: "patch", about: "Lumpy snow with a few rocks poking through.", where: "The tops of the Greyspine Peaks.", variants: ["Fresh", "Icy"], color: 0xe8eef4, scenes: [], build: patch(G.snow) },
   // ---------- Floors
   { id: "floor-boards", name: "Floorboards", category: "floor", kind: "patch", about: "Wooden planks with nail heads.", where: "Inside houses, shops, the inn and trainers' places.", variants: ["Oak", "Dark walnut", "Worn pine"], color: 0xb07a48, scenes: ["house"], build: patch(G.boards) },
-  { id: "floor-marble", name: "White stone floor", category: "floor", kind: "patch", about: "Polished stone tiles.", where: "The Lighthall.", variants: ["White", "Checkered", "Gold lines"], color: 0xf1eee6, scenes: ["hall"], build: patch(G.marble) },
-  { id: "floor-rug", name: "Rugs and carpets", category: "floor", kind: "patch", about: "A woven rug with a border and diamonds.", where: "The Mages' Guild (purple), the Lighthall (gold carpet), the inn.", variants: ["Mages' purple", "Lighthall gold", "Inn red"], color: 0x5b3c8c, scenes: ["hall", "house"], build: patch(G.rug) },
-  { id: "floor-glow", name: "Glowing floor", category: "floor", kind: "patch", about: "White stone with glowing rings and runes.", where: "In front of the Lighthall's great lantern.", variants: ["Golden", "Sky blue", "Violet"], color: 0xffe9a0, scenes: ["hall"], build: patch(G.glowFloor) },
+  { id: "floor-marble", name: "White stone floor", category: "floor", kind: "patch", about: "Polished stone tiles.", where: "The Emberhall.", variants: ["White", "Checkered", "Gold lines"], color: 0xf1eee6, scenes: ["hall"], build: patch(G.marble) },
+  { id: "floor-rug", name: "Rugs and carpets", category: "floor", kind: "patch", about: "A woven rug with a border and diamonds.", where: "The Mages' Guild (purple), the Emberhall (gold carpet), the inn.", variants: ["Mages' purple", "Emberhall gold", "Inn red"], color: 0x5b3c8c, scenes: ["hall", "house"], build: patch(G.rug) },
+  { id: "floor-glow", name: "Glowing floor", category: "floor", kind: "patch", about: "White stone with glowing rings and runes.", where: "In front of the Emberhall's great lantern.", variants: ["Golden", "Sky blue", "Violet"], color: 0xffe9a0, scenes: ["hall"], build: patch(G.glowFloor) },
   { id: "floor-cave", name: "Cave floor", category: "floor", kind: "patch", about: "Bumpy dark rock and pebbles.", where: "The spider cave, the wolf den and the old mine.", variants: ["Rocky", "Damp", "Mine track"], color: 0x5e5850, scenes: ["cave"], build: patch(G.caveFloor) },
   { id: "floor-crystal", name: "Crystal floor", category: "floor", kind: "patch", about: "Cave floor with glowing crystals growing out of it.", where: "The crystal cave.", variants: ["Amethyst", "Sapphire", "Mixed gems"], color: 0xb07ae8, scenes: ["cave"], build: patch(G.crystalFloor) },
   // ---------- Walls and roofs
   { id: "wall-timber", name: "Timber-frame wall", category: "building", kind: "wall", about: "Plaster between dark wooden beams, on a stone footing.", where: "Most houses and shops in Heartvale.", variants: ["Cream and brown", "White and black", "Ochre"], color: 0xeee0c0, scenes: ["town"], build: wall(B.timberWall) },
   { id: "wall-plank", name: "Wooden wall", category: "building", kind: "wall", about: "Walls of logs or boards.", where: "Forester Holt's house, Kael's lodge, the farm, and inside most buildings.", variants: ["Logs", "Boards", "Painted boards"], color: 0x9c6a42, scenes: ["farm", "house"], build: wall(B.plankWall) },
   { id: "wall-stone", name: "Stone wall", category: "building", kind: "wall", about: "Stone blocks laid in rows.", where: "The smithy, the inn's ground floor, town walls.", variants: ["Grey", "Sandstone", "Mossy"], color: 0x8e8c86, scenes: ["town", "thornwood"], build: wall(B.stoneWall) },
-  { id: "wall-marble", name: "White stone wall", category: "building", kind: "wall", about: "Smooth white blocks with gold trim.", where: "The Lighthall.", variants: ["Plain", "Columns"], color: 0xf2efe8, scenes: ["hall"], build: wall(B.marbleWall) },
+  { id: "wall-marble", name: "White stone wall", category: "building", kind: "wall", about: "Smooth white blocks with gold trim.", where: "The Emberhall.", variants: ["Plain", "Columns"], color: 0xf2efe8, scenes: ["hall"], build: wall(B.marbleWall) },
   { id: "wall-guild", name: "Mages' Guild wall", category: "building", kind: "wall", about: "Purple stone with a gold band and painted stars.", where: "The Mages' Guild.", variants: ["Starry", "Plain"], color: 0x6a4a9a, scenes: ["hall"], build: wall(B.guildWall) },
   { id: "wall-cave", name: "Cave wall", category: "building", kind: "wall", about: "A rough wall of big lumpy rocks.", where: "Every cave; the old mine has wooden supports.", variants: ["Grey", "Mine supports", "Crystal veins"], color: 0x5a554e, scenes: ["cave"], build: wall(B.caveWall) },
   { id: "wall-cliff", name: "Cliff", category: "building", kind: "wall", about: "A tall rock face in layers, with grass on top.", where: "The edges of the Greyspine Peaks and the quarry.", variants: ["Grassy top", "Snowy top"], color: 0x8a8072, scenes: ["river"], build: wall(B.cliff) },
@@ -130,14 +130,14 @@ const ENTRIES: Entry[] = [
   { id: "wall-bridge", name: "Bridge", category: "building", kind: "wall", about: "A way over the river.", where: "The river crossings.", variants: ["Wooden planks", "Stone arch"], color: 0x9c6a42, scenes: ["river"], build: (o) => B.bridge({ length: 6, variant: o.variant, seed: o.seed }) },
   { id: "roof-tile", name: "Tiled roof", category: "building", kind: "roof", about: "Rows of overlapping clay or slate tiles.", where: "Shops and houses in town.", variants: ["Red clay", "Brown", "Blue slate"], color: 0xb8503a, scenes: ["town"], build: roof("tile") },
   { id: "roof-thatch", name: "Thatched roof", category: "building", kind: "roof", about: "Thick bundles of straw.", where: "The farm, Wren's hut and the cottages.", variants: ["Golden straw", "Pale straw"], color: 0xb8954e, scenes: ["farm"], build: roof("thatch") },
-  { id: "roof-gold", name: "Gold roof", category: "building", kind: "roof", about: "Shining gold tiles.", where: "The Lighthall, in the middle of town.", variants: ["Plain", "With lantern tower"], color: 0xd9b44a, scenes: ["hall"], build: roof("gold") },
+  { id: "roof-gold", name: "Gold roof", category: "building", kind: "roof", about: "Shining gold tiles.", where: "The Emberhall, in the middle of town.", variants: ["Plain", "With lantern tower"], color: 0xd9b44a, scenes: ["hall"], build: roof("gold") },
   // ---------- On the walls
   { id: "orn-lantern", name: "Wall lantern", category: "ornament", kind: "ornament", about: "A lantern on an iron arm. It lights up at night.", where: "Beside doors in town, the inn, the Mages' Guild (glass orb).", variants: ["Iron", "Brass", "Mage's glass orb"], color: 0xffc670, scenes: ["town", "house", "hall"], build: simple(O.wallLantern) },
   { id: "orn-window", name: "Window", category: "ornament", kind: "ornament", about: "Glass that glows warm at night. Shutters open and close.", where: "Every house and shop.", variants: ["Shuttered", "Round", "Leaded diamonds"], color: 0x9cc4d8, scenes: ["town", "farm", "house"], build: simple(O.windowPiece) },
   { id: "orn-sign", name: "Shop sign", category: "ornament", kind: "ornament", about: "A hanging board that swings in the wind.", where: "Over every shop and trainer's door.", variants: ["Smithy", "Inn", "General store"], color: 0x7a5232, scenes: ["town"], build: simple(O.shopSign) },
   { id: "orn-vines", name: "Climbing vines", category: "ornament", kind: "ornament", about: "Plants growing up a wall.", where: "Old houses (ivy), Wren's hut (flowering), the Thornwood (thorny).", variants: ["Ivy", "Flowering", "Thorny"], color: 0x3e7a2e, scenes: ["town", "thornwood"], build: simple(O.vines) },
   { id: "orn-flowerbox", name: "Flower box", category: "ornament", kind: "ornament", about: "A window box full of flowers.", where: "Under windows in town.", variants: ["Red geraniums", "Mixed", "Herbs"], color: 0xe04a4a, scenes: ["town", "farm"], build: simple(O.flowerBox) },
-  { id: "orn-banner", name: "Banner", category: "ornament", kind: "ornament", about: "A cloth banner that ripples in the breeze.", where: "The Lighthall (gold), the Mages' Guild (purple), the town hall (green).", variants: ["Lighthall gold", "Mages' purple", "Heartvale green"], color: 0xe0b23a, scenes: ["hall", "town"], build: simple(O.banner) },
+  { id: "orn-banner", name: "Banner", category: "ornament", kind: "ornament", about: "A cloth banner that ripples in the breeze.", where: "The Emberhall (gold), the Mages' Guild (purple), the town hall (green).", variants: ["Emberhall gold", "Mages' purple", "Heartvale green"], color: 0xe0b23a, scenes: ["hall", "town"], build: simple(O.banner) },
   { id: "orn-torch", name: "Wall torch", category: "ornament", kind: "ornament", about: "A burning torch in a holder. Always lit.", where: "Caves, the old mine and the camps.", variants: ["Iron holder", "Wooden holder"], color: 0xff8a20, scenes: ["cave"], build: simple(O.wallTorch) },
   { id: "orn-awning", name: "Awning", category: "ornament", kind: "ornament", about: "A striped cloth shade over a shop front.", where: "The General Store and market stalls.", variants: ["Red", "Blue", "Green"], color: 0xc84a3a, scenes: ["town"], build: simple(O.awning) },
   // ---------- Ground decorations
@@ -150,16 +150,16 @@ const ENTRIES: Entry[] = [
   { id: "decor-log", name: "Fallen log", category: "decor", kind: "decor", about: "An old log or a stump.", where: "The woods and the Thornwood.", variants: ["Log", "Mossy log", "Stump"], color: 0x6e4a2c, scenes: ["thornwood", "river"], build: simple(D.fallenLog) },
   { id: "decor-bramble", name: "Brambles", category: "decor", kind: "decor", about: "A tangle of thorny stems.", where: "The Thornwood.", variants: ["Thorny", "Blighted (glowing)"], color: 0x3e3a2a, scenes: ["thornwood"], build: simple(D.bramble) },
   { id: "decor-beach", name: "Shells and driftwood", category: "decor", kind: "decor", about: "Things washed up on the beach.", where: "The Saltmere Coast.", variants: ["Shells", "Driftwood"], color: 0xf2c8b0, scenes: ["coast"], build: simple(D.beachBits) },
-  { id: "decor-lamp", name: "Street lamp", category: "decor", kind: "decor", about: "A lamp post that lights up at night.", where: "Heartvale's streets and the Lighthall square.", variants: ["Iron", "Wooden post"], color: 0xffb050, scenes: ["town", "hall"], build: simple(D.streetLamp) },
+  { id: "decor-lamp", name: "Street lamp", category: "decor", kind: "decor", about: "A lamp post that lights up at night.", where: "Emberhold's streets and the Emberhall square.", variants: ["Iron", "Wooden post"], color: 0xffb050, scenes: ["town", "hall"], build: simple(D.streetLamp) },
   { id: "decor-well", name: "Well", category: "decor", kind: "decor", about: "A well with a bucket on a rope. Press the button to lower it.", where: "The town square and the farm.", variants: ["Stone", "Wooden"], color: 0x9a968c, scenes: ["town", "farm"], build: simple(D.well) },
   { id: "decor-grave", name: "Gravestone", category: "decor", kind: "decor", about: "A headstone with a grassy mound.", where: "The graveyard in the Thornwood.", variants: ["Rounded", "Cross", "Old and leaning"], color: 0x8e8c88, scenes: ["thornwood"], build: simple(D.gravestone) },
   { id: "decor-barrels", name: "Barrels and crates", category: "decor", kind: "decor", about: "Stacks of barrels, crates or sacks.", where: "Shops, the inn, the docks and the camps.", variants: ["Barrels", "Crates", "Sacks"], color: 0xa87a4c, scenes: ["town", "house", "cave", "farm"], build: simple(D.barrels) },
   { id: "decor-signpost", name: "Signpost", category: "decor", kind: "decor", about: "A post with a sign on it.", where: "The warning sign at the Thornwood gate; signposts at crossroads.", variants: ["Warning sign", "Direction arrows"], color: 0xd83a2a, scenes: ["thornwood", "farm"], build: simple(D.signpost) },
-  { id: "decor-statue", name: "Statue", category: "decor", kind: "decor", about: "A white stone figure on a plinth.", where: "The Lighthall and its square.", variants: ["Lantern-bearer", "Scholar"], color: 0xeeeae2, scenes: ["hall"], build: simple(D.statue) },
+  { id: "decor-statue", name: "Statue", category: "decor", kind: "decor", about: "A white stone figure on a plinth.", where: "The Emberhall and its square.", variants: ["Lantern-bearer", "Scholar"], color: 0xeeeae2, scenes: ["hall"], build: simple(D.statue) },
   // ---------- Water
   { id: "water-pond", name: "Lake and ponds", category: "water", kind: "water", about: "Still water that ripples. Press the button to throw a stone in.", where: "The lake near town; ponds; the swamp in the Thornwood.", variants: ["Clear lake", "Lily pond", "Murky swamp"], color: 0x4a9ac8, scenes: ["river", "thornwood"], build: simple(W.pond) },
   { id: "water-river", name: "River", category: "water", kind: "water", about: "Flowing water with foam drifting downstream.", where: "The river down from the Greyspine Peaks.", variants: ["Gentle", "Rapids", "Mountain stream"], color: 0x3a84b0, scenes: ["river"], build: simple(W.river) },
-  { id: "water-sea", name: "Sea", category: "water", kind: "water", about: "Waves rolling onto the beach, with foam on the sand.", where: "All round Elderra; the Saltmere Coast.", variants: ["Calm", "Choppy", "Bright turquoise"], color: 0x1e5a8a, scenes: ["coast"], build: simple(W.sea) },
+  { id: "water-sea", name: "Sea", category: "water", kind: "water", about: "Waves rolling onto the beach, with foam on the sand.", where: "All round Embervale; the Saltmere Coast.", variants: ["Calm", "Choppy", "Bright turquoise"], color: 0x1e5a8a, scenes: ["coast"], build: simple(W.sea) },
   { id: "water-fall", name: "Waterfall", category: "water", kind: "water", about: "Water pouring off a cliff into a pool, with spray and mist.", where: "Where the river comes down from the mountains.", variants: ["Tall", "Wide", "Cascade"], color: 0x9ad8f0, scenes: ["river"], build: simple(W.waterfall) },
   // ---------- Sky
   { id: "sky-dome", name: "Sky", category: "sky", kind: "dome", about: "The sky all round the world, with the sun, moon and stars. Try Day, Sunset and Night.", where: "Over everything outdoors.", variants: ["Smooth", "Low-poly bands", "Stormy (lightning)"], color: 0x4f9ee0, scenes: [], build: () => ({ object: new THREE.Group(), update() {}, dispose() {} }) },

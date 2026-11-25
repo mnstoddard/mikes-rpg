@@ -1594,7 +1594,7 @@ export function closeCraft() {
   document.body.classList.remove("craft-open");
 }
 
-/** The enchanting altar: pick an item, a soul gem, and (for a staff) a gem and inlay, or (otherwise) an effect. */
+/** The enchanting altar: pick an item, a refined emberstone, and (for a staff) a gem and inlay, or (otherwise) an effect. */
 function renderAltar() {
   const level = levelForXp(lastSkillXp.enchanting ?? 0);
   craftTitle.textContent = `Enchanting altar · Enchanting level ${level}`;
@@ -1648,7 +1648,7 @@ function renderAltar() {
     craftBody.append(el("craft-warn", slots === 1 ? "One enchantment per item. Take it off first, or learn Second slot in the Enchanting tree." : "It can't hold any more enchantments."));
     return;
   }
-  row("Soul gem", souls, altarPick.soul, (i) => { altarPick.soul = i; }, "No soul gem with souls in it. Cast 👻 Soul trap on a monster, then defeat it.");
+  row("Refined emberstone", souls, altarPick.soul, (i) => { altarPick.soul = i; }, "No refined emberstone with ember in it. Cast 👻 Ember trap on a monster, then defeat it.");
   let effect: EnchantId | null = null;
   let gemSize = 0;
   if (kind === "staff") {
@@ -1677,7 +1677,7 @@ function renderAltar() {
   const power = soulPower(soulGem.souls, level, treeBonus(treeRanks(), "enchanting", "potency"));
   const detail = el("craft-detail");
   detail.append(el("craft-info", `Gives: ${describeEnchant({ id: effect, power, gem: gemSize })}`),
-    el("craft-info", `Uses up the soul gem${kind === "staff" ? ", the gem" + (altarPick.inlay !== "none" ? " and the inlay bar" : "") : ""}. A fuller, bigger soul gem makes it stronger.`));
+    el("craft-info", `Uses up the refined emberstone${kind === "staff" ? ", the gem" + (altarPick.inlay !== "none" ? " and the inlay bar" : "") : ""}. A fuller, bigger refined emberstone makes it stronger.`));
   const go = document.createElement("button");
   go.className = "shop-btn";
   go.textContent = "✨ Enchant";
@@ -2247,7 +2247,7 @@ function renderGuild() {
   // Magic bounties.
   const list = el("guild-section");
   list.append(el("guild-head", "📜 Guild bounties"),
-    el("bounty-note", "Defeat monsters with spells (hold a staff), bring things the guild enchants with, trap souls, brew potions or enchant things. Each one earns guild points. New jobs every day."));
+    el("bounty-note", "Defeat monsters with spells (hold a staff), bring things the guild enchants with, trap ember, brew potions or enchant things. Each one earns guild points. New jobs every day."));
   g.bounties.forEach((b, index) => list.appendChild(guildBountyRow(b, index)));
   guildBody.appendChild(list);
 }
@@ -2458,8 +2458,8 @@ function renderInfo() {
   }
   if (isSoulGem(id)) {
     const g = parseGem(id) as { size: number; souls: number };
-    infoBody.append(infoLine("Souls", `${g.souls} / ${soulCapacity(g.size)} (${Math.floor((soulFill(id) ?? 0) * 100)}%)`,
-      "Cast 👻 Soul trap on a monster, then defeat it in time: its soul fills your best soul gem. Full gems power enchantments."));
+    infoBody.append(infoLine("Ember", `${g.souls} / ${soulCapacity(g.size)} (${Math.floor((soulFill(id) ?? 0) * 100)}%)`,
+      "Cast 👻 Ember trap on a monster, then defeat it in time: its ember fills your best refined emberstone. Full gems power enchantments."));
   }
   if (isJewelry(id)) infoBody.append(infoLine("Wear it", describeBonus(jewelBonus(id)), "2 rings and 1 amulet at a time"));
   else if (isRough(id)) infoBody.append(infoLine("Cut it", "at the anvil", "under Cut gems (Smithing). A cut can go well or badly."));
@@ -2648,7 +2648,7 @@ export function renderStamina(stamina: number, max: number, winded = 0) {
 }
 
 let titheMarks = 0;
-/** Soul Debt (shared/story.ts): gold links by your health. */
+/** Ember Debt (shared/story.ts): gold links by your health. */
 export function setTithe(n: number) {
   titheMarks = n;
   renderVitalBars();

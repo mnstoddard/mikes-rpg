@@ -22,4 +22,3 @@ It's alive in the way a tree is alive. It can't think or talk, but it can be hur
 
 ## In the game today
 
-The game's code still calls it the Wellspring (see [[Names]]).

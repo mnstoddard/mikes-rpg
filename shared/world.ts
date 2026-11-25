@@ -1,4 +1,4 @@
-// The world of Elderra: the big outdoor map (Heartvale and the lands around it)
+// The world of Embervale: the big outdoor map (Heartvale and the lands around it)
 // and every inside place (buildings, caves), built from code when the game
 // starts. Shared by the server and the client, so both build exactly the same
 // world (the random bits use a fixed seed).
@@ -12,7 +12,7 @@
 // Characters used on the grid (the legend is in shared/map.ts):
 //   . grass   , dirt path   ; cobblestones   ~ water   = bridge   s sand   w withered grass
 //   ^ cliff   h hedge   q well   x barricade   | fence   + gate   ! warning sign
-//   r roof    u gold roof (the Lighthall)   H wooden wall   p floorboards   D door   J locked door
+//   r roof    u gold roof (the Emberhall)   H wooden wall   p floorboards   D door   J locked door
 //   A white stone wall   a white stone floor   o glowing floor   z gold carpet   S statue
 //   W purple wall   _ purple rug (the Mages' Guild)   n table   b bookshelf   e crates   y bed
 //   C cave floor   K cave wall   G crystal floor   V gravestone   l stony ground   * dig patch   f farm lot
@@ -264,14 +264,14 @@ function buildOverworld(): Canvas {
   causeway(46, 200); causeway(88, 200);
   c.fill(226, 52, 227, 61, "=", "~"); causeway(61, 226);
 
-  // ---- The town square and the Lighthall ----
+  // ---- The town square and the Emberhall ----
   c.fill(84, 63, 118, 77, ";");
-  // The Lighthall: the Lightkeepers' great white temple, built around the Heart Shrine.
+  // The Emberhall: the Emberguard's great white temple, built around the Heart Shrine.
   const lh = building(c, 92, 47, 19, 17, { side: "s", at: 9 }, { roof: "u", wall: "A" });
   c.fill(93, 63, 109, 63, "A");
   c.set(lh!.x, lh!.y, "D");
   c.fill(96, 64, 106, 65, "a"); // the white steps
-  pendingDoors.push({ ...lh!, area: "lighthall", label: "Enter the Lighthall", sign: "✨ The Lighthall" });
+  pendingDoors.push({ ...lh!, area: "lighthall", label: "Enter the Emberhall", sign: "✨ The Emberhall" });
   places.lighthallSteps = { x: 101, y: 65 };
   places.board = { x: 110, y: 69 };
   places.bryn = { x: 112, y: 69 };
@@ -471,7 +471,7 @@ function buildOverworld(): Canvas {
 
   c.fill(GATE.x, FENCE_Y, GATE.x + 1, FENCE_Y, "+");
   // ---- The story's lanterns and places (shared/story.ts) ----
-  // Lanterns on the Lighthall's steps and round the square (Light the Way).
+  // Lanterns on the Emberhall's steps and round the square (Light the Way).
   ([[95, 64], [107, 64], [92, 67], [110, 66], [94, 71], [108, 71]] as const).forEach(([x, y], i) => { places[`lantern_${i + 1}`] = { x, y }; });
   // Shrine lanterns round Heartvale (Lantern Rounds): quarry road, lake, inn, farm, coast, Kael's gate.
   ([[91, 40], [71, 58], [160, 72], [168, 76], [203, 66], [97, 101]] as const).forEach(([x, y], i) => { places[`round_${i + 1}`] = nearFree(c, x, y); });
@@ -525,7 +525,7 @@ function insides(): Inside[] {
   const r = rng(77);
   const list: Inside[] = [];
 
-  // ---- The Lighthall: the Lightkeepers' temple, built around the Heart Shrine ----
+  // ---- The Emberhall: the Emberguard's temple, built around the Heart Shrine ----
   {
     const c = new Canvas(37, 27).room("A", "a");
     // The west wing: the ledger room (locked), Enchanter Vale's alcove, the keepers' quarters.
@@ -553,7 +553,7 @@ function insides(): Inside[] {
     const door = { x: 18, y: 26 };
     c.set(door.x, door.y, "D");
     list.push({
-      id: "lighthall", name: "The Lighthall", kind: "indoor", canvas: c, doors: [door],
+      id: "lighthall", name: "The Emberhall", kind: "indoor", canvas: c, doors: [door],
       spots: {
         heartShrine: { x: 18, y: 5 }, wake: { x: 18, y: 8 }, aldric: { x: 21, y: 9 }, celene: { x: 15, y: 9 },
         vale: { x: 3, y: 14 }, ledgerDoor: { x: 5, y: 9 }, oren: { x: 31, y: 13 }, lisette: { x: 31, y: 22 },
@@ -742,7 +742,7 @@ export const MAP_LABELS: readonly { x: number; y: number; text: string; big?: bo
   { x: 120, y: 3, text: "The Greyspine Peaks", big: true },
   { x: 92, y: 26, text: "Quarry" },
   { x: 46, y: 55, text: "The lake" },
-  { x: 101, y: 57, text: "The Lighthall" },
+  { x: 101, y: 57, text: "The Emberhall" },
   { x: 140, y: 58, text: "Trainer Row" },
   { x: 137, y: 90, text: "Pasture" },
   { x: 186, y: 69, text: "The farm" },

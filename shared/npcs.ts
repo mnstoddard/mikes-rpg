@@ -13,7 +13,7 @@ const at = (place: string) => {
 export type NpcId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "wren" | "moss" | "bryn" | "odo"
   | "furnace" | "anvil" | "stove" | "workbench" | "tanning_rack" | "spinning_wheel" | "board"
   | "archmage" | "altar" | "guildboard" | "repairer" | "alchemy_table" | "chest" | "chest_east" | "chest_forest" | "chest_farm" | "chest_inn"
-  // The Lighthall (the Lightkeepers' temple) and its people.
+  // The Emberhall (the Emberguard's temple) and its people.
   | "heart_shrine" | "aldric" | "celene" | "vale" | "oren" | "lisette" | "tomas" | "wynne" | "plinth"
   | "radiant_1" | "radiant_2" | "radiant_3" | "radiant_4"
   // The story (shared/story.ts): lanterns to light, the shrines out in Heartvale, and Rhys.
@@ -116,7 +116,7 @@ export const NPCS: NpcDef[] = [
   },
   // ---- The Mages' Guild (shared/guild.ts): the hall south-west of town, past the lake ----
   {
-    id: "archmage", name: "Archmage Ysolde", kind: "person", ...at("guild.archmage"), color: 0x5b2c9f, badge: "🔮",
+    id: "archmage", name: "Archmage Rowan", kind: "person", ...at("guild.archmage"), color: 0x5b2c9f, badge: "🔮",
     greeting: "Welcome to the Mages' Guild. Rent space in our enchanted chest, or help the guild to rise in rank.",
   },
   {
@@ -129,9 +129,9 @@ export const NPCS: NpcDef[] = [
     greeting: "Bottles, burners and a pestle. Pick two ingredients (and maybe a third) to brew.",
   },
   {
-    // Enchanting (shared/enchanting.ts): soul gems add magic to staffs, armor and tools.
+    // Enchanting (shared/enchanting.ts): refined emberstones add magic to staffs, armor and tools.
     id: "altar", name: "Enchanting altar", kind: "station", ...at("guild.altar"), color: 0x8e44ad,
-    greeting: "Runes glow on the stone. Place an item and a soul gem to enchant it.",
+    greeting: "Runes glow on the stone. Place an item and a refined emberstone to enchant it.",
   },
   {
     // Fixes worn and broken tools, weapons and armor (shared/repair.ts), for anyone.
@@ -165,7 +165,7 @@ export const NPCS: NpcDef[] = [
     id: "chest_inn", name: "Enchanted chest", kind: "station", ...at("inn.chest_inn"), color: 0x6a3fb5,
     greeting: "The chest hums with magic.",
   },
-  // ---- The Lighthall: the Lightkeepers' great white temple, at the heart of town ----
+  // ---- The Emberhall: the Emberguard's great white temple, at the heart of town ----
   {
     // Where new heroes wake (and come back to when they're knocked out).
     id: "heart_shrine", name: "The Heart Shrine", kind: "station", ...at("lighthall.heartShrine"), color: 0xfff2b0,
@@ -189,7 +189,7 @@ export const NPCS: NpcDef[] = [
   },
   {
     id: "lisette", name: "Sister Lisette", kind: "person", ...at("lighthall.lisette"), color: 0xeadcb5, badge: "📚",
-    greeting: "The library is open to every Kindled. Mind the dust: the oldest books are older than the town.",
+    greeting: "The library is open to every Emberborn. Mind the dust: the oldest books are older than the town.",
   },
   {
     id: "tomas", name: "Brother Tomas", kind: "person", ...at("lighthall.tomas"), color: 0xeadcb5, badge: "🗝️",
@@ -197,7 +197,7 @@ export const NPCS: NpcDef[] = [
   },
   {
     id: "wynne", name: "Sister Wynne", kind: "person", ...at("lighthall.wynne"), color: 0xeadcb5, badge: "🛏️",
-    greeting: "Rest whenever you need to. The Lighthall's doors never close to a Kindled.",
+    greeting: "Rest whenever you need to. The Emberhall's doors never close to an Emberborn.",
   },
   {
     id: "plinth", name: "Empty plinth", kind: "station", ...at("lighthall.plinth"), color: 0xbdb6a0,
@@ -209,7 +209,7 @@ export const NPCS: NpcDef[] = [
     greeting: "HALRIC THE DAWNBRINGER. He held the Greyspine pass for three days, and fell eleven times. \"Again.\"",
   },
   {
-    id: "radiant_2", name: "Ysra of the Saltmere", kind: "station", ...at("lighthall.radiant_2"), color: 0xf3efe4,
+    id: "radiant_2", name: "Ida of the Saltmere", kind: "station", ...at("lighthall.radiant_2"), color: 0xf3efe4,
     greeting: "YSRA OF THE SALTMERE. She lit the coast's shrines from a fishing boat. Someone has left a seashell at her feet.",
   },
   {
@@ -223,11 +223,11 @@ export const NPCS: NpcDef[] = [
   // ---- The story: lanterns, shrines and Rhys (shared/story.ts) ----
   ...([1, 2, 3, 4, 5, 6] as const).map((n): NpcDef => ({
     id: `lantern_${n}`, name: "Lantern", kind: "station", ...at(`lantern_${n}`), color: 0xffd36b,
-    greeting: "A tall iron lantern on a post. The Lightkeepers light these every evening.",
+    greeting: "A tall iron lantern on a post. The Emberguard light these every evening.",
   })),
   ...([1, 2, 3, 4, 5, 6] as const).map((n): NpcDef => ({
     id: `round_${n}`, name: "Shrine lantern", kind: "station", ...at(`round_${n}`), color: 0xffd36b,
-    greeting: "A shrine lantern on a white stone post, with the Lighthall's flame carved on it.",
+    greeting: "A shrine lantern on a white stone post, with the Emberhall's flame carved on it.",
   })),
   {
     id: "west_shrine", name: "Westroad shrine", kind: "station", ...at("westShrine"), color: 0xbdb6a0,

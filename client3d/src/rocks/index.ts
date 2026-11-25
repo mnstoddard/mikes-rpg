@@ -30,7 +30,7 @@ export interface RockType {
   /** The mining resource it gives (shared/foraging.ts), if it's in the game. */
   resource?: ResourceId;
   about: string;
-  /** Where you find it in Elderra. */
+  /** Where you find it in Embervale. */
   found: string;
   look: OreLook;
   status: ReviewStatus;
@@ -111,7 +111,7 @@ export const ROCK_TYPES: Record<RockKind, RockType> = {
   },
   soulstone: {
     id: "soulstone", name: "Emberstone vein", group: "gem", resource: "soulstone", status: "waiting",
-    about: "Pale blue crystals that glow, with sparks drifting off. Used to trap souls.",
+    about: "Pale blue crystals that glow, with sparks drifting off. Used to trap ember.",
     found: "The crystal cave.",
     look: { host: 0x4f5566, deposit: "crystal", colors: [0x5dade2, 0x8fd0f5], glow: 0x3a9ae0, glowStrength: 0.5, count: 6, size: 0.19, motes: 12 },
   },
@@ -136,14 +136,14 @@ export const ROCK_TYPES: Record<RockKind, RockType> = {
 
   // ---- Planned (story docs) ----
   aurelite: {
-    id: "aurelite", name: "Aurelite", group: "planned", status: "waiting",
-    about: "A new metal above mithril: white-gold ore with glowing sun veins. Aurelite tools, weapons and armor.",
+    id: "aurelite", name: "Embersteel", group: "planned", status: "waiting",
+    about: "A new metal above mithril: white-gold ore with glowing sun veins. Embersteel tools, weapons and armor.",
     found: "The Sundered Crown (not in the game's rules yet).",
     look: { host: 0xb3a68c, deposit: "nugget", colors: [0xf3dc9a, 0xf0c860, 0xe8bc50], metalness: 0.9, roughness: 0.2, glow: 0xffb020, glowStrength: 0.3, count: 9, glints: 7, motes: 10 },
   },
   wellglass: {
     id: "wellglass", name: "Wellglass", group: "planned", status: "waiting",
-    about: "Crystals where the Wellspring leaks. The best soul gems and enchants.",
+    about: "Crystals where the Emberheart leaks. The best refined emberstones and enchants.",
     found: "The Sundered Crown (not in the game's rules yet).",
     look: { host: 0x3e4a58, deposit: "crystal", colors: [0x5fe0d2, 0x86eee2, 0x45c4bb], glow: 0x2fd8c8, glowStrength: 0.45, count: 6, size: 0.27, motes: 16 },
   },

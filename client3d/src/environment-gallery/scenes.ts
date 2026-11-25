@@ -1,5 +1,5 @@
 // Sample scenes for the Environment Gallery: small places that put the
-// pieces together, one for each kind of place in Elderra. Every piece uses
+// pieces together, one for each kind of place in Embervale. Every piece uses
 // the variant Mike has picked for it, so he sees his choices side by side.
 import * as THREE from "three";
 import { EnvPiece, SceneId, TILE, WALL_H, createEnv, house, chimney } from "../environment";

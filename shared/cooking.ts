@@ -40,7 +40,7 @@ export const STAMINA_COST: Record<SkillId, number> = {
   foraging: 4,
   // Hunting is trained by fighting, which already costs stamina per attack.
   hunting: 0,
-  // Enchanting uses up a soul gem instead.
+  // Enchanting uses up a refined emberstone instead.
   enchanting: 0,
   // Leading a party costs nothing.
   leadership: 0,

@@ -1,8 +1,8 @@
 // Enchanting: a Wisdom skill. Add magic to a staff, a piece of armor or a tool
-// at the enchanting altar in the Mages' Guild (Archmage Ysolde teaches it).
+// at the enchanting altar in the Mages' Guild (Archmage Rowan teaches it).
 //
-// Every enchantment uses up a soul gem with souls in it (Soul trap fills
-// them). The more souls, the stronger it is. A staff also takes a cut gem,
+// Every enchantment uses up a refined emberstone with ember in it (Ember trap fills
+// them). The more ember, the stronger it is. A staff also takes a cut gem,
 // which decides what its bolts do:
 //   ruby: fire (extra damage)       sapphire: frost (the monster is slowed)
 //   emerald: poison (hurts over time)   topaz: lightning (jumps to a second monster)
@@ -16,7 +16,7 @@
 //
 // One enchantment per item. The Enchanting skill tree adds a second slot,
 // stronger enchantments, and re-enchanting. You can take an enchantment off,
-// but it's gone (and so is its soul gem); without "Re-enchant" the item can't
+// but it's gone (and so is its refined emberstone); without "Re-enchant" the item can't
 // take a new one after that.
 //
 // An enchanted item keeps its plain id and adds "+" parts:
@@ -66,7 +66,7 @@ export const enchantForGem = (gem: GemId) => ENCHANT_IDS.find((e) => ENCHANTS[e]
 
 // ---- Numbers ----
 
-/** Power from a soul gem's souls: grows with the square root, so big gems still matter but don't run away. */
+/** Power from a refined emberstone's ember: grows with the square root, so big gems still matter but don't run away. */
 export const soulPower = (souls: number, enchantingLevel: number, potency = 0) =>
   Math.max(1, Math.round(2 * Math.sqrt(souls) * (1 + 0.01 * (enchantingLevel - 1)) * (1 + potency)));
 

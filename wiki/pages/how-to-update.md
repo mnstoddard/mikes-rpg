@@ -37,4 +37,4 @@ Every game update that changes something in the world (a new item, monster, ques
 
 ## Names
 
-The game's code still uses some old names (Lightkeepers, Kindled, Elderra...). The wiki swaps them for the lore bible's names automatically. See [[Names]].
+Since version 0.10 the game uses the lore bible's names too. When a name changes, change it in the game's text and in the wiki together, and add the old name to the [[Names]] list. Ids inside the code keep their old spelling so saved games keep working.

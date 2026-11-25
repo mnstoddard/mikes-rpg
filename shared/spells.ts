@@ -1,7 +1,7 @@
 // Spellcasting: the spell bar, spell books, and what Mastery does to a spell.
 //
 // - You learn most spells as your Spellcasting level goes up (Firebolt, Ward,
-//   Frost bolt, Soul trap, Heal, Sleep). A few only come from spell books:
+//   Frost bolt, Ember trap, Heal, Sleep). A few only come from spell books:
 //   Haste, Invisibility and Frost nova. Books are rare monster drops, a guild
 //   rank reward, and a few are sold at the Mages' Guild (Alchemist Moss).
 // - The spell bar has 4 slots, plus 1 more for each spell you've raised to
@@ -10,8 +10,8 @@
 //   the spell your staff fires.
 // - Mastery of a spell makes it cheaper (-1% mana a level, down to half) and
 //   stronger or longer (+2% a level).
-// - Soul trap: a trapped monster glows purple for 60 seconds (blinking near the
-//   end). If it dies trapped, its soul goes into the caster's best soul gem.
+// - Ember trap: a trapped monster glows purple for 60 seconds (blinking near the
+//   end). If it dies trapped, its ember goes into the caster's best refined emberstone.
 import { MONSTERS, MonsterId, SPELLS, SPELL_IDS, SpellId, CombatMasteryXp, combatMasteryIn } from "./combat";
 import type { ItemId, SpellBookId } from "./items";
 export type { SpellBookId };
@@ -47,16 +47,16 @@ export function spellPower(id: SpellId, level: number, mastery: number): number 
   if (id === "haste") return Math.min(50, Math.round((d.power ?? 0) * spellBoost(mastery)));
   return Math.round(((d.power ?? 0) + Math.floor(level / 2)) * spellBoost(mastery));
 }
-/** How long it lasts, in seconds (Soul trap also gets the soul trap potion's bonus, in %). */
+/** How long it lasts, in seconds (Ember trap also gets the ember trap potion's bonus, in %). */
 export const spellSeconds = (id: SpellId, mastery: number, potionBonus = 0) =>
   Math.round((SPELLS[id].seconds ?? 0) * spellBoost(mastery) * (1 + potionBonus / 100));
 /** Frost nova's biggest hit: grows with your level. */
 export const novaMaxHit = (level: number, mastery: number) => Math.round((SPELLS.frost_nova.maxHit + Math.floor(level / 5)) * spellBoost(mastery));
 /** Frost nova reaches this far. */
 export const NOVA_RADIUS = 2;
-/** Soul trap and other target spells reach this far. */
+/** Ember trap and other target spells reach this far. */
 export const TARGET_RANGE = 6;
-/** Soul trap's glow starts blinking this many seconds before it ends. */
+/** Ember trap's glow starts blinking this many seconds before it ends. */
 export const TRAP_BLINK_SECONDS = 10;
 
 /** "Firebolt: 4 mana. A bolt of flame..." with your Mastery and level in it. */
@@ -86,7 +86,7 @@ export const SPELL_BOOK_IDS = Object.keys(SPELL_BOOKS) as SpellBookId[];
 export const isSpellBook = (item: string | null | undefined): item is SpellBookId => !!item && Object.hasOwn(SPELL_BOOKS, item);
 export const bookFor = (spell: SpellId) => `book_${spell}` as ItemId;
 
-// ---- Soul trap ----
+// ---- Ember trap ----
 
-/** Souls a monster gives a soul gem: stronger monsters give more. */
+/** Ember a monster gives a refined emberstone: stronger monsters give more. */
 export const soulsOf = (kind: MonsterId) => MONSTERS[kind].level * 4 + Math.ceil(MONSTERS[kind].hp / 2);

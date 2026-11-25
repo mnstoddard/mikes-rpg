@@ -1,5 +1,5 @@
 // Monsters that walk on two legs: goblins, the Ashbound (scouts and raiders),
-// grave ghouls, and the story's two big foes, Sable and Vael. They're built
+// grave ghouls, and the story's two big foes, Sable and Vale. They're built
 // from the smooth character (src/character), dressed with the armor library
 // and handed weapons from the weapon library, so they match the player.
 import * as THREE from "three";
@@ -21,7 +21,7 @@ interface FolkSpec {
   move: Move;
   /** Lean forward (radians): ghouls and goblins hunch. */
   hunch?: number;
-  /** Threads of stolen light round Vael. */
+  /** Threads of stolen light round Vale. */
   threads?: number;
   /** A glow round the hands or staff tip when attacking. */
   castColor?: number;
@@ -71,7 +71,7 @@ function buildFolk(S: FolkSpec) {
   c.object.scale.setScalar(sc);
   for (const j of [J.hips, J.spine, J.head, J.shL, J.shR, J.elL, J.elR, J.hipL, J.hipR, J.kneeL, J.kneeR, J.ankL, J.ankR, J.handR]) k.rig.add(j);
 
-  // Threads of light (Vael).
+  // Threads of light (Vale).
   const threads: THREE.Mesh[] = [];
   if (S.threads) {
     const m = k.mat(0xffe7a0, { glow: 0xffc84a, glowStrength: 1.6, opacity: 0.85 });
@@ -354,7 +354,7 @@ export function vael(variant: number, seed: number) {
   const shade = variant === 1;
   return folk({
     recipe: {
-      name: "Vael", frame: 0.1, height: 1.1, build: 0.15, muscle: 0.3, skin: shade ? "#c9c4d8" : "#e9c8a8", faceLength: 1.1, jaw: 0.85, chin: 1.1, cheeks: 0.2,
+      name: "Vale", frame: 0.1, height: 1.1, build: 0.15, muscle: 0.3, skin: shade ? "#c9c4d8" : "#e9c8a8", faceLength: 1.1, jaw: 0.85, chin: 1.1, cheeks: 0.2,
       eyeStyle: "classic", eyeColor: shade ? "#ffe08a" : "#d8a43a", browThick: 0.9, browTilt: 0.4, mouth: "smirk",
       hairStyle: "long", hairColor: shade ? "#f6f1e4" : "#d9d2c4", hairLength: 0.9, beard: "wizard",
       top: "robe", bottom: "skirt", shoes: "shoes", belt: "on", hat: "crown", shirtColor: "#f6f1e4", pantsColor: "#f6f1e4", shoeColor: "#e2b33c", accentColor: "#f2c14e",

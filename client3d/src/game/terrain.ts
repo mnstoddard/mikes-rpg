@@ -586,7 +586,7 @@ export class Terrain {
           const [id, variant] = prop(x, y);
           const r = facing(t, x, y, h);
           addInst(`p${x},${y}`, `${id}:${variant}`, () => (id.startsWith("box-") ? boxProp(id, variant) : createEnv(id, { variant, seed: 3, length: TILE }).object), m4(x, y, r));
-          // Things laid out on tables (the General Store's goods, books in the Lighthall...).
+          // Things laid out on tables (the General Store's goods, books in the Emberhall...).
           if (t === "table") {
             const v = Math.floor(hash2(x, y, 31) * 5);
             if (TABLE_ROOMS.has(a.id)) addInst(`t${x},${y}`, `table-top:${a.id}:${v}`, () => tableTop(a.id, v)!, m4(x, y, r));

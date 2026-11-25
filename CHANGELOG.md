@@ -6,6 +6,15 @@ in `shared/version.ts` (the game reads it from there), so update both together.
 Each update adds 0.1 to the number. Version 1.0 is saved for the finished game on Steam
 (see docs/VERSION-1.0-PLAN.md).
 
+## 0.10 · 25 November 2026 · The Emberguard, Embervale and the Emberheart
+
+- New names, to match the Emberfall story: the Lighthall is now the Emberhall, the Lightkeepers are the Emberguard, the Kindled are the Emberborn, and the land is Embervale. Its heart, deep under Heartvale, is the Emberheart.
+- Soul gems are now refined emberstones, the Soul trap spell (and its potion) is now Ember trap, and Soul Debt is now Ember Debt. Gems you already have keep working and keep their ember; only the names changed.
+- The town is called Emberhold. Archmage Ysolde is now Archmage Rowan, Ysra of the Saltmere is now Ida, and the Archmage of old is Vale.
+- New players start as Hopefuls, and earn the Ember and Flame ranks from there.
+- A new book in the Emberhall library tells the Emberfall as every child learns it, and Brother Oren's tour now starts with it. Someone has left a note in the back of the book.
+- Books about the Emberheart now agree that it burns under Heartvale.
+
 ## 0.9 · 25 November 2026 · Sound effects
 
 - Sound effects! Chopping, mining, smithing, smelting, cooking and fighting each have their own sounds: a swoosh as you swing, a thunk when the tool lands, and a little reward sound when something goes into your bag.

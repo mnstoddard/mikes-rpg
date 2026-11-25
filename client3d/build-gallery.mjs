@@ -13,8 +13,8 @@ const PICK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
 
 // Galleries built on the shared review gallery (src/gallery/app.ts + gallery/template.html).
 const SHARED = {
-  tree: { entry: "src/gallery/trees.ts", title: "Tree Gallery", heading: "Trees for Elderra", icon: AXE },
-  ore: { entry: "src/gallery/ores.ts", title: "Ore Gallery", heading: "Ores for Elderra", icon: PICK },
+  tree: { entry: "src/gallery/trees.ts", title: "Tree Gallery", heading: "Trees for Embervale", icon: AXE },
+  ore: { entry: "src/gallery/ores.ts", title: "Ore Gallery", heading: "Ores for Embervale", icon: PICK },
 };
 
 async function bundle(entry) {

@@ -35,4 +35,3 @@ Their order's rule (from a book in the Emberhall library):
 The Emberguard's leaders are [[The Ember Circle]], the dark mages who caused [[The Emberfall (disaster)|the Emberfall]]. They never died: they became [[The Undying]], living on ember the shrines steal from the land and from every Emberborn. Over 500 years they rewrote the history books and took [[The Mages' Guild]]'s old records, until everyone believed the opposite of the truth.
 :::
 
-The game's code still calls them the Lightkeepers (see [[Names]]).

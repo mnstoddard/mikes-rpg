@@ -3,9 +3,9 @@
 //     a blade, bow or staff depending on how you fight best.
 //   - Goblin-forged dagger: from Goblin Trouble (2B.4).
 //   - Severing Blade: forged by Smith Brann (4A.5) from mithril, the
-//     Thornmother fang, a cut gem and an enchant from Ysolde. It cuts threads of light.
+//     Thornmother fang, a cut gem and an enchant from Rowan. It cuts threads of light.
 //   - Lightforged weapon: forged yourself at the undercroft forge (4L.5),
-//     quenched in a filled soul gem.
+//     quenched in a filled refined emberstone.
 import * as THREE from "three";
 import { WeaponBuild, WeaponOptions } from "./types";
 import { BladeStation, GEM_COLORS, GOLD, blade, box, gem, glowMat, grip, knob, plainMat, spike, tube } from "./parts";
@@ -137,7 +137,7 @@ export function buildLightforged(o: WeaponOptions): WeaponBuild {
     const m = ob as THREE.Mesh;
     if (m.isMesh && (m.material as THREE.MeshStandardMaterial).metalness > 0.5) m.material = radiant();
   });
-  // The filled soul gem it was quenched in, glowing where the guard meets the blade.
+  // The filled refined emberstone it was quenched in, glowing where the guard meets the blade.
   const soul = gem(o.variant === 2 ? 0.065 : 0.035, 0xcfefff, 1.2);
   if (o.variant === 0) soul.position.set(0, 0.1, 0.03);
   else if (o.variant === 1) soul.position.set(0, 0.68, 0);
