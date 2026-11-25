@@ -6,6 +6,11 @@ in `shared/version.ts` (the game reads it from there), so update both together.
 Each update adds 0.1 to the number. Version 1.0 is saved for the finished game on Steam
 (see docs/VERSION-1.0-PLAN.md).
 
+## 0.5 · 25 November 2026 · Title music: Mike's own song
+
+- The login screen now plays Mike's own song, on a loop. It starts on your first click, tap or key press (browsers don't allow sound before that), and fades out when you log in.
+- Tap 🔊 at the top right of the login box to turn the music off (🔇) or back on. The game remembers your choice.
+
 ## 0.4 · 24 November 2026 · Play by listening: read-aloud and quest pictures
 
 - Read aloud: tap 🔊 next to anything people say, books, your quest, the 📜 Quests list and the chat to hear it spoken. Tap it again to stop.
