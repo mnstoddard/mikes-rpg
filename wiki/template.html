@@ -1,0 +1,335 @@
+<title>Emberfall Wiki</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,500;0,600;0,700;1,500&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<!--
+  This file is the wiki's look and behaviour. The pages themselves are put in
+  where it says WIKI_DATA by wiki/build.ts (npm run wiki). Don't paste page text
+  in here: edit wiki/pages/*.md or the game, then rebuild.
+-->
+<style>
+/* Layout: a reference book. Sticky search bar on top, a contents rail on the left, the article in a readable column with its fact box on the right. */
+:root {
+  --bg: #f5f6f8;
+  --paper: #ffffff;
+  --ink: #1b2029;
+  --muted: #5a6373;
+  --line: #dfe3ea;
+  --soft: #eef1f5;
+  --link: #1d5aa6;
+  --link-visited: #5b3fa0;
+  --new: #b4232a;
+  --ember: #c2410c;
+  --ember-soft: #fff1e8;
+  --secret-bg: #fbeff0;
+  --secret-line: #d9a3a8;
+  --secret-ink: #8c1d27;
+  --note-bg: #eef5fd;
+  --note-line: #a9c6ea;
+  --display: "Spectral", "Iowan Old Style", Georgia, serif;
+  --body: "Source Sans 3", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111318; --paper: #181b22; --ink: #e5e8ee; --muted: #9aa3b2; --line: #2b303b; --soft: #20242d;
+    --link: #82b2ff; --link-visited: #b9a2f2; --new: #ff8a8f; --ember: #f39257; --ember-soft: #2a1d16;
+    --secret-bg: #2a1a1d; --secret-line: #6b3a41; --secret-ink: #ffb3ba; --note-bg: #172231; --note-line: #2f4a6e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111318; --paper: #181b22; --ink: #e5e8ee; --muted: #9aa3b2; --line: #2b303b; --soft: #20242d;
+  --link: #82b2ff; --link-visited: #b9a2f2; --new: #ff8a8f; --ember: #f39257; --ember-soft: #2a1d16;
+  --secret-bg: #2a1a1d; --secret-line: #6b3a41; --secret-ink: #ffb3ba; --note-bg: #172231; --note-line: #2f4a6e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--bg); color: var(--ink); }
+body { font: 16px/1.6 var(--body); margin: 0; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--paper); }
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; border-radius: 3px; }
+a.new { color: var(--new); cursor: help; }
+
+/* ---- top bar ---- */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--paper); border-bottom: 1px solid var(--line); }
+.top-in { display: flex; align-items: center; gap: 14px; padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); max-width: 1320px; margin: 0 auto; }
+.brand { display: flex; align-items: baseline; gap: 8px; color: var(--ink); white-space: nowrap; }
+.brand:hover { text-decoration: none; }
+.brand b { font: 700 22px/1 var(--display); letter-spacing: .01em; }
+.brand b span { color: var(--ember); }
+.brand small { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .12em; }
+.menu-btn { display: none; }
+.search { position: relative; flex: 1; max-width: 520px; margin-left: auto; }
+.search input { width: 100%; font: inherit; font-size: 15px; padding: 8px 12px 8px 34px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+.search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; stroke: var(--muted); fill: none; stroke-width: 2; }
+.results { position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,.14); overflow: hidden; }
+.results a { display: flex; gap: 10px; padding: 8px 12px; color: var(--ink); border-top: 1px solid var(--soft); }
+.results a:first-child { border-top: 0; }
+.results a.on, .results a:hover { background: var(--soft); text-decoration: none; }
+.results .ri { width: 22px; text-align: center; flex: none; }
+.results .rt { font-weight: 600; }
+.results .rc { color: var(--muted); font-size: 13px; margin-left: auto; white-space: nowrap; }
+.toggle { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); white-space: nowrap; cursor: pointer; user-select: none; }
+.toggle input { accent-color: var(--ember); }
+
+/* ---- frame ---- */
+.frame { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 32px; max-width: 1320px; margin: 0 auto; padding-block: 24px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.side { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 72px); align-self: start; max-height: calc(100vh - 96px); overflow: auto; font-size: 14px; }
+.side h3 { font: 600 11px/1 var(--body); text-transform: uppercase; letter-spacing: .14em; color: var(--muted); margin: 18px 0 8px; }
+.side h3:first-child { margin-top: 0; }
+.side a { display: flex; justify-content: space-between; gap: 8px; padding: 3px 8px; margin: 0 -8px; border-radius: 6px; color: var(--ink); }
+.side a:hover { background: var(--soft); text-decoration: none; }
+.side a.on { background: var(--ember-soft); color: var(--ember); font-weight: 600; }
+.side a span:last-child { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; }
+
+/* ---- article ---- */
+article { min-width: 0; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 28px 32px 32px; }
+.crumb { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+h1 { font: 600 34px/1.15 var(--display); margin: 0 0 4px; text-wrap: balance; }
+.lede { color: var(--muted); margin: 0 0 18px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.content { display: flow-root; }
+.content h2 { font: 600 24px/1.25 var(--display); margin: 30px 0 10px; padding-bottom: 4px; border-bottom: 1px solid var(--line); text-wrap: balance; }
+.content h3 { font: 600 19px/1.3 var(--display); margin: 22px 0 6px; }
+.content h4 { font-size: 16px; margin: 18px 0 4px; }
+.content p, .content ul, .content ol { max-width: 72ch; }
+.content p { margin: 0 0 12px; }
+.content ul, .content ol { padding-left: 22px; margin: 0 0 12px; }
+.content li { margin: 3px 0; }
+.content blockquote { margin: 0 0 12px; padding: 4px 0 4px 16px; border-left: 3px solid var(--line); color: var(--muted); font-style: italic; max-width: 70ch; }
+.content blockquote p { margin: 6px 0; }
+code { font: 500 .86em var(--mono); background: var(--soft); padding: 1px 5px; border-radius: 4px; }
+.tw { overflow-x: auto; margin: 0 0 16px; }
+.content table { border-collapse: collapse; font-size: 14.5px; min-width: 50%; }
+.content th, .content td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; font-variant-numeric: tabular-nums; }
+.content th { background: var(--soft); font-weight: 600; }
+.content td { min-width: 7em; }
+.box { border: 1px solid; border-radius: 8px; padding: 10px 14px 4px; margin: 0 0 14px; max-width: 72ch; }
+.box-label { font: 700 11px/1 var(--body); text-transform: uppercase; letter-spacing: .12em; margin: 2px 0 8px; }
+.box.secret { background: var(--secret-bg); border-color: var(--secret-line); }
+.box.secret .box-label { color: var(--secret-ink); }
+.box.note { background: var(--note-bg); border-color: var(--note-line); }
+body.no-secrets .box.secret { display: none; }
+body.no-secrets .secret-only { display: none; }
+
+.infobox { float: right; width: 290px; margin: 0 0 16px 24px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); font-size: 14px; overflow: hidden; }
+.infobox .ib-head { text-align: center; padding: 14px 12px 10px; border-bottom: 1px solid var(--line); }
+.infobox .ib-icon { font-size: 46px; line-height: 1.1; }
+.infobox .ib-title { font: 600 18px/1.25 var(--display); margin-top: 4px; }
+.infobox .ib-cat { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
+.infobox dl { margin: 0; display: grid; grid-template-columns: auto 1fr; }
+.infobox dt, .infobox dd { margin: 0; padding: 6px 12px; border-top: 1px solid var(--line); }
+.infobox dt { font-weight: 600; color: var(--muted); }
+.infobox dl > :nth-child(-n+2) { border-top: 0; }
+
+.toc { display: inline-block; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); padding: 10px 16px 10px 14px; margin: 0 0 18px; font-size: 14px; }
+.toc b { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin-bottom: 4px; }
+.toc ol { margin: 0; padding-left: 20px; }
+
+.foot { clear: both; margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--muted); display: grid; gap: 8px; }
+.foot .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-block; padding: 2px 9px; border: 1px solid var(--line); border-radius: 999px; font-size: 13px; background: var(--bg); }
+.made { display: inline-flex; gap: 6px; align-items: center; padding: 2px 9px; border-radius: 999px; font-size: 12.5px; font-weight: 600; }
+.made.game { background: var(--note-bg); color: var(--link); }
+.made.written { background: var(--ember-soft); color: var(--ember); }
+
+/* ---- main page and lists ---- */
+.cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin: 10px 0 20px; }
+.cat { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; background: var(--bg); min-width: 0; }
+.cat h3 { margin: 0 0 4px; font: 600 18px/1.2 var(--display); display: flex; justify-content: space-between; gap: 8px; }
+.cat h3 span { font: 400 13px var(--body); color: var(--muted); }
+.cat p { margin: 0; font-size: 14px; color: var(--muted); }
+.list { columns: 2 260px; column-gap: 28px; }
+.list .letter { font: 600 18px var(--display); color: var(--ember); margin: 8px 0 4px; break-after: avoid; }
+.list .row { break-inside: avoid; padding: 3px 0; }
+.list .row small { display: block; color: var(--muted); font-size: 13px; line-height: 1.35; }
+.hit mark { background: var(--ember-soft); color: inherit; padding: 0 1px; border-radius: 2px; }
+
+@media (max-width: 900px) {
+  .frame { grid-template-columns: minmax(0, 1fr); padding-top: 14px; }
+  .side { position: fixed; z-index: 25; top: calc(env(safe-area-inset-top, 0px) + 58px); left: 0; bottom: 0; width: min(290px, 85vw); max-height: none; background: var(--paper); border-right: 1px solid var(--line); padding: 16px; padding-left: max(16px, env(safe-area-inset-left, 0px)); transform: translateX(-105%); transition: transform .2s; }
+  body.menu-open .side { transform: none; box-shadow: 10px 0 30px rgba(0,0,0,.2); }
+  .menu-btn { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); font-size: 18px; cursor: pointer; flex: none; }
+  .brand small, .toggle .tl { display: none; }
+  article { padding: 18px 16px 22px; }
+  h1 { font-size: 28px; }
+  .infobox { float: none; width: 100%; margin: 0 0 16px; }
+}
+@media (max-width: 520px) { .brand b { font-size: 19px; } .top-in { gap: 10px; } }
+@media (prefers-reduced-motion: reduce) { .side { transition: none; } }
+</style>
+
+<header class="top">
+  <div class="top-in">
+    <button class="menu-btn" id="menuBtn" aria-label="Browse the wiki">☰</button>
+    <a class="brand" href="#main-page"><b>Ember<span>fall</span></b><small>Wiki</small></a>
+    <div class="search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg>
+      <input id="q" type="search" placeholder="Search the wiki" autocomplete="off" aria-label="Search the wiki">
+      <div class="results" id="results" hidden></div>
+    </div>
+    <label class="toggle" title="Secrets are the twists players shouldn't learn early. Turn this off to read the wiki the way a player would.">
+      <input type="checkbox" id="secrets" checked><span>🔒</span><span class="tl">Show secrets</span>
+    </label>
+  </div>
+</header>
+
+<div class="frame">
+  <nav class="side" id="side" aria-label="Categories"></nav>
+  <article id="page" aria-live="polite"></article>
+</div>
+
+<script>
+const WIKI = /*WIKI_DATA*/null;
+const bySlug = new Map(WIKI.pages.map((p) => [p.s, p]));
+const CAT_ICONS = { Wiki: "📖", Lore: "🔥", History: "⏳", Story: "🎭", Places: "🗺️", Factions: "⚜️", People: "🧑", Quests: "📜", Skills: "📊", Spells: "🪄", Monsters: "🐺", Items: "🎒", Mechanics: "⚙️", Books: "📚", Updates: "🆕" };
+const CAT_BLURBS = {
+  Wiki: "About this wiki, and how to keep it current.", Lore: "The Heartfire, the ember, and what's really going on.", History: "Five hundred years, as it happened and as people tell it.",
+  Story: "The main story, the twists, and the quests still to build.", Places: "Every region, town, building and cave.", Factions: "The Emberguard, the Ashbound and everyone between.",
+  People: "Everyone in Emberhold, and the story's other characters.", Quests: "Every quest in the game today, step by step.", Skills: "Disciplines and skills, with their skill trees.",
+  Spells: "Every spell, its level and its mana.", Monsters: "Every monster, where it lives and what it drops.", Items: "Everything you can carry, where to get it, and what it's for.",
+  Mechanics: "The numbers behind the game.", Books: "The books on the game's shelves.", Updates: "Every game update, by version.",
+};
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const strip = (h) => h.replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/\s+/g, " ").trim();
+const catSlug = (c) => "cat-" + c.toLowerCase();
+
+// Links between pages, for "What links here".
+const backlinks = new Map();
+for (const p of WIKI.pages) for (const m of p.h.matchAll(/data-to="([^"]+)"/g)) { if (m[1] === p.s) continue; if (!backlinks.has(m[1])) backlinks.set(m[1], new Set()); backlinks.get(m[1]).add(p.s); }
+const textOf = new Map(WIKI.pages.map((p) => [p.s, (p.t + " " + p.a.join(" ") + " " + strip(p.sum) + " " + strip(p.h)).toLowerCase()]));
+
+// ---- sidebar ----
+const side = document.getElementById("side");
+function drawSide(current) {
+  const counts = {}; for (const p of WIKI.pages) counts[p.c] = (counts[p.c] || 0) + 1;
+  side.innerHTML = `<h3>Start</h3><a href="#main-page" class="${current === "main-page" ? "on" : ""}"><span>Main page</span></a><a href="#random"><span>Random page</span></a>` +
+    `<h3>Categories</h3>` + WIKI.categories.map((c) => `<a href="#${catSlug(c)}" class="${current === catSlug(c) ? "on" : ""}"><span>${CAT_ICONS[c] || ""} ${esc(c)}</span><span>${counts[c]}</span></a>`).join("") +
+    `<h3>This wiki</h3><a href="#how-to-update-the-wiki"><span>How to update it</span></a><a href="#names"><span>Names</span></a><a href="#version-history"><span>Game version ${esc(WIKI.version)}</span></a>`;
+}
+
+// ---- pages ----
+const view = document.getElementById("page");
+function infobox(p) {
+  if (!p.ib.length) return "";
+  return `<aside class="infobox"><div class="ib-head">${p.i ? `<div class="ib-icon">${p.i}</div>` : ""}<div class="ib-title">${esc(p.t)}</div><div class="ib-cat">${esc(p.c)}</div></div>` +
+    (p.ib.length ? `<dl>${p.ib.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>` : "") + `</aside>`;
+}
+function toc(html) {
+  const hs = [...html.matchAll(/<h2 id="([^"]+)">(.*?)<\/h2>/g)];
+  if (hs.length < 3) return "";
+  return `<nav class="toc" aria-label="Contents"><b>Contents</b><ol>${hs.map((h) => `<li><a href="#" data-jump="${h[1]}">${strip(h[2])}</a></li>`).join("")}</ol></nav>`;
+}
+function showPage(p) {
+  const links = [...(backlinks.get(p.s) || [])].map((s) => bySlug.get(s)).filter(Boolean).sort((a, b) => a.t.localeCompare(b.t));
+  const made = p.w
+    ? `<span class="made written">✍️ Written page</span> Edit <code>${esc(p.src[0])}</code>${p.src.length > 1 ? `; the "In the game" part comes from ${p.src.slice(1).map((s) => `<code>${esc(s)}</code>`).join(", ")}` : ""}.`
+    : `<span class="made game">⚙️ Made from the game's code</span> ${p.src.map((s) => `<code>${esc(s)}</code>`).join(", ")}. Change the game, then rebuild the wiki.`;
+  let extra = "";
+  if (p.s === "main-page") extra = mainExtras();
+  view.innerHTML = `<div class="crumb"><a href="#${catSlug(p.c)}">${CAT_ICONS[p.c] || ""} ${esc(p.c)}</a></div><h1>${esc(p.t)}</h1>` +
+    (p.sum ? `<p class="lede">${p.sum}</p>` : `<div class="lede"></div>`) +
+    `<div class="content">${infobox(p)}${toc(p.h)}${p.h}${extra}</div>` +
+    `<div class="foot"><div>${made}${p.r ? ` Some names here were swapped from the game's old ones (see <a href="#names">Names</a>).` : ""}</div>` +
+    `<div class="chips">Category: <a class="chip" href="#${catSlug(p.c)}">${esc(p.c)}</a></div>` +
+    (links.length ? `<div><b>What links here:</b> ${links.map((l) => `<a href="#${l.s}">${esc(l.t)}</a>`).join(", ")}</div>` : "") + `</div>`;
+  document.title = p.s === "main-page" ? "Emberfall Wiki" : `${p.t} · Emberfall Wiki`;
+}
+function mainExtras() {
+  const counts = {}; for (const p of WIKI.pages) counts[p.c] = (counts[p.c] || 0) + 1;
+  return `<h2 id="s-browse">Browse</h2><div class="cats">` + WIKI.categories.filter((c) => c !== "Wiki").map((c) =>
+    `<a class="cat" href="#${catSlug(c)}"><h3>${CAT_ICONS[c] || ""} ${esc(c)} <span>${counts[c]}</span></h3><p>${esc(CAT_BLURBS[c] || "")}</p></a>`).join("") + `</div>` +
+    `<p style="color:var(--muted);font-size:14px">${WIKI.pages.length} pages. Built ${esc(WIKI.built)} from game version ${esc(WIKI.version)}.</p>`;
+}
+function rows(list, q) {
+  let letter = "";
+  return `<div class="list">` + list.map((p) => {
+    const L = p.t.replace(/^(The|A) /, "")[0].toUpperCase();
+    const head = !q && L !== letter ? `<div class="letter">${(letter = L)}</div>` : "";
+    return `${head}<div class="row"><a href="#${p.s}">${p.i ? p.i + " " : ""}${esc(p.t)}</a>${p.sum ? `<small>${q ? snippet(p, q) : strip(p.sum)}</small>` : q ? `<small>${snippet(p, q)}</small>` : ""}</div>`;
+  }).join("") + `</div>`;
+}
+function showCategory(c) {
+  const list = WIKI.pages.filter((p) => p.c === c).sort((a, b) => a.t.replace(/^(The|A) /, "").localeCompare(b.t.replace(/^(The|A) /, "")));
+  view.innerHTML = `<div class="crumb"><a href="#main-page">Main page</a></div><h1>${CAT_ICONS[c] || ""} ${esc(c)}</h1><p class="lede">${esc(CAT_BLURBS[c] || "")} ${list.length} pages.</p><div class="content">${rows(list)}</div>`;
+  document.title = `${c} · Emberfall Wiki`;
+}
+function snippet(p, q) {
+  const t = strip(p.sum + " " + p.h); const i = t.toLowerCase().indexOf(q);
+  if (i < 0) return esc(t.slice(0, 120));
+  const s = Math.max(0, i - 50);
+  return `<span class="hit">${s ? "…" : ""}${esc(t.slice(s, i))}<mark>${esc(t.slice(i, i + q.length))}</mark>${esc(t.slice(i + q.length, i + q.length + 80))}…</span>`;
+}
+function search(q) {
+  q = q.trim().toLowerCase(); if (!q) return [];
+  const scored = [];
+  for (const p of WIKI.pages) {
+    const t = p.t.toLowerCase();
+    let s = t === q ? 100 : t.startsWith(q) ? 80 : t.includes(q) ? 60 : p.a.some((a) => a.toLowerCase().includes(q)) ? 50 : 0;
+    if (!s) { const n = textOf.get(p.s).split(q).length - 1; if (n) s = Math.min(40, 10 + n * 3); }
+    if (s) scored.push([s, p]);
+  }
+  return scored.sort((a, b) => b[0] - a[0] || a[1].t.localeCompare(b[1].t)).map((x) => x[1]);
+}
+let lastQuery = "";
+function showSearch(q) {
+  const list = search(q);
+  view.innerHTML = `<div class="crumb"><a href="#main-page">Main page</a></div><h1>Search: ${esc(q)}</h1><p class="lede">${list.length ? `${list.length} page${list.length > 1 ? "s" : ""} mention it.` : "No page mentions that yet."}</p><div class="content">${rows(list, q.trim().toLowerCase())}</div>`;
+}
+
+// ---- routing (plain #slug links) ----
+function route() {
+  let h = decodeURIComponent(location.hash.slice(1)) || "main-page";
+  if (h === "random") { const p = WIKI.pages[Math.floor(Math.random() * WIKI.pages.length)]; location.replace("#" + p.s); return; }
+  if (h === "search") { showSearch(lastQuery); drawSide(h); return; }
+  const cat = WIKI.categories.find((c) => catSlug(c) === h);
+  if (cat) showCategory(cat); else showPage(bySlug.get(h) || bySlug.get("main-page"));
+  drawSide(h);
+  document.body.classList.remove("menu-open");
+  window.scrollTo(0, 0);
+}
+window.addEventListener("hashchange", route);
+view.addEventListener("click", (e) => {
+  const j = e.target.closest("[data-jump]");
+  if (j) { e.preventDefault(); document.getElementById(j.dataset.jump)?.scrollIntoView({ behavior: "smooth", block: "start" }); }
+});
+
+// ---- search box ----
+const q = document.getElementById("q"), results = document.getElementById("results");
+let sel = -1;
+function drawResults() {
+  const list = search(q.value).slice(0, 8);
+  sel = -1;
+  if (!q.value.trim()) { results.hidden = true; return; }
+  results.innerHTML = list.map((p) => `<a href="#${p.s}"><span class="ri">${p.i || "📄"}</span><span class="rt">${esc(p.t)}</span><span class="rc">${esc(p.c)}</span></a>`).join("") +
+    `<a href="#search" data-all="1"><span class="ri">🔎</span><span>Every page that mentions “${esc(q.value.trim())}”</span></a>`;
+  results.hidden = false;
+}
+q.addEventListener("input", drawResults);
+q.addEventListener("keydown", (e) => {
+  const items = [...results.querySelectorAll("a")];
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); sel = (sel + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length; items.forEach((a, i) => a.classList.toggle("on", i === sel)); }
+  else if (e.key === "Enter") { e.preventDefault(); const a = items[sel] || items[items.length - 1]; if (a) a.click(); }
+  else if (e.key === "Escape") { results.hidden = true; q.blur(); }
+});
+results.addEventListener("click", (e) => {
+  const a = e.target.closest("a"); if (!a) return;
+  lastQuery = q.value;
+  if (a.dataset.all) { e.preventDefault(); if (location.hash === "#search") route(); else location.hash = "search"; }
+  results.hidden = true; q.value = ""; q.blur();
+});
+document.addEventListener("click", (e) => { if (!e.target.closest(".search")) results.hidden = true; if (!e.target.closest(".side, #menuBtn")) document.body.classList.remove("menu-open"); });
+document.addEventListener("keydown", (e) => { if (e.key === "/" && document.activeElement !== q) { e.preventDefault(); q.focus(); } });
+document.getElementById("menuBtn").addEventListener("click", () => document.body.classList.toggle("menu-open"));
+
+// ---- secrets toggle (remembered in this browser only) ----
+const secrets = document.getElementById("secrets");
+try { if (localStorage.getItem("emberfall-wiki-secrets") === "off") secrets.checked = false; } catch {}
+const applySecrets = () => { document.body.classList.toggle("no-secrets", !secrets.checked); try { localStorage.setItem("emberfall-wiki-secrets", secrets.checked ? "on" : "off"); } catch {} };
+secrets.addEventListener("change", applySecrets);
+applySecrets();
+route();
+</script>

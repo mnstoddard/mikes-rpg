@@ -160,6 +160,8 @@ const TOWN: Book[] = [
 ];
 
 const BOOKS: Record<string, Book[]> = { lighthall: LIGHTHALL, guild: GUILD };
+/** Every book, by where its shelves are (the wiki lists them all: wiki/build.ts). */
+export const ALL_BOOKS: Record<"lighthall" | "guild" | "town", Book[]> = { lighthall: LIGHTHALL, guild: GUILD, town: TOWN };
 
 /** The book on the shelf at tile (x, y), in the area with this id. */
 export function bookAt(areaId: string, x: number, y: number): Book {
