@@ -13,6 +13,15 @@ export interface GameUpdate { version: string; date: string; title: string; chan
 
 export const UPDATES: GameUpdate[] = [
   {
+    version: "0.13",
+    date: "2026-11-25",
+    title: "A faster, smoother game",
+    changes: [
+      { text: "The game draws about half as much in town, so it runs smoother, especially on laptops and phones. Nothing looks different: roofs now skip the hidden sides of each roof tile, hair skips the part tucked inside the head, and the Emberhall's stone statues are shaped a little more simply (they look the same)." },
+      { text: "On slower computers with very sharp screens, the game now draws a little softer when it starts to slow down, and goes back to full sharpness when there's time to spare. Computers that keep up see no change." },
+    ],
+  },
+  {
     version: "0.12",
     date: "2026-11-25",
     title: "Training, the new quest menu and fixes",
