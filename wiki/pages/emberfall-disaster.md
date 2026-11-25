@@ -14,5 +14,5 @@ infobox.Caused_by: Everyone says no one. (See below.)
 *"The land's fire burst in anger. No one was to blame."* That's what every child is taught, and what the Emberguard's books say (see [[Books in the game]]).
 
 ::: secret
-The Emberfall wasn't natural. [[The Ember Circle]], the greatest mages of the Old Kingdom led by [[Archmage Vale]], dug a great shaft down to [[The Heartfire]] and cast a spell to drink from it directly, so they could live forever. The fire burst up out of their shaft. The shaft is still there, under [[The Emberhall]].
+The Emberfall wasn't natural. [[The Ember Circle]], the greatest mages of the Old Kingdom led by [[Archmage Vale]], dug a great shaft down to [[The Emberheart]] and cast a spell to drink from it directly, so they could live forever. The fire burst up out of their shaft. The shaft is still there, under [[The Emberhall]].
 :::
