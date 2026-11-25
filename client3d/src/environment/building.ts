@@ -592,8 +592,8 @@ function gableRoof(o: RoofOptions, layer: (parts: Parts, slope: Slope, rng: Rng)
 
 /** Place a slab on one roof slope: `t` is how far down the slope (0 ridge, 1 eave). */
 interface Slope { len: number; ang: number; side: number; w: number; top: number }
-function onSlope(parts: Parts, s: Slope, t: number, w: number, depth: number, thick: number, color: number, x: number, lift = 0) {
-  const g = new THREE.BoxGeometry(w, thick, depth);
+function onSlope(parts: Parts, s: Slope, t: number, w: number, depth: number, thick: number, color: number, x: number, lift = 0, shingle = false, end = false) {
+  const g = shingle ? shingleGeo(w, thick, depth, s.side, end) : new THREE.BoxGeometry(w, thick, depth);
   g.translate(0, thick / 2 + lift, 0);
   g.rotateX(s.side * s.ang);
   const top = s.top;
@@ -601,6 +601,24 @@ function onSlope(parts: Parts, s: Slope, t: number, w: number, depth: number, th
   const dy = -Math.sin(s.ang) * t * s.len;
   g.translate(x, dy + top, s.side * dz);
   parts.add(g, color);
+}
+
+/**
+ * One roof tile, keeping only the faces you can see: its top and its lower
+ * edge (and its sides at the ends of a row). The rest is hidden under the
+ * roof board or the next row up, so drawing it would only slow the game down.
+ * A box has 12 triangles; this has 4 (or 8 at a row's end).
+ */
+function shingleGeo(w: number, thick: number, depth: number, side: number, end: boolean): THREE.BufferGeometry {
+  const g = new THREE.BoxGeometry(w, thick, depth);
+  // BoxGeometry's face groups, in order: +x, -x, +y (top), -y, +z, -z.
+  const keep = [2, side > 0 ? 4 : 5];
+  if (end) keep.push(0, 1);
+  const idx = g.index!, out: number[] = [];
+  for (const k of keep) for (let i = g.groups[k].start; i < g.groups[k].start + g.groups[k].count; i++) out.push(idx.getX(i));
+  g.setIndex(out);
+  g.clearGroups();
+  return g;
 }
 
 function roofPiece(group: THREE.Group, h: number): EnvPiece {
@@ -627,7 +645,7 @@ export const tileRoof: RoofBuilder = (o) => {
       for (let x = -s.w / 2 + 0.25; x < s.w / 2; x += 0.5) {
         const sx = x + (r % 2) * 0.25;
         if (sx > s.w / 2 - 0.1) continue;
-        onSlope(parts, s, t, 0.48, 0.34, 0.07, jitter(r % 2 ? p.a : p.b, rng, 0.06), sx, -0.12 + (r / rows) * 0.0);
+        onSlope(parts, s, t, 0.48, 0.34, 0.07, jitter(r % 2 ? p.a : p.b, rng, 0.06), sx, -0.12 + (r / rows) * 0.0, true, Math.abs(sx) > s.w / 2 - 0.6);
       }
     }
     onSlope(parts, s, 0.5, s.w, s.len, 0.1, shade(p.b, 0.7), 0, -0.2);
@@ -658,7 +676,7 @@ export const goldRoof: RoofBuilder = (o) => {
       for (let x = -s.w / 2 + 0.2; x < s.w / 2; x += 0.4) {
         const sx = x + (r % 2) * 0.2;
         if (sx > s.w / 2 - 0.1) continue;
-        onSlope(parts, s, t, 0.38, 0.32, 0.06, jitter(r % 2 ? 0xe0b84a : 0xd4a83a, rng, 0.05), sx, -0.1);
+        onSlope(parts, s, t, 0.38, 0.32, 0.06, jitter(r % 2 ? 0xe0b84a : 0xd4a83a, rng, 0.05), sx, -0.1, true, Math.abs(sx) > s.w / 2 - 0.5);
       }
     }
     onSlope(parts, s, 0.5, s.w, s.len, 0.1, 0x9a7a2a, 0, -0.18);

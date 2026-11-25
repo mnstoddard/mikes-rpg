@@ -734,7 +734,8 @@ export const statue: Builder = (o) => {
   const lantern = o.variant === 0;
   const hero = createCharacter(lantern
     ? { hairStyle: "long", top: "robe", bottom: "skirt", frame: 0.6, beard: "none" }
-    : { hairStyle: "short", top: "robe", bottom: "skirt", beard: "wizard", glasses: "round" });
+    : { hairStyle: "short", top: "robe", bottom: "skirt", beard: "wizard", glasses: "round" },
+    { detail: 0.5 }); // plain white stone: a less finely shaped head and hair looks the same and draws much faster
   hero.setAnim("idle");
   for (let i = 0; i < 30; i++) hero.update(0.1, 0);
   hero.setAnim(null);
