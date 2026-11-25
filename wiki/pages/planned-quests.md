@@ -25,7 +25,7 @@ These are planned, not built. (Built quests are on [[Quests]].) None are needed 
 | The Warm Well | [[Captain Bryn]] | Fish a glowing minnow out of the square's well. | Fishing | The well is heated from below. |
 | Brann's Coal | [[Smith Brann]] | Bring fuel from three kinds of wood for his 500-year-old coal. | Woodcutting, Smithing | The coal is an Emberfall shard. |
 | Odo's Old Seed | [[Farmer Odo]] | Plant one seed from Odo's jar. It glows at dusk. | Farming | Before the shrines, the whole land grew like this. |
-| Lanterns for the Dead | [[Sister Wynne]] | Leave a lit lantern at each Radiant statue. Orla's keeps going out. | Walking, night | Orla's spark isn't resting. |
+| Lanterns for the Dead | [[Sister Wynne]] | Leave a lit lantern at each statue of the Extinguished. Orla's keeps going out. | Walking, night | Orla's spark isn't resting. |
 | The Night Key | [[Brother Tomas]] | Wait in the dark hall to see who goes into the ledger room. | Sneaking (night) | You glimpse Enchanter Vale with the ledger. |
 | Ask the Totem | [[Woodworker Rook]] | Carve a small totem; learn to hide a note in the base. | Handicraft | How the Ashbound send messages. |
 | The Scratched Name | [[Brother Oren]] | Clean the empty plinth. One letter is left: S. | Talking, Handicraft | The plinth was Sable's. |
@@ -39,7 +39,7 @@ These are planned, not built. (Built quests are on [[Quests]].) None are needed 
 |---|---|---|---|---|
 | When the Woods Glowed | [[Forester Holt]] | Protect the last glowing tree from Blighted boars. | Woodcutting, Combat | The Dark Forest is what's left when the ember is gone. |
 | Wren's Dark Map | [[Herbalist Wren]] | Mark the Dark Forest's edge, then again a week later. | Foraging | It's spreading toward Emberhold. |
-| The Ghost Who Counts | A ghost in the Graveyard | Bring a token from Halric's statue. | Spellcasting, Talking | Radiants aren't honoured, they're drained. |
+| The Ghost Who Counts | A ghost in the Graveyard | Bring a token from Halric's statue. | Spellcasting, Talking | The Extinguished weren't honoured, they were drained. |
 | The Spider's Hoard | Huntmaster Kael | Take back the glowing stones the Thornmother's young stole. | Combat, Mining | Blighted creatures are starving for ember. |
 | Rhys's Lucky Stone | [[Rhys]] | Find the stone Rhys woke up holding. | Exploring | Every Emberborn's pebble is their thread's anchor. |
 

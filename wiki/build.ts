@@ -76,6 +76,8 @@ const RENAMES: [RegExp, string][] = [
   [/Ysolde/g, "Rowan"],
   [/Ysra/g, "Ida"],
   [/Lighthall/g, "Emberhall"],
+  [/\bthe Radiants\b/g, "the Extinguished"],
+  [/\bRadiants\b/g, "Extinguished"],
   [/Soul gems/g, "Refined emberstones"],
   [/Soul gem/g, "Refined emberstone"],
   [/soul gems/g, "refined emberstones"],
@@ -626,7 +628,7 @@ function mechanicsPages() {
 
 function namesPage() {
   gamePage({ title: "Names", category: "Wiki", icon: "🏷️", sources: ["wiki/build.ts"], summary: "Old names from earlier versions of the game, and the names everything uses now." }, () => [
-    "The game and the wiki both use the lore bible's names. Until version 0.10 the game had some older names, listed here so old notes and bug reports still make sense. If an old name ever slips back into the game's text, the wiki swaps it for the new one, and the page it's on says so at the bottom.",
+    "The game and the wiki both use the lore bible's names. Until version 0.10 the game had some older names, listed here so old notes and bug reports still make sense. When the wiki renames something before the game does (like the Radiants, now the Extinguished), or an old name slips back into the game's text, the wiki swaps it for the new one, and the page it's on says so at the bottom.",
     table(["Old name", "Name now"], RENAMES.map(([re, to]) => [re.source.replace(/\\b|\(the \)\?|\?|\\/g, ""), to])),
     "Ids inside the code (like `lighthall` or `soul_trap`) keep their old spelling so saved games keep working. Players never see them.",
   ].join("\n\n"));

@@ -10,4 +10,4 @@ infobox.Result: The [[Old Kingdom]] falls; [[Brightcrown]] destroyed
 
 In year 40 the first [[Emberborn]] woke at [[The shrines|the new shrines]] and won the war.
 
-People today say *"nobody remembers how the war began."* [[Brother Oren]] tells the Emberguard's version on his tour of the Hall of Champions.
+People today say *"nobody remembers how the war began."* [[Brother Oren]] tells the Emberguard's version on his tour of the statues of [[The Extinguished]].

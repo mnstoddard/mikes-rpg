@@ -5,7 +5,7 @@ summary: The Emberguard's great white temple, where you wake.
 aliases: Emberhall, Lighthall, The Lighthall
 infobox.Owner: [[The Emberguard]]
 ---
-**The Emberhall** is [[The Emberguard]]'s great white temple in [[Emberhold]], and where every new [[Emberborn]] wakes, on the steps of [[The Heart Shrine]]. Inside are the Hall of Champions with the statues of the [[Radiants]], a library ([[Sister Lisette]]), a dormitory ([[Sister Wynne]]), a locked ledger room ([[Brother Tomas]]), and [[Enchanter Vale]]'s corner.
+**The Emberhall** is [[The Emberguard]]'s great white temple in [[Emberhold]], and where every new [[Emberborn]] wakes, on the steps of [[The Heart Shrine]]. Inside are the statues of [[The Extinguished]], a library ([[Sister Lisette]]), a dormitory ([[Sister Wynne]]), a locked ledger room ([[Brother Tomas]]), and [[Enchanter Vale]]'s corner.
 
 A ring-of-fire mark is carved over its front door.
 
