@@ -3,7 +3,7 @@
 // Browsers don't let a page start sound by itself until the player has clicked,
 // tapped or pressed a key on it. So we try to start right away, and if the
 // browser says no, the song starts on the player's first click, tap or key press
-// (typing a username counts). The 🔊 / 🔇 button on the login box turns it off
+// (a "Click or tap to start" screen asks for it). The 🔊 / 🔇 button on the login box turns it off
 // and on, and the game remembers that choice.
 import songUrl from "./audio/title-theme.mp3?url";
 
@@ -40,14 +40,38 @@ function tryPlay() {
   a.play().then(stopWaiting, () => waitForFirstTouch());
 }
 
-const onFirstTouch = () => tryPlay();
+// When the browser blocks the song, a "tap to start" screen covers the login box.
+// That first tap is the click the browser wants, so the music starts with it.
+const onFirstTouch = () => { hideSplash(); tryPlay(); };
 function waitForFirstTouch() {
+  showSplash();
   window.addEventListener("pointerdown", onFirstTouch, { capture: true });
   window.addEventListener("keydown", onFirstTouch, { capture: true });
 }
 function stopWaiting() {
+  hideSplash();
   window.removeEventListener("pointerdown", onFirstTouch, { capture: true });
   window.removeEventListener("keydown", onFirstTouch, { capture: true });
+}
+
+function showSplash() {
+  if (!wanted || document.getElementById("tap-to-start")) return;
+  const splash = document.createElement("div");
+  splash.id = "tap-to-start";
+  splash.innerHTML = '<div class="game-title"><div class="gt-name">Emberfall</div><div class="gt-sub"></div></div><div class="tts-hint">Click or tap to start</div>';
+  document.body.appendChild(splash);
+}
+function hideSplash() {
+  const splash = document.getElementById("tap-to-start");
+  if (!splash) return;
+  splash.remove();
+  // Put the cursor back in the login box, now that it can be seen.
+  const user = document.getElementById("login-username") as HTMLInputElement | null;
+  const pass = document.getElementById("login-password") as HTMLInputElement | null;
+  // (After a short wait, so the tap itself doesn't take the cursor away again.)
+  setTimeout(() => {
+    if (user && document.getElementById("login")?.style.display !== "none") (user.value ? pass : user)?.focus();
+  }, 50);
 }
 
 function updateButton(btn: HTMLButtonElement) {

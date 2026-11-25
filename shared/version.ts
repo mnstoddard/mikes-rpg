@@ -13,6 +13,16 @@ export interface GameUpdate { version: string; date: string; title: string; chan
 
 export const UPDATES: GameUpdate[] = [
   {
+    version: "0.6",
+    date: "2026-11-25",
+    title: "Emberfall: a name, a title screen, and music right away",
+    changes: [
+      { text: "The game has a name: Emberfall. It's the big glowing title on the start screen and the login box, and the name on the browser tab." },
+      { text: "When the game opens, a “Click or tap to start” screen comes up first if your browser is holding back sound. Your first tap starts Mike's song right away, then the login box shows." },
+      { text: "If your browser lets the game play sound straight away (or you've turned the music off), there's no start screen: you go straight to the login box." },
+    ],
+  },
+  {
     version: "0.5",
     date: "2026-11-25",
     title: "Title music: Mike's own song",

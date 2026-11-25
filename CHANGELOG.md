@@ -6,6 +6,12 @@ in `shared/version.ts` (the game reads it from there), so update both together.
 Each update adds 0.1 to the number. Version 1.0 is saved for the finished game on Steam
 (see docs/VERSION-1.0-PLAN.md).
 
+## 0.6 · 25 November 2026 · Emberfall: a name, a title screen, and music right away
+
+- The game has a name: Emberfall. It's the big glowing title on the start screen and the login box, and the name on the browser tab.
+- When the game opens, a “Click or tap to start” screen comes up first if your browser is holding back sound. Your first tap starts Mike's song right away, then the login box shows.
+- If your browser lets the game play sound straight away (or you've turned the music off), there's no start screen: you go straight to the login box.
+
 ## 0.5 · 25 November 2026 · Title music: Mike's own song
 
 - The login screen now plays Mike's own song, on a loop. It starts on your first click, tap or key press (browsers don't allow sound before that), and fades out when you log in.
