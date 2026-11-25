@@ -4,7 +4,7 @@ icon: ⏳
 aliases: Timeline
 summary: Five hundred years, oldest first: what really happened, and what people believe today.
 ---
-The game takes place in **year 500 After the Fall**. Oldest first.
+The game takes place in **year 500 After the Fall**. Oldest first. For the official story of the Fall next to the true one, see [[The Emberfall (disaster)]].
 
 | Year | What really happened | What people believe today |
 |---|---|---|
