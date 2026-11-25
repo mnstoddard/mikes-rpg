@@ -17,6 +17,7 @@ Red links are pages that don't exist yet. Secrets (the twists players shouldn't 
 - [[Emberfall]]: the land, and the one-paragraph story.
 - [[The Heartfire]] and [[The ember]]: what everything runs on.
 - [[The Emberguard]] and [[The Ashbound]]: the two sides.
+- [[Maps]]: the whole world and every building, drawn from the game.
 - [[History]]: 500 years, as it happened and as people tell it.
 - [[Main story]]: the acts, from waking up as a Hopeful to the final choice.
 - [[Version history]]: what changed in each game update.
