@@ -483,6 +483,18 @@ function buildOverworld(): Canvas {
     thornEdge: [103, 112],
   };
   for (const [k, [x, y]] of Object.entries(spots)) storySpots[`spot.${k}`] = nearFree(c, x, y);
+  // ---- Little paths: from each front door straight out to the nearest road (report #28) ----
+  for (const d of pendingDoors) {
+    const dx = d.out.x - d.x, dy = d.out.y - d.y;
+    const trail: Point[] = [];
+    let x = d.out.x, y = d.out.y;
+    for (let i = 0; i < 14; i++, x += dx, y += dy) {
+      const ch = c.get(x, y);
+      if (ch === "," || ch === ";" || ch === "=") { for (const p of trail) c.set(p.x, p.y, ","); break; }
+      if (ch !== ".") break; // only across open grass
+      trail.push({ x, y });
+    }
+  }
   // ---- Last: keep every doorway and every person's spot clear ----
   const WALK = ".,;:asw*=Cfo_pzGl";
   const clear = (p: Point) => {

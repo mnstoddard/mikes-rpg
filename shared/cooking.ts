@@ -214,10 +214,16 @@ export function mealXp(item: MealId): number {
   return ingredients.reduce((sum, i) => sum + INGREDIENTS[i].xp, 0) + DISHES[dish].xp;
 }
 
-/** Cooking level to make it: the dish's level, or the hardest ingredient's. */
+/**
+ * Cooking level to burn each wood (report #25): the same as the Woodcutting level to chop it,
+ * so a hotter fire takes a better cook.
+ */
+export const WOOD_COOK_LEVEL: Record<Wood, number> = { pine: 1, oak: 5, birch: 10, maple: 20, yew: 35, ironwood: 50, elderwood: 70 };
+
+/** Cooking level to make it: the dish's level, the hardest ingredient's, or the wood's. */
 export function mealLevel(item: MealId): number {
-  const { dish, ingredients } = parseMeal(item)!;
-  return Math.max(DISHES[dish].level, ...ingredients.map((i) => INGREDIENTS[i].level));
+  const { dish, wood, ingredients } = parseMeal(item)!;
+  return Math.max(DISHES[dish].level, WOOD_COOK_LEVEL[wood], ...ingredients.map((i) => INGREDIENTS[i].level));
 }
 
 /** "Trout curry", "Mixed stew": named after an ingredient if it's at least half the pot. */

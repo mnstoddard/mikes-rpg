@@ -1,6 +1,6 @@
 import { Room, Client, ServerError } from "colyseus";
 import { ArraySchema, MapSchema, Schema, type } from "@colyseus/schema";
-import { Door, MAP, MAP_HEIGHT, MAP_WIDTH, TICK_MS, TOWN_SPOT, WAKE_SPOT, areaAt, doorAt, isDanger, isWalkable, randomSpawn, spotNear } from "../../shared/map";
+import { Door, MAP, MAP_HEIGHT, MAP_WIDTH, TICK_MS, TOWN_SPOT, WAKE_SPOT, areaAt, doorAt, isDanger, isWalkable, inTrainingBounds, randomSpawn, spotNear } from "../../shared/map";
 import { PLAYER_RADIUS, clearAt, findPath, Point, smoothPath } from "../../shared/pathfinding";
 import {
   RESOURCES, RESOURCE_FOR_ITEM, ROCK_EMPTY_CHANCE, ResourceId, TREE_FALL_CHANCE,
@@ -40,7 +40,7 @@ import {
   stackName, takeFromEntry, takeItem, usedSlots,
 } from "../../shared/bag";
 import { carriedWeight, carryCapacity, kg, weightOf } from "../../shared/weight";
-import { RUN_COST, RUN_REFILL, RUN_REST_MS, RUN_SPEED, buyWithCharisma, maxStamina, sellWithCharisma, tradingXp, walkBonus } from "../../shared/stats";
+import { RUN_COST, RUN_REFILL, RUN_REST_MS, OVERLOAD_MAX, RUN_SPEED, buyWithCharisma, loadLevel, loadSpeed, maxStamina, sellWithCharisma, tradingXp, walkBonus } from "../../shared/stats";
 import {
   CHEST_MAX, CHEST_RENT, CHEST_START, CHEST_STEP, GUILD_BOUNTY_COUNT, GuildBounty, GuildView, RANKS, REAGENTS, expandCost, guildBountyName,
   guildRenown, guildReward, newGuildBoard, newGuildBounty, rankFor, validGuildBounty,
@@ -96,6 +96,7 @@ import { canBuyHere } from "../../shared/shops";
 import { CHAPTERS, gateMet, litLanterns, oathSworn, opensAfter, rankOf, talkWith } from "../../shared/quests";
 import { BLESS_MINUTES, BLESS_POWER, RANKS as LIGHT_RANKS, STORY_ITEMS, SPOT_NAMES, TITHE_MAX, TITHE_SHARE, isStoryItem, titheCost } from "../../shared/story";
 import { AREAS, DOORS, PLACES } from "../../shared/map";
+import { stepSpots } from "./questTargets";
 import { cleanLook } from "../../shared/look";
 import {
   CROPS, CROP_IDS, CropId, FARM_CHEST_PRICE, FarmView, LOTS, LOT_SIZE, MASTERY_EXTRA, PLANT_XP, PLOT_SIZES, SEED_BACK, SEED_BACK_PER_LEVEL, SeedId,
@@ -180,7 +181,8 @@ export class Player extends Schema {
   stamina = MAX_STAMINA; // each action costs some; food and time bring it back (max from Endurance)
   maxStamina = MAX_STAMINA;
   regenTicks = 0; // ticks since the last stamina came back on its own
-  winded = 0; // stamina used up for now by running (it all comes back once you stop: shared/stats.ts RUN_COST)
+  winded = 0;
+  loadLevel = 0; // 0 = fine, 1-3 = overloaded (shared/stats.ts loadLevel) // stamina used up for now by running (it all comes back once you stop: shared/stats.ts RUN_COST)
   lastRunAt = 0; // when they last ran a tile (ms)
   outOfBreath = false; // told them they're out of breath (once per run)
   locked: boolean[] = []; // per entry: locked items can't be sold or dropped by accident
@@ -624,7 +626,7 @@ export class WorldRoom extends Room<WorldState> {
       clearEntry(p, msg.slot);
       if (old) this.place(p, slot, old.item, old.durability); // the same kind of tool, so it goes where this one was
       this.sendInventory(client, p);
-      this.say(client, `You put the ${ITEMS[item].single} on your belt: ${this.toolEffect(item)}.` +
+      this.say(client, `You equip the ${ITEMS[item].single} (it goes on your tool belt): ${this.toolEffect(item)}.` +
         (old ? ` Your ${ITEMS[old.item].single} goes in your bag.` : ""));
       this.saveSoon(p);
     });
@@ -651,7 +653,7 @@ export class WorldRoom extends Room<WorldState> {
       p.belt[type] = null;
       this.give(p, t.item, 1, t.durability, true);
       this.sendInventory(client, p);
-      this.say(client, `You take the ${ITEMS[t.item].single} off your belt.`);
+      this.say(client, `You unequip the ${ITEMS[t.item].single}.`);
       if (this.step(p)?.needsTool === type) this.say(client, `${GUIDE_NAME} said to keep your ${TOOL_TYPES[type].name.toLowerCase()} on your belt for this. Put it back on before you carry on.`);
       this.saveSoon(p);
     });
@@ -1389,6 +1391,18 @@ export class WorldRoom extends Room<WorldState> {
       p.gateToldAt = now;
       return false;
     }
+    // New players stay in town (the training grounds) until Old Maren's lessons are done.
+    if (this.heldInTown(p, { x: tx, y: ty })) {
+      p.path = [];
+      const now = Date.now();
+      if (!byKeys || now - p.gateToldAt > 4000) {
+        this.stopActions(p);
+        const client = this.clientOf(p);
+        if (client) this.say(client, this.stayInTown());
+      }
+      p.gateToldAt = now;
+      return false;
+    }
     p.fx = nx; p.fy = ny;
     p.x = tx; p.y = ty;
     p.dirty = true;
@@ -1450,7 +1464,7 @@ export class WorldRoom extends Room<WorldState> {
     const res = RESOURCES[resource];
     const skill = res.skill;
     const { def } = findSkill(skill);
-    if (!isUnlocked(p.unlocked, skill)) return this.say(client, this.notTaught(skill));
+    if (!isUnlocked(p.unlocked, skill)) return this.say(client, this.notTaught(skill, p));
     const skillLevel = levelForXp(p.skillXp[skill]);
     if (skillLevel < res.level) {
       return this.say(client, `You need ${def.name} level ${res.level} to ${verbFor(resource)}. (You're level ${skillLevel}.)`);
@@ -1604,7 +1618,7 @@ export class WorldRoom extends Room<WorldState> {
     const after = cloneBag(p);
     for (const input of recipe.inputs) takeItem(after, input, 1, (i) => !after.locked[i]);
     const inputsWeight = recipe.inputs.reduce((sum, i) => sum + weightOf(i), 0);
-    if (roomFor(after, recipe.output) < 1 || this.carried(p) - inputsWeight + weightOf(recipe.output) > this.capacity(p)) {
+    if (roomFor(after, recipe.output) < 1 || this.carried(p) - inputsWeight + weightOf(recipe.output) > this.capacity(p) * OVERLOAD_MAX) {
       if (client) this.say(client, roomFor(after, recipe.output) < 1 ? "Your bag is full. Make room first." : this.fullReason(p, recipe.output));
       return this.stopActions(p);
     }
@@ -1671,12 +1685,13 @@ export class WorldRoom extends Room<WorldState> {
   private stepMsOf(p: Player) {
     const now = worldNow();
     const speed = 1 + walkBonus(p.levels.dexterity) + (buffPower(p.buffs, "swift", now) + buffPower(p.buffs, "haste", now)) / 100;
-    return Math.round(TICK_MS / Math.max(0.5, speed - metalSlow(p.gear)) / (this.canRun(p) ? RUN_SPEED : 1));
+    const load = loadSpeed(loadLevel(this.carried(p), this.capacity(p)));
+    return Math.round(TICK_MS / Math.max(0.5, speed - metalSlow(p.gear)) / (this.canRun(p) ? RUN_SPEED : 1) / load);
   }
 
   /** Running, with breath left for another tile. */
   private canRun(p: Player) {
-    return p.running && p.stamina - p.winded >= RUN_COST;
+    return p.running && p.stamina - p.winded >= RUN_COST && this.carried(p) <= this.capacity(p);
   }
 
   /** A tile run: a little breath used up for now. Out of breath, you're back to walking. */
@@ -1779,7 +1794,7 @@ export class WorldRoom extends Room<WorldState> {
   /** How many more of this item you could carry, by weight. */
   private canLift(p: Player, item: ItemId): number {
     const w = weightOf(item);
-    const spare = this.capacity(p) - this.carried(p);
+    const spare = this.capacity(p) * OVERLOAD_MAX - this.carried(p);
     return w <= 0 ? Infinity : Math.max(0, Math.floor(spare / w));
   }
 
@@ -1791,7 +1806,7 @@ export class WorldRoom extends Room<WorldState> {
   /** Why you can't take one more of this: bag full, or too heavy. */
   private fullReason(p: Player, item: ItemId) {
     if (roomFor(p, item) < 1) return "Your bag is full. Sell or drop something first, or put things in your enchanted chest.";
-    return `That's too heavy: you're carrying ${kg(this.carried(p))} of ${kg(this.capacity(p))}. Sell, drop or eat something, or put things in your enchanted chest.`;
+    return `That's too heavy even to drag: you're carrying ${kg(this.carried(p))}, ${OVERLOAD_MAX} times the ${kg(this.capacity(p))} you can carry. Sell, drop or eat something, or put things in your enchanted chest.`;
   }
 
   /** One catch uses up a little of the bait. When it runs out, it's gone. */
@@ -1866,12 +1881,13 @@ export class WorldRoom extends Room<WorldState> {
   }
 
   /** "Old Maren hasn't taught you Mining yet." */
-  private notTaught(skill: SkillId) {
+  private notTaught(skill: SkillId, p?: Player) {
+    const marenDoneQ = !p || marenDone(p.quest);
     const name = findSkill(skill).def.name;
     const c = teacherOf(skill);
     if (!c) return `You haven't learned ${name} yet.`;
     return c.id === "maren" ? `${GUIDE_NAME} hasn't taught you ${name} yet. Keep following her lessons in the 📜 Quests tab.`
-      : `You haven't learned ${name} yet. ${c.name} teaches it (${c.where}).`;
+      : `You haven't learned ${name} yet. ${c.name} teaches it (${c.where}).` + (skill === "woodcutting" && !marenDoneQ ? ` Need firewood? Talk to ${GUIDE_NAME}: she'll give you some.` : "");
   }
 
   /**
@@ -1926,7 +1942,7 @@ export class WorldRoom extends Room<WorldState> {
 
   /** Your chance at one crafting try: Mastery, belt tool, and the skill tree's "Steady hands". */
   private craftChance(p: Player, recipe: Recipe) {
-    return successFor(recipe, p.mastery, p.belt, this.tree(p, recipe.skill, "success"));
+    return successFor(recipe, p.mastery, p.belt, this.tree(p, recipe.skill, "success"), levelForXp(p.skillXp[recipe.skill as SkillId] ?? 0));
   }
 
   /** After buying or resetting: max health may change, and the client redraws the trees. */
@@ -2274,6 +2290,10 @@ export class WorldRoom extends Room<WorldState> {
       if (client) this.say(client, this.notReady());
       return;
     }
+    if (this.heldInTown(p, door.to)) {
+      if (client) this.say(client, this.stayInTown());
+      return;
+    }
     this.stopActions(p);
     p.path = [];
     p.x = door.to.x;
@@ -2281,6 +2301,15 @@ export class WorldRoom extends Room<WorldState> {
     p.dirty = true;
     // Monsters chasing you lose track of you.
     this.state.monsters.forEach((m) => { if (m.target === sid) m.target = null; });
+  }
+
+  /** Would this step take a new player out of town before their training is done? */
+  private heldInTown(p: Player, to: { x: number; y: number }) {
+    return !marenDone(p.quest) && inTrainingBounds(p.x, p.y) && !inTrainingBounds(to.x, to.y);
+  }
+
+  private stayInTown() {
+    return `🧭 Not so fast: stay in town until your training is done. Open 📜 Quests to see what's next (finish Old Maren's lessons and the wider world opens up).`;
   }
 
   private notReady() {
@@ -2302,7 +2331,7 @@ export class WorldRoom extends Room<WorldState> {
     if (!want) return null;
     const w = p.gear.weapon?.item;
     const who = this.giverName(p);
-    if (want === "weapon" && !w) return `${who} wants you to fight with a weapon. Click one in your bag and press "Hold" first.`;
+    if (want === "weapon" && !w) return `${who} wants you to fight with a weapon. Click one in your bag and press "Equip" first.`;
     if (want !== "weapon" && (!isWeapon(w) || WEAPONS[parseWeapon(w).type].style !== want)) {
       return want === "magic" ? `${who} wants you to use Spellcasting for this. Hold your staff first.` : `${who} wants you to use Ranged for this. Hold your sling first.`;
     }
@@ -3459,7 +3488,7 @@ export class WorldRoom extends Room<WorldState> {
     if (!tool) return null;
     const name = TOOL_TYPES[tool].name.toLowerCase();
     if (step.needsTool === tool && !p.belt[tool]) {
-      return `${this.giverName(p)} wants you to use your ${name} for this. Click it in your bag and press "Put on belt" first.`;
+      return `${this.giverName(p)} wants you to use your ${name} for this. Click it in your bag and press "Equip" first.`;
     }
     const g = step.goal;
     if (g.kind === "gather" && g.byHand && g.skill === skill && p.belt[tool]) {
@@ -3506,7 +3535,20 @@ export class WorldRoom extends Room<WorldState> {
         this.say(client, `${chapter.name}: ${npc.kind === "person" ? "I'll have something more for you later." : ""} (📜 ${chapter.title}: ${opensAfter(q, chapter.id).toLowerCase()}.)`);
         return false;
       }
-      this.say(client, `${chapter.name}: Come and see me for a lesson once ${GUIDE_NAME} has shown you the basics. She lives in the cottage on the lake shore, west along the road.`);
+      if (!marenDone(q)) {
+        this.say(client, `${chapter.name}: Come and see me for a lesson once ${GUIDE_NAME} has shown you the basics. She lives in the cottage on the lake shore, west along the road.`);
+        return false;
+      }
+      // Lessons that build on another skill: send them to that trainer first.
+      const first = chapterById((chapter.after ?? []).find((a) => !chapterDone(q, a))!);
+      const why: Partial<Record<string, string>> = {
+        brann: "You'll need to know your way round ore before you can smelt and smith it.",
+        rook: "You'll need to know how to cut wood before you can work it.",
+        moss: "You'll need to know your herbs before you can brew with them.",
+        ysolde: "Learn to look after yourself in a fight before you start throwing spells about.",
+        bryn: "Learn how buying and selling works first: the bounty board pays in coin.",
+      };
+      this.say(client, `${chapter.name}: ${why[chapter.id] ?? "Not yet."} Go and see ${first.name} first (${first.where}).`);
       return false;
     }
     if (q.active !== chapter.id) {
@@ -3541,7 +3583,10 @@ export class WorldRoom extends Room<WorldState> {
   /** Do a talk step: they say their piece, take what they need, and hand over the rewards. */
   private doTalk(client: Client, p: Player, chapter: Chapter, step: QuestStep, npc: NpcDef): boolean {
     const speaker = npc.kind === "person" ? npc.name : chapter.name;
-    if (step.need && !p.inventory.some((it) => it?.startsWith(step.need!.prefix))) {
+    // Worn or on your belt counts too (you might have put the platelegs on).
+    const hasNeed = (pre: string) => p.inventory.some((it) => it?.startsWith(pre))
+      || GEAR_SLOTS.some((s) => p.gear[s]?.item.startsWith(pre)) || Object.values(p.belt).some((t) => (t as { item?: string } | null)?.item?.startsWith(pre));
+    if (step.need && !hasNeed(step.need.prefix)) {
       this.dialog(client, [step.need.line], speaker);
       return true;
     }
@@ -3783,7 +3828,7 @@ export class WorldRoom extends Room<WorldState> {
     const prog = this.prog(p);
     const spots = step?.goal.kind === "reach"
       ? step.goal.spots.filter((k) => !prog?.got?.includes(k)).map((k) => ({ ...PLACES[k], label: SPOT_NAMES[k] ?? "" }))
-      : undefined;
+      : step ? stepSpots(step, p, this.levelOf(p), [...this.state.monsters.values()], (it) => this.countOf(p, it)) : undefined;
     const lessons = chapters.filter((c) => !c.act);
     const base = { number: lessons.filter((c) => c.state === "done").length, of: lessons.length, marks: questMarks(p.quest, this.levelOf(p)), chapters,
       spots, lit: litLanterns(p.quest), rank: rankOf(p.quest) };
@@ -4338,11 +4383,25 @@ export class WorldRoom extends Room<WorldState> {
 
   // The inventory goes only to its owner, not to every player.
   private sendInventory(client: Client, p: Player) {
+    this.checkLoad(client, p);
     client.send("belt", p.belt);
     this.sendGear(client, p);
     this.sendBag(client, p);
     client.send("coins", p.coins);
     this.checkQuest(p, client); // "Have 2 copper ore" steps
+  }
+
+  /** Carrying more than you can: slower, and say so when it changes (report #31). */
+  private checkLoad(client: Client, p: Player) {
+    const lv = loadLevel(this.carried(p), this.capacity(p));
+    if (lv === p.loadLevel) return;
+    const was = p.loadLevel;
+    p.loadLevel = lv;
+    p.stepMs = this.stepMsOf(p);
+    const SPEED = ["", "half speed, and you can't run", "a quarter of your speed", "an eighth of your speed"];
+    if (lv > was) this.say(client, `🏋️ You're carrying ${kg(this.carried(p))}, more than the ${kg(this.capacity(p))} you can carry. You slow to ${SPEED[lv]}. Sell, drop or eat something, or use your enchanted chest.`);
+    else if (lv === 0) this.say(client, "🎒 Your load is light enough again: you're back to full speed.");
+    else this.say(client, `🏋️ A little lighter: you're at ${SPEED[lv]} now.`);
   }
 
   /** The bag as the client sees it (shared/bag.ts), sent in one go so the lists always line up. */

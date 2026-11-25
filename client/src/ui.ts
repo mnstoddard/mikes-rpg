@@ -4,7 +4,7 @@ import { CraftSkill, DISCIPLINES, DISCIPLINE_IDS, DisciplineId, DisciplineView, 
 import { buyWithCharisma, maxHealth, maxMana, maxStamina, sellWithCharisma, walkBonus } from "../../shared/stats";
 import { ItemMasteryXp, MasteryId, craftSuccess, masteryValue, masteryIn, masteryLevelForXp, masterySuccess, masteryXpForLevel, percent, speedBonusPercent, valueBonusPercent } from "../../shared/mastery";
 import { FORAGE_FINDS, RESOURCES, forageFindOf, forageXp, resourcesFor } from "../../shared/foraging";
-import { beltBonus, buyPriceFor, masteryIdFor, masteryName, recipeFor, sellPriceFor, successFor } from "../../shared/crafting";
+import { beltBonus, buyPriceFor, masteryIdFor, masteryName, levelGapFactor, recipeFor, sellPriceFor, successFor } from "../../shared/crafting";
 import { RESOURCE_FOR_ITEM } from "../../shared/foraging";
 import { CRAFT_MARKUP } from "../../shared/items";
 import {
@@ -208,7 +208,7 @@ type Station = keyof typeof STATION_SKILL;
 /** What a skill's tree gives you for one effect (from the ranks you've bought). */
 const tree = (skill: SkillId, effect: Parameters<typeof treeBonus>[2]) => treeBonus(treeRanks(), skill, effect);
 /** Your crafting chance with everything counted (Mastery, belt tool, skill tree). */
-const chanceFor = (recipe: NonNullable<ReturnType<typeof recipeFor>>) => successFor(recipe, lastMastery, lastBelt, tree(recipe.skill, "success"));
+const chanceFor = (recipe: NonNullable<ReturnType<typeof recipeFor>>) => successFor(recipe, lastMastery, lastBelt, tree(recipe.skill, "success"), levelForXp(lastSkillXp[recipe.skill as SkillId] ?? 0));
 /** Stamina from eating it, with the Cooking tree's "Hearty meals". */
 const staminaOf = (item: ItemId) => foodStamina(item, lastMastery, tree("cooking", "mealStamina"));
 /** How many ingredients fit in your pot. */
@@ -1192,9 +1192,10 @@ function renderWeight() {
   fill.style.width = `${Math.floor(pct * 100)}%`;
   fill.style.background = carried >= max ? "#e74c3c" : pct >= 0.8 ? "#f1c40f" : "#5fb84a";
   bar.appendChild(fill);
-  weightEl.append(el("weight-label", `⚖️ ${kg(carried)} / ${kg(max)}`), bar);
+  const slow = carried > max ? ` 🐢 ${["½", "¼", "⅛"][Math.min(3, Math.ceil(carried / max) - 1) - 1]} speed` : "";
+  weightEl.append(el("weight-label", `⚖️ ${kg(carried)} / ${kg(max)}${slow}`), bar);
   weightEl.title = `You're carrying ${kg(carried)} of the ${kg(max)} you can carry. Your bag, the tools on your belt and the gear you wear all count. ` +
-    "When you're full you can't pick up more: sell, drop or eat something, or put it in your enchanted chest.";
+    "Carry more than that and you slow down: half speed with no running, a quarter at twice as much, an eighth at three times. Four times is the most you can drag.";
   weightEl.classList.toggle("full", carried >= max);
   // The same bar, small, along the bottom of the 🎒 button: green, yellow when nearly full, red when full.
   const tabBar = document.querySelector<HTMLElement>("#bag-weight span");
@@ -1879,6 +1880,9 @@ function renderCraft() {
     facts.unshift(`Gives ${staminaOf(output)} stamina`);
     const rich = mealRichness(output);
     if (rich < 0.995) detail.append(el("craft-info", `🔥 A rich meal is harder to get right: ${Math.round((1 - rich) * 100)}% lower starting chance (the more stamina a meal gives, the harder it is).`));
+    // Better fish and wood need a better cook (report #25).
+    const gap = levelGapFactor(recipe, level);
+    if (level >= recipe.level && gap < 0.995) detail.append(el("craft-info", `🎓 This needs Cooking ${recipe.level} and you're Cooking ${level}, so it's tricky: ${Math.round((1 - gap) * 100)}% lower starting chance. It gets easier every level until Cooking ${recipe.level + 10}.`));
   }
   if (isBait(output)) facts.unshift(`Lasts ${BAITS[output].uses} catches`);
   if (isArrow(output)) facts.unshift(`Adds up to ${METAL_DAMAGE[output.slice(7) as Material]} to a bow's hit`);
@@ -2544,9 +2548,9 @@ function renderInfo() {
   }
 
   if (target.kind === "belt") {
-    infoButton("Take off", () => { onUnequip(target.type); closeInfo(); });
+    infoButton("Unequip", () => { onUnequip(target.type); closeInfo(); });
   } else if (target.kind === "gear") {
-    infoButton("Take off", () => { onRemove(target.slot); closeInfo(); });
+    infoButton("Unequip", () => { onRemove(target.slot); closeInfo(); });
   } else {
     // Buttons act on the one showing. With several kinds in the slot, the card stays open so you can pick another.
     const e = entry;
@@ -2559,11 +2563,11 @@ function renderInfo() {
       }, isLocked);
     }
     const broken = isBroken(id, uses);
-    if (isTool(id)) infoButton("Put on belt", () => { onEquip(e); closeInfo(); }, broken);
-    if (isGear(id)) infoButton(isWeapon(id) ? "Hold" : "Wear", () => { onWear(e); closeInfo(); }, broken);
+    if (isTool(id)) infoButton("Equip", () => { onEquip(e); closeInfo(); }, broken);
+    if (isGear(id)) infoButton("Equip", () => { onWear(e); closeInfo(); }, broken);
     if (id === POTION_ID) infoButton(`Drink (+${POTION_HEAL})`, () => { onDrink(e); closeInfo(); });
     if (isPotion(id)) infoButton("Drink", () => { onDrink(e); closeInfo(); });
-    if (isJewelry(id)) infoButton("Put on", () => { onWearJewel(e); closeInfo(); });
+    if (isJewelry(id)) infoButton("Equip", () => { onWearJewel(e); closeInfo(); });
     if (isSpellBook(id)) infoButton("Read", () => { onRead(e); closeInfo(); });
     if (isStoryItem(id) && STORY_ITEMS[id].use) infoButton(STORY_ITEMS[id].use!, () => { onRead(e); closeInfo(); });
     if (isSeed(id)) infoButton("Plant these first", () => { onSeed(id); closeInfo(); });
@@ -2769,7 +2773,15 @@ function renderTracker(flash = false) {
   }
 }
 
-/** The 📜 tab: the lessons (every trainer's chapter), then each bounty on the board. Tap one to track it. */
+/** Which 📜 sections are folded shut (kept while the tab re-renders). */
+const questFolded = new Set<string>(["done-story"]);
+
+/**
+ * The 📜 tab, top to bottom:
+ * 📍 what you're on now, 🧭 what you can start next (who, and where),
+ * 🎓 Training (the master quest: every skill's lesson), ✨ the story,
+ * ⭐ side quests, then 📋 the board's bounties. Tap a heading to fold it.
+ */
 function renderQuestTab() {
   questListEl.replaceChildren();
   const row = (glyph: string, tint: string | undefined, title: string, sub: string, state: string, tracked: boolean, onclick: () => void) => {
@@ -2779,44 +2791,108 @@ function renderQuestTab() {
     r.onclick = onclick;
     return r;
   };
+  /** A heading you can tap to fold its rows away. Returns the box to put rows in. */
+  const section = (key: string, title: string, frac?: number) => {
+    const head = el("qt-head qt-fold" + (questFolded.has(key) ? " folded" : ""), title);
+    if (frac != null) head.append(bar(frac));
+    const box = el("qt-box");
+    box.hidden = questFolded.has(key);
+    head.onclick = () => {
+      if (questFolded.has(key)) questFolded.delete(key); else questFolded.add(key);
+      renderQuestTab();
+    };
+    questListEl.append(head, box);
+    return box;
+  };
   const tb = trackedBounty();
   const q = lastQuest;
   const glyph: Record<ChapterView["state"], string> = { done: "✅", active: "📍", started: "⏸️", open: "❗", locked: "🔒" };
-  const chapterRow = (c: ChapterView) => {
-    const sub = c.state === "done" ? "Done" : c.state === "locked" ? (c.needs ? `Needs ${c.needs}` : c.opens || `Opens after ${GUIDE_NAME}'s lessons`) : c.task ? `${c.task} (step ${c.step + 1} of ${c.of})` : `Talk to ${c.name}, ${c.where}`;
-    const r = el("qt-row qt-chapter" + (c.state === "done" ? " done" : ""));
-    r.append(speakButton(() => `${c.title}, from ${c.name}. ${sub}.`), el("qt-icon", glyph[c.state]), el("qt-title", `${c.title} · ${c.name}`), el("qt-sub", sub));
+  const skillNames = (c: ChapterView) => (c.skills ?? []).map((id) => { const d = findSkill(id).def; return `${d.icon} ${d.name}`; }).join(" · ");
+  const subOf = (c: ChapterView) =>
+    c.state === "done" ? "✓ Done"
+      : c.state === "locked" ? `🔒 ${c.needs ? `Needs ${c.needs}` : c.opens || `Opens after ${GUIDE_NAME}'s lessons`}`
+        : c.task ? `${c.task} (step ${c.step + 1} of ${c.of})`
+          : `❗ Talk to ${c.name}, ${c.where}`;
+  const chapterRow = (c: ChapterView, withSkills = false) => {
+    const sub = subOf(c);
+    const r = el("qt-row qt-chapter" + (c.state === "done" ? " done" : c.state === "locked" ? " locked" : c.state === "open" ? " open" : ""));
+    const title = el("qt-title", `${c.title} · ${c.name}`);
+    r.append(speakButton(() => `${c.title}, from ${c.name}. ${sub}.`), el("qt-icon", glyph[c.state]), title);
+    if (withSkills && c.skills?.length) r.append(el("qt-skills", skillNames(c)));
+    r.append(el("qt-sub", sub));
     return r;
   };
   if (q) {
-    // What you're on now (or "pick your next lesson").
+    // 📍 Now: what you're on (tap to show it by your health again).
+    questListEl.append(el("qt-head", "📍 Now"));
     questListEl.append(row("📜", undefined, q.giver ? `${q.quest} · ${q.giver}` : q.quest, q.task, q.progress ?? (q.done ? "" : "Tap to track"), !tb, () => onTrack(null)));
-    // The story: the Prologue, then Act 1 (once it's in sight).
+
+    // 🧭 Up next: everything you could start or go back to right now, with who and where.
+    const next = q.chapters.filter((c) => c.state === "open" || c.state === "started");
+    if (next.length) {
+      const box = section("next", `🧭 You can start (${next.length})`);
+      for (const c of next) box.append(chapterRow(c, true));
+    }
+
+    // 🎓 Training: the master quest. Every skill has a lesson; finish them all to learn every trade.
+    const lessons = q.chapters.filter((c) => !c.act && !c.side);
+    const lessonsDoneN = lessons.filter((c) => c.state === "done").length;
+    const box = section("training", `🎓 Training: learn every skill (${lessonsDoneN} of ${lessons.length})`, lessonsDoneN / Math.max(1, lessons.length));
+    if (lessonsDoneN < lessons.length) box.append(el("qt-note", lessons[0]?.state === "done"
+      ? "Each trainer teaches a skill or two. Talk to anyone with a ❗ over their head to start their lesson."
+      : `Start with ${GUIDE_NAME}'s lessons: they open up every other trainer.`));
+    // Ones you can do now first, then the rest, finished ones last.
+    const order: Record<ChapterView["state"], number> = { active: 0, started: 1, open: 2, locked: 3, done: 4 };
+    const sorted = [...lessons].sort((a, b) => order[a.state] - order[b.state]);
+    // Before Maren's lessons are done, the trainers are all shut: show Maren, then just name the rest.
+    const marenRow = lessons.find((c) => c.id === "maren");
+    if (marenRow && marenRow.state !== "done") {
+      box.append(chapterRow(marenRow, true));
+      const rest = sorted.filter((c) => c !== marenRow);
+      box.append(el("qt-note", `🔒 Then ${rest.length} trainers: ${rest.map((c) => (c.skills ?? []).map((id) => findSkill(id).def.icon).join("")).join(" ")}`));
+    } else for (const c of sorted) box.append(chapterRow(c, true));
+
+    // ✨ The story: the Prologue, then Act 1 (once it's in sight). Finished chapters fold into one line.
     const prologue = q.chapters.filter((c) => c.act === "prologue");
     const act1 = q.chapters.filter((c) => c.act === "act1");
     const rank = LIGHT_RANKS[q.rank ?? 0];
-    questListEl.append(el("qt-head", `✨ Prologue: Awakening in the Light (${prologue.filter((c) => c.state === "done").length} of ${prologue.length}) · ${rank}`));
-    for (const c of prologue) questListEl.append(chapterRow(c));
-    if (prologue.every((c) => c.state === "done") || act1.some((c) => c.state !== "locked")) {
-      questListEl.append(el("qt-head", `🔥 Act 1: The Light Welcomes You (${act1.filter((c) => c.state === "done").length} of ${act1.length})`));
-      for (const c of act1) questListEl.append(chapterRow(c));
+    const showAct1 = prologue.every((c) => c.state === "done") || act1.some((c) => c.state !== "locked");
+    const story = [...prologue, ...(showAct1 ? act1 : [])];
+    const storyDone = story.filter((c) => c.state === "done");
+    const sbox = section("story", `✨ Story · ${rank} (${storyDone.length} of ${showAct1 ? prologue.length + act1.length : prologue.length})`);
+    if (storyDone.length) {
+      const fold = el("qt-note qt-fold-line", `${questFolded.has("done-story") ? "▸" : "▾"} ✅ ${storyDone.length} finished chapter${storyDone.length === 1 ? "" : "s"}`);
+      fold.onclick = () => { if (questFolded.has("done-story")) questFolded.delete("done-story"); else questFolded.add("done-story"); renderQuestTab(); };
+      sbox.append(fold);
+      if (!questFolded.has("done-story")) for (const c of storyDone) sbox.append(chapterRow(c));
+    }
+    for (const act of [prologue, showAct1 ? act1 : []]) {
+      const left = act.filter((c) => c.state !== "done");
+      if (!left.length) continue;
+      sbox.append(el("qt-sub qt-act", act === prologue ? "Prologue: Awakening in the Light" : "Act 1: The Light Welcomes You"));
+      for (const c of left) sbox.append(chapterRow(c));
+    }
+
+    // ⭐ Side quests: extras, for later.
+    const side = q.chapters.filter((c) => c.side);
+    if (side.length) {
+      const xbox = section("side", `⭐ Side quests (${side.filter((c) => c.state === "done").length} of ${side.length})`);
+      for (const c of side) xbox.append(chapterRow(c));
     }
   }
-  questListEl.append(el("qt-head", q ? `📜 Lessons (${q.number} of ${q.of} done)` : "📜 Lessons"));
-  if (q) for (const c of q.chapters) if (!c.act) questListEl.append(chapterRow(c));
-  questListEl.append(el("qt-head", "📋 Bounties"));
+  const bbox = section("bounties", `📋 Bounties${bounties.length ? ` (${bounties.length})` : ""}`);
   if (!bounties.length) {
-    questListEl.append(el("qt-note", "Captain Bryn opens the bounty board for you in one of the lessons."));
+    bbox.append(el("qt-note", "Captain Bryn opens the bounty board for you in one of the lessons."));
     return;
   }
   bounties.forEach((b, i) => {
     const item = ITEMS[b.item];
     const have = bountyHave(b);
     const reward = bountyReward(b, lastMastery, renownLv());
-    questListEl.append(row(item.icon, item.tint, `${b.count} × ${item.name}`, `${formatMoney(reward.coins)} · +${reward.xp} ${reward.label} XP · +${reward.renown} Renown`,
+    bbox.append(row(item.icon, item.tint, `${b.count} × ${item.name}`, `${formatMoney(reward.coins)} · +${reward.xp} ${reward.label} XP · +${reward.renown} Renown`,
       have >= b.count ? "✓ Ready to hand in" : `You have ${have} / ${b.count}`, tb === b, () => onTrack(i)));
   });
-  questListEl.append(el("qt-note", "Hand bounties in at the board in the town square, next to Captain Bryn."));
+  bbox.append(el("qt-note", "Hand bounties in at the board in the town square, next to Captain Bryn."));
 }
 
 const dialogName = document.getElementById("dialog-name")!;

@@ -373,8 +373,18 @@ export class Person {
       const secs = Math.max(ARM[a.move].seconds, a.hits ? TICK_MS / 1000 * 1.5 : 0);
       const before = this.swingT;
       this.swingT = (this.swingT + dt / secs) % 1;
-      const [sh, el] = armAngles(a.move, this.swingT);
+      let [sh, el] = armAngles(a.move, this.swingT);
       const J = this.hero.joints;
+      // A fish on: the arm dips as it bites, then both hands heave the rod up and back.
+      const c = this.catching;
+      if (c) {
+        const f = Math.min(1, c.t / 1.3);
+        const lift = f < 0.3 ? -0.25 * (f / 0.3) : f < 0.6 ? -0.25 + 1.25 * ((f - 0.3) / 0.3) : 1 - (f - 0.6) / 0.4;
+        sh -= 0.85 * lift;
+        el -= 0.45 * Math.max(0, lift);
+        J.shoulderL.rotation.set(sh * 0.85, 0, 0.3);
+        J.elbowL.rotation.set(el, 0, 0);
+      }
       J.shoulderR.rotation.set(sh, 0, -0.2);
       J.elbowR.rotation.set(el, 0, 0);
       if (fists) {
@@ -412,7 +422,24 @@ export class Person {
         }
         if (f >= 1) { c.dispose(); this.catching = undefined; b.position.copy(c.from); }
       }
-      this.rodSegs.forEach((sg) => { sg.rotation.z = bend * 0.45; });
+      // Bend each piece of the rod toward the fish (tip down to the water), not off to one side.
+      if (this.rodSegs.length) {
+        const pq = new THREE.Quaternion(), wp = new THREE.Vector3(), dir = new THREE.Vector3(), to = new THREE.Vector3(), axis = new THREE.Vector3();
+        for (const sg of this.rodSegs) {
+          sg.quaternion.identity();
+          if (bend <= 0.001) continue;
+          sg.parent!.updateWorldMatrix(true, false);
+          sg.parent!.getWorldQuaternion(pq);
+          sg.updateWorldMatrix(false, false);
+          sg.getWorldPosition(wp);
+          dir.set(0, 1, 0).applyQuaternion(pq); // the rod runs along its local y
+          to.copy(b.position).sub(wp).normalize();
+          axis.crossVectors(dir, to);
+          if (axis.lengthSq() < 1e-6) continue;
+          axis.normalize().applyQuaternion(pq.invert());
+          sg.quaternion.setFromAxisAngle(axis, bend * 0.4);
+        }
+      }
       const tip = new THREE.Vector3();
       if (this.rodTip) this.rodTip.getWorldPosition(tip);
       else { this.hero.joints.handR.getWorldPosition(tip); tip.y += 1.2; }

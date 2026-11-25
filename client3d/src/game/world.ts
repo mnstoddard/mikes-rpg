@@ -40,7 +40,7 @@ import { joinWorld, rejoinWorld } from "../../../client/src/network";
 import { showLogin } from "../../../client/src/login";
 import { setReportRoom, setReportSource } from "../../../client/src/report";
 import { setTreeActions } from "../../../client/src/tree";
-import { setWorldMapActions, setWorldMapMarks, updateWorldMap } from "../../../client/src/worldmap";
+import { setWorldMapActions, setWorldMapMarks, setWorldMapPlayers, updateWorldMap } from "../../../client/src/worldmap";
 import {
   accountResult, closeBounties, renderMe, renderTracked, resetForSignOut, setAccountActions, setBountyActions, setQuestActions, showBounties, closeGuild, closeChest, setGuildActions, showChest, showGuild,
   closeRepair, setRepairActions, showRepairs, closeDialog, openDialog, renderQuest, renderStamina, renderVitals, renderGear, renderCombatMastery, flashCombatMastery, closeCraft, closeInfo, closeShop, flashDiscipline, flashMastery, flashSkillRow, openCraft, renderBelt, renderMastery, renderSkillXp, openShop, renderBag, renderCoins, renderDisciplines, setHoverText, setInventoryActions, showMessage,
@@ -126,7 +126,10 @@ export class World3D {
   private walkPaused = false;
   private runToggle = false; // the 🏃 button
   private runShift = false; // holding Shift
-  private minimap = new Minimap(); // a click took over; keys wait until you press or let go of one
+  private minimap = new Minimap();
+  private areaSwitch: (() => void) | null = null;
+  private areaHold = 0;
+  private mapPlayersTimer = 0; // how soon to tell the 🗺️ map where other players are
 
   /** Turn on only the nearest few lamps (every point light costs on every pixel). */
   private pickLights() {
@@ -235,6 +238,13 @@ export class World3D {
 
   private loop = () => {
     requestAnimationFrame(this.loop);
+    // Going through a door: wait until the loading sign has been drawn, then switch places.
+    if (this.areaSwitch) {
+      if (--this.areaHold > 0) return;
+      const go = this.areaSwitch;
+      this.areaSwitch = null;
+      go();
+    }
     const dt = Math.min(0.1, this.clock.getDelta());
     this.time += dt;
     const me = this.room ? this.players.get(this.room.sessionId) : undefined;
@@ -244,7 +254,15 @@ export class World3D {
     this.placeCamera(dt);
     const mine = this.room?.state.players?.get(this.room.sessionId);
     sfx.update(dt, this.myAction);
-    this.minimap.update(mine ? { x: mine.x, y: mine.y } : null, this.focus.x / TILE, this.focus.z / TILE, this.here, this.yaw);
+    const others: { x: number; y: number }[] = [];
+    for (const [id, v] of this.players) if (id !== this.room?.sessionId && v.root.visible) others.push({ x: v.root.position.x / TILE, y: v.root.position.z / TILE });
+    this.minimap.update(mine ? { x: mine.x, y: mine.y } : null, this.focus.x / TILE, this.focus.z / TILE, this.here, this.yaw, others);
+    if ((this.mapPlayersTimer -= dt) < 0) {
+      this.mapPlayersTimer = 1;
+      const list: { x: number; y: number; name: string }[] = [];
+      this.room?.state.players?.forEach((pl: any, id: string) => { if (id !== this.room!.sessionId) list.push({ x: pl.x, y: pl.y, name: pl.name }); });
+      setWorldMapPlayers(list);
+    }
     const night = this.nightLevel();
     this.terrain.update(dt, this.time, night, 0.6);
     // Only people, monsters and stations near you are drawn (and animated).
@@ -880,13 +898,19 @@ export class World3D {
     if (a !== this.here) {
       // Through a door: the server stopped your keyboard walk, so wait for a fresh key press.
       if (this.walkSent !== "0,0") { this.walkSent = "0,0"; this.walkPaused = true; }
-      this.showArea(a, player.x, player.y);
-      this.marker.visible = false;
-      this.focus.copy(tileCenter(player.x, player.y));
-      view.place(player.x, player.y);
-      this.floatText(a.name, a.danger ? "#ff9a8a" : "#ffe9a8", true);
-      updateWorldMap({ x: player.x, y: player.y }, a);
-    } else {
+      // Building a new place can take a moment (the first time outside most of all), so put up
+      // "Building the world…" first and swap places a couple of frames later, once it's on screen.
+      if (this.loading) this.loading.style.display = "flex";
+      this.areaHold = 2;
+      this.areaSwitch = () => {
+        this.showArea(a, player.x, player.y);
+        this.marker.visible = false;
+        this.focus.copy(tileCenter(player.x, player.y));
+        view.place(player.x, player.y);
+        this.floatText(a.name, a.danger ? "#ff9a8a" : "#ffe9a8", true);
+        updateWorldMap({ x: player.x, y: player.y }, a);
+      };
+    } else if (!this.areaSwitch) {
       this.terrain.setCenter(player.x, player.y);
       if ((player.x + player.y) % 3 === 0) updateWorldMap({ x: player.x, y: player.y }, a);
     }

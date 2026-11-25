@@ -54,7 +54,7 @@ export class Minimap {
   }
 
   /** Each frame (it only redraws a few times a second, or when something changed). */
-  update(me: { x: number; y: number } | null, fx: number, fy: number, here: AreaDef, yaw: number) {
+  update(me: { x: number; y: number } | null, fx: number, fy: number, here: AreaDef, yaw: number, others: { x: number; y: number }[] = []) {
     const now = performance.now();
     if (now - this.last < 120) return;
     this.last = now;
@@ -62,7 +62,7 @@ export class Minimap {
     if (!me) { this.canvas.style.display = "none"; return; }
     this.canvas.style.display = "";
     const { marks, spots } = worldMapMarks();
-    const key = `${fx.toFixed(2)},${fy.toFixed(2)},${yaw.toFixed(3)},${here.id},${marks.join()},${spots.length}`;
+    const key = `${fx.toFixed(2)},${fy.toFixed(2)},${yaw.toFixed(3)},${here.id},${marks.join()},${spots.map((p) => p.x + ':' + p.y).join()},${others.map((o) => o.x.toFixed(1) + ':' + o.y.toFixed(1)).join()}`;
     if (key === this.lastKey) return;
     this.lastKey = key;
 
@@ -91,6 +91,24 @@ export class Minimap {
     // The grid's middle tile is (gx, gy); we're at (fx, fy) inside it.
     g.drawImage(this.grid, (gx - R - fx) * px, (gy - R - fy) * px, (2 * R + 1) * px, (2 * R + 1) * px);
     g.restore();
+
+    // Other players: small blue dots.
+    {
+      const s = Math.sin(yaw), c = Math.cos(yaw);
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      g.fillStyle = "#5fb8ff";
+      g.strokeStyle = "#000";
+      g.lineWidth = 1 * dpr;
+      for (const o of others) {
+        const dx = o.x - fx, dy = o.y - fy;
+        const sx = dx * c - dy * s, sy = dx * s + dy * c;
+        if (Math.hypot(sx, sy) > R - 0.8) continue;
+        g.beginPath();
+        g.arc(half + sx * px, half + sy * px, 3.2 * dpr, 0, Math.PI * 2);
+        g.fill();
+        g.stroke();
+      }
+    }
 
     // You: an arrow pointing up (the way you're looking).
     g.setTransform(1, 0, 0, 1, 0, 0);
