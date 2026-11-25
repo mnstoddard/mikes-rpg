@@ -72,7 +72,7 @@ Lightkeepers' greatest temple.
 |---|---|---|---|
 | **Heartvale** | Green valley, farms, rivers | The starting town, Trainer Row, the farm, and at its centre the **Lighthall**, the Lightkeepers' temple built around the Heart Shrine | 1 to 20 |
 | **Thornwood** | Deep, dark forest | The Dark Forest, Wolf Hollow, spiders, boars, the Graveyard | 15 to 30 |
-| **Greyspine Peaks** | Mountains and caves, snow at the top | The quarry, the Crystal Cave, goblin tunnels, soul stone veins | 25 to 40 |
+| **Greyspine Peaks** | Mountains and caves, snow at the top | The quarry, the Crystal Cave, goblin tunnels, emberstone veins | 25 to 40 |
 | **Saltmere Coast** | Beaches, cliffs, marsh, small islands offshore | The harbour town of Saltmere, the best fishing, the Guild's sea tower | 35 to 50 |
 | **The Ashen Barrens** | Dead, dusty badlands | Where the Withering began. Ruins of the old kingdom of **Aurel**. The Ashbound's hidden camp | 45 to 60 |
 | **Frostfell** | Frozen tundra and ice | The oldest shrine of all, frozen solid. Ancient beasts | 55 to 70 |
@@ -111,7 +111,7 @@ fighting over it.
 | **The Kindled** | The players: heroes grown at the shrines | Crops being grown for harvest, until they wake up. |
 | **The Lightkeepers** | A kind, holy order that tends the shrines, blesses heroes and gives them quests, ranks and gear | **The Undying**: the first Kindled, who learned to steal life through the shrines and have lived for centuries on it. Their leader is **Vael**. |
 | **The Ashbound** | Madmen and bandits who attack heroes and smash shrines | Kindled (and a few Rooted) who learned the truth. They call themselves **the Unbound**. They smash shrines to stop the harvest. |
-| **The Mages' Guild** | Scholars of magic and soul stone | Honest, but their soul stone research feeds the Lightkeepers without knowing it. |
+| **The Mages' Guild** | Scholars of magic and emberstone | Honest, but their emberstone research feeds the Lightkeepers without knowing it. |
 | **The Wardens** | Huntmaster Kael's rangers | Honest. They guard the borders against the Blight. |
 | **The Blight** | Sick, angry animals | What the Withering does to living things. Not a faction. |
 
@@ -149,7 +149,7 @@ fighting over it.
 | **Captain Bryn** | Captain of the Heartvale watch. Puts bounties on the Ashbound because the Lightkeepers ask him to. Later, he has to decide whose side he's on. |
 | **Shopkeeper Tam** | A trader whose routes are closing as the land dies. Smuggles supplies to the Ashbound, for a price. |
 | **Forester Holt** | Notices the trees around the shrines dying first. |
-| **Miner Greta** | Finds that soul stone veins drain **toward** the shrines. The first clue that life is being pulled somewhere. |
+| **Miner Greta** | Finds that emberstone veins drain **toward** the shrines. The first clue that life is being pulled somewhere. |
 | **Smith Brann** | Gruff and honest. Later forges your Severing Blade. |
 | **Woodworker Rook** | Carves the shrine totems for the Lightkeepers, and hides Ashbound messages in them. |
 | **Huntmaster Kael** | Leader of the Wardens. Doesn't like the Lightkeepers, but can't say why. |
@@ -166,7 +166,7 @@ fighting over it.
 - **Shrines**: respawn points, run by the Lightkeepers. You light new ones as
   the story goes on. **Ashbound Hearths** (hidden campfires) become your
   respawn points once you're free.
-- **Soul stone is crystallized life force.** That's why it glows, holds souls,
+- **Emberstone is crystallized life force.** That's why it glows, holds souls,
   and powers enchanting. The Lightkeepers buy it up by the cartload.
 - **Soul trap** catches a spark as it dies. Late in the story you use it to
   catch sparks being pulled toward the Undying, and set them free.

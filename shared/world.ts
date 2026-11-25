@@ -18,7 +18,7 @@
 //   C cave floor   K cave wall   G crystal floor   V gravestone   l stony ground   * dig patch   f farm lot
 //   Trees: T pine  O oak  B birch  M maple  Y yew  I ironwood  E elderwood
 //   Rocks: # copper or tin (it was stone)  c copper  t tin  i iron  k coal  v silver  g gold  m mithril
-//          U amethyst  Q topaz  L soul stone  N emerald  Z sapphire  R ruby  P platinum  X iridium
+//          U amethyst  Q topaz  L emberstone  N emerald  Z sapphire  R ruby  P platinum  X iridium
 //   Fishing: 2 trout  3 perch  4 salmon  5 pike  6 tuna  7 swordfish  8 eel
 //   (space) nothing: the empty space between areas
 import type { MonsterId } from "./combat";
@@ -638,7 +638,7 @@ function insides(): Inside[] {
       monsters: [["cave_spider", 7, 8], ["cave_spider", 17, 6], ["cave_spider", 20, 9]] });
   }
   {
-    // The crystal cave: gem rocks, soul stone veins, platinum and iridium.
+    // The crystal cave: gem rocks, emberstone veins, platinum and iridium.
     const c = new Canvas(30, 14, "K");
     c.blob(10, 7, 9, 5, "G", r, 0.15); c.blob(21, 7, 8, 5, "G", r, 0.15);
     c.fill(1, 6, 4, 7, "G");

@@ -10,14 +10,14 @@ infobox.Old_name: Kindled
 ---
 **Emberborn** are heroes [[The shrines]] make from [[The ember|ember]]. They wake on a shrine's steps with no past and no family, and when they fall they come back at a shrine. Every player is one. There are hundreds of them.
 
-Every Emberborn wakes holding a pebble of soul stone.
+Every Emberborn wakes holding a pebble of emberstone.
 
 New Emberborn start as [[Hopefuls]]: they aren't members of [[The Emberguard]], and have to prove themselves worthy through the Emberguard's trials.
 
 The ordinary folk who can't come back from death are called [[The Rooted]].
 
 ::: secret
-Emberborn are made of stolen ember, and farmed for it. Each time one falls, the shrine skims a little ember off them ([[The Tithe]]). A strong Emberborn can be drained all at once in a [[Radiance Ceremony]], which feeds [[The Undying]] for years. And if the siphon stops, every Emberborn turns to ash. The soul stone pebble they wake holding is their thread's anchor.
+Emberborn are made of stolen ember, and farmed for it. Each time one falls, the shrine skims a little ember off them ([[The Tithe]]). A strong Emberborn can be drained all at once in a [[Radiance Ceremony]], which feeds [[The Undying]] for years. And if the siphon stops, every Emberborn turns to ash. The emberstone pebble they wake holding is their thread's anchor.
 
 The first Emberborn were made in year 40 as soldiers to end the [[Sundering War]]. [[Old Maren]] was one of them.
 :::

@@ -760,7 +760,7 @@ const LESSONS: Chapter[] = [
       {
         task: `Show ${YSOLDE} your enchantment`, goal: { kind: "talk" },
         lines: [
-          "Beautiful. Bigger, fuller soul gems make stronger magic. Brann cuts soul stone into gems, and the Crystal Cave has plenty.",
+          "Beautiful. Bigger, fuller soul gems make stronger magic. Brann cuts emberstone into gems, and the Crystal Cave has plenty.",
           "One more thing: once your Spellcasting reaches 18 you'll know Mend, to fix your own gear with a little of what it's made of.",
         ],
         coins: 200,

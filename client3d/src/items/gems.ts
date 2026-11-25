@@ -1,5 +1,5 @@
-// Gems, soul stones and jewelry (shared/jewelry.ts): rough gems from the
-// crystal cave, cut gems from the anvil, soul stones and soul gems, and
+// Gems, emberstones and jewelry (shared/jewelry.ts): rough gems from the
+// crystal cave, cut gems from the anvil, emberstones and soul gems, and
 // rings and amulets in bronze, silver, gold, platinum or iridium.
 import * as THREE from "three";
 import type { GemId } from "../../../shared/jewelry";
@@ -43,7 +43,7 @@ export function makeCutGem(id: GemId, carats: number): THREE.Group {
   return g;
 }
 
-/** A soul stone (raw: dark rock with a pale vein) or soul gem (cut: dark crystal; souls make it glow). */
+/** An emberstone (raw: dark rock with a pale vein) or soul gem (cut: dark crystal; souls make it glow). */
 export function makeSoul(cut: boolean, souls: number, rng: Rng): { g: THREE.Group; glow?: THREE.Mesh } {
   const g = new THREE.Group();
   if (!cut) {
@@ -132,7 +132,7 @@ export type GemKind = "rough_gem" | "cut_gem" | "soul_stone" | "ring" | "amulet"
 /**
  * Build a gem or jewelry piece. `choice` is [gem or metal, second option]:
  *  - rough_gem / cut_gem: [gem, size: 0 small, 1 medium, 2 big]
- *  - soul_stone: [0 soul stone, 1 empty soul gem, 2 filled soul gem]
+ *  - soul_stone: [0 emberstone, 1 empty soul gem, 2 filled soul gem]
  *  - ring / amulet: [metal, gem (0 = none, 1.. = GEM_LIST)]
  */
 export function buildGem(kind: GemKind, choice: number[], rng: Rng): ItemShape {

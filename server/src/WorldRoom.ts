@@ -1032,7 +1032,7 @@ export class WorldRoom extends Room<WorldState> {
       this.jewelsChanged(client, p);
     });
 
-    // Cut a rough gem (or soul stone) at the anvil. It can go well or badly; Smithing helps.
+    // Cut a rough gem (or emberstone) at the anvil. It can go well or badly; Smithing helps.
     this.onMessage("cut", (client, msg: { item: string }) => {
       const p = this.state.players.get(client.sessionId);
       const parsed = parseGem(msg?.item);
@@ -1050,9 +1050,9 @@ export class WorldRoom extends Room<WorldState> {
       takeFromEntry(p, slot, 1);
       if (!treeRoll(p.tree, "smithing", "staminaSave")) this.useStamina(p, "smithing");
       if (g.kind === "soulstone") {
-        // Soul stone always cuts cleanly: the gem is the stone's size.
+        // Emberstone always cuts cleanly: the gem is the stone's size.
         this.give(p, soulGemId(g.size), 1, null, true);
-        this.say(client, `You cut the soul stone into an empty soul gem, ${carats(g.size)}.`);
+        this.say(client, `You cut the emberstone into an empty soul gem, ${carats(g.size)}.`);
       } else {
         const result = rollCut(level);
         const size = Math.round(g.size * CUT_KEEPS[result]);
@@ -1455,7 +1455,7 @@ export class WorldRoom extends Room<WorldState> {
 
     // Dig patches: what you turn up is rolled from what your Foraging level can find (moonpetal only at night).
     const find = skill === "foraging" ? rollForageFind(levelForXp(p.skillXp.foraging), isNight(worldNow())) : null;
-    // Gem rocks and soul stone veins: the size is rolled (bigger with Mining level and this rock's Mastery).
+    // Gem rocks and emberstone veins: the size is rolled (bigger with Mining level and this rock's Mastery).
     const size = res.gem ? rollGemSize(levelForXp(p.skillXp.mining), res.level, mastery) : 0;
     const gotItem = find ? find.item : res.gem === "soul" ? soulStoneId(size) : res.gem ? roughId(res.gem, size) : res.item;
     const gotXp = find ? find.xp : res.xp;
@@ -2965,7 +2965,7 @@ export class WorldRoom extends Room<WorldState> {
       m.trappedBy = sessionId;
       const gem = p.inventory.some((it) => isSoulGem(it) && (parseGem(it) as { souls: number; size: number }).souls < soulCapacity((parseGem(it) as { size: number }).size));
       msg = `👻 The ${MONSTERS[m.kind].name.toLowerCase()} glows purple: its soul is trapped for ${secs} seconds. Defeat it in time!` +
-        (gem ? "" : " (You have no soul gem with room, so its soul would be lost. Brann cuts soul stone into soul gems.)");
+        (gem ? "" : " (You have no soul gem with room, so its soul would be lost. Brann cuts emberstone into soul gems.)");
     } else {
       // Frost nova: every monster next to you.
       const max = novaMaxHit(level, mastery);
@@ -4214,7 +4214,7 @@ export class WorldRoom extends Room<WorldState> {
         } else if (skill === "smithing") {
           for (const m of Object.values(JEWEL_METALS)) if (m.level > before && m.level <= after) this.say(client, `💍 You can now make ${m.name.toLowerCase()} rings and amulets!`);
           for (const [g, lv] of Object.entries(CUT_LEVEL)) {
-            if (lv > before && lv <= after) this.say(client, g === "soul" ? "💎 You can now cut soul stone into soul gems!" : `💎 You can now cut ${GEMS[g as GemId].name.toLowerCase()}s!`);
+            if (lv > before && lv <= after) this.say(client, g === "soul" ? "💎 You can now cut emberstone into soul gems!" : `💎 You can now cut ${GEMS[g as GemId].name.toLowerCase()}s!`);
           }
         }
       } else {

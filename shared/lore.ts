@@ -74,12 +74,12 @@ const LIGHTHALL: Book[] = [
   },
 ];
 
-/** The Mages' Guild: magic, soul stone and the Wellspring. */
+/** The Mages' Guild: magic, emberstone and the Wellspring. */
 const GUILD: Book[] = [
   {
-    title: "Soul Stone: its Nature and Uses",
+    title: "Emberstone: its Nature and Uses",
     pages: [
-      "Soul stone grows only where the Wellspring's light runs close under the rock: the crystal caves above all.",
+      "Emberstone grows only where the Wellspring's light runs close under the rock: the crystal caves above all.",
       "It holds power the way a sponge holds water. Cut into gems, it feeds enchantments. The Lightkeepers buy every cartload we can dig; what they do with it, they don't say.",
     ],
   },

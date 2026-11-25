@@ -89,7 +89,7 @@ punished while learning.
 |---|---|---|
 | Buying and selling | Shopkeeper Tam | Tam mentions trade routes closing "since the Barrens went bad". |
 | The woodcutter's start | Forester Holt | "Funny thing. The trees nearest the shrine always die first." |
-| Into the rocks | Miner Greta | The soul stone veins in the quarry are dimmer every year. |
+| Into the rocks | Miner Greta | The emberstone veins in the quarry are dimmer every year. |
 | Hammer and fire | Smith Brann | "You Kindled wear out my tools faster than anyone." |
 | Handy work | Woodworker Rook | Rook is carving a shrine totem "for the Lightkeepers". |
 | Standing your ground | Huntmaster Kael | First Blighted creature sighting at the gate. |
@@ -163,9 +163,9 @@ Each region follows the same rhythm, so it's easy to build and easy to follow:
 | # | Quest | Giver | What you do | Skills used | Reward |
 |---|---|---|---|---|---|
 | 2B.1 | **Up the Mountain** | Miner Greta | Greta asks you to check her cousin's mine in the Greyspine. The road is full of goblins. | Fighting | Iron pickaxe head |
-| 2B.2 | **The Warden of Stone** | Warden Halbrecht | Halbrecht runs the Greyspine shrine like a business. He pays well for soul stone. Mine 15 soul stone. | Mining | Coins, rank progress |
-| 2B.3 | **Veins That Flow Uphill** | Miner Greta | Greta shows you that soul stone veins in the mountain **point toward the shrine** like rivers. Follow three veins and mark where they lead. | Mining, exploring | Greta's survey (journal page) |
-| 2B.4 | **Goblin Trouble** | Warden Halbrecht | Goblins have stolen shrine soul stone. Raid the tunnels and get it back. The goblins are hoarding it because "it keeps the grey sickness away". | Fighting, Mining | Goblin-forged dagger |
+| 2B.2 | **The Warden of Stone** | Warden Halbrecht | Halbrecht runs the Greyspine shrine like a business. He pays well for emberstone. Mine 15 emberstone. | Mining | Coins, rank progress |
+| 2B.3 | **Veins That Flow Uphill** | Miner Greta | Greta shows you that emberstone veins in the mountain **point toward the shrine** like rivers. Follow three veins and mark where they lead. | Mining, exploring | Greta's survey (journal page) |
+| 2B.4 | **Goblin Trouble** | Warden Halbrecht | Goblins have stolen shrine emberstone. Raid the tunnels and get it back. The goblins are hoarding it because "it keeps the grey sickness away". | Fighting, Mining | Goblin-forged dagger |
 | 2B.5 | **The Crystal Heart** | Archmage Ysolde | Ysolde sends you deep into the Crystal Cave to fetch a pure, uncut soul crystal for study. You meet **Tamsin**, an Ashbound scout, also after it. She escapes with half of it. | Mining, Spellcasting (Invisibility to sneak past) | Half a soul crystal |
 | 2B.6 | **The Greyspine Lightshrine** | Warden Halbrecht | Relight the great shrine: smith a set of bronze or better shrine fittings. 🧩 *Echo: Maren, young, arguing with a man in robes* | Smithing, Smelting | Respawn point, Halbrecht's gauntlets |
 | 2B.7 | **The Frost Wyrm** (boss) | Warden Halbrecht | Defeat the young wyrm nesting near the summit. | Fighting, Alchemy (frost resist potion) | Wyrm scale (armor part) |
@@ -201,7 +201,7 @@ Spread through Act 2, short quests with your rival:
 | # | Quest | Where | What happens |
 |---|---|---|---|
 | R1 | **Race to the Shrine** | Thornwood | Race Rhys to the Thornwood shrine. He wins (unless you're very fast). |
-| R2 | **Two Pickaxes** | Greyspine | A mining contest: who mines more soul stone in 5 minutes. |
+| R2 | **Two Pickaxes** | Greyspine | A mining contest: who mines more emberstone in 5 minutes. |
 | R3 | **Catch of the Day** | Saltmere | A fishing contest. Rhys admits he doesn't remember anything either, and that "the Keepers are the closest thing I've got to family". |
 | R4 | **Back to Back** | Barrens | Fight a Blight swarm together. He saves you. You owe him one. |
 
@@ -265,7 +265,7 @@ final descent. The five pieces can be done **in any order**.
 | # | Quest | Giver | What you do | Skills used | Piece |
 |---|---|---|---|---|---|
 | 4A.1 | **The Heartroot** | Farmer Odo | Grow a **Heartroot**, a plant that only grows in soil never touched by a blessing. It takes several real days to grow, and must be watered and protected from Blighted pests. | Farming, fighting | Heartroot |
-| 4A.2 | **The Unclaimed Stone** | Miner Greta | Find a soul stone vein that **doesn't** flow to a shrine, deep in the Greyspine, and mine its heart without cracking it. | Mining (high level), Foraging | Unclaimed soul stone |
+| 4A.2 | **The Unclaimed Stone** | Miner Greta | Find an emberstone vein that **doesn't** flow to a shrine, deep in the Greyspine, and mine its heart without cracking it. | Mining (high level), Foraging | Unclaimed emberstone |
 | 4A.3 | **The Moonfin** | Old Maren | Catch the Moonfin, a fish that only bites at night in a storm off the Saltmere islands. | Fishing (high level), Cooking (bait) | Moonfin scale |
 | 4A.4 | **The Severing Draught** | Alchemist Moss | Moss, sick about the tonics, brews the opposite: a draught that loosens your thread. Gather rare ingredients from all regions. | Alchemy, Foraging, Hunting | Severing draught |
 | 4A.5 | **The Severing Blade** | Smith Brann | Forge a blade that can cut a thread of light: mithril bars, the Thornmother fang, a cut gem and an enchant from Ysolde. | Smithing, Smelting, Enchanting | Severing Blade |
@@ -307,7 +307,7 @@ cruel to real players: the people you harvest from are monsters and NPCs.
 | 4L.5 | **Lightforged** | Enchanter Vale | Brann won't work for you any more. Forge your own **Lightforged** weapon at the undercroft forge, quenched in a filled soul gem. | Smithing, Smelting, Enchanting | Lightforged weapon |
 | 4L.6 | **The Tonic Trade** | Keeper Aldric | Moss has quit brewing Tithe tonics. Take over the recipe and supply the Lighthall with 50. | Alchemy, Foraging | Tonic profits (coins every day) |
 | 4L.7 | **Corvane's Hunt** | Warden Corvane | Hunt an Ashbound band through the Thornwood. | Hunting, fighting | Corvane's lantern |
-| 4L.8 | **The Conduits** | Warden Halbrecht | Build soul stone conduits that carry life from the Greyspine veins to the Lighthall. | Mining, Smithing | Halbrecht's seal |
+| 4L.8 | **The Conduits** | Warden Halbrecht | Build emberstone conduits that carry life from the Greyspine veins to the Lighthall. | Mining, Smithing | Halbrecht's seal |
 | 4L.9 | **The Gem Fleet** | Warden Merrow | Escort a ship of filled soul gems across the Saltmere islands. The Ashbound attack at sea. | Sailing, fighting | Merrow's seal |
 | 4L.10 | **Ashka's Purge** | Warden Ashka | Raid the Cinders (private copy). Sable escapes, swearing to stop you. | Fighting, party recommended | Ashka's seal |
 | 4L.11 | **Rhys** | Warden Ashka | Rhys is cornered. **Choice:** let him go, or drain what little he has. Draining him gives you power; letting him go gives you a Memory Echo, and Rhys returns in the finale. | A choice | Either a power boost or 🧩 *Echo: Rhys's first day* |

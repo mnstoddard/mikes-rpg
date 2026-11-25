@@ -44,7 +44,7 @@ export const ITEM_GROUPS: Record<ItemGroup, { name: string; about: string }> = {
   gathered: { name: "Foraging finds", about: "Herbs, mushrooms, roots and more from dig patches, and seeds for the farm." },
   loot: { name: "Monster loot", about: "What monsters drop, and fishing bait." },
   alchemy: { name: "Potions", about: "Alchemy potions and the empty vial." },
-  gems: { name: "Gems & jewelry", about: "Rough and cut gems, soul stones, rings and amulets." },
+  gems: { name: "Gems & jewelry", about: "Rough and cut gems, emberstones, rings and amulets." },
   quest: { name: "Quest items", about: "Story items and spell books." },
   props: { name: "Workshop props", about: "Stations you use in the world: chest, anvil, furnace and more." },
 };
@@ -192,7 +192,7 @@ export const ITEM_LIST: ItemType[] = [
   // Gems and jewelry
   gemType("rough_gem", "Rough gems", "From the crystal cave: grey rock with crystals poking out. Bigger carats, bigger lump.", [{ label: "Gem", options: GEM_NAMES }, SIZES], (c) => `rough_${GEM_LIST[c[0] ?? 0]}_${SIZE_TENTHS[c[1] ?? 1]}`),
   gemType("cut_gem", "Cut gems", "Cut at the anvil. Sparkly, and it slowly turns.", [{ label: "Gem", options: GEM_NAMES }, SIZES], (c) => `gem_${GEM_LIST[c[0] ?? 0]}_${SIZE_TENTHS[c[1] ?? 1]}`),
-  gemType("soul_stone", "Soul stones", "Dark rock with pale glints; cut, it's a soul gem that glows once it holds souls.", [{ label: "Kind", options: ["Soul stone", "Empty soul gem", "Filled soul gem"] }], (c) => (c[0] === 0 ? "soulstone_24" : c[0] === 1 ? "soulgem_24" : "soulgem_24_1")),
+  gemType("soul_stone", "Emberstones", "Dark rock with pale glints; cut, it's a soul gem that glows once it holds souls.", [{ label: "Kind", options: ["Emberstone", "Empty soul gem", "Filled soul gem"] }], (c) => (c[0] === 0 ? "soulstone_24" : c[0] === 1 ? "soulgem_24" : "soulgem_24_1")),
   gemType("ring", "Rings", "A band with an optional gem on top.", [{ label: "Metal", options: JEWEL_METAL_LIST.map(cap) }, { label: "Gem", options: ["None", ...GEM_NAMES] }], (c) => `ring_${JEWEL_METAL_LIST[c[0] ?? 0]}${c[1] ? `_${GEM_LIST[c[1] - 1]}_24` : ""}`),
   gemType("amulet", "Amulets", "A chain with a round pendant and an optional gem.", [{ label: "Metal", options: JEWEL_METAL_LIST.map(cap) }, { label: "Gem", options: ["None", ...GEM_NAMES] }], (c) => `amulet_${JEWEL_METAL_LIST[c[0] ?? 0]}${c[1] ? `_${GEM_LIST[c[1] - 1]}_24` : ""}`),
 

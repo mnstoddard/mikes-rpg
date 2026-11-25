@@ -33,7 +33,7 @@ const NODE_LEGEND: Record<string, [Tile, ResourceId]> = {
   k: ["rock", "coal"], v: ["rock", "silver"], g: ["rock", "gold"], m: ["rock", "mithril"],
   2: ["water", "trout"], 3: ["water", "perch"], 4: ["water", "salmon"], 5: ["water", "pike"],
   6: ["water", "tuna"], 7: ["water", "swordfish"], 8: ["water", "eel"],
-  // The crystal cave: gem rocks, soul stone veins, platinum and iridium.
+  // The crystal cave: gem rocks, emberstone veins, platinum and iridium.
   U: ["rock", "amethyst"], Q: ["rock", "topaz"], L: ["rock", "soulstone"], N: ["rock", "emerald"],
   Z: ["rock", "sapphire"], R: ["rock", "ruby"], P: ["rock", "platinum"], X: ["rock", "iridium"],
 };

@@ -1976,13 +1976,13 @@ function renderStove(level: number): ItemId | null {
   return mealId(pick.dish, pick.fuel, pick.pot);
 }
 
-/** The anvil's Cut gems tab: every rough gem and soul stone in your bag, with a Cut button, and your odds. */
+/** The anvil's Cut gems tab: every rough gem and emberstone in your bag, with a Cut button, and your odds. */
 function renderCutting(level: number) {
   const c = cutChances(level);
-  craftBody.append(el("craft-info", `Your cuts at Smithing ${level}: ${percent(c.flawless)} flawless (keeps it all), ${percent(c.good)} good (85%), ${percent(c.clumsy)} clumsy (60%), ${percent(c.shattered)} shatter. Soul stone always cuts cleanly.`));
+  craftBody.append(el("craft-info", `Your cuts at Smithing ${level}: ${percent(c.flawless)} flawless (keeps it all), ${percent(c.good)} good (85%), ${percent(c.clumsy)} clumsy (60%), ${percent(c.shattered)} shatter. Emberstone always cuts cleanly.`));
   const rough = [...new Set(invItems.filter((it, i): it is ItemId => !!it && !locked[i] && isRough(it)))];
   if (!rough.length) {
-    craftBody.append(el("craft-warn", "No rough gems or soul stones in your bag. Mine them in the crystal cave, through the spider cave east of the quarry."));
+    craftBody.append(el("craft-warn", "No rough gems or emberstones in your bag. Mine them in the crystal cave, through the spider cave east of the quarry."));
     return;
   }
   const list = el("pick-row");

@@ -10,7 +10,7 @@ summary: The land's warmth, sent up by the Heartfire. Mana is just ember you can
 
 Where the ember runs close to the surface, you can see it.
 
-- Ore glows. Soul stone is ember that cooled into crystal.
+- Ore glows. Emberstone is ember that cooled into crystal.
 - The old trees of [[The Thornwood]] glowed softly at night.
 - A few people are born with more of it than others, and can shape it with their minds: they become mages. Mana is just ember you can use.
 - Embers that landed in rock during [[The Emberfall (disaster)|the Emberfall]] cooled into glowing shards worth more than gold.

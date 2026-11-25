@@ -102,7 +102,7 @@ export const MONSTER_TYPES: MonsterType[] = [
   T({ id: "spider", gameId: "spider", name: "Giant spider", group: "danger", variants: ["Red hourglass", "Forest green", "Striped"], color: 0x3a2a30, build: giantSpider,
     about: "As tall as a person. Spins the forest road shut with webs (Act 2A: Webs Across the Path).", where: "The east Thornwood." }),
   T({ id: "goblin", gameId: "goblin", name: "Goblin", group: "danger", variants: ["Green", "Mossy", "Tunnel"], color: 0x7fae4e, build: goblin,
-    about: "Small, sneaky and quick with a goblin-forged dagger. They hoard soul stone because \"it keeps the grey sickness away\".", where: "The goblin camp in the west Thornwood; later the Greyspine tunnels." }),
+    about: "Small, sneaky and quick with a goblin-forged dagger. They hoard emberstone because \"it keeps the grey sickness away\".", where: "The goblin camp in the west Thornwood; later the Greyspine tunnels." }),
   T({ id: "ashbound_scout", gameId: "ashbound_scout", name: "Ashbound scout", group: "danger", variants: ["Hooded", "Hooded (dark)"], color: 0x8a7c6a, build: ashboundScout,
     about: "The Ashbound's lookouts, in ash-grey leather with ember trim. Only fight if you start it.", where: "The smashed Westroad shrine (Act 1: Ash on the Road)." }),
   T({ id: "bandit", gameId: "bandit", name: "Ashbound raider", group: "danger", variants: ["Greatsword", "Sword and shield"], color: 0x5e5a52, build: ashboundRaider,

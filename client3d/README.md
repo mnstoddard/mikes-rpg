@@ -55,13 +55,13 @@ has a small look recipe for each ore.
 - **Mining**: each hit shakes the rock and pops off a piece of ore. When the
   rock runs out (`deplete()`), the rest crumbles away and the rock goes
   darker. `refill()` grows the ore back.
-- Shiny ores **glint**, and mithril, iridium, ruby, soul stone, Aurelite and
+- Shiny ores **glint**, and mithril, iridium, ruby, emberstone, Aurelite and
   Wellglass **glow**, which shows best at night.
 
 | Group | Rocks |
 |---|---|
 | Ores and stone | Stone, Copper, Tin, Iron, Coal, Silver, Gold, Mithril, Platinum, Iridium |
-| Gems | Amethyst, Topaz, Soul stone vein, Emerald, Sapphire, Ruby |
+| Gems | Amethyst, Topaz, Emberstone vein, Emerald, Sapphire, Ruby |
 | Planned (Sundered Crown) | Aurelite, Wellglass |
 
 ```ts
@@ -144,7 +144,7 @@ food: 64 items in 8 groups, all made from code in the low-poly look.
 | Foraging finds | worm, wild root, red cap, mushroom, sage, ginseng, honeycomb, old bone, blue lotus, moonpetal (glows), truffle, seeds | seeds: 6 crops |
 | Monster loot | feather, rat tail, cowhide, wolf/alpha pelt, boar hide, tusk, fang, bat wing, slime goo, venom sac, spider silk, goblin charm, stolen ring, food scraps, bait | wolf kind, 3 baits |
 | Potions | every potion (glowing, bubbling) and the empty vial | 10 potions |
-| Gems & jewelry | rough gems, cut gems, soul stones/gems, rings, amulets | gem, size, metal |
+| Gems & jewelry | rough gems, cut gems, emberstones/gems, rings, amulets | gem, size, metal |
 | Quest items | lantern (lights up), blessing scroll, shrine totem, Rook's note, scrawled note, Maren's charm, Holt's notes, spell books | 3 spell books |
 | Workshop props | storage chest, furnace, anvil, workbench, spinning wheel, tanning rack, cooking stove, alchemy table, enchanting altar, guild board | |
 

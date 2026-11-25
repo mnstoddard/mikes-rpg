@@ -1,7 +1,7 @@
 // Gems and jewelry (Mining and Smithing).
 //
 // The crystal cave, through the spider cave past the quarry, has gem rocks
-// (amethyst, topaz, emerald, sapphire, ruby) and soul stone veins. Every gem
+// (amethyst, topaz, emerald, sapphire, ruby) and emberstone veins. Every gem
 // you mine has a size in carats, like "Ruby, 2.4 ct": a number, not a tier.
 // Your Mining level and your Mastery of that rock push it bigger, and now and
 // then you find a surprisingly big one. Sizes are kept in tenths of a carat in
@@ -10,7 +10,7 @@
 //
 // Rough gems need cutting at the anvil (Smithing). A cut can go well or badly:
 // a flawless cut keeps the whole size, a clumsy one loses some, and now and
-// then a gem shatters. A higher Smithing level cuts better. Soul stone always
+// then a gem shatters. A higher Smithing level cuts better. Emberstone always
 // cuts cleanly into an empty soul gem of the same size (Spellcasting fills them later).
 //
 // Rings and amulets are made at the anvil from bars of bronze, silver, gold,
@@ -154,7 +154,7 @@ export function gemItemDef(item: string): { name: string; single: string; icon: 
     return { name, single: name.charAt(0).toLowerCase() + name.slice(1), icon: d.icon, tint: g.kind === "rough" ? `${d.tint} brightness(.75) contrast(.8)` : d.tint, sellPrice: price };
   }
   if (g.kind === "soulstone") {
-    const name = `Soul stone, ${carats(g.size)}`;
+    const name = `Emberstone, ${carats(g.size)}`;
     return { name, single: name.toLowerCase(), icon: "🪨", tint: "hue-rotate(220deg) saturate(1.5) brightness(.8)", sellPrice: Math.max(1, Math.round(30 * Math.pow(ct, 1.3))) };
   }
   if (g.kind === "soulgem") {

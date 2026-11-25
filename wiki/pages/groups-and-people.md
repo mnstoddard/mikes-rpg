@@ -11,7 +11,7 @@ summary: Every group and character in the story, including ones not in the game 
 | [[Emberborn]] (the players) | Heroes the shrines make from ember. | Made of stolen ember, and farmed for it. |
 | [[The Rooted]] | Ordinary townsfolk. | Exactly that. |
 | [[The Ashbound]] | Mad bandits who smash shrines. | They know the truth, and are shutting the siphon down. |
-| [[The Mages' Guild]] | Scholars of magic and soul stone. | Honest, but their soul stone feeds the Undying. |
+| [[The Mages' Guild]] | Scholars of magic and emberstone. | Honest, but their emberstone feeds the Undying. |
 | [[The Wardens]] | Kael's rangers. | Honest. |
 | [[The Blight]] | Sick, angry animals. | Living things the ember has drained out of. |
 
