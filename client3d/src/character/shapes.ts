@@ -142,11 +142,13 @@ export function headPoint(d: THREE.Vector3, H: HeadShape, out: THREE.Vector3) {
 export function shellGeo(H: HeadShape, w: number, h: number, fn: ((d: THREE.Vector3, off: THREE.Vector3, cc: { c: number }) => number) | null, withColor = false) {
   const g = new THREE.SphereGeometry(1, w, h), p = g.attributes.position, d = new V3(), o = new V3(), off = new V3();
   const cc = { c: 1 }, col: number[] = [];
+  const tucked = new Uint8Array(p.count);
   for (let i = 0; i < p.count; i++) {
     d.fromBufferAttribute(p, i).normalize();
     off.set(0, 0, 0);
     cc.c = 1;
     const t = fn ? fn(d, off, cc) : 0;
+    if (t < -0.02) tucked[i] = 1;
     col.push(cc.c, cc.c, cc.c);
     headPoint(d, H, o);
     if (t < 0) o.multiplyScalar(1 + Math.max(t, -0.12));
@@ -157,5 +159,13 @@ export function shellGeo(H: HeadShape, w: number, h: number, fn: ((d: THREE.Vect
     p.setXYZ(i, o.x, o.y, o.z);
   }
   if (withColor) g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+  // Leave out triangles tucked wholly inside the head: they can never be seen,
+  // but the graphics card would still draw them (often over half the hair).
+  const idx = g.index!, keep: number[] = [];
+  for (let i = 0; i < idx.count; i += 3) {
+    const a = idx.getX(i), b = idx.getX(i + 1), c = idx.getX(i + 2);
+    if (!(tucked[a] && tucked[b] && tucked[c])) keep.push(a, b, c);
+  }
+  if (keep.length < idx.count) g.setIndex(keep);
   return smoothFix(g);
 }

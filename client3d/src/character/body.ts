@@ -344,10 +344,15 @@ function hairStyles(P: CharacterRecipe, R: number): Record<CharacterRecipe["hair
 export interface BuildOptions {
   /** Leave out the hair and hat (for helmets and hoods). Beards stay. */
   hideHair?: boolean;
+  /** How finely the head, hair and beard are shaped: 1 (the default) is full detail; statues use less. */
+  detail?: number;
 }
 
 export function buildBody(P: CharacterRecipe, opts: BuildOptions = {}): BuiltBody {
   const disposables: { dispose(): void }[] = [];
+  const det = opts.detail ?? 1;
+  const shell = (w: number, h: number, fn: ShellFn, withColor = false) =>
+    det === 1 ? shellGeo(H, w, h, fn, withColor) : shellGeo(H, Math.max(16, Math.round(w * det)), Math.max(12, Math.round(h * det)), fn, withColor);
   const M = (hex: string, o: { r?: number; m?: number; side?: THREE.Side; op?: number; em?: string; ei?: number } = {}) => {
     const m = new THREE.MeshStandardMaterial({ color: new THREE.Color(hex), roughness: o.r ?? 0.68, metalness: o.m ?? 0, side: o.side ?? THREE.FrontSide });
     if (o.op !== undefined) {
@@ -467,7 +472,7 @@ export function buildBody(P: CharacterRecipe, opts: BuildOptions = {}): BuiltBod
   const H: HeadShape = { rx: R * 0.9 * P.faceWidth, ry: R * 1.02 * P.faceLength, rz: R * 0.97, jaw: P.jaw, chin: P.chin, cheeks: P.cheeks, square: P.square };
   const skull = G(head, 0, H.ry * 0.82 * Math.max(1, P.chin * 0.95), 0);
   J.skull = skull;
-  add(skull, shellGeo(H, 56, 42, null), skin);
+  add(skull, shell(56, 42, null), skin);
   const onHead = (parent: THREE.Object3D, d: THREE.Vector3, lift = 1, blend = 0.4) => {
     const p = headPoint(d, H, new V3()).multiplyScalar(lift);
     const g = G(parent, p.x, p.y, p.z);
@@ -561,11 +566,11 @@ export function buildBody(P: CharacterRecipe, opts: BuildOptions = {}): BuiltBod
     const styles = hairStyles(P, R), hf = styles[P.hairStyle];
     if (hf) {
       const plain = P.hairStyle === "buzz" || P.hairStyle === "afro";
-      if (plain) hairAdd(skull, shellGeo(H, 80, 60, hf), hairM);
+      if (plain) hairAdd(skull, shell(80, 60, hf), hairM);
       else {
         const shellM = M(P.hairColor, { r: 0.55 });
         shellM.vertexColors = true;
-        hairAdd(skull, shellGeo(H, 112, 84, hf, true), shellM);
+        hairAdd(skull, shell(112, 84, hf, true), shellM);
       }
     }
     if (P.hairStyle === "spiky") {
@@ -629,13 +634,13 @@ export function buildBody(P: CharacterRecipe, opts: BuildOptions = {}): BuiltBod
       off.y -= R * 0.28 * low;
       return 0.05 + 0.07 * low;
     };
-    add(skull, shellGeo(H, 80, 60, fn), kind === "stubble" ? stub : hairM);
+    add(skull, shell(80, 60, fn), kind === "stubble" ? stub : hairM);
   }
 
   // Hats (left out under a helmet).
   const topY = H.ry / (1 + H.square * 0.14);
   if (!opts.hideHair) {
-    if (P.hat === "beanie") hairAdd(skull, shellGeo(H, 56, 40, (d) => (d.y > 0.24 ? (d.y < 0.4 ? 0.2 : 0.16) : -1)), acc);
+    if (P.hat === "beanie") hairAdd(skull, shell(56, 40, (d) => (d.y > 0.24 ? (d.y < 0.4 ? 0.2 : 0.16) : -1)), acc);
     else if (P.hat === "wizard") {
       const hg = G(skull, 0, topY * 0.55, -R * 0.05);
       hairParts.push(hg);

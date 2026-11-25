@@ -56,6 +56,7 @@ import { MonsterView, Person, label, makeStation, npcRecipe, playerRecipe, type 
 import { openCreator } from "./creator";
 import { lookToRecipe } from "./look";
 import * as sfx from "./sfx";
+import { AutoQuality } from "./quality";
 
 const MIN_DIST = 7;
 const MAX_DIST = 42;
@@ -78,6 +79,7 @@ export class World3D {
   private sky: SkyDome = createSkyDome();
   private terrain = new Terrain();
   private clock = new THREE.Clock();
+  private quality: AutoQuality;
   private time = 0;
   private raycaster = new THREE.Raycaster();
   private ground = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
@@ -149,7 +151,7 @@ export class World3D {
 
   constructor(private host: HTMLElement) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-    this.renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
+    this.quality = new AutoQuality(this.renderer); // sharpness: drawn a little softer if frames get slow
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -246,6 +248,7 @@ export class World3D {
       go();
     }
     const dt = Math.min(0.1, this.clock.getDelta());
+    this.quality.update(dt);
     this.time += dt;
     const me = this.room ? this.players.get(this.room.sessionId) : undefined;
     if (me) this.focus.lerp(me.root.position, Math.min(1, dt * 10));

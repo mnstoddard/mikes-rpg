@@ -6,6 +6,11 @@ in `shared/version.ts` (the game reads it from there), so update both together.
 Each update adds 0.1 to the number. Version 1.0 is saved for the finished game on Steam
 (see docs/VERSION-1.0-PLAN.md).
 
+## 0.13 · 25 November 2026 · A faster, smoother game
+
+- The game draws about half as much in town, so it runs smoother, especially on laptops and phones. Nothing looks different: roofs now skip the hidden sides of each roof tile, hair skips the part tucked inside the head, and the Emberhall's stone statues are shaped a little more simply (they look the same).
+- On slower computers with very sharp screens, the game now draws a little softer when it starts to slow down, and goes back to full sharpness when there's time to spare. Computers that keep up see no change.
+
 ## 0.12 · 25 November 2026 · Training, the new quest menu and fixes
 
 - Training: new players stay in town until Old Maren's lessons are done. Try to walk out past the lake, the river or the edges of town and you're turned back with a note saying what to do next.
