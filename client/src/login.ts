@@ -1,5 +1,6 @@
 import type { Room } from "colyseus.js";
 import type { LoginDetails } from "./network";
+import { startTitleMusic, stopTitleMusic } from "./titleMusic";
 
 const LAST_USERNAME = "rpg.lastUsername";
 
@@ -17,6 +18,7 @@ export function showLogin(join: (login: LoginDetails) => Promise<Room>): Promise
 
   try { username.value = localStorage.getItem(LAST_USERNAME) ?? ""; } catch { /* storage blocked */ }
   box.style.display = "flex";
+  startTitleMusic();
   (username.value ? password : username).focus();
 
   return new Promise((resolve) => {
@@ -29,6 +31,7 @@ export function showLogin(join: (login: LoginDetails) => Promise<Room>): Promise
         const room = await join({ username: username.value.trim(), password: password.value, create });
         try { localStorage.setItem(LAST_USERNAME, username.value.trim()); } catch { /* ignore */ }
         box.style.display = "none";
+        stopTitleMusic();
         form.onsubmit = null;
         resolve(room);
       } catch (err: any) {

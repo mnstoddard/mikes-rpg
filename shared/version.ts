@@ -13,6 +13,15 @@ export interface GameUpdate { version: string; date: string; title: string; chan
 
 export const UPDATES: GameUpdate[] = [
   {
+    version: "0.5",
+    date: "2026-11-25",
+    title: "Title music: Mike's own song",
+    changes: [
+      { text: "The login screen now plays Mike's own song, on a loop. It starts on your first click, tap or key press (browsers don't allow sound before that), and fades out when you log in." },
+      { text: "Tap 🔊 at the top right of the login box to turn the music off (🔇) or back on. The game remembers your choice." },
+    ],
+  },
+  {
     version: "0.4",
     date: "2026-11-24",
     title: "Play by listening: read-aloud and quest pictures",
