@@ -13,6 +13,19 @@ export interface GameUpdate { version: string; date: string; title: string; chan
 
 export const UPDATES: GameUpdate[] = [
   {
+    version: "0.9",
+    date: "2026-11-25",
+    title: "Sound effects",
+    changes: [
+      { text: "Sound effects! Chopping, mining, smithing, smelting, cooking and fighting each have their own sounds: a swoosh as you swing, a thunk when the tool lands, and a little reward sound when something goes into your bag." },
+      { text: "Cooking makes stirring and chopping sounds, picked at random from three so it never sounds like a loop." },
+      { text: "Footsteps change with the ground: grass, dirt paths, wooden floors and bridges, stone, and carpet." },
+      { text: "Level ups play a 16-bit treasure fanfare (once, even when a skill and its mastery go up together), and finishing a quest plays a victory tune." },
+      { text: "Hitting a monster, a monster getting hurt, a monster going down, and a monster hitting you all have sounds." },
+      { text: "Settings has a new 🔔 Sound effects switch and a volume slider. The game remembers both." },
+    ],
+  },
+  {
     version: "0.8",
     date: "2026-11-25",
     title: "Soul stone is now called emberstone",

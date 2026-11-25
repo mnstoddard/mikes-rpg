@@ -105,6 +105,8 @@ export class Person {
   private cloak?: THREE.Mesh;
   /** Called at the moment a chop or pick lands (to shake the tree or rock). */
   onHit?: (x: number, y: number) => void;
+  /** Called as the arm starts down ("swing") and as it lands ("hit"), for sound effects. */
+  onBeat?: (phase: "swing" | "hit", action: string) => void;
   private faceTile = { x: 0, y: 0 };
   private recipeText = "";
   /** The weapon in their hand ("" = bare fists). */
@@ -327,6 +329,8 @@ export class Person {
         J.elbowL.rotation.set(elL, 0, 0);
       }
       if (a.hits && before < 0.55 && this.swingT >= 0.55) this.onHit?.(this.faceTile.x, this.faceTile.y);
+      if (before < 0.42 && this.swingT >= 0.42) this.onBeat?.("swing", this.action);
+      if (before < 0.55 && this.swingT >= 0.55) this.onBeat?.("hit", this.action);
     }
     if (this.bobber) {
       const b = this.bobber.group;
