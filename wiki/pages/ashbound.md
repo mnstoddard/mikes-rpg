@@ -16,7 +16,7 @@ They pass messages hidden inside the bases of [[Woodworker Rook]]'s shrine totem
 [[Emberborn]] only exist because of the siphon. If every shrine goes dark, every Emberborn crumbles to ash, the Ashbound's own fighters included. The Ashbound know this, and they smash shrines anyway, so the land can live. They are bound for ash, and they chose it. Their saying is *"Better ash than a thief."*
 
 ::: secret
-They're the good guys: Emberborn and [[The Rooted]] who know the truth about [[The shrines]], shutting the siphon down. Their hope is the [[Heart Seed]]. They live the [[The Hearthwise|Hearthwise]] way, with hearths that burn without a shrine.
+They're the good guys: Emberborn and [[The Rooted]] who know the truth about [[The shrines]], shutting the siphon down. Their hope is the [[Ember Seed]]. They live the [[The Hearthwise|Hearthwise]] way, with hearths that burn without a shrine.
 :::
 
 ## People

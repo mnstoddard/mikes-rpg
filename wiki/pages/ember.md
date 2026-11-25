@@ -2,9 +2,9 @@ title: The ember
 category: Lore
 icon: ✨
 aliases: Ember, Mana
-summary: The land's warmth, sent up by the Heartfire. Mana is just ember you can use.
+summary: The land's warmth, sent up by the Emberheart. Mana is just ember you can use.
 ---
-**The ember** is the land's own warmth. It comes from [[The Heartfire]] and is in everything that grows.
+**The ember** is the land's own warmth. It comes from [[The Emberheart]] and is in everything that grows.
 
 ## Where it shows
 

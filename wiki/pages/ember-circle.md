@@ -12,7 +12,7 @@ infobox.Mark: A ring of fire
 Their mark is a ring of fire. It can still be found on a ruined mage tower in the Barrens, and it's carved over [[The Emberhall]]'s front door.
 
 ::: secret
-The Circle had power, but they were growing old. They wanted to live forever, and to be stronger than any king. In year 0 they dug a shaft down to [[The Heartfire]] to drink from it, and caused [[The Emberfall (disaster)|the Emberfall]]. Drinking straight from it nearly killed them too, so in year 40 they built the shrines: a gentler, sneakier way to drink. In year 60 they renamed themselves [[The Emberguard]], and their leaders became [[The Undying]].
+The Circle had power, but they were growing old. They wanted to live forever, and to be stronger than any king. In year 0 they dug a shaft down to [[The Emberheart]] to drink from it, and caused [[The Emberfall (disaster)|the Emberfall]]. Drinking straight from it nearly killed them too, so in year 40 they built the shrines: a gentler, sneakier way to drink. In year 60 they renamed themselves [[The Emberguard]], and their leaders became [[The Undying]].
 
 Their names are on the frozen shrine in [[Frostfell]], Vale's first, dated year 40, and on a page cut from the oldest book in the Emberhall library.
 :::

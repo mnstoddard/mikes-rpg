@@ -12,4 +12,4 @@ infobox.Old_name: Aurel
 
 It fell in the [[Sundering War]]. Its ruins are scattered across the Barrens, and its capital is the crater called [[The Sundered Crown]].
 
-Old Kingdom coins dug up in the Barrens show a seed under a crown: the first hint of the [[Heart Seed]].
+Old Kingdom coins dug up in the Barrens show a seed under a crown: the first hint of the [[Ember Seed]].

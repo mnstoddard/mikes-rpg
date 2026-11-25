@@ -20,7 +20,7 @@ It prints how many pages it made, and lists any links that point to a page that 
 
 Lore, history, places, factions and people are plain text files in `wiki/pages`, one per page. Open one and change the words. The top of each file says the page's title, category and fact box, then a line with three dashes, then the page.
 
-- `[[The Heartfire]]` links to another page. `[[The Heartfire|the land's heart]]` shows different words.
+- `[[The Emberheart]]` links to another page. `[[The Emberheart|the land's heart]]` shows different words.
 - `## Heading` starts a section.
 - A line starting with `- ` is a bullet.
 - Put a twist between `::: secret` and `:::` to make a red secret box.

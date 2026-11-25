@@ -12,11 +12,11 @@ These are planned, not built. (Built quests are on [[Quests]].) None are needed 
 |---|---|---|---|---|
 | 1.13 | A Story for Children | [[Sister Lisette]] | Read "A Child's Book of the Emberborn" aloud to the town children. | The official Emberfall story. It leaves out who was there. |
 | 2B.8 | The Old Shaft | [[Miner Greta]] | Find a huge scorched shaft deep in the Crystal Cave. | 🧩 Echo: robed mages chanting around a pit of fire. |
-| 2D.8 | Brightcrown's Coin | [[Archmage Rowan]] | Dig up Old Kingdom coins in the Barrens. | The first hint of the Heart Seed and the Ember Crown. |
+| 2D.8 | Brightcrown's Coin | [[Archmage Rowan]] | Dig up Old Kingdom coins in the Barrens. | The first hint of the Ember Seed and the Ember Crown. |
 | 2D.9 | The Circle's Mark | Archmage Rowan | Copy a ring-of-fire mark from a ruined mage tower. | It's carved over the Emberhall's front door. |
 | 3.16 | The Torn Page | Sister Lisette | Find who cut a page from the oldest book in the library. | The true account of the Emberfall, with the Circle's names. Vale's is first. |
-| 4A.19 / 4B.19 | The Heartbeat | [[Old Maren]] or Vale | 🎬 Put your hand in the Heartfire and feel it beat. | The land is dying, and how fast. |
-| E.1 | The Heart Seed | [[Sable]] or Vale | Follow the coins' clues into the Crown Vault. | Both sides want the Seed. |
+| 4A.19 / 4B.19 | The Heartbeat | [[Old Maren]] or Vale | 🎬 Put your hand in the Emberheart and feel it beat. | The land is dying, and how fast. |
+| E.1 | The Ember Seed | [[Sable]] or Vale | Follow the coins' clues into the Crown Vault. | Both sides want the Seed. |
 
 ## Emberhold and Heartvale (levels 1 to 20)
 
@@ -76,5 +76,5 @@ These are planned, not built. (Built quests are on [[Quests]].) None are needed 
 |---|---|---|---|---|
 | The Frozen Shrine | An old trapper | Thaw the oldest shrine enough to read its plaque. | Spellcasting, surviving | Signed by the whole Ember Circle, Vale's name first. |
 | Orla's Rest | Sister Wynne | Free Orla's spark from an old gem. | Spellcasting, Enchanting | Drained sparks can be set free. |
-| The Seed Coin | Shopkeeper Tam | Buy a strange warm coin. | Trading | It points to the Crown Vault, and the Heart Seed. |
+| The Seed Coin | Shopkeeper Tam | Buy a strange warm coin. | Trading | It points to the Crown Vault, and the Ember Seed. |
 | Maren's First Day | Old Maren | Walk with Maren to where she first woke. | Walking, Fishing | 🧩 Echo: Vale was there, young, smiling, already old inside. |
