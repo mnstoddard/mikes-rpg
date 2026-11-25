@@ -13,7 +13,7 @@ These are planned, not built. (Built quests are on [[Quests]].) None are needed 
 | 1.13 | A Story for Children | [[Sister Lisette]] | Read "A Child's Book of the Emberborn" aloud to the town children. | The official Emberfall story. It leaves out who was there. |
 | 2B.8 | The Old Shaft | [[Miner Greta]] | Find a huge scorched shaft deep in the Crystal Cave. | 🧩 Echo: robed mages chanting around a pit of fire. |
 | 2D.8 | Brightcrown's Coin | [[Archmage Rowan]] | Dig up Old Kingdom coins in the Barrens. | The first hint of the Heart Seed and the Ember Crown. |
-| 2D.9 | The Circle's Mark | Archmage Rowan | Copy a ring-of-fire mark from a ruined mage tower. | It's carved over the Lighthall's front door. |
+| 2D.9 | The Circle's Mark | Archmage Rowan | Copy a ring-of-fire mark from a ruined mage tower. | It's carved over the Emberhall's front door. |
 | 3.16 | The Torn Page | Sister Lisette | Find who cut a page from the oldest book in the library. | The true account of the Emberfall, with the Circle's names. Vale's is first. |
 | 4A.19 / 4B.19 | The Heartbeat | [[Old Maren]] or Vale | 🎬 Put your hand in the Heartfire and feel it beat. | The land is dying, and how fast. |
 | E.1 | The Heart Seed | [[Sable]] or Vale | Follow the coins' clues into the Crown Vault. | Both sides want the Seed. |
@@ -49,7 +49,7 @@ These are planned, not built. (Built quests are on [[Quests]].) None are needed 
 |---|---|---|---|---|
 | The Heartbeat in the Rock | Miner Greta | Mine deep in the Crystal Cave and count the slow thumps. | Mining | It's slower than when Greta was a girl. |
 | Goblin Songs | A goblin elder | Trade food to learn the goblins' song. | Cooking, Trading | It's a Hearthwise song. |
-| Flint's Books | Warden Flint | Do Flint's accounts. | Trading | Far more ember goes to the Lighthall than it could ever use. |
+| Flint's Books | Warden Flint | Do Flint's accounts. | Trading | Far more ember goes to the Emberhall than it could ever use. |
 | The Cold Climber | A frozen body | Find a frozen climber's journal. | Exploring, Alchemy | The land is going cold from the edges in. |
 
 ## Saltmere Coast (levels 35 to 50)

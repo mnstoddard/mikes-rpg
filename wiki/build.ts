@@ -75,12 +75,22 @@ const RENAMES: [RegExp, string][] = [
   [/Vael/g, "Vale"],
   [/Ysolde/g, "Rowan"],
   [/Ysra/g, "Ida"],
+  [/Lighthall/g, "Emberhall"],
+  [/Soul gems/g, "Refined emberstones"],
+  [/Soul gem/g, "Refined emberstone"],
+  [/soul gems/g, "refined emberstones"],
+  [/soul gem/g, "refined emberstone"],
+  [/Soul trap/g, "Ember trap"],
+  [/soul trap/g, "ember trap"],
+  [/Soul Debt/g, "Ember Debt"],
+  [/\bSouls?\b/g, "Ember"],
+  [/\bsouls?\b/g, "ember"],
 ];
 let renamedOnPage = false;
 function canon(text: string): string {
   let out = text;
   for (const [re, to] of RENAMES) out = out.replace(re, () => { renamedOnPage = true; return to; });
-  return out.replace(/\bthe the\b/g, "the").replace(/\bThe the\b/g, "The").replace(/^the Old/, "The Old");
+  return out.replace(/\b([Aa]) ember\b/g, "$1n ember").replace(/\bthe the\b/g, "the").replace(/\bThe the\b/g, "The").replace(/^the Old/, "The Old");
 }
 
 // ---------------------------------------------------------------- pages
@@ -132,9 +142,12 @@ function addPage(p: Partial<Page> & { title: string; category: string }) {
 /** Wrap a game-made page so it remembers whether any names were swapped. */
 function gamePage(p: Partial<Page> & { title: string; category: string }, make: () => string) {
   renamedOnPage = false;
-  const body = make();
+  // Everything copied from the code gets the new names (except the Names page, which lists the old ones).
+  const fix = p.title === "Names" ? (t: string) => t : canon;
+  const body = fix(make());
   const title = canon(p.title);
-  return addPage({ ...p, title, body, renamed: renamedOnPage, written: false });
+  const infobox = (p.infobox ?? []).map(([k, v]) => [k, fix(v)] as [string, string]);
+  return addPage({ ...p, title, body, infobox, summary: fix(p.summary ?? ""), renamed: renamedOnPage, written: false });
 }
 
 // ---------------------------------------------------------------- hand-written pages
@@ -399,13 +412,13 @@ function foodPages() {
     "## Plot sizes", table(["Size", "Price"], PLOT_SIZES.map((s, i) => [`${s[0]} × ${s[1]}`, `${PLOT_GOLD[i]} gold`])),
   ].join("\n\n"));
   gamePage({ title: "Gems and jewelry", category: "Items", icon: "💎", sources: ["shared/jewelry.ts"], summary: "Gems, rings and amulets." }, () => [
-    "Gem rocks give rough gems of different sizes (carats). Cut them, set them in a ring or amulet, and wear it for a bonus. Emberstone becomes soul gems for [[Enchanting]].",
+    "Gem rocks give rough gems of different sizes (carats). Cut them, set them in a ring or amulet, and wear it for a bonus. Emberstone becomes refined emberstones for [[Enchanting]].",
     table(["Gem", "Cut at level", "Gives (per carat)", "Shop pays per carat (rough)"], GEM_IDS.map((g) => [GEMS[g].name, CUT_LEVEL[g], `+${GEMS[g].per} ${STAT_NAMES[GEMS[g].stat]}`, `${GEMS[g].price} bronze`])),
     "## Settings", table(["Metal", "Bars"], JEWEL_METAL_IDS.map((m) => [(JEWEL_METALS as any)[m].name ?? m, "—"])).replace(/\| — \|/g, "| |"),
     "Pieces: " + Object.values(JEWEL_TYPES).map((t) => `${t.icon} ${t.name} (${t.bars} bar${t.bars > 1 ? "s" : ""})`).join(", ") + ".",
   ].join("\n\n"));
   gamePage({ title: "Enchanting", category: "Skills", icon: "✨", sources: ["shared/enchanting.ts"] }, () => [
-    "Enchantments you can put on things at the altar in the Mages' Guild, using a soul gem with souls in it (trap souls with [[Soul trap]]). Staff enchantments also need a cut gem of the right kind.",
+    "Enchantments you can put on things at the altar in the Mages' Guild, using a refined emberstone with ember in it (trap ember with [[Ember trap]]). Staff enchantments also need a cut gem of the right kind.",
     table(["Enchantment", "Goes on", "Gem", "Does"], ENCHANT_IDS.map((e) => [`${ENCHANTS[e].icon} ${ENCHANTS[e].name}`, ENCHANTS[e].on + (ENCHANTS[e].gatherOnly ? " (gathering only)" : ""), ENCHANTS[e].gem ? GEMS[ENCHANTS[e].gem!].name : "—", ENCHANTS[e].describe(20, 3)])),
     "The numbers shown are for power 20 and a 3 carat gem.",
   ].join("\n\n"));
@@ -589,11 +602,11 @@ function mechanicsPages() {
     `Click another player to invite them. A party holds up to ${PARTY_MAX}. Members within ${PARTY_NEAR} tiles of the leader share in kills and quest steps, and the leader trains [[Leadership]].`);
   gamePage({ title: "Bounties", category: "Mechanics", icon: "📋", sources: ["shared/bounties.ts", "shared/guild.ts"], summary: "Jobs on the bounty board that pay double." }, () => [
     `The bounty board in the square shows ${BOUNTY_COUNT} jobs a day. Bring the full amount and they pay double what a shop would, plus [[Renown]]. A new job costs ${REROLL_FEE} bronze.`,
-    "The [[The Mages' Guild|Mages' Guild]] has its own board of magic jobs (trap souls, brew, enchant), and its own ranks:",
+    "The [[The Mages' Guild|Mages' Guild]] has its own board of magic jobs (trap ember, brew, enchant), and its own ranks:",
     table(["Guild rank", "Points", "Chest size"], GUILD_RANKS.map((r) => [r.name, r.points, r.maxChest])),
     `Enchanted chests: ${CHEST_START} slots to start, ${CHEST_STEP} more each time you expand (${EXPAND_GOLD.join(", ")} gold), rent ${coins(CHEST_RENT)}.`,
   ].join("\n\n"));
-  gamePage({ title: "The Tithe", category: "Mechanics", icon: "🕯️", sources: ["shared/story.ts"], aliases: ["Soul Debt", "Tithe marks"] }, () => [
+  gamePage({ title: "The Tithe", category: "Mechanics", icon: "🕯️", sources: ["shared/story.ts"], aliases: ["Ember Debt", "Soul Debt", "Tithe marks"] }, () => [
     `After the Oath, each time you're knocked out you get a Tithe mark (at most ${TITHE_MAX}). While you have marks, ${pct(TITHE_SHARE)} of the XP you earn goes to the shrine instead. Each mark clears once the shrine has taken enough XP (${titheCost(1)} at level 1, ${titheCost(50)} at level 50). You never lose levels or items. A [[Tithe tonic]] clears one mark at once.`,
   ].join("\n\n"));
   gamePage({ title: "Blessings", category: "Mechanics", icon: "📜", sources: ["shared/story.ts"] }, () =>
