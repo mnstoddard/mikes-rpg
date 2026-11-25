@@ -40,7 +40,7 @@ export const ARMOR_SETS: ArmorSet[] = [
   { id: "mithril", name: "Mithril", planned: false, about: "The best metal in the game today, with a faint blue glow. Smithing 60." },
   { id: "leather", name: "Leather", planned: false, about: "Light armor sewn at Rook's workbench. Doesn't slow you down." },
   { id: "cloth", name: "Cloth robes", planned: false, about: "Thin, but each piece adds mana and makes spells stronger." },
-  { id: "aurelite", name: "Aurelite", planned: true, about: "Planned: a new metal above mithril, from Aurelite ore in the Sundered Crown." },
+  { id: "aurelite", name: "Embersteel", planned: true, about: "Planned: a new metal above mithril, from Embersteel ore in the Sundered Crown." },
   { id: "primeval", name: "Primeval hide", planned: true, about: "Planned: the best leather, from the Crown's ancient beasts." },
   { id: "honours", name: "Cloaks and honours", planned: true, about: "Planned rewards from the story: rank cloaks, robes and gauntlets." },
 ];
@@ -97,7 +97,7 @@ for (const m of ["leather", "cloth"] as const)
   }
 const SOFT_PLANNED: Record<ArmorType, string> = { helmet: "Primeval cap", platebody: "Primeval jerkin", platelegs: "Primeval chaps", boots: "Primeval boots", shield: "Primeval buckler" };
 for (const t of TYPES) {
-  entries.push({ id: `${t}_aurelite`, name: `Aurelite ${ARMOR[t].name.toLowerCase()}`, set: "aurelite", piece: TYPE_PIECE[t], look: "aurelite", planned: true, facts: [["Slot", SLOT_NAMES[ARMOR[t].slot]], ["In the game", "Planned (no numbers yet)"]], status: "waiting", style: 0 });
+  entries.push({ id: `${t}_aurelite`, name: `Embersteel ${ARMOR[t].name.toLowerCase()}`, set: "aurelite", piece: TYPE_PIECE[t], look: "aurelite", planned: true, facts: [["Slot", SLOT_NAMES[ARMOR[t].slot]], ["In the game", "Planned (no numbers yet)"]], status: "waiting", style: 0 });
 }
 for (const t of TYPES) {
   entries.push({ id: `${t}_primeval`, name: SOFT_PLANNED[t], set: "primeval", piece: TYPE_PIECE[t], look: "primeval", planned: true, facts: [["Slot", SLOT_NAMES[ARMOR[t].slot]], ["In the game", "Planned (no numbers yet)"]], status: "waiting", style: 0 });
@@ -109,7 +109,7 @@ const honours: Omit<ArmorEntry, "set" | "planned" | "status" | "facts" | "style"
   { id: "cloak_silk", name: "Silk cloak", piece: "cloak", look: "silk", about: "From Warden Corvane for clearing the spiders (Act 2A: Webs Across the Path)." },
   { id: "gauntlets_halbrecht", name: "Halbrecht's gauntlets", piece: "gauntlets", look: "halbrecht", about: "From Warden Halbrecht for relighting the Greyspine Lightshrine (Act 2B)." },
   { id: "outfit_radiant", name: "Radiant robes", piece: "platebody", with: ["platelegs"], look: "radiant", about: "The ceremony outfit for the Radiance Ceremony (Act 2D)." },
-  { id: "cloak_threadcut", name: "Thread-cut cloak", piece: "cloak", look: "threadcut", about: "For cutting your own thread: no more Soul Debt (Act 4A: Cut the Thread)." },
+  { id: "cloak_threadcut", name: "Thread-cut cloak", piece: "cloak", look: "threadcut", about: "For cutting your own thread: no more Ember Debt (Act 4A: Cut the Thread)." },
 ];
 for (const h of honours) entries.push({ ...h, set: "honours", planned: true, facts: [["Worn on", h.piece === "cloak" ? "Back (new slot)" : h.piece === "gauntlets" ? "Hands (new slot)" : "Body and legs"], ["In the game", "Planned (story reward)"]], status: "waiting", style: 0 });
 

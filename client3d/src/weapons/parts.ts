@@ -15,7 +15,7 @@ export type { Rng } from "../trees/common";
 
 // ---------- What things are made of ----------
 
-/** Head metals: the game's five, plus Aurelite (planned for the Sundered Crown). */
+/** Head metals: the game's five, plus Embersteel (planned for the Sundered Crown). */
 export type WeaponMetal = Material | "aurelite";
 /** Handle woods: the game's seven, plus Crownwood (planned for the Sundered Crown). */
 export type WeaponWood = Wood | "crownwood";
@@ -36,7 +36,7 @@ export const METAL_LOOKS: Record<WeaponMetal, Look> = {
   iron:     { name: "Iron",     color: 0x8d9197, dark: 0x55595e, mat: { roughness: 0.5, metalness: 0.75 } },
   steel:    { name: "Steel",    color: 0xd5dbe1, dark: 0x8b939b, mat: { roughness: 0.26, metalness: 0.9 } },
   mithril:  { name: "Mithril",  color: 0x7cc4ee, dark: 0x3f7fae, mat: { roughness: 0.22, metalness: 0.85, emissive: 0x2a6fa8, emissiveIntensity: 0.35 } },
-  aurelite: { name: "Aurelite", color: 0xf3c64f, dark: 0xb5832a, mat: { roughness: 0.25, metalness: 0.9, emissive: 0xb07a10, emissiveIntensity: 0.45 }, planned: true },
+  aurelite: { name: "Embersteel", color: 0xf3c64f, dark: 0xb5832a, mat: { roughness: 0.25, metalness: 0.9, emissive: 0xb07a10, emissiveIntensity: 0.45 }, planned: true },
 };
 /**
  * The metals you can pick for a weapon. Stone is no longer a tier (bronze is

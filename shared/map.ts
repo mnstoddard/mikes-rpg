@@ -92,9 +92,9 @@ export function isWalkable(x: number, y: number): boolean {
   return !BLOCKED.has(MAP[y][x]) && !npcAt(x, y);
 }
 
-/** Where new characters wake up: on the steps of the Heart Shrine, inside the Lighthall. */
+/** Where new characters wake up: on the steps of the Heart Shrine, inside the Emberhall. */
 export const WAKE_SPOT: Point = PLACES.wake;
-/** Where everyone from before the big map lands: the town square, by the Lighthall's steps. */
+/** Where everyone from before the big map lands: the town square, by the Emberhall's steps. */
 export const TOWN_SPOT: Point = PLACES.lighthallSteps;
 
 /** A free tile near a spot (for waking up, or being knocked out). */
@@ -110,7 +110,7 @@ export function spotNear(p: Point): Point {
 }
 
 export function randomSpawn(): { x: number; y: number } {
-  // Somewhere on the town square, near the Lighthall's steps.
+  // Somewhere on the town square, near the Emberhall's steps.
   for (let i = 0; i < 50; i++) {
     const x = TOWN_SPOT.x - 4 + Math.floor(Math.random() * 9);
     const y = TOWN_SPOT.y + 1 + Math.floor(Math.random() * 3);

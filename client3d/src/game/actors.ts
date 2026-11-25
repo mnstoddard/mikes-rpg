@@ -165,7 +165,7 @@ export class Person {
     this.setAction(a, this.faceTile.x, this.faceTile.y);
   }
 
-  /** A Lightkeeper's cloak (Ember orange, Flame gold) on the back. */
+  /** An Emberguard's cloak (Ember orange, Flame gold) on the back. */
   setRank(rank: number) {
     const col = RANK_CLOAK[rank] ?? 0;
     if (this.cloak) { this.cloak.parent?.remove(this.cloak); this.cloak.geometry.dispose(); this.cloak = undefined; }
@@ -472,7 +472,7 @@ export class MonsterView {
     this.tag.obj.position.y = Math.max(0.9, this.m.height + 0.4);
     this.root.add(this.tag.obj);
     this.bar.set(1, 1);
-    // Soul trap's purple glow.
+    // Ember trap's purple glow.
     this.glow = new THREE.Mesh(new THREE.RingGeometry(0.6, 0.85, 24), new THREE.MeshBasicMaterial({ color: 0xc39bff, transparent: true, opacity: 0.8, side: THREE.DoubleSide }));
     this.glow.rotation.x = -Math.PI / 2;
     this.glow.position.y = 0.05;

@@ -65,7 +65,7 @@ export const POTIONS: Record<PotionType, PotionDef> = {
   nightsight: { name: "Night sight potion", icon: "🧪", tint: "hue-rotate(200deg) saturate(1.2) brightness(1.3)", level: 20, pair: ["moonpetal", "blue_lotus"], xp: 26, start: 0.45, buffs: { nightsight: 100 }, description: "You see clearly at night, for a while" },
   // Act 1 (Tithe Tonics): Alchemist Moss tells you the recipe.
   tithe:      { name: "Tithe tonic",       icon: "🧪", tint: "sepia(1) saturate(4) hue-rotate(10deg) brightness(1.2)", level: 2, pair: ["red_cap", "wild_root"], xp: 10, start: 0.7, tithe: 1, hidden: true, description: "Clears one Tithe mark" },
-  soultrap:   { name: "Soul trap potion",  icon: "🧪", tint: "hue-rotate(80deg) saturate(1.5) brightness(.7)", level: 25, pair: ["venom_sac", "moonpetal"], xp: 32, start: 0.4, buffs: { soultrap: 50 }, description: "Your Soul trap spell lasts longer, for a while" },
+  soultrap:   { name: "Ember trap potion",  icon: "🧪", tint: "hue-rotate(80deg) saturate(1.5) brightness(.7)", level: 25, pair: ["venom_sac", "moonpetal"], xp: 32, start: 0.4, buffs: { soultrap: 50 }, description: "Your Ember trap spell lasts longer, for a while" },
 };
 export const POTION_TYPES = Object.keys(POTIONS) as PotionType[];
 
@@ -96,7 +96,7 @@ export const BUFFS: Record<BuffId, { name: string; icon: string; describe: (powe
   strength:   { name: "Strength",    icon: "💪", describe: (p) => `+${p}% weapon damage` },
   swift:      { name: "Swiftness",   icon: "💨", describe: (p) => `walk ${p}% faster` },
   nightsight: { name: "Night sight", icon: "🌙", describe: () => "see clearly at night" },
-  soultrap:   { name: "Soul trap",   icon: "👻", describe: (p) => `Soul trap lasts ${p}% longer` },
+  soultrap:   { name: "Ember trap",   icon: "👻", describe: (p) => `Ember trap lasts ${p}% longer` },
   ward:       { name: "Ward",        icon: "🛡️", describe: (p) => `soaks up ${p} more damage` },
   haste:      { name: "Haste",       icon: "💨", describe: (p) => `walk ${p}% faster` },
   invisible:  { name: "Invisible",   icon: "🫥", describe: () => "monsters can't see you" },

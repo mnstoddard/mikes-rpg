@@ -23,7 +23,7 @@ export const SAVE_VERSION = 3; // 3 = the five Disciplines (Strength, Endurance,
 /**
  * Bump this when the world map is rearranged, so saved positions from the old
  * map aren't used (those characters start in the town square instead).
- * Missing = the first small island map. 2 = the big map of Elderra, with insides.
+ * Missing = the first small island map. 2 = the big map of Embervale, with insides.
  */
 export const MAP_REV = 2;
 
@@ -33,7 +33,7 @@ export interface SaveData {
   quest?: unknown; // the main quest (shared/quests.ts QuestProgress: per chapter, which step and progress on it). Before rev 3: { step, count } in one list
   questRev?: number; // which version of the quest steps this save uses (shared/quests.ts QUEST_REV)
   mapRev?: number;
-  tithe?: number; // Tithe marks (Soul Debt, shared/story.ts)
+  tithe?: number; // Tithe marks (Ember Debt, shared/story.ts)
   titheXp?: number; // XP the shrine has taken toward clearing the next one // which version of the world map x and y belong to (MAP_REV); older saves start in the town square
   x?: number;
   y?: number;

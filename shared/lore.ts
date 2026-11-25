@@ -1,36 +1,44 @@
 // Books on the shelves. Click a bookshelf and you take a book down and read a
-// page or two: the history of Elderra, the shrines, the towns and the people.
+// page or two: the history of Embervale, the shrines, the towns and the people.
 // None of it is needed for any quest; it's there for anyone who likes to know
-// more. Which book a shelf holds depends on the room (the Lighthall's library
-// keeps the Lightkeepers' own histories, the Mages' Guild its magic) and on
+// more. Which book a shelf holds depends on the room (the Emberhall's library
+// keeps the Emberguard's own histories, the Mages' Guild its magic) and on
 // the shelf, so the same shelf always holds the same book.
 //
 // A few of them don't quite agree with each other. That's on purpose.
 
 export interface Book { title: string; pages: string[] }
 
-/** The Lighthall: the Lightkeepers' library. Their side of the story. */
+/** The Emberhall: the Emberguard's library. Their side of the story. */
 const LIGHTHALL: Book[] = [
   {
-    title: "The Sundering War (a short history for new Kindled)",
+    title: "The Emberfall",
     pages: [
-      "Before the war, Elderra was the kingdom of Aurel: green from the Greyspine to the sea, ruled from a city of white stone in what is now the Barrens.",
-      "No one now living remembers how the war began. It ended with Aurel's crown lost, its city in ruins, and barely enough people left to bury the dead.",
-      "It was then that the Archmage Vael built the first shrines, and the first Kindled woke. The Lightkeepers have kept his shrines lit ever since.",
+      "Five hundred years ago the land's fire burst up out of the earth under Heartvale, in anger. Embers rained down across the Old Kingdom for a whole year, and the ground fell in where the valley is now. We count the years from it: this is the five hundredth year After the Fall.",
+      "No one was to blame. The land's fire is wild, as all fire is. The shrines keep it calm now, and the Emberguard keep the shrines.",
+      "Pressed between the last pages, a dry leaf and a note in an old hand: \"Fire does not burst up on its own. Ask what was dug.\"",
+    ],
+  },
+  {
+    title: "The Sundering War (a short history for new Emberborn)",
+    pages: [
+      "Before the war, Embervale was the Old Kingdom: green from the Greyspine to the sea, ruled from a city of white stone in what is now the Barrens.",
+      "No one now living remembers how the war began. It ended with the Old Kingdom's crown lost, its city in ruins, and barely enough people left to bury the dead.",
+      "It was then that the Archmage Vale built the first shrines, and the first Emberborn woke. The Emberguard have kept his shrines lit ever since.",
     ],
   },
   {
     title: "On the Shrines, by Keeper Aldric",
     pages: [
-      "A shrine is a door the light comes through. It finds a spark in the Wellspring, deep under the mountains, and gives it a body.",
-      "When a Kindled falls, the shrine nearest them gathers up what's left of the spark and makes them again. We do not fully understand it. We tend it, as a gardener tends what he did not plant.",
+      "A shrine is a door the light comes through. It finds a spark in the Emberheart, deep under Heartvale, and gives it a body.",
+      "When an Emberborn falls, the shrine nearest them gathers up what's left of the spark and makes them again. We do not fully understand it. We tend it, as a gardener tends what he did not plant.",
       "Every shrine must be lit by hand, and kept lit. A dark shrine raises no one.",
     ],
   },
   {
-    title: "The Order of the Lightkeepers: its Rule",
+    title: "The Order of the Emberguard: its Rule",
     pages: [
-      "1. Welcome every Kindled who wakes. 2. Keep every shrine lit. 3. Write down every deed, so the light remembers.",
+      "1. Welcome every Emberborn who wakes. 2. Keep every shrine lit. 3. Write down every deed, so the light remembers.",
       "4. Ask nothing of the Rooted (the ordinary folk) but their trust. 5. Honor the worthy with Radiance.",
       "6. The ledgers are for the Keepers alone. (Someone has underlined this one twice.)",
     ],
@@ -38,7 +46,7 @@ const LIGHTHALL: Book[] = [
   {
     title: "A Calendar of Radiance Ceremonies",
     pages: [
-      "A long list of names and years, one every few decades. Halric. Ysra. Tilda. Orla. Dozens more.",
+      "A long list of names and years, one every few decades. Halric. Ida. Tilda. Orla. Dozens more.",
       "Beside each name, in a neat hand: \"light returned to the Heart Shrine\". Beside a few, in a different ink: \"spark flawed\".",
       "One line near the end has been cut out of the page with a very sharp knife.",
     ],
@@ -53,13 +61,13 @@ const LIGHTHALL: Book[] = [
   {
     title: "The Withering: notes from the Barrens",
     pages: [
-      "It began in the far west, where Aurel's city stood. Grass greys, then crumbles. Animals grow thin and angry. Wells taste of ash.",
+      "It began in the far west, where the Old Kingdom's city stood. Grass greys, then crumbles. Animals grow thin and angry. Wells taste of ash.",
       "The Ashbound blame the shrines. This is, of course, nonsense. The shrines are the only light the Barrens have left.",
       "Note in the margin, in pencil: \"Then why is it worst where the shrines are brightest?\" It has been rubbed half out.",
     ],
   },
   {
-    title: "A Kindled's First Week (a guide)",
+    title: "An Emberborn's First Week (a guide)",
     pages: [
       "Do not be frightened that you remember nothing. None of you do. A new spark has no past, only a future.",
       "Learn a trade. Eat well. Light a lantern when you can. And when you fall, as you will, the shrine brings you home.",
@@ -74,51 +82,51 @@ const LIGHTHALL: Book[] = [
   },
 ];
 
-/** The Mages' Guild: magic, emberstone and the Wellspring. */
+/** The Mages' Guild: magic, emberstone and the Emberheart. */
 const GUILD: Book[] = [
   {
     title: "Emberstone: its Nature and Uses",
     pages: [
-      "Emberstone grows only where the Wellspring's light runs close under the rock: the crystal caves above all.",
-      "It holds power the way a sponge holds water. Cut into gems, it feeds enchantments. The Lightkeepers buy every cartload we can dig; what they do with it, they don't say.",
+      "Emberstone grows only where the Emberheart's warmth runs close under the rock: the crystal caves above all.",
+      "It holds power the way a sponge holds water. Cut into gems, it feeds enchantments. The Emberguard buy every cartload we can dig; what they do with it, they don't say.",
     ],
   },
   {
-    title: "First Spells, by Archmage Ysolde",
+    title: "First Spells, by Archmage Rowan",
     pages: [
       "A spell is a shape you make with your mind, and mana is what you fill it with. Small shapes first: a spark, a bolt.",
       "Cloth helps. Nobody is sure why. Metal hinders. Everybody is sure why: try thinking clearly in a helmet.",
     ],
   },
   {
-    title: "Vael: Archmage, Builder of Shrines",
+    title: "Vale: Archmage, Builder of Shrines",
     pages: [
-      "The greatest mage Elderra ever had. He tapped the Wellspring itself to build the shrines, and saved what was left of the land.",
+      "The greatest mage Embervale ever had. He tapped the Emberheart itself to build the shrines, and saved what was left of the land.",
       "He is said to have died soon after the war. Oddly, no one knows where he is buried.",
     ],
   },
   {
     title: "On Enchanting",
     pages: [
-      "An enchantment is a little piece of a soul gem's power, woven into a thing. Weapons take fire and frost; armor takes warding.",
-      "Enchanter Vale of the Lighthall is the finest enchanter living. He is very old. Some say older than the Guild.",
+      "An enchantment is a little piece of a refined emberstone's power, woven into a thing. Weapons take fire and frost; armor takes warding.",
+      "Enchanter Vale of the Emberhall is the finest enchanter living. He is very old. Some say older than the Guild.",
     ],
   },
   {
-    title: "The Wellspring",
+    title: "The Emberheart",
     pages: [
-      "Under the Greyspine there is said to be a cavern full of light: the Wellspring, where every living thing's spark comes from.",
+      "Deep under Heartvale there is said to be a cavern where a great fire burns, beating as slow as a heart: the Emberheart, where every living thing's spark comes from.",
       "It is not endless. Old Guild records say it was brighter once. The records stop saying anything about it at all, about three hundred years ago.",
     ],
   },
 ];
 
-/** Everywhere else: Heartvale's own books (shops, houses, cottages). */
+/** Everywhere else: Emberhold's own books (shops, houses, cottages). */
 const TOWN: Book[] = [
   {
-    title: "Heartvale: a Town History",
+    title: "Emberhold: a Town History",
     pages: [
-      "Heartvale grew up around the Lighthall after the war: first tents, then timber, then stone. The square was a sheep market before it was a square.",
+      "Emberhold grew up around the Emberhall after the war: first tents, then timber, then stone. The square was a sheep market before it was a square.",
       "The well in the square has never run dry. Captain Bryn's grandfather swore he saw a fish in it once.",
     ],
   },
@@ -144,7 +152,7 @@ const TOWN: Book[] = [
     ],
   },
   {
-    title: "A Child's Book of the Kindled",
+    title: "A Child's Book of the Emberborn",
     pages: [
       "\"Where do heroes come from?\" asked little Pip. \"From the light,\" said his mother. \"And where do they go?\" \"Back to the light, when they're done.\"",
       "Pip thought about this for a long time. \"That's sad,\" he said. His mother didn't answer.",

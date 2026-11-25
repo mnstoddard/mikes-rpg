@@ -144,8 +144,8 @@ export class Player extends Schema {
   @type("string") title = ""; // an earned title everyone sees over your head (shared/renown.ts)
   @type("string") party = ""; // the party you're in ("" = none, shared/party.ts); party members see each other's health
   @type("boolean") partyLead = false;
-  @type("number") rank = 0; // Lightkeeper rank (shared/story.ts RANKS): others see your cloak
-  @type("number") tithe = 0; // Tithe marks (Soul Debt): others see the gold links by your health bar
+  @type("number") rank = 0; // Emberguard rank (shared/story.ts RANKS): others see your cloak
+  @type("number") tithe = 0; // Tithe marks (Ember Debt): others see the gold links by your health bar
   @type("string") held = ""; // the weapon in your hand (item id, "" for bare fists), so others see what you fight with
   @type("boolean") running = false; // running (shared/stats.ts RUN_SPEED): others see you run
   @type("string") look = ""; // how your 3D character looks: the Character Workshop's recipe as JSON (shared/look.ts), "" until you make one
@@ -225,7 +225,7 @@ export class Monster extends Schema {
   @type("number") maxHp = 1;
   @type("boolean") alive = true;
   @type("string") status = ""; // "" | "asleep" | "frozen" | "fighting"
-  @type("number") trappedUntil = 0; // Soul trap: the tick its glow ends (0 = not trapped)
+  @type("number") trappedUntil = 0; // Ember trap: the tick its glow ends (0 = not trapped)
 
   // Server-only:
   homeX = 0;
@@ -236,7 +236,7 @@ export class Monster extends Schema {
   sleepUntil = 0;
   frozenUntil = 0;
   poison: { left: number; damage: number; by: string } | null = null; // an emerald staff's poison: hits left, damage each, who did it
-  trappedBy: string | null = null; // Soul trap: session id of whoever cast it (only their soul gem fills)
+  trappedBy: string | null = null; // Ember trap: session id of whoever cast it (only their refined emberstone fills)
   /** Hunting: damage each player has done to it since it last came back (session id -> damage). */
   hurtBy = new Map<string, number>();
   /** What each player last hit it with (session id -> style and weapon/spell), for their share of the kill XP. */
@@ -1052,7 +1052,7 @@ export class WorldRoom extends Room<WorldState> {
       if (g.kind === "soulstone") {
         // Emberstone always cuts cleanly: the gem is the stone's size.
         this.give(p, soulGemId(g.size), 1, null, true);
-        this.say(client, `You cut the emberstone into an empty soul gem, ${carats(g.size)}.`);
+        this.say(client, `You cut the emberstone into an empty refined emberstone, ${carats(g.size)}.`);
       } else {
         const result = rollCut(level);
         const size = Math.round(g.size * CUT_KEEPS[result]);
@@ -1155,7 +1155,7 @@ export class WorldRoom extends Room<WorldState> {
       p.coins -= cost;
       p.chest.slotCount = next;
       this.say(client, size
-        ? `🔮 Archmage Ysolde widens your chest's enchantment: ${next} spaces now, for ${formatMoney(cost)}.`
+        ? `🔮 Archmage Rowan widens your chest's enchantment: ${next} spaces now, for ${formatMoney(cost)}.`
         : `🔮 You rent space in the enchanted chest for ${formatMoney(cost)}: ${next} spaces. Open it here, at the Hearthstone Inn, on the coast or in the Dark Forest.`);
       client.send("coins", p.coins);
       this.sendGuild(client, p);
@@ -1172,7 +1172,7 @@ export class WorldRoom extends Room<WorldState> {
       if (isProtected(p.quest, item)) return this.say(client, this.keepIt(p, item, "store"));
       const n = Math.min(countIn(p, msg.slot), wantCount(msg.count));
       const put = addItem(p.chest, item, n, p.durability[msg.slot]);
-      if (!put) return this.say(client, "Your chest is full. Buy more space from Archmage Ysolde at the Mages' Guild.");
+      if (!put) return this.say(client, "Your chest is full. Buy more space from Archmage Rowan at the Mages' Guild.");
       takeFromEntry(p, msg.slot, put);
       if (put < n) this.say(client, `Only ${put} fit in your chest.`);
       this.sendInventory(client, p);
@@ -1834,7 +1834,7 @@ export class WorldRoom extends Room<WorldState> {
     this.sendDisciplines(client, p);
     this.sendVitals(client, p);
     this.sendStamina(client, p);
-    if (!taught.has("magic") && p.unlocked.includes("magic")) this.sendSpellbook(client, p); // Ysolde just taught you: Firebolt goes on the bar
+    if (!taught.has("magic") && p.unlocked.includes("magic")) this.sendSpellbook(client, p); // Rowan just taught you: Firebolt goes on the bar
   }
 
   /** What a Discipline level-up did for you: "Max health 60." */
@@ -1987,7 +1987,7 @@ export class WorldRoom extends Room<WorldState> {
   /** Not until Old Maren's lessons are done. Says why not. */
   private guildOpen(client: Client, p: Player): boolean {
     if ((p.quest.ch.ysolde?.step ?? -1) >= YSOLDE_GUILD_STEP) return true;
-    this.say(client, "🔮 The Mages' Guild only takes members who have finished Archmage Ysolde's lesson.");
+    this.say(client, "🔮 The Mages' Guild only takes members who have finished Archmage Rowan's lesson.");
     return false;
   }
 
@@ -2027,7 +2027,7 @@ export class WorldRoom extends Room<WorldState> {
     }
     if (!this.guildOpen(client, p)) return;
     if (!p.chest.slotCount) {
-      return this.say(client, `🔮 The chest is sealed. Rent space in it from Archmage Ysolde at the Mages' Guild (south-west of town) for ${formatMoney(CHEST_RENT)}.`);
+      return this.say(client, `🔮 The chest is sealed. Rent space in it from Archmage Rowan at the Mages' Guild (south-west of town) for ${formatMoney(CHEST_RENT)}.`);
     }
     this.sendChest(client, p, true);
   }
@@ -2053,7 +2053,7 @@ export class WorldRoom extends Room<WorldState> {
         this.say(client, `🎉 You are now a guild ${RANKS[rank].name}! Your enchanted chest can grow to ${RANKS[rank].maxChest} spaces.`);
         if (rankBefore < 2 && rank >= 2) {
           const got = this.give(p, "book_invisibility", 1, null, true) > 0;
-          if (got) this.say(client, "Archmage Ysolde: \"Well done, Adept. Take this: a spell book of Invisibility. Read it when your Spellcasting is ready.\"");
+          if (got) this.say(client, "Archmage Rowan: \"Well done, Adept. Take this: a spell book of Invisibility. Read it when your Spellcasting is ready.\"");
           this.sendInventory(client, p);
         }
         client.send("guildRank", { rank: RANKS[rank].name });
@@ -2064,7 +2064,7 @@ export class WorldRoom extends Room<WorldState> {
     p.dirty = true;
   }
 
-  /** Soul trapping, brewing and enchanting count toward guild bounties that ask for them. */
+  /** Ember trapping, brewing and enchanting count toward guild bounties that ask for them. */
   private guildJob(p: Player, client: Client | undefined, kind: MagicJob) {
     if ((p.quest.ch.ysolde?.step ?? -1) < YSOLDE_GUILD_STEP) return;
     const i = p.guildBounties.findIndex((b) => b.kind === kind);
@@ -2756,7 +2756,7 @@ export class WorldRoom extends Room<WorldState> {
     }
   }
 
-  /** Out of health: you wake up at the Heart Shrine (in the Lighthall) with half your health, and keep everything. */
+  /** Out of health: you wake up at the Heart Shrine (in the Emberhall) with half your health, and keep everything. */
   private die(p: Player, sessionId: string, killer: string) {
     const client = this.clients.getById(sessionId);
     this.stopActions(p);
@@ -2768,7 +2768,7 @@ export class WorldRoom extends Room<WorldState> {
     p.x = spot.x;
     p.y = spot.y;
     p.dirty = true;
-    // Soul Debt: after the Oath, the shrine takes a tithe for raising you.
+    // Ember Debt: after the Oath, the shrine takes a tithe for raising you.
     const marked = oathSworn(p.quest) && p.tithe < TITHE_MAX;
     if (marked) p.tithe++;
     if (client) {
@@ -2868,7 +2868,7 @@ export class WorldRoom extends Room<WorldState> {
   /** The spell bar, the spells you know, and how many slots you have. */
   private sendSpellbook(client: Client, p: Player) {
     const slots = barSlots(p.combatMastery);
-    // A new or old save with no bar yet: fill it once you know a spell (Ysolde teaches Firebolt).
+    // A new or old save with no bar yet: fill it once you know a spell (Rowan teaches Firebolt).
     if (p.barFresh && this.known(p).length) {
       p.barFresh = false;
       p.spellBar = [];
@@ -2964,8 +2964,8 @@ export class WorldRoom extends Room<WorldState> {
       m.trappedUntil = this.state.tick + Math.round(secs * 1000 / TICK_MS);
       m.trappedBy = sessionId;
       const gem = p.inventory.some((it) => isSoulGem(it) && (parseGem(it) as { souls: number; size: number }).souls < soulCapacity((parseGem(it) as { size: number }).size));
-      msg = `👻 The ${MONSTERS[m.kind].name.toLowerCase()} glows purple: its soul is trapped for ${secs} seconds. Defeat it in time!` +
-        (gem ? "" : " (You have no soul gem with room, so its soul would be lost. Brann cuts emberstone into soul gems.)");
+      msg = `👻 The ${MONSTERS[m.kind].name.toLowerCase()} glows purple: its ember is trapped for ${secs} seconds. Defeat it in time!` +
+        (gem ? "" : " (You have no refined emberstone with room, so its ember would be lost. Brann cuts emberstone into refined emberstones.)");
     } else {
       // Frost nova: every monster next to you.
       const max = novaMaxHit(level, mastery);
@@ -3036,7 +3036,7 @@ export class WorldRoom extends Room<WorldState> {
     return 1 + this.tree(p, "enchanting", "enchantSlot");
   }
 
-  /** At the altar: put an enchantment on a bag item, using up a soul gem (and a cut gem and inlay for a staff). */
+  /** At the altar: put an enchantment on a bag item, using up a refined emberstone (and a cut gem and inlay for a staff). */
   private enchant(client: Client, p: Player, msg: { slot: number; soul: number; effect?: string; gem?: number; inlay?: string }) {
     if (!this.nearNpc(p, "altar")) return this.say(client, "You need to be at the enchanting altar in the Mages' Guild.");
     if (!isUnlocked(p.unlocked, "enchanting")) return this.say(client, this.notTaught("enchanting"));
@@ -3046,7 +3046,7 @@ export class WorldRoom extends Room<WorldState> {
     if (p.locked[msg.slot]) return this.say(client, "That's locked. Unlock it first.");
     const soulItem = p.inventory[msg.soul];
     const soul = parseGem(soulItem);
-    if (!soulItem || soul?.kind !== "soulgem" || soul.souls <= 0) return this.say(client, "Pick a soul gem with souls in it. Cast 👻 Soul trap on a monster, then defeat it, to fill one.");
+    if (!soulItem || soul?.kind !== "soulgem" || soul.souls <= 0) return this.say(client, "Pick a refined emberstone with ember in it. Cast 👻 Ember trap on a monster, then defeat it, to fill one.");
     // Which enchantment: a staff's comes from its gem; armor and tools pick one.
     let effect: EnchantId;
     let gemSize = 0;
@@ -3078,7 +3078,7 @@ export class WorldRoom extends Room<WorldState> {
     const level = levelForXp(p.skillXp.enchanting);
     const power = soulPower(soul.souls, level, this.tree(p, "enchanting", "potency"));
     const out = addEnchant(item, { id: effect, power, gem: gemSize });
-    // Use up the soul gem, the cut gem and the inlay (highest entries first, so slots don't shift under us).
+    // Use up the refined emberstone, the cut gem and the inlay (highest entries first, so slots don't shift under us).
     const gemSlot = kind === "staff" ? msg.gem! : -1;
     p.inventory[msg.slot] = out as ItemId;
     for (const e of [msg.soul, gemSlot].filter((x) => x >= 0).sort((a, b) => b - a)) takeFromEntry(p, e, 1);
@@ -3098,7 +3098,7 @@ export class WorldRoom extends Room<WorldState> {
     const item = p.inventory[slot];
     if (!item || !enchantsOf(item).length) return;
     p.inventory[slot] = stripEnchants(item) as ItemId;
-    this.say(client, `The enchantment on your ${ITEMS[baseItem(item) as ItemId].single} fades away. Its magic (and its soul gem) are gone.`);
+    this.say(client, `The enchantment on your ${ITEMS[baseItem(item) as ItemId].single} fades away. Its magic (and its refined emberstone) are gone.`);
     this.sendInventory(client, p);
     this.saveSoon(p);
   }
@@ -3134,7 +3134,7 @@ export class WorldRoom extends Room<WorldState> {
     return null;
   }
 
-  /** Soul trap's target: the monster you're fighting, or the closest one in reach. */
+  /** Ember trap's target: the monster you're fighting, or the closest one in reach. */
   private trapTarget(p: Player): Monster | null {
     const fighting = p.fighting ? this.state.monsters.get(p.fighting) : undefined;
     if (fighting?.alive && tileDistance(fighting, p) <= TARGET_RANGE) return fighting;
@@ -3148,7 +3148,7 @@ export class WorldRoom extends Room<WorldState> {
   }
 
   /**
-   * A trapped monster died: its soul goes into the caster's best soul gem with
+   * A trapped monster died: its ember goes into the caster's best refined emberstone with
    * room. That's the smallest gem it fits in whole; if none can take it all,
    * the gem with the most room (which fills up, and the rest is lost).
    */
@@ -3171,7 +3171,7 @@ export class WorldRoom extends Room<WorldState> {
     });
     const name = MONSTERS[m.kind].name.toLowerCase();
     if (best < 0) {
-      if (client) this.say(client, `👻 The ${name}'s soul drifts away: you have no soul gem with room for it.`);
+      if (client) this.say(client, `👻 The ${name}'s ember drifts away: you have no refined emberstone with room for it.`);
       return;
     }
     const g = parseGem(p.inventory[best]) as { size: number; souls: number };
@@ -3180,7 +3180,7 @@ export class WorldRoom extends Room<WorldState> {
     this.give(p, filled, 1, null, true);
     const pct = Math.floor((Math.min(soulCapacity(g.size), g.souls + souls) / soulCapacity(g.size)) * 100);
     if (client) {
-      this.say(client, `👻 The ${name}'s soul flows into your soul gem (${carats(g.size)}): ${pct >= 100 ? "it's full! ✨" : `${pct}% full.`}`);
+      this.say(client, `👻 The ${name}'s ember flows into your refined emberstone (${carats(g.size)}): ${pct >= 100 ? "it's full! ✨" : `${pct}% full.`}`);
       this.sendInventory(client, p);
     }
     this.guildJob(p, client ?? undefined, "trap");
@@ -3537,19 +3537,19 @@ export class WorldRoom extends Room<WorldState> {
     const flame = rankOf(p.quest) >= 2;
     const text: Partial<Record<string, string[]>> = {
       rooks_note: flame ? ["You break the wax. Inside, in Rook's careful carving-hand:", "\"Ask Maren about the first one.\""]
-        : ["You promised Rook you wouldn't read it. Maybe later, once you're a proper Flame of the Lighthall."],
+        : ["You promised Rook you wouldn't read it. Maybe later, once you're a proper Flame of the Emberhall."],
       ashbound_note: ["Charcoal on rough paper, in a hurried hand:", "\"They aren't what they seem.\""],
       marens_charm: ["A little wooden flame, worn smooth. On the back, scratched very small: a single letter, M.", "It's warm, as if someone had only just let go of it."],
       holts_notes: ["Near shrines: 28 dead trees out of 35.", "Far from shrines: 2 dead trees out of 34.", "Underneath, Holt has written: \"Ashbound poison? Then why only near the shrines they DIDN'T smash?\""],
       lantern: ["Keeper Aldric's lantern. Nights are less dark while you carry it."],
-      shrine_totem: ["Rook's oak totem, carved with the Lighthall's flame."],
+      shrine_totem: ["Rook's oak totem, carved with the Emberhall's flame."],
     };
     this.dialog(client, text[item] ?? [STORY_ITEMS[item as keyof typeof STORY_ITEMS].description], name);
   }
 
   /**
    * Clicking someone (or something) the story needs: a visit step (light this
-   * lantern, meet that Lightkeeper), or a talk step with someone who isn't the
+   * lantern, meet that Emberguard), or a talk step with someone who isn't the
    * chapter's giver (bring the totem to Aldric). Returns true if that's all the click does.
    */
   private storyClick(client: Client, p: Player, npc: NpcDef): boolean {
@@ -3612,7 +3612,7 @@ export class WorldRoom extends Room<WorldState> {
     return this.clients.find((c) => this.state.players.get(c.sessionId) === p);
   }
 
-  /** A Lightkeeper blessing: more XP for a while. */
+  /** An Emberguard blessing: more XP for a while. */
   private bless(client: Client, p: Player) {
     p.buffs.blessed = { until: worldNow() + BLESS_MINUTES * 60_000, power: BLESS_POWER };
     this.say(client, `✨ You're blessed: +${BLESS_POWER}% XP for ${BLESS_MINUTES} minutes.`);
@@ -3629,13 +3629,13 @@ export class WorldRoom extends Room<WorldState> {
     this.say(client, `Huntmaster Kael gives you his old Warden's ${best === "ranged" ? "bow (a maple bow)" : best === "magic" ? "staff (iron and oak)" : "blade (an iron sword)"}.`);
   }
 
-  /** Your Lightkeeper rank went up: a new cloak, and everyone sees it. */
+  /** Your Emberguard rank went up: a new cloak, and everyone sees it. */
   private updateRank(client: Client | undefined, p: Player) {
     const r = rankOf(p.quest);
     if (r === p.rank) return;
     p.rank = r;
     if (client) {
-      this.say(client, `🔥 You are now ${r === 1 ? "an" : "a"} ${LIGHT_RANKS[r]} of the Lighthall!${r === 1 ? " (Your Ember cloak shows it.)" : " (Your cloak burns gold.)"}`);
+      this.say(client, `🔥 You are now ${r === 1 ? "an" : "a"} ${LIGHT_RANKS[r]} of the Emberhall!${r === 1 ? " (Your Ember cloak shows it.)" : " (Your cloak burns gold.)"}`);
       client.send("questDone", { quest: `Rank: ${LIGHT_RANKS[r]}` });
     }
   }
@@ -3648,7 +3648,7 @@ export class WorldRoom extends Room<WorldState> {
     const door = area && area.kind !== "outdoor" ? DOORS.find((d) => d.area === area.id && areaAt(d.x, d.y)?.kind === "outdoor") : null;
     const from = door ?? p;
     const heart = DOORS.find((d) => d.area === "lighthall" && areaAt(d.x, d.y)?.kind === "outdoor")!;
-    const choices: { name: string; at: Point; from: Point }[] = [{ name: "the Heart Shrine in the Lighthall", at: WAKE_SPOT, from: heart }];
+    const choices: { name: string; at: Point; from: Point }[] = [{ name: "the Heart Shrine in the Emberhall", at: WAKE_SPOT, from: heart }];
     if (lit.includes("west_shrine")) choices.push({ name: "the Westroad shrine", at: PLACES.westShrine, from: PLACES.westShrine });
     if (lit.includes("thorn_shrine")) choices.push({ name: "the Thornwood shrine", at: PLACES.thornShrine, from: PLACES.thornShrine });
     const dist = (a: Point) => Math.hypot(a.x - from.x, a.y - from.y);
@@ -3916,7 +3916,7 @@ export class WorldRoom extends Room<WorldState> {
   private buyFarmChest(client: Client, p: Player) {
     if (!this.nearNpc(p, "odo")) return this.say(client, "You need to be next to Farmer Odo.");
     if (p.farmChest) return this.say(client, "The farm chest is already linked to yours.");
-    if (!p.chest.slotCount) return this.say(client, "Farmer Odo: You'll need space in the enchanted chest first. Archmage Ysolde rents it out at the Mages' Guild.");
+    if (!p.chest.slotCount) return this.say(client, "Farmer Odo: You'll need space in the enchanted chest first. Archmage Rowan rents it out at the Mages' Guild.");
     if (p.coins < FARM_CHEST_PRICE) return this.say(client, `You need ${formatMoney(FARM_CHEST_PRICE)} for that. You have ${formatMoney(p.coins)}.`);
     p.coins -= FARM_CHEST_PRICE;
     p.farmChest = true;
@@ -4117,7 +4117,7 @@ export class WorldRoom extends Room<WorldState> {
     const before = levelForXp(p.skillXp[skill]);
     // The skill tree's "Quick learner": more skill XP (rounded at random, so small amounts still count).
     let boosted = xp * (1 + this.tree(p, skill, "xp")) * (1 + buffPower(p.buffs, "blessed", worldNow()) / 100);
-    // Soul Debt: while you carry Tithe marks, the shrine takes a fifth.
+    // Ember Debt: while you carry Tithe marks, the shrine takes a fifth.
     if (p.tithe > 0) {
       const tithe = boosted * TITHE_SHARE;
       boosted -= tithe;
@@ -4214,7 +4214,7 @@ export class WorldRoom extends Room<WorldState> {
         } else if (skill === "smithing") {
           for (const m of Object.values(JEWEL_METALS)) if (m.level > before && m.level <= after) this.say(client, `💍 You can now make ${m.name.toLowerCase()} rings and amulets!`);
           for (const [g, lv] of Object.entries(CUT_LEVEL)) {
-            if (lv > before && lv <= after) this.say(client, g === "soul" ? "💎 You can now cut emberstone into soul gems!" : `💎 You can now cut ${GEMS[g as GemId].name.toLowerCase()}s!`);
+            if (lv > before && lv <= after) this.say(client, g === "soul" ? "💎 You can now cut emberstone into refined emberstones!" : `💎 You can now cut ${GEMS[g as GemId].name.toLowerCase()}s!`);
           }
         }
       } else {
@@ -4383,7 +4383,7 @@ export class WorldRoom extends Room<WorldState> {
     if (save.saveVersion !== SAVE_VERSION) {
       if (Object.keys(save).length) console.log(`${p.name}: old save (version ${save.saveVersion ?? "none"}), starting over`);
       save = {};
-      // New characters wake up on the steps of the Heart Shrine, inside the Lighthall.
+      // New characters wake up on the steps of the Heart Shrine, inside the Emberhall.
       const spawn = spotNear(WAKE_SPOT);
       p.x = spawn.x;
       p.y = spawn.y;
@@ -4402,7 +4402,7 @@ export class WorldRoom extends Room<WorldState> {
       p.x = spawn.x;
       p.y = spawn.y;
       if (save.mapRev !== MAP_REV) {
-        p.loginNotes.push("🗺️ The world has grown! You're in the town square, by the steps of the Lighthall, the Lightkeepers' great white temple. Shops and trainers work indoors now: walk onto a door to go in. Tap 🗺️ (top right) for a map.");
+        p.loginNotes.push("🗺️ The world has grown! You're in the town square, by the steps of the Emberhall, the Emberguard's great white temple. Shops and trainers work indoors now: walk onto a door to go in. Tap 🗺️ (top right) for a map.");
       }
     }
     // Load the saved bag as it was (older saves had 28 slots, one entry each), then fit it into today's bag below.

@@ -64,7 +64,7 @@ export const DISCIPLINES: Record<DisciplineId, DisciplineDef> = {
     description: "Magic. Raises your max mana.",
     skills: [
       { id: "magic", name: "Spellcasting", icon: "🪄", description: "Cast spells from your spell bar (bolts fly from a staff in your hand). Spells use mana." },
-      { id: "enchanting", name: "Enchanting", icon: "✨", description: "Use the enchanting altar in the Mages' Guild: a soul gem with souls in it adds magic to a staff, a piece of armor or a tool. Archmage Ysolde teaches it." },
+      { id: "enchanting", name: "Enchanting", icon: "✨", description: "Use the enchanting altar in the Mages' Guild: a refined emberstone with ember in it adds magic to a staff, a piece of armor or a tool. Archmage Rowan teaches it." },
       { id: "alchemy", name: "Alchemy", icon: "⚗️", description: "Brew potions at the alchemy table in the Mages' Guild: pick 2 ingredients (and maybe a third for a bonus) and an empty vial. Alchemist Moss teaches it." },
     ],
   },
@@ -72,7 +72,7 @@ export const DISCIPLINES: Record<DisciplineId, DisciplineDef> = {
     name: "Dexterity", icon: "🤲",
     description: "Making things. Raises how much you can carry and how fast you walk.",
     skills: [
-      { id: "cooking", name: "Cooking", icon: "🍲", description: "Use the stove in the town square, by Old Maren on the Lighthall's steps, to cook meals (stew, stir fry, curry, roast) from fish, meat and vegetables. Meals give back lots of stamina." },
+      { id: "cooking", name: "Cooking", icon: "🍲", description: "Use the stove in the town square, by Old Maren on the Emberhall's steps, to cook meals (stew, stir fry, curry, roast) from fish, meat and vegetables. Meals give back lots of stamina." },
       { id: "handicraft", name: "Handicraft", icon: "🧵", description: "Use Woodworker Rook's workshop: fishing bait, bows, arrows and staffs at the workbench, leather at the tanning rack (outside), thread and cloth at the spinning wheel, and leather and cloth armor." },
       { id: "smithing", name: "Smithing", icon: "🔨", description: "Use the anvil in Smith Brann's smithy to make tools from a metal bar, plus a log." },
       { id: "smelting", name: "Smelting", icon: "🔥", description: "Use the furnace in Smith Brann's smithy to turn ore into bars." },

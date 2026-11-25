@@ -362,7 +362,7 @@ export const marble: Builder = (o) => {
 
 const RUGS = [
   { field: 0x5b3c8c, border: 0x3a2560, trim: 0xd8b85a }, // Mages' Guild purple
-  { field: 0xd9a92e, border: 0xa8323a, trim: 0xf6dc8a }, // Lighthall gold
+  { field: 0xd9a92e, border: 0xa8323a, trim: 0xf6dc8a }, // Emberhall gold
   { field: 0xa8423a, border: 0x5a2420, trim: 0xe6c690 }, // inn red
 ];
 

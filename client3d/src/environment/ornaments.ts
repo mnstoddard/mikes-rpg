@@ -365,7 +365,7 @@ export const flowerBox: Builder = (o) => {
 };
 
 const BANNERS = [
-  { cloth: 0xe0b23a, trim: 0xf6e6a8, icon: 0xffffff }, // Lighthall gold
+  { cloth: 0xe0b23a, trim: 0xf6e6a8, icon: 0xffffff }, // Emberhall gold
   { cloth: 0x5b3c8c, trim: 0xd8b85a, icon: 0xf2d878 }, // Mages' Guild purple
   { cloth: 0x3e7a4a, trim: 0xe8dcb0, icon: 0xf2efe6 }, // Heartvale green
 ];

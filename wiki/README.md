@@ -53,9 +53,11 @@ joined: the written story first, then an "In the game" section with the facts.
 
 ## Names
 
-The code still uses some old names (Lightkeepers, Kindled, Elderra, Wellspring, Aurel, Vael,
-Ysolde, Ysra). `RENAMES` in `build.ts` swaps them for the lore bible's names in everything
-the wiki copies from the code. When the game is renamed, nothing here needs to change.
+Since version 0.10 the game uses the lore bible's names. `RENAMES` in `build.ts` lists the
+old names (the Names page shows them) and still swaps any that slip back into the game's text.
+When a name changes, change it in the game's text and the wiki together, and add the old name
+to `RENAMES`. Ids inside the code (`lighthall`, `soul_trap`...) keep their old spelling so
+saved games keep working.
 
 ## The rule
 

@@ -13,6 +13,19 @@ export interface GameUpdate { version: string; date: string; title: string; chan
 
 export const UPDATES: GameUpdate[] = [
   {
+    version: "0.10",
+    date: "2026-11-25",
+    title: "The Emberguard, Embervale and the Emberheart",
+    changes: [
+      { text: "New names, to match the Emberfall story: the Lighthall is now the Emberhall, the Lightkeepers are the Emberguard, the Kindled are the Emberborn, and the land is Embervale. Its heart, deep under Heartvale, is the Emberheart." },
+      { text: "Soul gems are now refined emberstones, the Soul trap spell (and its potion) is now Ember trap, and Soul Debt is now Ember Debt. Gems you already have keep working and keep their ember; only the names changed." },
+      { text: "The town is called Emberhold. Archmage Ysolde is now Archmage Rowan, Ysra of the Saltmere is now Ida, and the Archmage of old is Vale." },
+      { text: "New players start as Hopefuls, and earn the Ember and Flame ranks from there." },
+      { text: "A new book in the Emberhall library tells the Emberfall as every child learns it, and Brother Oren's tour now starts with it. Someone has left a note in the back of the book." },
+      { text: "Books about the Emberheart now agree that it burns under Heartvale." },
+    ],
+  },
+  {
     version: "0.9",
     date: "2026-11-25",
     title: "Sound effects",
