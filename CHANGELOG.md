@@ -6,6 +6,10 @@ in `shared/version.ts` (the game reads it from there), so update both together.
 Each update adds 0.1 to the number. Version 1.0 is saved for the finished game on Steam
 (see docs/VERSION-1.0-PLAN.md).
 
+## 0.8 · 25 November 2026 · Soul stone is now called emberstone
+
+- Soul stone has a new name: emberstone. The rocks in the crystal cave, the raw stones in your bag, and everything people and books say about it all use the new name. Stones you already have keep working; only the name changed. Soul gems keep their name.
+
 ## 0.7 · 25 November 2026 · An Emberfall login screen
 
 - The login screen matches the title screen: the same night sky with rising embers and falling stars, and an ember-glow login box.

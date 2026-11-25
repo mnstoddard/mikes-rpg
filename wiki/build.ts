@@ -399,7 +399,7 @@ function foodPages() {
     "## Plot sizes", table(["Size", "Price"], PLOT_SIZES.map((s, i) => [`${s[0]} × ${s[1]}`, `${PLOT_GOLD[i]} gold`])),
   ].join("\n\n"));
   gamePage({ title: "Gems and jewelry", category: "Items", icon: "💎", sources: ["shared/jewelry.ts"], summary: "Gems, rings and amulets." }, () => [
-    "Gem rocks give rough gems of different sizes (carats). Cut them, set them in a ring or amulet, and wear it for a bonus. Soul stone becomes soul gems for [[Enchanting]].",
+    "Gem rocks give rough gems of different sizes (carats). Cut them, set them in a ring or amulet, and wear it for a bonus. Emberstone becomes soul gems for [[Enchanting]].",
     table(["Gem", "Cut at level", "Gives (per carat)", "Shop pays per carat (rough)"], GEM_IDS.map((g) => [GEMS[g].name, CUT_LEVEL[g], `+${GEMS[g].per} ${STAT_NAMES[GEMS[g].stat]}`, `${GEMS[g].price} bronze`])),
     "## Settings", table(["Metal", "Bars"], JEWEL_METAL_IDS.map((m) => [(JEWEL_METALS as any)[m].name ?? m, "—"])).replace(/\| — \|/g, "| |"),
     "Pieces: " + Object.values(JEWEL_TYPES).map((t) => `${t.icon} ${t.name} (${t.bars} bar${t.bars > 1 ? "s" : ""})`).join(", ") + ".",

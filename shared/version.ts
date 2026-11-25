@@ -13,6 +13,14 @@ export interface GameUpdate { version: string; date: string; title: string; chan
 
 export const UPDATES: GameUpdate[] = [
   {
+    version: "0.8",
+    date: "2026-11-25",
+    title: "Soul stone is now called emberstone",
+    changes: [
+      { text: "Soul stone has a new name: emberstone. The rocks in the crystal cave, the raw stones in your bag, and everything people and books say about it all use the new name. Stones you already have keep working; only the name changed. Soul gems keep their name." },
+    ],
+  },
+  {
     version: "0.7",
     date: "2026-11-25",
     title: "An Emberfall login screen",

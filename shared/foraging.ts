@@ -29,7 +29,7 @@ export interface ResourceDef {
   respawnTicks: number;
   /** Colour used to draw it on the map (leaves, ore flecks, ripples). */
   color: number;
-  /** Gem rocks and soul stone veins: what you get is rolled with a size (shared/jewelry.ts). */
+  /** Gem rocks and emberstone veins: what you get is rolled with a size (shared/jewelry.ts). */
   gem?: GemId | "soul";
 }
 
@@ -57,7 +57,7 @@ export const RESOURCES: Record<ResourceId, ResourceDef> = {
   iridium:   { skill: "mining", node: "Iridium rock",   item: "iridium_ore",  level: 85, seconds: 18, xp: 70, respawnTicks: 160, color: 0xb18cff },
   amethyst:  { skill: "mining", node: "Amethyst rock",  item: "rough_amethyst_1", level: 10, seconds: 7,  xp: 8,  respawnTicks: 60,  color: 0x9b59b6, gem: "amethyst" },
   topaz:     { skill: "mining", node: "Topaz rock",     item: "rough_topaz_1",    level: 20, seconds: 8,  xp: 12, respawnTicks: 70,  color: 0xf5b041, gem: "topaz" },
-  soulstone: { skill: "mining", node: "Soul stone vein", item: "soulstone_1",     level: 25, seconds: 9,  xp: 15, respawnTicks: 80,  color: 0x5dade2, gem: "soul" },
+  soulstone: { skill: "mining", node: "Emberstone vein", item: "soulstone_1",     level: 25, seconds: 9,  xp: 15, respawnTicks: 80,  color: 0x5dade2, gem: "soul" },
   emerald:   { skill: "mining", node: "Emerald rock",   item: "rough_emerald_1",  level: 30, seconds: 9,  xp: 18, respawnTicks: 80,  color: 0x2ecc71, gem: "emerald" },
   sapphire:  { skill: "mining", node: "Sapphire rock",  item: "rough_sapphire_1", level: 40, seconds: 11, xp: 25, respawnTicks: 95,  color: 0x2e5fd6, gem: "sapphire" },
   ruby:      { skill: "mining", node: "Ruby rock",      item: "rough_ruby_1",     level: 50, seconds: 13, xp: 33, respawnTicks: 110, color: 0xe0245e, gem: "ruby" },

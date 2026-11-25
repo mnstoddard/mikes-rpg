@@ -110,7 +110,7 @@ export const ROCK_TYPES: Record<RockKind, RockType> = {
     look: { host: CAVE, deposit: "crystal", colors: [0xf5b041, 0xf8c766], count: 5, size: 0.2 },
   },
   soulstone: {
-    id: "soulstone", name: "Soul stone vein", group: "gem", resource: "soulstone", status: "waiting",
+    id: "soulstone", name: "Emberstone vein", group: "gem", resource: "soulstone", status: "waiting",
     about: "Pale blue crystals that glow, with sparks drifting off. Used to trap souls.",
     found: "The crystal cave.",
     look: { host: 0x4f5566, deposit: "crystal", colors: [0x5dade2, 0x8fd0f5], glow: 0x3a9ae0, glowStrength: 0.5, count: 6, size: 0.19, motes: 12 },

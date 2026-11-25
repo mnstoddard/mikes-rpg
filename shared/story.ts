@@ -663,7 +663,7 @@ export const ACT_ONE: Chapter[] = [
 export const TRAINER_LINES: Record<string, string> = {
   tam: "Mind you, trade's not what it was. The routes west have all closed since the Barrens went bad.",
   holt: "Funny thing. The trees nearest the shrine always die first. Nobody listens to an old forester, though.",
-  greta: "The soul stone veins in the quarry are dimmer every year. Used to light up the whole pit at night.",
+  greta: "The emberstone veins in the quarry are dimmer every year. Used to light up the whole pit at night.",
   brann: "You Kindled wear out my tools faster than anyone. Not that I'm complaining about the business.",
   rook: "I'm carving a shrine totem for the Lightkeepers next. Oak, always oak for them.",
   kael: "One more thing. A wolf came to the gate last night: grey, with eyes that glowed. Blighted, the Lightkeepers call it. Watch for them.",

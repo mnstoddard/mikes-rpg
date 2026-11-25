@@ -12,7 +12,7 @@ runGallery({
   info(k) {
     const t = ROCK_TYPES[k];
     const res = t.resource ? RESOURCES[t.resource] : null;
-    const gives = res ? (res.gem ? (res.gem === "soul" ? "Soul stones (sizes vary)" : `Rough ${t.name.toLowerCase()}s (sizes vary)`) : ITEMS[res.item]?.name ?? res.item) : "";
+    const gives = res ? (res.gem ? (res.gem === "soul" ? "Emberstones (sizes vary)" : `Rough ${t.name.toLowerCase()}s (sizes vary)`) : ITEMS[res.item]?.name ?? res.item) : "";
     return {
       name: t.name,
       meta: res ? `Mining ${res.level}` : "Planned",

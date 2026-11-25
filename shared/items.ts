@@ -283,7 +283,7 @@ for (const bait of BAIT_IDS) {
   ITEMS[bait].sellPrice = Math.floor(exactBase(bait));
 }
 
-/** Gems, soul stones and jewelry (shared/jewelry.ts). Jewelry is worth its bars and gem, plus 25%. */
+/** Gems, emberstones and jewelry (shared/jewelry.ts). Jewelry is worth its bars and gem, plus 25%. */
 /** An enchanted (or once-enchanted) tool, weapon or armor piece: the plain one's def, renamed, and worth more. */
 function enchantedDef(id: string, table: Record<string, ItemDef>): ItemDef | undefined {
   const plus = id.indexOf("+");

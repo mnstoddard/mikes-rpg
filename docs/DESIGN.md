@@ -100,12 +100,12 @@ their building.
 ### Fishing and Woodcutting
 No changes, apart from moving to Endurance.
 
-### Mining: gems and soul stone
+### Mining: gems and emberstone
 New rock nodes join the ore rocks:
 
 - **Gem rocks**: ruby, sapphire, emerald, topaz and amethyst. Each rock gives
   one type of gem.
-- **Soul stone rock**: gives raw soul stone, which becomes empty soul gems.
+- **Emberstone rock**: gives raw emberstone, which becomes empty soul gems.
 
 **Gem size is a number, not a name.** Every gem you mine has a size in carats,
 for example "Ruby, 2.7 ct". There are no tiers like Small or Grand. Size can be
@@ -116,7 +116,7 @@ rock push the odds toward bigger finds:
 - Each Mining level and each Mastery level of that rock nudges the average up.
 - There is always a small chance of a surprisingly big one.
 
-Soul stone works the same way: a bigger soul stone holds more soul energy.
+Emberstone works the same way: a bigger emberstone holds more soul energy.
 
 Gems show their size in the item name, and gems of different sizes take
 separate bag slots (you can't stack a 1 ct ruby with a 5 ct ruby).
@@ -308,21 +308,21 @@ Smithing also does what a Jewelcrafting skill would have done. At the anvil
 - **Make settings**: rings, amulets and inlays in bronze, silver, gold, platinum
   or iridium (each unlocks at its own Smithing level).
 - **Set gems** into rings and amulets.
-- **Shape soul gems** from raw soul stone.
+- **Shape soul gems** from raw emberstone.
 
 **How stage 7 was built:**
 
 - **The Crystal Cave** is past the spider cave (walk through it and out its
-  east side). It has amethyst (Mining 10), topaz (20), soul stone (25), emerald
+  east side). It has amethyst (Mining 10), topaz (20), emberstone (25), emerald
   (30), sapphire (40) and ruby (50) rocks, plus platinum (75) and iridium (85)
   ore deep inside. Cave spiders can follow you in.
 - **Gem sizes**: rolled from your Mining level, the rock's level and your
   Mastery of that rock, roughly 0.1 to 10 ct, with a 3% chance of a big one
   ("💎 A big one!").
 - **Cutting** happens at the anvil (Cut gems tab). Amethyst needs Smithing 5,
-  topaz 10, emerald 15, sapphire 20, ruby 25 and soul stone 10. A cut can be
+  topaz 10, emerald 15, sapphire 20, ruby 25 and emberstone 10. A cut can be
   flawless (keeps all of it), good (85%), clumsy (60%) or shatter (gone). Higher
-  Smithing means better cuts. Soul stone always cuts cleanly into an empty soul
+  Smithing means better cuts. Emberstone always cuts cleanly into an empty soul
   gem of the same size.
 - **Rings** (1 bar) and **amulets** (2 bars) are made at the anvil in bronze
   (Smithing 5), silver (15), gold (25), platinum (45) or iridium (65), with or
@@ -807,7 +807,7 @@ The map grows, but not by a lot. Everything new is close to town.
 - **The Mages' Guild** (already south-west of town) gains the enchanting altar,
   the alchemy table, the Repairer and the spell trainer.
 - **The Farm**: fields east of town, with plots for players.
-- **The Quarry**: a small rocky area to the north with gem rocks and a soul stone
+- **The Quarry**: a small rocky area to the north with gem rocks and an emberstone
   rock, plus fire beetles.
 - **The Cave**: a small cave entrance in the hills, with bats and cave spiders,
   and rarer gem rocks deeper in.
@@ -870,7 +870,7 @@ quest chapter as it goes, so the main quest grows with the game.
 | **4. Wear and repair** ✅ built | Worn-out gear becomes Broken instead of vanishing, armor wears from damage, the paid Repairer | Needed before enchanting |
 | **5. Foraging, Hunting and new monsters** ✅ built | Shovel, forage spots, ingredients, night herbs; slimes, bats, boars, beetles, spiders and night monsters; kill XP split by damage share; Hunting drop bonus | Ingredients for potions and crafting |
 | **6. Alchemy** ✅ built | Alchemy table, vials, the potion list | Uses stage 5's ingredients |
-| **7. Gems and soul stone** ✅ built | Gem and soul stone rocks with continuous sizes, and Smithing's gem cutting, rings, amulets, inlays and soul gems | Needed for enchanting |
+| **7. Gems and emberstone** ✅ built | Gem and emberstone rocks with continuous sizes, and Smithing's gem cutting, rings, amulets, inlays and soul gems | Needed for enchanting |
 | **8. Spellcasting** ✅ built | Spell bar, new spell list, learning by level and books, Invisibility, Soul trap with the glow and blink, filling soul gems | Needed for enchanting |
 | **9. Enchanting** ✅ built | Enchanting altar, staffs, armor and tool enchants, the Mend spell, Enchanting tree unlocks | Needs stages 4, 7 and 8 |
 | **10. More Handicraft** ✅ built | Cloth and leather armor, bows, arrows and plain staffs, all in Handicraft | Uses hides, silk and logs |

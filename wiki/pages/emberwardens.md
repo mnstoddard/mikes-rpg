@@ -14,7 +14,7 @@ The four **Emberwardens** each run a region's great shrine, and each sets the pl
 | Warden Dunn | [[The Ashen Barrens]] |
 
 ::: secret
-All four are secretly [[The Undying]]. They collect anything with ember in it: every glowing fish was taken from Warden Merrow's feast before cooking, and Warden Flint's soul stone carts to the Lighthall don't add up.
+All four are secretly [[The Undying]]. They collect anything with ember in it: every glowing fish was taken from Warden Merrow's feast before cooking, and Warden Flint's emberstone carts to the Lighthall don't add up.
 :::
 
 None of them are in the game yet.
