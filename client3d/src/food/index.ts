@@ -50,7 +50,7 @@ export interface FoodType {
   category: FoodCategory;
   /** One line about it. */
   about: string;
-  /** Where you find it in Elderra. */
+  /** Where you find it in Embervale. */
   where: string;
   /** Real size, in words. */
   size: string;

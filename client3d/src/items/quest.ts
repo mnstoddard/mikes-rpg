@@ -59,7 +59,7 @@ function lantern(): { g: THREE.Group; light: THREE.PointLight; flame: THREE.Mesh
 }
 
 function totem(rng: Rng): THREE.Group {
-  // A carved oak post with a flame on top: the Lightkeeper sign.
+  // A carved oak post with a flame on top: the Emberguard sign.
   const g = new THREE.Group();
   const oak = mat(0xc79a62);
   const post = mesh(rough(new THREE.CylinderGeometry(0.045, 0.05, 0.22, 6, 3), rng, 0.008), oak);

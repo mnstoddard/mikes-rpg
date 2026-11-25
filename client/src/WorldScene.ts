@@ -46,7 +46,7 @@ interface MonsterView {
   body: Phaser.GameObjects.Text;
   bar: Phaser.GameObjects.Graphics;
   status: Phaser.GameObjects.Text;
-  /** Soul trap's purple glow. */
+  /** Ember trap's purple glow. */
   glow: Phaser.GameObjects.Ellipse;
   tween?: Phaser.Tweens.Tween;
 }
@@ -266,7 +266,7 @@ export class WorldScene extends Phaser.Scene {
     };
     window.addEventListener("keyup", (e) => { if (keys.delete(e.code)) sendWalk(); });
     window.addEventListener("blur", () => { keys.clear(); sendWalk(); });
-    // Soul trap glows: steady, then blinking for the last few seconds.
+    // Ember trap glows: steady, then blinking for the last few seconds.
     this.time.addEvent({ delay: 200, loop: true, callback: () => this.updateTrapGlows() });
     room.onMessage("combatmastery", (m: CombatMasteryXp) => renderCombatMastery(m));
     room.onMessage("combatmasteryup", (msg: { id: CombatMasteryId; level: number }) => {
@@ -500,7 +500,7 @@ export class WorldScene extends Phaser.Scene {
         hat.fillStyle(0xe8c56a).fillEllipse(0, -11, 24, 5).fillRect(-6, -17, 12, 6);
         hat.fillStyle(0x2e86c1).fillRect(-6, -13, 12, 2);
       } else if (["aldric", "celene", "oren", "lisette", "tomas", "wynne"].includes(npc.id)) {
-        // The Lightkeepers' white hoods, trimmed with gold.
+        // The Emberguard's white hoods, trimmed with gold.
         // A hood drawn up over the head, with the face peeking out.
         hat.fillStyle(0xf7f3e8).fillCircle(0, -3, 11).lineStyle(1.5, 0xd4a640).strokeCircle(0, -3, 11);
         hat.fillStyle(0xf1c9a0).fillCircle(0, -1, 6);
@@ -722,7 +722,7 @@ export class WorldScene extends Phaser.Scene {
       const container = this.add.container(...this.tileCenter(player.x, player.y)).setDepth(10 + player.y);
       const shadow = this.add.ellipse(0, 10, 20, 8, 0x000000, 0.3);
       const body = this.add.circle(0, 0, 10, player.color).setStrokeStyle(2, isMe ? 0xffffff : 0x000000);
-      // A Lightkeeper's cloak (Ember orange, Flame gold) behind you, and gold links for Tithe marks by your health bar.
+      // An Emberguard's cloak (Ember orange, Flame gold) behind you, and gold links for Tithe marks by your health bar.
       const cloak = this.add.graphics();
       const drawCloak = () => {
         cloak.clear();
@@ -1251,7 +1251,7 @@ export class WorldScene extends Phaser.Scene {
     container.setVisible(m.alive);
   }
 
-  /** Soul-trapped monsters glow purple; in the last seconds the glow blinks. */
+  /** Ember-trapped monsters glow purple; in the last seconds the glow blinks. */
   private updateTrapGlows() {
     const state = this.room?.state;
     if (!state?.monsters) return;

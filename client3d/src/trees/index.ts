@@ -36,7 +36,7 @@ export interface TreeType {
   resource?: ResourceId;
   /** One line about it. */
   about: string;
-  /** Where it grows in Elderra. */
+  /** Where it grows in Embervale. */
   grows: string;
   variants: readonly string[];
   /** Mike's review. Updated from the Tree Gallery. */
@@ -47,7 +47,7 @@ export interface TreeType {
 export const TREE_TYPES: Record<TreeKind, TreeType> = {
   pine: {
     id: "pine", name: "Pine", resource: "pine", status: "approved", variants: PINE_VARIANTS, build: buildPine,
-    about: "The first tree every Kindled chops. Tall, stiff, stacked like a cone.",
+    about: "The first tree every Emberborn chops. Tall, stiff, stacked like a cone.",
     grows: "Everywhere, and the pine wood north of Trainer Row (Holt's first lesson). Snowy ones up north.",
   },
   oak: {
@@ -78,7 +78,7 @@ export const TREE_TYPES: Record<TreeKind, TreeType> = {
   elderwood: {
     id: "elderwood", name: "Elderwood", resource: "elderwood", status: "approved", variants: ELDERWOOD_VARIANTS, build: buildElderwood,
     about: "The rarest tree. A twisted trunk, glowing leaves and drifting lights. Best seen at night.",
-    grows: "Hidden spots where the Wellspring's magic is still strong.",
+    grows: "Hidden spots where the Emberheart's magic is still strong.",
   },
   crownwood: {
     id: "crownwood", name: "Crownwood", status: "approved", variants: CROWNWOOD_VARIANTS, build: buildCrownwood,

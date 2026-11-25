@@ -68,7 +68,7 @@ export const SPELLS: Record<SpellId, SpellDef> = {
   fire_blast:   { name: "Firebolt",     icon: "🔥", kind: "bolt",   level: 1,  mana: 4,  maxHit: 4, description: "A bolt of flame from your staff." },
   ward:         { name: "Ward",         icon: "🛡️", kind: "self",   level: 3,  mana: 10, maxHit: 0, power: 8, seconds: 120, description: "A shield of light that soaks up damage until it breaks or runs out." },
   frost_bolt:   { name: "Frost bolt",   icon: "❄️", kind: "bolt",   level: 5,  mana: 7,  maxHit: 5, freeze: 8, description: "Hits, and freezes the monster in place for about 5 seconds." },
-  soul_trap:    { name: "Soul trap",    icon: "👻", kind: "target", level: 6,  mana: 8,  maxHit: 0, seconds: 60, description: "Traps a monster's soul. Defeat it before the glow fades and its soul fills one of your soul gems." },
+  soul_trap:    { name: "Ember trap",    icon: "👻", kind: "target", level: 6,  mana: 8,  maxHit: 0, seconds: 60, description: "Traps a monster's ember. Defeat it before the glow fades and its ember fills one of your refined emberstones." },
   heal:         { name: "Heal",         icon: "💚", kind: "self",   level: 8,  mana: 12, maxHit: 0, power: 12, description: "Heals you." },
   sleep:        { name: "Sleep",        icon: "💤", kind: "bolt",   level: 10, mana: 12, maxHit: 0, sleep: 10, description: "No damage, but the monster falls asleep for 6 seconds: it can't move or attack." },
   mend:         { name: "Mend",         icon: "🪡", kind: "self",   level: 18, mana: 20, maxHit: 0, description: "Repairs your most worn tool, weapon or armor piece good as new. It also uses 1 of what it's made of (a bar, or a log)." },

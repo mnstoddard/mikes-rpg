@@ -1,5 +1,5 @@
 // Drawing the world's ground. Every kind of tile (grass, cobblestones, a roof,
-// the Lighthall's white floor...) is painted once into one "tileset" picture
+// the Emberhall's white floor...) is painted once into one "tileset" picture
 // when the game starts, and each area of the map becomes a Phaser tilemap made
 // from it. That way even the big outdoor map draws quickly on phones.
 // Trees, rocks and dig patches are separate pictures on top (they get chopped,

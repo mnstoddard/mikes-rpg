@@ -13,4 +13,3 @@ A ring-of-fire mark is carved over its front door.
 It's built right over [[The Ember Circle]]'s old shaft. Its sealed stair leads down to the Undying's Sanctum. At the Joining, players go down that stair.
 :::
 
-The game still calls it the Lighthall for now; it gets renamed in a later update (see [[Names]]).

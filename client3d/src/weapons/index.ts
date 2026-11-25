@@ -70,7 +70,7 @@ export const WEAPON_MODELS: Record<WeaponKind, WeaponModel> = {
   dagger: {
     id: "dagger", name: "Dagger", game: "dagger", inGame: true, status: "approved", chosen: 1, note: "Just the Curved one.", variants: DAGGER_VARIANTS, moves: ["stab"], hold: ["right"],
     uses: { metal: true, wood: true }, build: buildDagger,
-    about: "Short, quick and light. The first weapon most Kindled ever hold.",
+    about: "Short, quick and light. The first weapon most Emberborn ever hold.",
     from: "Smithing (1 head + 1 handle). Stone ones in every shop.",
   },
   sword: {
@@ -142,14 +142,14 @@ export const WEAPON_MODELS: Record<WeaponKind, WeaponModel> = {
   severing_blade: {
     id: "severing_blade", name: "Severing Blade", game: "sword", inGame: false, status: "approved", variants: SEVERING_VARIANTS, moves: ["slash"], hold: ["right"],
     uses: {}, build: buildSevering,
-    about: "Mithril, the Thornmother's fang, a cut gem and Ysolde's enchant. Its edge of light cuts Vael's threads.",
+    about: "Mithril, the Thornmother's fang, a cut gem and Rowan's enchant. Its edge of light cuts Vale's threads.",
     from: "Story: The Severing Blade (Act 4, Ashbound path, Smith Brann).",
   },
   lightforged: {
     id: "lightforged", name: "Lightforged weapon", game: "sword", inGame: false, status: "approved", variants: LIGHTFORGED_VARIANTS, moves: ["slash", "smash", "cast"], hold: ["right"],
     uses: {}, build: buildLightforged,
-    about: "White-gold, quenched in a filled soul gem. It shines a little too brightly.",
-    from: "Story: Lightforged (Act 4, Lightkeeper path, undercroft forge).",
+    about: "White-gold, quenched in a filled refined emberstone. It shines a little too brightly.",
+    from: "Story: Lightforged (Act 4, Emberguard path, undercroft forge).",
   },
 };
 

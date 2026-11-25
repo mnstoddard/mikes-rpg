@@ -11,7 +11,7 @@
 // Rough gems need cutting at the anvil (Smithing). A cut can go well or badly:
 // a flawless cut keeps the whole size, a clumsy one loses some, and now and
 // then a gem shatters. A higher Smithing level cuts better. Emberstone always
-// cuts cleanly into an empty soul gem of the same size (Spellcasting fills them later).
+// cuts cleanly into an empty refined emberstone of the same size (Spellcasting fills them later).
 //
 // Rings and amulets are made at the anvil from bars of bronze, silver, gold,
 // platinum or iridium (each unlocks at a higher Smithing level), with a cut gem
@@ -125,11 +125,11 @@ export const isCutGem = (item: string | null | undefined): item is CutGemId => p
 export const roughId = (gem: GemId, size: number) => `rough_${gem}_${size}` as RoughGemId;
 export const cutId = (gem: GemId, size: number) => `gem_${gem}_${size}` as CutGemId;
 export const soulStoneId = (size: number) => `soulstone_${size}` as SoulStoneId;
-/** A soul gem, empty or holding some souls. */
+/** A refined emberstone, empty or holding some ember. */
 export const soulGemId = (size: number, souls = 0) => (souls > 0 ? `soulgem_${size}_${Math.min(souls, soulCapacity(size))}` : `soulgem_${size}`) as SoulGemId;
-/** Souls a soul gem holds when full: 50 per carat (size is in tenths of a carat). */
+/** Ember a refined emberstone holds when full: 50 per carat (size is in tenths of a carat). */
 export const soulCapacity = (size: number) => size * 5;
-/** How full a soul gem is, 0 to 1 (null if it isn't a soul gem). */
+/** How full a refined emberstone is, 0 to 1 (null if it isn't a refined emberstone). */
 export function soulFill(item: string | null | undefined): number | null {
   const g = parseGem(item);
   return g?.kind === "soulgem" ? g.souls / soulCapacity(g.size) : null;
@@ -158,10 +158,10 @@ export function gemItemDef(item: string): { name: string; single: string; icon: 
     return { name, single: name.toLowerCase(), icon: "🪨", tint: "hue-rotate(220deg) saturate(1.5) brightness(.8)", sellPrice: Math.max(1, Math.round(30 * Math.pow(ct, 1.3))) };
   }
   if (g.kind === "soulgem") {
-    // "Soul gem, 3.1 ct (45% full)": a fuller gem glows brighter and is worth more.
+    // "Refined emberstone, 3.1 ct (45% full)": a fuller gem glows brighter and is worth more.
     const fill = g.souls / soulCapacity(g.size);
     const state = g.souls === 0 ? "empty" : fill >= 1 ? "full" : `${Math.floor(fill * 100)}% full`;
-    const name = `Soul gem, ${carats(g.size)} (${state})`;
+    const name = `Refined emberstone, ${carats(g.size)} (${state})`;
     return {
       name, single: name.toLowerCase(), icon: "🔮",
       tint: `hue-rotate(40deg) brightness(${(0.75 + 0.5 * fill).toFixed(2)}) saturate(${(1 + fill).toFixed(2)})`,

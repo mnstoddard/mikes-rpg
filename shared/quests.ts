@@ -126,7 +126,7 @@ export interface QuestStep {
   xp?: Partial<Record<SkillId, number>>;
   /** Talk steps: they bless you (shared/story.ts). */
   bless?: boolean;
-  /** Talk steps: this makes you a new Lightkeeper rank (shared/story.ts RANKS). */
+  /** Talk steps: this makes you a new Emberguard rank (shared/story.ts RANKS). */
   rank?: 1 | 2;
   /** Talk steps: Kael's old Warden weapon, picked for how you fight. */
   warden?: boolean;
@@ -194,7 +194,7 @@ const KAEL = "Huntmaster Kael";
 const WREN = "Herbalist Wren";
 const MOSS = "Alchemist Moss";
 const VIAL_GIFT: Gift = { item: "vial" };
-const YSOLDE = "Archmage Ysolde";
+const YSOLDE = "Archmage Rowan";
 const BRYN = "Captain Bryn";
 const ODO = "Farmer Odo";
 
@@ -356,7 +356,7 @@ const LESSONS: Chapter[] = [
         lines: [
           "Cooking 3! Cooking is Dexterity, which lets you carry more and walk faster. You've learned all I have to teach.",
           "Now it's time you met the trainers. Forester Holt, Miner Greta and Smith Brann live on Trainer Row, east of the square, on the north side of the road. Shopkeeper Tam and Woodworker Rook are just west of the square. Everyone works indoors: walk onto a door to go in.",
-          "Huntmaster Kael's lodge is down the south road, by the gate to the Dark Forest. Archmage Ysolde runs the Mages' Guild to the south-west, and Captain Bryn, by the bounty board in the town square, always has work.",
+          "Huntmaster Kael's lodge is down the south road, by the gate to the Dark Forest. Archmage Rowan runs the Mages' Guild to the south-west, and Captain Bryn, by the bounty board in the town square, always has work.",
           "Visit them in any order you like. Anyone with a ❗ over their head has a lesson for you, and each one ends with a reward. Your 📜 Quests tab keeps track.",
         ],
         coins: 50,
@@ -453,7 +453,7 @@ const LESSONS: Chapter[] = [
         task: `Talk to ${GRETA} on Trainer Row`, goal: { kind: "talk" }, unlocks: ["mining"],
         lines: [
           "You want to learn Mining? Good. It's hard work, but rocks don't run away. Mining is part of Endurance.",
-          "The quarry is up the north road, past the Lighthall: take the road on the Lighthall's west side. Here's a worn bronze pickaxe. Put it on your belt, then mine 2 copper ore from the orange-flecked rocks. Eat when you get tired.",
+          "The quarry is up the north road, past the Emberhall: take the road on the Emberhall's west side. Here's a worn bronze pickaxe. Put it on your belt, then mine 2 copper ore from the orange-flecked rocks. Eat when you get tired.",
         ],
         give: [WORN_PICK],
       },
@@ -464,7 +464,7 @@ const LESSONS: Chapter[] = [
       },
       {
         task: "Mine 2 copper ore (orange-flecked rocks in the quarry)", goal: { kind: "gather", skill: "mining", resource: "copper", count: 2 },
-        hint: "Click a copper rock (grey with orange flecks) in the quarry (up the north road, past the Lighthall) with the pickaxe on your belt.",
+        hint: "Click a copper rock (grey with orange flecks) in the quarry (up the north road, past the Emberhall) with the pickaxe on your belt.",
         ensure: [WORN_PICK], needsTool: "pickaxe", protect: ["pickaxe_"],
       },
       {
@@ -584,7 +584,7 @@ const LESSONS: Chapter[] = [
         task: `Talk to ${KAEL} at the lodge by the gate`, goal: { kind: "talk" }, unlocks: ["melee", "defense"],
         lines: [
           "So you want to fight? I'm Kael. South of here, past the gate, is the Dark Forest. Wolves, goblins, giant spiders and worse, and they attack anyone who wanders in.",
-          "See the ❤ bar at the top left? That's your health. Fighting skills are Strength, and Strength raises your max health. If it runs out, you'll wake up at the Heart Shrine in the Lighthall, a bit shaken but with all your things.",
+          "See the ❤ bar at the top left? That's your health. Fighting skills are Strength, and Strength raises your max health. If it runs out, you'll wake up at the Heart Shrine in the Emberhall, a bit shaken but with all your things.",
           "Let's start small. With nothing in your hand you fight with your fists: it works, but only just. So here's a bronze dagger. Weapons and armor go in your gear strip, under the tool belt. Click the dagger in your bag and press \"Hold\".",
         ],
         give: [DAGGER],
@@ -614,7 +614,7 @@ const LESSONS: Chapter[] = [
       },
       {
         task: "Defeat 2 rats (around the quarry, up the north road)", goal: { kind: "kill", monster: "rat", count: 2 },
-        hint: "The rats scurry around the quarry rocks, up the north road past the Lighthall. They bite back, so watch your ❤ health.",
+        hint: "The rats scurry around the quarry rocks, up the north road past the Emberhall. They bite back, so watch your ❤ health.",
         ensure: [DAGGER], protect: ["dagger_", "helmet_", "shield_"], fightWith: "weapon",
       },
       {
@@ -711,7 +711,7 @@ const LESSONS: Chapter[] = [
     ],
   },
 
-  // ---------------- Archmage Ysolde: Sparks and spells ----------------
+  // ---------------- Archmage Rowan: Sparks and spells ----------------
   {
     id: "ysolde", title: "Sparks and spells", giver: "archmage", name: YSOLDE, where: "at the Mages' Guild, south-west of town",
     steps: [
@@ -746,21 +746,21 @@ const LESSONS: Chapter[] = [
       {
         task: `Ask ${YSOLDE} about the altar`, goal: { kind: "talk" }, unlocks: ["enchanting"],
         lines: [
-          "You've seen the altar by the door? That's for Enchanting. Soul trap a monster, defeat it, and its soul fills a soul gem. The altar pours that soul into a staff, armor or a tool.",
+          "You've seen the altar by the door? That's for Enchanting. Ember trap a monster, defeat it, and its ember fills a refined emberstone. The altar pours that ember into a staff, armor or a tool.",
           "A staff also takes a cut gem: ruby burns, sapphire chills, emerald poisons, topaz throws lightning and amethyst drinks life. Armor and tools pick their own magic.",
-          "Here's a small soul gem, already full. Enchant something with it: a tool on your belt is a fine start (take it off your belt first, so it's in your bag).",
+          "Here's a small refined emberstone, already full. Enchant something with it: a tool on your belt is a fine start (take it off your belt first, so it's in your bag).",
         ],
         give: [{ item: "soulgem_5_25" }],
       },
       {
         task: "Enchant something at the altar (click the altar in the guild)", goal: { kind: "enchant" },
-        hint: "Put the item in your bag, click the altar, pick it and the soul gem, then Enchant.",
+        hint: "Put the item in your bag, click the altar, pick it and the refined emberstone, then Enchant.",
         ensure: [{ item: "soulgem_5_25" }],
       },
       {
         task: `Show ${YSOLDE} your enchantment`, goal: { kind: "talk" },
         lines: [
-          "Beautiful. Bigger, fuller soul gems make stronger magic. Brann cuts emberstone into gems, and the Crystal Cave has plenty.",
+          "Beautiful. Bigger, fuller refined emberstones make stronger magic. Brann cuts emberstone into gems, and the Crystal Cave has plenty.",
           "One more thing: once your Spellcasting reaches 18 you'll know Mend, to fix your own gear with a little of what it's made of.",
         ],
         coins: 200,
@@ -775,7 +775,7 @@ const LESSONS: Chapter[] = [
       {
         task: `Talk to ${MOSS} at the Mages' Guild`, goal: { kind: "talk" }, unlocks: ["alchemy"],
         lines: [
-          "Careful, that one bubbles. I'm Moss. Ysolde lets me keep my table in the corner of the guild, as long as nothing explodes.",
+          "Careful, that one bubbles. I'm Moss. Rowan lets me keep my table in the corner of the guild, as long as nothing explodes.",
           "Alchemy is part of Wisdom. Two ingredients make a potion: a red cap mushroom and some slime goo make a health potion. A third, like sage, adds something extra. Every potion needs an empty vial, and I sell those.",
           "Here's a red cap, some slime goo and a vial. Use the alchemy table next to me: tap the two ingredients to put them in, then brew.",
         ],
@@ -918,7 +918,7 @@ const LESSONS: Chapter[] = [
         task: `Talk to ${BRYN} about the Ashbound raiders`, goal: { kind: "talk" },
         lines: [
           "You've made a name for yourself, so I've a job I wouldn't give just anyone.",
-          "Ashbound raiders deep in the Dark Forest, far south, have been robbing the carts on their way to town. The Lighthall wants them gone. They hit hard, so go well armed and take potions.",
+          "Ashbound raiders deep in the Dark Forest, far south, have been robbing the carts on their way to town. The Emberhall wants them gone. They hit hard, so go well armed and take potions.",
           "Defeat 4 of them, and bring me 2 of the rings they've stolen.",
         ],
       },
@@ -1008,9 +1008,9 @@ export function opensAfter(q: QuestProgress, id: ChapterId): string {
   if (need > 0) missing.push(`${need} more trainer lesson${need === 1 ? "" : "s"}`);
   return missing.length ? `Opens after ${missing.join(", ")}` : "";
 }
-/** Your Lightkeeper rank: 0 Kindled, 1 Ember (sworn the Oath), 2 Flame (end of Act 1). */
+/** Your Emberguard rank: 0 Hopeful, 1 Ember (sworn the Oath), 2 Flame (end of Act 1). */
 export const rankOf = (q: QuestProgress): 0 | 1 | 2 => (chapterDone(q, "thorn_light") ? 2 : chapterDone(q, "oath") ? 1 : 0);
-/** Soul Debt is on once you've sworn the Oath. */
+/** Ember Debt is on once you've sworn the Oath. */
 export const oathSworn = (q: QuestProgress) => chapterDone(q, "oath");
 /** Who you talk to for a talk step. */
 export const talkWith = (c: Chapter, step: QuestStep): NpcId => step.who ?? c.giver;
@@ -1043,7 +1043,7 @@ export function questMarks(q: QuestProgress, levelOf?: LevelOf): NpcId[] {
 const KAEL_CH = chapterById("kael");
 const BRYN_CH = chapterById("bryn");
 /** The Dark Forest's gate opens once you're past this step of Kael's chapter. */
-/** Ysolde's first lesson ends here; the guild opens after it (her Enchanting lessons follow). */
+/** Rowan's first lesson ends here; the guild opens after it (her Enchanting lessons follow). */
 export const YSOLDE_GUILD_STEP = 4;
 export const GATE_STEP = KAEL_CH.steps.findIndex((s) => s.opensGate);
 export const gateOpen = (q: QuestProgress) => !!q.gate || chapterDone(q, "kael") || (q.ch.kael?.step ?? -1) > GATE_STEP;
@@ -1109,7 +1109,7 @@ export interface QuestView {
   spots?: { x: number; y: number; label: string }[];
   /** Lanterns you've lit (story stations drawn lit). */
   lit?: NpcId[];
-  /** Your Lightkeeper rank (shared/story.ts RANKS). */
+  /** Your Emberguard rank (shared/story.ts RANKS). */
   rank?: number;
 }
 

@@ -25,4 +25,4 @@ The well in the square is warm, because it's heated from below.
 
 Everyone in town: see [[People in the game]].
 
-The town has no name in the game yet: the code just calls it "the town" (see [[Names]]).
+People in the game call it Emberhold, and the town history book is "Emberhold: a Town History".

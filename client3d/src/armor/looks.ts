@@ -33,7 +33,7 @@ export const LOOKS: Record<LookId, ArmorLook> = {
   iron:     { name: "Iron",     kind: "metal",   main: "#7c7f85", trim: "#4c4f55", accent: "#3a5a8c", lining: "#3a2a1c", metalness: 0.8,  roughness: 0.5 },
   steel:    { name: "Steel",    kind: "metal",   main: "#d3d9e1", trim: "#98a2ae", accent: "#2a5fa8", lining: "#2c3e66", metalness: 0.92, roughness: 0.24 },
   mithril:  { name: "Mithril",  kind: "metal",   main: "#64bfd4", trim: "#e2f1f5", accent: "#1f3f88", lining: "#16304a", metalness: 0.88, roughness: 0.2, glow: "#0b4a5c", glowStrength: 0.35 },
-  aurelite: { name: "Aurelite", kind: "metal",   main: "#f0cf7a", trim: "#fff1c9", accent: "#ff8a3c", lining: "#6b2a12", metalness: 0.9,  roughness: 0.2, glow: "#7a4a00", glowStrength: 0.45 },
+  aurelite: { name: "Embersteel", kind: "metal",   main: "#f0cf7a", trim: "#fff1c9", accent: "#ff8a3c", lining: "#6b2a12", metalness: 0.9,  roughness: 0.2, glow: "#7a4a00", glowStrength: 0.45 },
   leather:  { name: "Leather",  kind: "leather", main: "#8a5733", trim: "#5a361d", accent: "#c9a45a", lining: "#cdb48f", metalness: 0, roughness: 0.78 },
   primeval: { name: "Primeval hide", kind: "leather", main: "#56633f", trim: "#2f3825", accent: "#e8dfc4", lining: "#7a6446", metalness: 0, roughness: 0.7 },
   cloth:    { name: "Cloth",    kind: "cloth",   main: "#3d5ba8", trim: "#e2b33c", accent: "#e2b33c", lining: "#2c3e66", metalness: 0, roughness: 0.9 },

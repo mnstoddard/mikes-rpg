@@ -8,21 +8,21 @@
 //   -> Act 1: twelve quests, mostly in any order, ending with
 //      A Light in the Thornwood (rank Flame).
 //
-// Also here: Lightkeeper ranks, Soul Debt (Tithe marks), blessings and the
+// Also here: Emberguard ranks, Ember Debt (Tithe marks), blessings and the
 // story's keepsake items. Only type imports, so quests.ts and items.ts can
 // both use this.
 import type { Chapter } from "./quests";
 import type { ItemDef } from "./items";
 
-// ---- Lightkeeper ranks ----
+// ---- Emberguard ranks ----
 
-/** Kindled (everyone), Ember (after the Oath), Flame (end of Act 1). */
-export const RANKS = ["Kindled", "Ember", "Flame"] as const;
+/** Hopeful (everyone), Ember (after the Oath), Flame (end of Act 1). */
+export const RANKS = ["Hopeful", "Ember", "Flame"] as const;
 export type Rank = 0 | 1 | 2;
-/** The cloak colour each rank wears (Kindled wear none). */
+/** The cloak colour each rank wears (Hopefuls wear none). */
 export const RANK_CLOAK = [0, 0xe8792b, 0xffc93c] as const;
 
-// ---- Soul Debt (Tithe marks) ----
+// ---- Ember Debt (Tithe marks) ----
 // After the Oath, each time you're knocked out you get a Tithe mark (at most 5).
 // While you have marks, a fifth of the XP you earn goes to the shrine instead.
 // Each mark clears once the shrine has taken enough (more at higher levels).
@@ -51,11 +51,11 @@ export interface StoryItemDef extends ItemDef {
 }
 export const STORY_ITEMS: Record<StoryItemId, StoryItemDef> = {
   blessing_scroll: { name: "Blessing scrolls", single: "blessing scroll", icon: "📜", tint: "sepia(1) saturate(3) brightness(1.1)", sellPrice: 0, use: "Read", droppable: true,
-    description: `Read it for a Lightkeeper blessing: +${BLESS_POWER}% XP for ${BLESS_MINUTES} minutes.` },
+    description: `Read it for an Emberguard blessing: +${BLESS_POWER}% XP for ${BLESS_MINUTES} minutes.` },
   lantern: { name: "Your lantern", single: "lantern", icon: "🏮", sellPrice: 0,
     description: "Keeper Aldric's gift. While it's in your bag, nights are less dark for you." },
   shrine_totem: { name: "Shrine totems", single: "shrine totem", icon: "🗿", tint: "sepia(1) saturate(1.5) brightness(.9)", sellPrice: 0,
-    description: "Carved from oak by Woodworker Rook, for a Lightkeeper shrine. Something rattles inside." },
+    description: "Carved from oak by Woodworker Rook, for an Emberguard shrine. Something rattles inside." },
   rooks_note: { name: "Folded note", single: "folded note", icon: "✉️", sellPrice: 0, use: "Read",
     description: "It fell out of Rook's totem. It's sealed with a blob of wax." },
   ashbound_note: { name: "Scrawled note", single: "scrawled note", icon: "📝", sellPrice: 0, use: "Read",
@@ -72,7 +72,7 @@ export const isStoryItem = (item: string | null | undefined): item is StoryItemI
 
 export const SPOT_NAMES: Record<string, string> = {
   "spot.fieldNorth": "Odo's north field", "spot.fieldMid": "Odo's middle field", "spot.fieldSouth": "Odo's south field",
-  "spot.nearLighthall": "the Lighthall's garden", "spot.nearWestShrine": "the trees by the Westroad shrine", "spot.nearGate": "the trees by the Thornwood gate",
+  "spot.nearLighthall": "the Emberhall's garden", "spot.nearWestShrine": "the trees by the Westroad shrine", "spot.nearGate": "the trees by the Thornwood gate",
   "spot.farLake": "the woods north of the lake", "spot.farPeaks": "the Greyspine foothills", "spot.farCoast": "the woods by the north coast",
   "spot.thornEdge": "the Thornwood shrine's clearing",
 };
@@ -81,7 +81,7 @@ export const SPOT_NAMES: Record<string, string> = {
 
 const ALDRIC = "Keeper Aldric";
 const CELENE = "Sister Celene";
-const LIGHTHALL = "in the Lighthall, the great white temple in the town square";
+const LIGHTHALL = "in the Emberhall, the great white temple in the town square";
 
 /** Prologue chapters before Old Maren's lessons. */
 export const PROLOGUE_START: Chapter[] = [
@@ -101,8 +101,8 @@ export const PROLOGUE_START: Chapter[] = [
       {
         task: `Talk to ${ALDRIC}, beside the Heart Shrine`, goal: { kind: "talk" }, who: "aldric",
         lines: [
-          "Welcome, friend! Welcome to the Lighthall, and to Heartvale.",
-          "The light made you for a reason. You won't remember anything; none of you do. We call you the Kindled: heroes the shrines raise up when the land needs them.",
+          "Welcome, friend! Welcome to the Emberhall, and to Emberhold.",
+          "The light made you for a reason. You won't remember anything; none of you do. We call you the Emberborn: heroes the shrines make from the land's own ember, when the land needs them. Until you've proven yourself, you're a Hopeful.",
           "And the land does need you. The Withering creeps out of the west, the Ashbound smash our shrines, and the Thornwood grows darker every year.",
           "But not today. Today you're safe, and everything here is yours to learn.",
         ],
@@ -115,42 +115,43 @@ export const PROLOGUE_START: Chapter[] = [
       {
         task: `Talk to ${ALDRIC}`, goal: { kind: "talk" },
         lines: [
-          "Let me show you our home. The Lighthall is the Lightkeepers' temple, built round the Heart Shrine: the brightest shrine in all Elderra.",
+          "Let me show you our home. The Emberhall is the Emberguard's temple, built round the Heart Shrine: the brightest shrine in all Embervale.",
           "Go and meet my brothers and sisters. Brother Oren keeps the Hall of Champions, through the east arch. Sister Lisette keeps the library, Brother Tomas the stores, and Sister Wynne the beds.",
           "They'll each have a word for you. Come back to me when you've met all four.",
         ],
       },
       {
-        task: "Meet four Lightkeepers: Oren, Lisette, Tomas and Wynne", goal: { kind: "visit", npcs: ["oren", "lisette", "tomas", "wynne"], names: "Lightkeepers" },
+        task: "Meet four Emberguard: Oren, Lisette, Tomas and Wynne", goal: { kind: "visit", npcs: ["oren", "lisette", "tomas", "wynne"], names: "Emberguard" },
         hint: "Brother Oren is in the Hall of Champions (east), Sister Lisette in the library (south-east), Brother Tomas in the stores (west) and Sister Wynne in the dormitory (south-west).",
         visitLines: {
           oren: ["Welcome, welcome! I'm Brother Oren. I keep the Hall of Champions: the statues of the Radiants, the greatest heroes the shrines ever raised. Every one of them woke where you woke.",
-            "Go and meet the others first. Then come back, and I'll walk you round properly. Every new Kindled ought to know whose footsteps they're following."],
-          lisette: ["Welcome to the library! Every Kindled's deeds are written down here, so the light remembers them even if you don't.",
+            "Go and meet the others first. Then come back, and I'll walk you round properly. Every new Emberborn ought to know whose footsteps they're following."],
+          lisette: ["Welcome to the library! Every Emberborn's deeds are written down here, so the light remembers them even if you don't.",
             "The oldest books are older than the town. The very oldest are in the ledger room, and only the Keepers read those."],
           tomas: ["The stores, yes, and that gold-locked door is the ledger room. Keepers only, I'm afraid. Just old accounts. Very dull.",
-            "Now, if you ever need anything, you only have to ask. The Lighthall gives freely."],
-          wynne: ["Welcome to the dormitory. You'll always have a bed here. The doors never close to a Kindled.",
+            "Now, if you ever need anything, you only have to ask. The Emberhall gives freely."],
+          wynne: ["Welcome to the dormitory. You'll always have a bed here. The doors never close to an Emberborn.",
             "Let me tell you what happens when you fall out there, so it doesn't frighten you. When your health runs out, the shrine's light gathers you up and makes you again, on the shrine's steps.",
             "You'll wake up weak and dizzy, and we'll bring you in here and nurse you back onto your feet. Nobody is left alone on the cold stone.",
             "But it isn't free. Each time the light remakes you, it keeps a little piece back. Once you've taken the Oath, every fall leaves a Tithe mark, and a share of everything you learn goes to the shrine until it's paid. So try not to fall too often, hm?"],
         },
       },
       {
-        // Brother Oren's tour of the Hall of Champions: he tells you about each Radiant, and who the Lightkeepers are.
+        // Brother Oren's tour of the Hall of Champions: he tells you about each Radiant, and who the Emberguard are.
         task: "Take Brother Oren's tour: the 4 Radiants and the empty plinth", goal: { kind: "visit", npcs: ["radiant_1", "radiant_2", "radiant_3", "radiant_4", "plinth"], names: "stops on Oren's tour" },
         hint: "Brother Oren is waiting in the Hall of Champions, through the east arch. Click each statue with a ❗, and the empty plinth at the far end, and he'll tell you about it. Start with the two nearest him.",
         speaker: "Brother Oren",
         visitLines: {
           radiant_1: [
-            "Let's start at the beginning. Long ago, the Sundering War nearly ended Elderra. The old kingdom of Aurel fell, and there was almost no one left to fight.",
-            "So the Archmage Vael built the shrines, and the shrines raised the first Kindled: heroes made of light, who came back every time they fell.",
+            "Let's start at the beginning. Five hundred years ago came the Emberfall: the land's fire burst up out of the earth in anger, and embers rained down for a whole year. No one was to blame. That's why we count the years After the Fall.",
+            "Then the lords fought over the glowing shards it left, and the Sundering War nearly ended Embervale. The Old Kingdom fell, and there was almost no one left to fight.",
+            "So the Archmage Vale built the shrines, and the shrines raised the first Emberborn: heroes made of ember, who came back every time they fell.",
             "This is Halric the Dawnbringer, one of those very first. He held the Greyspine pass on his own for three days. He fell eleven times, and the shrine raised him eleven times. On the twelfth morning the enemy simply ran out of courage.",
           ],
           radiant_2: [
-            "Ysra of the Saltmere. When the war ended, the Archmage was gone, and someone had to look after his shrines. That someone is us: the Lightkeepers.",
-            "We aren't soldiers. We keep the shrines lit, we welcome every Kindled who wakes, and we write down every deed, so the light remembers you even when you can't.",
-            "Ysra rowed the whole Saltmere coast in a fishing boat, lighting shrines in villages that had been dark for a hundred years. The fisherfolk still leave shells at her feet.",
+            "Ida of the Saltmere. When the war ended, the Archmage was gone, and someone had to look after his shrines. That someone is us: the Emberguard.",
+            "We aren't soldiers. We keep the shrines lit, we welcome every Emberborn who wakes, and we write down every deed, so the light remembers you even when you can't.",
+            "Ida rowed the whole Saltmere coast in a fishing boat, lighting shrines in villages that had been dark for a hundred years. The fisherfolk still leave shells at her feet.",
           ],
           radiant_3: [
             "Tilda Ashwalker. When the Withering first crept out of the Barrens, she walked straight into it and brought a whole village home. Two hundred people, on foot, through the dust.",
@@ -158,7 +159,7 @@ export const PROLOGUE_START: Chapter[] = [
           ],
           radiant_4: [
             "And Orla the Kind. A healer, not a fighter. Through the Grey Fever she went from house to house, and every time the fever took her, the shrine sent her back to keep working.",
-            "When a Kindled has done enough, we honor them with a Radiance Ceremony. Their light goes back into the Heart Shrine, to raise the heroes who come after. There's no higher honor. Every statue in this hall is someone who was given it.",
+            "When an Emberborn has done enough, we honor them with a Radiance Ceremony. Their light goes back into the Heart Shrine, to raise the heroes who come after. There's no higher honor. Every statue in this hall is someone who was given it.",
             "None of them are with us now, of course. That's what it means. They gave everything.",
           ],
           plinth: [
@@ -171,7 +172,7 @@ export const PROLOGUE_START: Chapter[] = [
         task: `Go back to ${ALDRIC}`, goal: { kind: "talk" },
         lines: [
           "You've met everyone? Good, good. And you found the empty plinth, I see. Every family has its black sheep, friend.",
-          "Here, a little something to start you off. The Lighthall pays its own.",
+          "Here, a little something to start you off. The Emberhall pays its own.",
         ],
         coins: 30,
       },
@@ -183,7 +184,7 @@ export const PROLOGUE_START: Chapter[] = [
       {
         task: `Talk to ${ALDRIC}`, goal: { kind: "talk" },
         lines: [
-          "Now, a small job, but an important one. Every evening we light the lanterns on the Lighthall's steps and round the square, so no one in town walks in the dark.",
+          "Now, a small job, but an important one. Every evening we light the lanterns on the Emberhall's steps and round the square, so no one in town walks in the dark.",
           "Walk out through the great doors at the bottom of the hall and light all six: click each lantern. The ❗ marks show you which are still dark.",
         ],
       },
@@ -192,7 +193,7 @@ export const PROLOGUE_START: Chapter[] = [
         hint: "Go out through the great doors at the bottom of the hall. The lanterns stand on the steps and round the square: click each one with a ❗.",
         visitLines: {
           lantern_1: ["You light the lantern. Warm light spills across the white steps."],
-          lantern_2: ["You light the lantern. Its glow catches the gold on the Lighthall's doors."],
+          lantern_2: ["You light the lantern. Its glow catches the gold on the Emberhall's doors."],
           lantern_3: ["You light the lantern. A cat stretches out in the warm light under it."],
           lantern_4: ["You light the lantern. Captain Bryn nods to you from the bounty board."],
           lantern_5: ["You light the lantern. Someone in the square claps."],
@@ -217,7 +218,7 @@ export const PROLOGUE_START: Chapter[] = [
         lines: [
           "One more thing. You'll need to feed yourself, and earn your way. Old Maren can teach you that.",
           "She lives in the little cottage on the lake shore, west along the road. Harmless. She's been here forever, and she teaches every new hero the basics.",
-          "The Lightkeepers pay every trainer in town to teach the Kindled, so every lesson is a gift from the Lighthall. Off you go: out of the great doors, then west along the road to the lake. Your 🗺️ map shows her ❗.",
+          "The Emberguard pay every trainer in town to teach the Emberborn, so every lesson is a gift from the Emberhall. Off you go: out of the great doors, then west along the road to the lake. Your 🗺️ map shows her ❗.",
         ],
       },
     ],
@@ -245,7 +246,7 @@ export const PROLOGUE_END: Chapter[] = [
         task: `Go back to ${CELENE}`, goal: { kind: "talk" },
         lines: [
           "Twenty! You see how the light helps you?",
-          "Take these blessing scrolls. Read one whenever you want a blessing of your own. The Lighthall makes them for every Kindled.",
+          "Take these blessing scrolls. Read one whenever you want a blessing of your own. The Emberhall makes them for every Emberborn.",
           "Keeper Aldric wants to see you. I think it's time you swore the Oath.",
         ],
         give: [{ item: "blessing_scroll", count: 3 }],
@@ -259,7 +260,7 @@ export const PROLOGUE_END: Chapter[] = [
         task: `Talk to ${ALDRIC}`, goal: { kind: "talk" },
         lines: [
           "You've learned so much, friend. It's time.",
-          "Every Kindled who means to stay swears the Oath of the Flame at the Heart Shrine, so the shrine knows you, and can always bring you home.",
+          "Every Emberborn who means to stay swears the Oath of the Flame at the Heart Shrine, so the shrine knows you, and can always bring you home.",
           "Go and stand before the shrine, and put your hand in the light.",
         ],
       },
@@ -268,7 +269,7 @@ export const PROLOGUE_END: Chapter[] = [
         hint: "The Heart Shrine is at the top of the hall, on the golden floor. Click it.",
         visitLines: {
           heart_shrine: [
-            "You put your hand in the light. \"I am Kindled. I carry the flame. Where I fall, the light will raise me.\"",
+            "You put your hand in the light. \"I am Emberborn. I carry the flame. Where I fall, the light will raise me.\"",
             "The shrine flares white. For a moment you feel a tug deep in your chest, like a thread pulled tight.",
             "Then it's gone, and you feel warm all over.",
           ],
@@ -277,8 +278,8 @@ export const PROLOGUE_END: Chapter[] = [
       {
         task: `Go back to ${ALDRIC}`, goal: { kind: "talk" }, rank: 1,
         lines: [
-          "It knows you now. Welcome, Ember of the Lighthall!",
-          "Wear this cloak with pride: everyone in Heartvale will know you're one of us. And here's your first silver.",
+          "It knows you now. Welcome, Ember of the Emberhall!",
+          "Wear this cloak with pride: everyone in Emberhold will know you're one of us. And here's your first silver.",
           "Oh, one thing. Now that the shrine knows you, falling has a small cost: the shrine takes a little tithe to raise you. Nothing to worry about. I'll explain when it matters.",
           "Come and see me when you're ready for real work. There's a lot to do.",
         ],
@@ -331,7 +332,7 @@ export const ACT_ONE: Chapter[] = [
         task: `Talk to ${ALDRIC} about the Tithe`, goal: { kind: "talk" },
         lines: [
           "I promised I'd explain the tithe. Sit down a moment.",
-          "When a Kindled falls, the shrine raises them. That takes light. So, after the Oath, each time you're knocked out the shrine puts a Tithe mark on you: a gold link by your health bar. You can have up to five.",
+          "When an Emberborn falls, the shrine raises them. That takes light. So, after the Oath, each time you're knocked out the shrine puts a Tithe mark on you: a gold link by your health bar. You can have up to five.",
           "While you carry marks, a fifth of what you learn goes to the shrine, to keep it bright for the next hero. Once it's had enough, the mark fades on its own. You never lose a level, or a single thing you own.",
           "A small tithe, so the shrines can keep raising heroes. And if you're in a hurry, a Tithe tonic clears a mark at once. Here, take two.",
         ],
@@ -377,9 +378,9 @@ export const ACT_ONE: Chapter[] = [
       {
         task: "Talk to Alchemist Moss", goal: { kind: "talk" },
         lines: [
-          "Ah, an Ember! Just who I need. The Lighthall has ordered a mountain of Tithe tonics, and my hands are full.",
+          "Ah, an Ember! Just who I need. The Emberhall has ordered a mountain of Tithe tonics, and my hands are full.",
           "The recipe's a secret, but you're one of theirs, so: one red cap mushroom and one wild root, in a vial, at the alchemy table. You'll dig both up from the glinting patches.",
-          "Brew me five. The Lighthall sells them to heroes, to clear their debt faster. Good business, eh? Here are some vials to start you off.",
+          "Brew me five. The Emberhall sells them to heroes, to clear their debt faster. Good business, eh? Here are some vials to start you off.",
         ],
       },
       {
@@ -390,7 +391,7 @@ export const ACT_ONE: Chapter[] = [
       {
         task: "Bring the tonics to Alchemist Moss", goal: { kind: "talk" }, take: { potion_tithe: 5 },
         lines: [
-          "Five! Lovely. The Lighthall pays well for these, and so do I.",
+          "Five! Lovely. The Emberhall pays well for these, and so do I.",
           "Keep the recipe: it's yours now. Funny, isn't it? They sell the cure for a debt they put on you. Still. Business is business.",
         ],
         coins: 50, xp: { alchemy: 60 },
@@ -403,7 +404,7 @@ export const ACT_ONE: Chapter[] = [
       {
         task: "Talk to Woodworker Rook", goal: { kind: "talk" },
         lines: [
-          "Ember, eh? Then you can fetch for the Lighthall same as I carve for it.",
+          "Ember, eh? Then you can fetch for the Emberhall same as I carve for it.",
           "They want a shrine totem. Oak, nothing less. Bring me 5 oak logs (the round trees: you need Woodcutting 5) and I'll carve it.",
         ],
       },
@@ -444,7 +445,7 @@ export const ACT_ONE: Chapter[] = [
       {
         task: "Talk to Captain Bryn", goal: { kind: "talk" },
         lines: [
-          "Ember! Good timing. The Lighthall's paying for this one.",
+          "Ember! Good timing. The Emberhall's paying for this one.",
           "Ashbound scouts are smashing the old shrine on the Westroad, at the far west end of the main road, by the barricade. Drive them off: four of them should do it.",
           "Watch yourself. They're not much in a fight, but they don't stay down long.",
         ],
@@ -459,7 +460,7 @@ export const ACT_ONE: Chapter[] = [
         lines: [
           "Driven off? Good work. They'll be back, they always are.",
           "What's that? One of them dropped a note? \"They aren't what they seem.\" Who, I wonder. Ha! Ashbound nonsense. Keep it if you like.",
-          "Here's your bounty pay, from the Lighthall's own purse.",
+          "Here's your bounty pay, from the Emberhall's own purse.",
         ],
         give: [{ item: "ashbound_note" }],
         coins: 150, xp: { renown: 60 },
@@ -473,7 +474,7 @@ export const ACT_ONE: Chapter[] = [
         task: `Talk to ${ALDRIC}`, goal: { kind: "talk" },
         lines: [
           "The Westroad is clear, Rook's totem is ready, and you've learned to mine and smelt. Let's rebuild that shrine!",
-          "The Lightkeepers have the stone cut already. Bring 6 oak logs for the frame and 2 bronze bars to bind it. I'll have Rook carve a second totem for the top: pick it up from him on your way.",
+          "The Emberguard have the stone cut already. Bring 6 oak logs for the frame and 2 bronze bars to bind it. I'll have Rook carve a second totem for the top: pick it up from him on your way.",
         ],
       },
       {
@@ -489,7 +490,7 @@ export const ACT_ONE: Chapter[] = [
         task: "Rebuild the Westroad shrine (far west, along the main road)", goal: { kind: "talk" }, who: "west_shrine",
         take: { oak_logs: 6, bronze_bar: 2, shrine_totem: 1 },
         lines: [
-          "You raise the oak frame, the Lightkeepers stack their white stone around it, you bind it with bronze, and set Rook's totem on top. Two Lightkeepers arrive and say a prayer, and the shrine lights up gold.",
+          "You raise the oak frame, the Emberguard stack their white stone around it, you bind it with bronze, and set Rook's totem on top. Two Emberguard arrive and say a prayer, and the shrine lights up gold.",
           "Then you notice the grass. All round the shrine, in a ring, it's turning brown.",
           "Maybe it was always like that.",
         ],
@@ -498,7 +499,7 @@ export const ACT_ONE: Chapter[] = [
         task: `Go back to ${ALDRIC}`, goal: { kind: "talk" },
         lines: [
           "It's lit! I felt it from here. The Westroad shrine will raise heroes again: if you fall out west, you'll wake there now.",
-          "Here: health potions, and the Lighthall's thanks.",
+          "Here: health potions, and the Emberhall's thanks.",
         ],
         give: [{ item: "health_potion", count: 3 }],
         coins: 120,
@@ -511,16 +512,16 @@ export const ACT_ONE: Chapter[] = [
       {
         task: "Talk to Forester Holt", goal: { kind: "talk" },
         lines: [
-          "You've got the Lighthall's ear now. Can I ask you something, quiet-like?",
+          "You've got the Emberhall's ear now. Can I ask you something, quiet-like?",
           "I've been a forester forty years, and I swear the trees nearest the shrines die first. Nobody believes me.",
-          "Count the dead trees in six places for me: three near shrines (the Lighthall's garden, the Westroad shrine and the Thornwood gate) and three far from any (north of the lake, the Greyspine foothills, and the north coast woods). The 🗺️ map marks them.",
+          "Count the dead trees in six places for me: three near shrines (the Emberhall's garden, the Westroad shrine and the Thornwood gate) and three far from any (north of the lake, the Greyspine foothills, and the north coast woods). The 🗺️ map marks them.",
         ],
       },
       {
         task: "Count dead trees in 6 places", goal: { kind: "reach", spots: ["spot.nearLighthall", "spot.nearWestShrine", "spot.nearGate", "spot.farLake", "spot.farPeaks", "spot.farCoast"], names: "places" },
-        hint: "Three near shrines: the Lighthall's garden, the Westroad shrine, the Thornwood gate. Three far away: north of the lake, the Greyspine foothills, the north coast woods. The 🗺️ map marks them.",
+        hint: "Three near shrines: the Emberhall's garden, the Westroad shrine, the Thornwood gate. Three far away: north of the lake, the Greyspine foothills, the north coast woods. The 🗺️ map marks them.",
         spotLines: {
-          "spot.nearLighthall": "By the Lighthall: 9 dead trees out of 12.",
+          "spot.nearLighthall": "By the Emberhall: 9 dead trees out of 12.",
           "spot.nearWestShrine": "By the Westroad shrine: 11 dead trees out of 13.",
           "spot.nearGate": "By the Thornwood gate: 8 dead trees out of 10.",
           "spot.farLake": "North of the lake: 1 dead tree out of 14.",
@@ -532,7 +533,7 @@ export const ACT_ONE: Chapter[] = [
         task: "Go back to Forester Holt", goal: { kind: "talk" },
         lines: [
           "Twenty-eight dead near the shrines, and two far away? I knew it. I knew it!",
-          "Now, it could be the Ashbound, poisoning the ground round the shrines to spite the Lighthall. That's what the Keepers would say.",
+          "Now, it could be the Ashbound, poisoning the ground round the shrines to spite the Emberhall. That's what the Keepers would say.",
           "Keep those notes. And keep it under your hat, eh?",
         ],
         give: [{ item: "holts_notes" }],
@@ -563,7 +564,7 @@ export const ACT_ONE: Chapter[] = [
         task: "Go back to Farmer Odo", goal: { kind: "talk" },
         lines: [
           "Grew just fine, didn't they? No light needed.",
-          "In the old days, before the Lighthall, every farm grew like this. Then the shrines came, and the blessings, and the ground got tired. Funny, that.",
+          "In the old days, before the Emberhall, every farm grew like this. Then the shrines came, and the blessings, and the ground got tired. Funny, that.",
           "Here: my grandmother's blue lotus seeds. Never been blessed in a hundred years. Look after them.",
         ],
         give: [{ item: "seed_blue_lotus", count: 5 }],
@@ -577,7 +578,7 @@ export const ACT_ONE: Chapter[] = [
       {
         task: "Talk to Huntmaster Kael", goal: { kind: "talk" },
         lines: [
-          "You've heard about the grey wolves? Blighted, the Lightkeepers call them. Hollow-eyed, glowing, and mean.",
+          "You've heard about the grey wolves? Blighted, the Emberguard call them. Hollow-eyed, glowing, and mean.",
           "There's a pack of them at Wolf Hollow, south-west through the Thornwood. Clear 5. Take a friend if you can.",
           "And here's a funny thing. The Blight is always worst downhill of a shrine. Always.",
         ],
@@ -590,7 +591,7 @@ export const ACT_ONE: Chapter[] = [
       {
         task: "Go back to Huntmaster Kael", goal: { kind: "talk" }, warden: true,
         lines: [
-          "Five! You've earned this. It was mine, when I was a Warden of the Thornwood, before the Lighthall took the Wardens over.",
+          "Five! You've earned this. It was mine, when I was a Warden of the Thornwood, before the Emberhall took the Wardens over.",
           "Look after it. And keep your eyes open out there.",
         ],
         coins: 200,
@@ -619,17 +620,17 @@ export const ACT_ONE: Chapter[] = [
         task: `Talk to ${ALDRIC}`, goal: { kind: "talk" },
         lines: [
           "This is the day, friend. The Thornwood has never had a shrine. Today it gets one.",
-          "Two of our Lightkeepers will go with you to the clearing just past Kael's gate. Keep them safe while they work, then light the shrine yourself.",
+          "Two of our Emberguard will go with you to the clearing just past Kael's gate. Keep them safe while they work, then light the shrine yourself.",
         ],
       },
       {
-        task: "Lead the Lightkeepers to the clearing past Kael's gate", goal: { kind: "reach", spots: ["spot.thornEdge"], names: "clearing" },
+        task: "Lead the Emberguard to the clearing past Kael's gate", goal: { kind: "reach", spots: ["spot.thornEdge"], names: "clearing" },
         hint: "Go through Kael's gate and follow the path south to the clearing.",
-        spotLines: { "spot.thornEdge": "The two Lightkeepers catch up, and start laying out the shrine stones. Wolves are circling." },
+        spotLines: { "spot.thornEdge": "The two Emberguard catch up, and start laying out the shrine stones. Wolves are circling." },
       },
       {
-        task: "Keep the Lightkeepers safe: defeat 4 wolves", goal: { kind: "kill", monster: "wolf", count: 4 },
-        hint: "Wolves prowl round the clearing past the gate. Keep them off the Lightkeepers.",
+        task: "Keep the Emberguard safe: defeat 4 wolves", goal: { kind: "kill", monster: "wolf", count: 4 },
+        hint: "Wolves prowl round the clearing past the gate. Keep them off the Emberguard.",
         fightWith: "weapon",
       },
       {
@@ -640,7 +641,7 @@ export const ACT_ONE: Chapter[] = [
       {
         task: "Meet the stranger by the shrine", goal: { kind: "talk" }, who: "rhys",
         lines: [
-          "Nicely done! I'm Rhys. Kindled, same as you: woke up at the Heart Shrine a few weeks before you did.",
+          "Nicely done! I'm Rhys. Emberborn, same as you: woke up at the Heart Shrine a few weeks before you did.",
           "They made me a Flame last week. I'm going for Radiant next. Statue in the Hall of Champions and everything.",
           "Race you there! Ha!",
         ],
@@ -649,7 +650,7 @@ export const ACT_ONE: Chapter[] = [
         task: `Go back to ${ALDRIC}`, goal: { kind: "talk" }, rank: 2,
         lines: [
           "The Thornwood shrine is lit! You'll wake there now, if you fall in the forest. That's your work, friend.",
-          "Kneel. By the light of the Heart Shrine, I name you a Flame of the Lighthall.",
+          "Kneel. By the light of the Heart Shrine, I name you a Flame of the Emberhall.",
           "You've met Rhys, I hear? He's very keen. Between the two of you, the Thornwood won't know what hit it.",
           "Rest a while. Bigger things are coming.",
         ],
@@ -664,14 +665,14 @@ export const TRAINER_LINES: Record<string, string> = {
   tam: "Mind you, trade's not what it was. The routes west have all closed since the Barrens went bad.",
   holt: "Funny thing. The trees nearest the shrine always die first. Nobody listens to an old forester, though.",
   greta: "The emberstone veins in the quarry are dimmer every year. Used to light up the whole pit at night.",
-  brann: "You Kindled wear out my tools faster than anyone. Not that I'm complaining about the business.",
-  rook: "I'm carving a shrine totem for the Lightkeepers next. Oak, always oak for them.",
-  kael: "One more thing. A wolf came to the gate last night: grey, with eyes that glowed. Blighted, the Lightkeepers call it. Watch for them.",
+  brann: "You Emberborn wear out my tools faster than anyone. Not that I'm complaining about the business.",
+  rook: "I'm carving a shrine totem for the Emberguard next. Oak, always oak for them.",
+  kael: "One more thing. A wolf came to the gate last night: grey, with eyes that glowed. Blighted, the Emberguard call it. Watch for them.",
   wren: "I've been marking the dying patches on my map. There are more every season, and they spread out from the shrines like spilled ink.",
-  ysolde: "The Lightkeepers do such noble work. They fund half this guild, you know.",
-  moss: "Now if you'll excuse me, I've a big order of Tithe tonics to brew for the Lighthall.",
-  bryn: "You'll see Ashbound posters on the board now. The Lighthall pays for those bounties.",
-  odo: "And another thing: the Lightkeepers will offer you their blessings. Never took one myself. Never will.",
+  ysolde: "The Emberguard do such noble work. They fund half this guild, you know.",
+  moss: "Now if you'll excuse me, I've a big order of Tithe tonics to brew for the Emberhall.",
+  bryn: "You'll see Ashbound posters on the board now. The Emberhall pays for those bounties.",
+  odo: "And another thing: the Emberguard will offer you their blessings. Never took one myself. Never will.",
   kael_hunt: "That alpha was Blighted, did you see? Grey, and glowing. I've never seen one that big.",
   bryn_bandits: "One of those Ashbound raiders shouted something as he ran: \"Every time you rise, the land falls!\" Madness.",
 };

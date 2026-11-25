@@ -1,6 +1,6 @@
 // Furniture inside buildings: bookshelves (books on both sides), beds, and the
 // things laid out on tables (the General Store's goods, books and candles in
-// the Lighthall, bowls of stew at Maren's...). Built once each and drawn as
+// the Emberhall, bowls of stew at Maren's...). Built once each and drawn as
 // instances by the terrain (see terrain.ts).
 import * as THREE from "three";
 import { Parts, makeRng } from "../environment/kit";

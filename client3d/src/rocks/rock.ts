@@ -27,7 +27,7 @@ export interface OreLook {
   size?: number;
   /** Little twinkling glints on shiny ores. */
   glints?: number;
-  /** Floating lights (emberstone, Wellglass, Aurelite). */
+  /** Floating lights (emberstone, Wellglass, Embersteel). */
   motes?: number;
   /** A second colour of small flecks on the rock (copper's green patina). */
   flecks?: number;

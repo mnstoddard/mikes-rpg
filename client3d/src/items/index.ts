@@ -192,14 +192,14 @@ export const ITEM_LIST: ItemType[] = [
   // Gems and jewelry
   gemType("rough_gem", "Rough gems", "From the crystal cave: grey rock with crystals poking out. Bigger carats, bigger lump.", [{ label: "Gem", options: GEM_NAMES }, SIZES], (c) => `rough_${GEM_LIST[c[0] ?? 0]}_${SIZE_TENTHS[c[1] ?? 1]}`),
   gemType("cut_gem", "Cut gems", "Cut at the anvil. Sparkly, and it slowly turns.", [{ label: "Gem", options: GEM_NAMES }, SIZES], (c) => `gem_${GEM_LIST[c[0] ?? 0]}_${SIZE_TENTHS[c[1] ?? 1]}`),
-  gemType("soul_stone", "Emberstones", "Dark rock with pale glints; cut, it's a soul gem that glows once it holds souls.", [{ label: "Kind", options: ["Emberstone", "Empty soul gem", "Filled soul gem"] }], (c) => (c[0] === 0 ? "soulstone_24" : c[0] === 1 ? "soulgem_24" : "soulgem_24_1")),
+  gemType("soul_stone", "Emberstones", "Dark rock with pale glints; cut, it's a refined emberstone that glows once it holds ember.", [{ label: "Kind", options: ["Emberstone", "Empty refined emberstone", "Filled refined emberstone"] }], (c) => (c[0] === 0 ? "soulstone_24" : c[0] === 1 ? "soulgem_24" : "soulgem_24_1")),
   gemType("ring", "Rings", "A band with an optional gem on top.", [{ label: "Metal", options: JEWEL_METAL_LIST.map(cap) }, { label: "Gem", options: ["None", ...GEM_NAMES] }], (c) => `ring_${JEWEL_METAL_LIST[c[0] ?? 0]}${c[1] ? `_${GEM_LIST[c[1] - 1]}_24` : ""}`),
   gemType("amulet", "Amulets", "A chain with a round pendant and an optional gem.", [{ label: "Metal", options: JEWEL_METAL_LIST.map(cap) }, { label: "Gem", options: ["None", ...GEM_NAMES] }], (c) => `amulet_${JEWEL_METAL_LIST[c[0] ?? 0]}${c[1] ? `_${GEM_LIST[c[1] - 1]}_24` : ""}`),
 
   // Quest items
   quest("lantern", "Keeper Aldric's gift. It glows and flickers, and lights up the night around you."),
-  quest("blessing_scroll", "A rolled scroll with a gold ribbon and seal. Read it for a Lightkeeper blessing."),
-  quest("shrine_totem", "Carved from oak by Woodworker Rook, with the Lightkeeper flame on top."),
+  quest("blessing_scroll", "A rolled scroll with a gold ribbon and seal. Read it for an Emberguard blessing."),
+  quest("shrine_totem", "Carved from oak by Woodworker Rook, with the Emberguard flame on top."),
   quest("rooks_note", "A neat folded letter sealed with red wax. It fell out of Rook's totem."),
   quest("ashbound_note", "A crumpled, scorched scrap with black scrawl, dropped by an Ashbound scout."),
   quest("marens_charm", "A little wooden flame worn smooth, on a leather cord."),

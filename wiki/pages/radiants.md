@@ -18,4 +18,3 @@ summary: The greatest champions the shrines ever made. Their statues stand in th
 Every one was drained at their Ceremony. Their sparks were poured into [[The Undying]], and a few are still trapped in old refined emberstones. The empty plinth was [[Sable]]'s. Tilda found out the truth before her Ceremony; her last cairn says *"Don't go down the stair."*
 :::
 
-The game's code still calls Ida "Ysra" (see [[Names]]).
