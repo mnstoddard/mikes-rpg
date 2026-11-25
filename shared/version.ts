@@ -15,11 +15,11 @@ export const UPDATES: GameUpdate[] = [
   {
     version: "0.6",
     date: "2026-11-25",
-    title: "Emberfall: a name, a title screen, and music right away",
+    title: "Emberfall: the game's name and title screen",
     changes: [
-      { text: "The game has a name: Emberfall. It's the big glowing title on the start screen and the login box, and the name on the browser tab." },
-      { text: "When the game opens, a “Click or tap to start” screen comes up first if your browser is holding back sound. Your first tap starts Mike's song right away, then the login box shows." },
-      { text: "If your browser lets the game play sound straight away (or you've turned the music off), there's no start screen: you go straight to the login box." },
+      { text: "The game has a name: Emberfall. It's on the title screen, the login box and the browser tab." },
+      { text: "A title screen: the glowing Emberfall logo over a night sky, with embers rising from a burning glow and stars falling across it. Tap it (or press any key) to start." },
+      { text: "That first tap also starts Mike's song straight away, so the music is already playing when the login box appears." },
     ],
   },
   {

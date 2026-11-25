@@ -322,7 +322,7 @@
     #login form { position: relative; }
     #login #title-music { position: absolute; top: 6px; right: 6px; flex: none; width: 34px; height: 30px; padding: 0; font-size: 16px; background: transparent; border-color: transparent; }
     #login #title-music:hover { background: #3a2f1e; }
-    /* The game's name, Emberfall: a fallen, burning star. Used on the login box and the tap-to-start screen. */
+    /* The game's name, Emberfall: a fallen, burning star. Used on the title screen and the login box. */
     .game-title { text-align: center; line-height: 1.1; }
     .game-title .gt-name { font-family: "Cinzel Decorative", "Cinzel", Georgia, serif; font-weight: 900; letter-spacing: 1px;
       background: linear-gradient(180deg, #fff3b0 0%, #ffc94a 40%, #ff7a1a 75%, #c2360f 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
@@ -331,12 +331,16 @@
     #login .game-title { margin: 2px 0 6px; }
     #login .game-title .gt-name { font-size: 30px; }
     #login .game-title .gt-sub { font-size: 12px; }
-    #tap-to-start { position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; padding: 0 16px; background: radial-gradient(ellipse at 50% 42%, #3a1a07, #0a0402 70%); cursor: pointer; }
-    #tap-to-start .gt-name { font-size: clamp(44px, 12vw, 96px); }
-    #tap-to-start .gt-sub { font-size: clamp(14px, 3.5vw, 22px); }
-    #tap-to-start .tts-hint { margin-top: 28px; }
-    #tap-to-start .tts-hint { font-size: 18px; color: #f2e6c9; animation: tts-pulse 1.6s ease-in-out infinite; }
-    @keyframes tts-pulse { 50% { opacity: .35; } }
+    /* The Emberfall title screen (client/src/titleScreen.ts): embers rising, stars falling. */
+    #title-screen { position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 16px;
+      background: radial-gradient(ellipse 130% 70% at 50% 112%, #a8400c 0%, #5a1d07 30%, #12070a 70%, #06040c 100%); cursor: pointer; transition: opacity .7s ease; overflow: hidden; }
+    #title-screen.leaving { opacity: 0; pointer-events: none; }
+    #title-screen canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+    #title-screen .game-title, #title-screen .tts-hint { position: relative; }
+    #title-screen .gt-name { font-size: clamp(40px, 12vw, 110px); animation: tts-glow 3.2s ease-in-out infinite; }
+    #title-screen .tts-hint { margin-top: 40px; font-family: "Cinzel", Georgia, serif; font-size: clamp(16px, 4vw, 22px); letter-spacing: 4px; color: #f2d9a6; text-transform: uppercase; animation: tts-pulse 1.8s ease-in-out infinite; }
+    @keyframes tts-pulse { 50% { opacity: .3; } }
+    @keyframes tts-glow { 50% { filter: drop-shadow(0 0 16px rgba(255, 130, 40, .85)) drop-shadow(0 2px 2px rgba(0, 0, 0, .8)); } }
     #login-error { min-height: 1.3em; font-size: 13px; color: #ff9a8a; text-align: center; }
     /* Quest tracker: right of the health, stamina and mana bars. Shows the tracked quest step or bounty. */
     #quest { display: none; top: calc(42px + env(safe-area-inset-top)); left: calc(182px + env(safe-area-inset-left)); width: 230px; max-width: calc(100vw - 240px); padding: 6px 9px; font-size: 12px; color: #f2e6c9; cursor: pointer; box-sizing: border-box; }
@@ -603,7 +607,7 @@
   <div id="login">
     <form class="panel" autocomplete="on">
       <button type="button" id="title-music" aria-label="Music on or off">🔊</button>
-      <div class="game-title"><div class="gt-name">Emberfall</div><div class="gt-sub"></div></div>
+      <div class="game-title"><div class="gt-name">Emberfall</div></div>
       <label>Username <input id="login-username" name="username" autocomplete="username" maxlength="12" required /></label>
       <label>Password <input id="login-password" name="password" type="password" autocomplete="current-password" minlength="6" maxlength="100" required /></label>
       <div class="buttons">
