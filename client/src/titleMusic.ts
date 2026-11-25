@@ -3,7 +3,7 @@
 // Browsers don't let a page start sound by itself until the player has clicked,
 // tapped or pressed a key on it. So we try to start right away, and if the
 // browser says no, the song starts on the player's first click, tap or key press
-// (typing a username counts). The 🔊 / 🔇 button on the login box turns it off
+// (tapping the Emberfall title screen does it). The 🔊 / 🔇 button on the login box turns it off
 // and on, and the game remembers that choice.
 import songUrl from "./audio/title-theme.mp3?url";
 
@@ -40,6 +40,8 @@ function tryPlay() {
   a.play().then(stopWaiting, () => waitForFirstTouch());
 }
 
+// When the browser blocks the song, it starts on the first click, tap or key
+// press: tapping the title screen (titleScreen.ts) is that first tap.
 const onFirstTouch = () => tryPlay();
 function waitForFirstTouch() {
   window.addEventListener("pointerdown", onFirstTouch, { capture: true });

@@ -1,6 +1,7 @@
 import type { Room } from "colyseus.js";
 import type { LoginDetails } from "./network";
 import { startTitleMusic, stopTitleMusic } from "./titleMusic";
+import { showTitleScreen } from "./titleScreen";
 
 const LAST_USERNAME = "rpg.lastUsername";
 
@@ -18,6 +19,7 @@ export function showLogin(join: (login: LoginDetails) => Promise<Room>): Promise
 
   try { username.value = localStorage.getItem(LAST_USERNAME) ?? ""; } catch { /* storage blocked */ }
   box.style.display = "flex";
+  showTitleScreen(() => (username.value ? password : username).focus());
   startTitleMusic();
   (username.value ? password : username).focus();
 
