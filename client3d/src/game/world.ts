@@ -120,6 +120,8 @@ export class World3D {
   // Walking with the keyboard (WASD).
   private keys = new Set<string>();
   private walkSent = "0,0"; // the direction we last told the server ("dx,dy")
+  private walkSentAt = 0; // when we told it (ms)
+  private lastStepAt = new THREE.Vector3(); // where we last played a footstep
   private pendingBook: { x: number; y: number } | null = null; // a shelf we're walking to, to read
   private walkPaused = false;
   private runToggle = false; // the 🏃 button
@@ -237,6 +239,7 @@ export class World3D {
     this.time += dt;
     const me = this.room ? this.players.get(this.room.sessionId) : undefined;
     if (me) this.focus.lerp(me.root.position, Math.min(1, dt * 10));
+    if (me) this.footsteps(me);
     this.updateWalk();
     this.placeCamera(dt);
     const mine = this.room?.state.players?.get(this.room.sessionId);
@@ -421,7 +424,7 @@ export class World3D {
     document.getElementById("run3d")?.classList.toggle("on", on);
   }
 
-  /** Which tile direction (dx, dy) the held keys point, turned to match the camera. */
+  /** Which way (dx, dy) the held keys point, turned to match the camera: any angle, not just 8 ways. */
   private keyDirection(): { dx: number; dy: number } {
     const k = this.keys;
     const fwd = (k.has("KeyW") ? 1 : 0) - (k.has("KeyS") ? 1 : 0);
@@ -431,17 +434,22 @@ export class World3D {
     // The camera sits at (sin yaw, cos yaw) from you, so it looks along -(sin yaw, cos yaw).
     const s = Math.sin(this.yaw), c = Math.cos(this.yaw);
     const vx = -s * fwd + c * right, vz = -c * fwd - s * right;
-    // Snap to the nearest of the 8 ways you can step.
-    const a = Math.round(Math.atan2(vz, vx) / (Math.PI / 4)) * (Math.PI / 4);
-    return { dx: Math.round(Math.cos(a)) || 0, dy: Math.round(Math.sin(a)) || 0 };
+    const len = Math.hypot(vx, vz) || 1;
+    return { dx: vx / len, dy: vz / len };
   }
 
   /** Each frame: tell the server when the keyboard direction changes (or stops). */
   private updateWalk() {
     if (!this.room) return;
     const { dx, dy } = this.keyDirection();
-    const key = `${dx},${dy}`;
+    const key = !dx && !dy ? "0,0" : `${dx.toFixed(3)},${dy.toFixed(3)}`;
     if (key === this.walkSent) return;
+    if (key !== "0,0" && this.walkSent !== "0,0") {
+      // Turning the camera while you walk: send the new way, but not every single frame.
+      const [ox, oy] = this.walkSent.split(",").map(Number);
+      if (ox * dx + oy * dy > 0.9995 || performance.now() - this.walkSentAt < 80) return;
+    }
+    this.walkSentAt = performance.now();
     if (this.walkSent === "0,0") { this.closePanels(); this.marker.visible = false; }
     this.walkSent = key;
     this.room.send("walk", { dx, dy });
@@ -489,6 +497,13 @@ export class World3D {
     return { x: Math.floor(p.x / TILE), y: Math.floor(p.z / TILE) };
   }
 
+  /** Where the last click's ray meets the ground, if that's inside tile (x, y). */
+  private groundSpot(x: number, y: number): THREE.Vector3 | null {
+    const p = new THREE.Vector3();
+    if (!this.raycaster.ray.intersectPlane(this.ground, p)) return null;
+    return Math.floor(p.x / TILE) === x && Math.floor(p.z / TILE) === y ? p : null;
+  }
+
   private onHover(sx: number, sy: number) {
     if (!this.room) return;
     const now = performance.now();
@@ -525,8 +540,14 @@ export class World3D {
     else if (this.isFullPatch(x, y)) this.room.send("dig", { x, y });
     else if (isFishingSpot(x, y)) this.room.send("fish", { x, y });
     else if (lotAt(x, y) && this.plots.has(String(lotAt(x, y)!.lot))) this.room.send("farm", { x, y });
-    else if (isWalkable(x, y)) this.room.send("move", { x, y });
-    else return;
+    else if (isWalkable(x, y)) {
+      // Walk right to the spot you clicked (not just the middle of its tile).
+      const spot = this.groundSpot(x, y);
+      this.room.send("move", spot ? { x, y, fx: spot.x / TILE, fy: spot.z / TILE } : { x, y });
+      this.marker.position.copy(spot ?? tileCenter(x, y)).setY(0.08);
+      this.marker.visible = true;
+      return;
+    } else return;
     this.marker.position.copy(tileCenter(x, y)).setY(0.08);
     this.marker.visible = true;
   }
@@ -786,6 +807,9 @@ export class World3D {
       }
       $(player).listen("x", () => this.moveTo(view, player, isMe));
       $(player).listen("y", () => this.moveTo(view, player, isMe));
+      // Where exactly they stand (smooth movement: anywhere, not just mid-tile).
+      $(player).listen("fx", () => view.glide(player.fx, player.fy));
+      $(player).listen("fy", () => view.glide(player.fx, player.fy));
       $(player).listen("action", (action: string) => {
         view.setAction(action, player.faceX, player.faceY);
         if (isMe) this.myAction = action;
@@ -833,12 +857,21 @@ export class World3D {
     });
   }
 
+  /** A footstep for every tile's length you walk (in any direction), on whatever ground is under you. */
+  private footsteps(me: Person) {
+    const p = me.root.position;
+    const d = Math.hypot(p.x - this.lastStepAt.x, p.z - this.lastStepAt.z);
+    if (d > TILE * 3) this.lastStepAt.copy(p); // through a door: no step
+    else if (d >= TILE * 0.95) {
+      this.lastStepAt.copy(p);
+      sfx.onStep(Math.floor(p.x / TILE), Math.floor(p.z / TILE));
+    }
+  }
+
   private moveTo(view: Person, player: any, isMe: boolean) {
-    view.walkTo(player.x, player.y, player.stepMs || TICK_MS);
     const a = areaAt(player.x, player.y) ?? OUTDOORS;
     view.root.userData.show = a === this.here || isMe;
     if (!isMe) return;
-    sfx.onStep(player.x, player.y);
     if (this.pendingBook && Math.max(Math.abs(this.pendingBook.x - player.x), Math.abs(this.pendingBook.y - player.y)) <= 1) {
       const b = this.pendingBook; this.pendingBook = null;
       this.openBook(b.x, b.y);

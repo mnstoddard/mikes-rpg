@@ -105,3 +105,60 @@ export function findPath(start: Point, goal: Point, maxNodes = 30000): Point[] {
   }
   return [];
 }
+
+// ---- Smooth (free) movement ----
+// Players stand anywhere, not just in the middle of a tile. Positions here are
+// in tiles with fractions: (x + 0.5, y + 0.5) is the middle of tile (x, y).
+// The tile you stand on (floor of the position) is still what the game uses for
+// talking, gathering, fighting, doors and quests.
+
+/** How wide a player is (half their width, in tiles), so they don't clip into walls and trees. */
+export const PLAYER_RADIUS = 0.28;
+
+/** Can someone this wide stand here? Every tile under them has to be one you can walk on. */
+export function clearAt(fx: number, fy: number, ok: (x: number, y: number) => boolean, r = PLAYER_RADIUS): boolean {
+  const x0 = Math.floor(fx - r), x1 = Math.floor(fx + r);
+  const y0 = Math.floor(fy - r), y1 = Math.floor(fy + r);
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (!ok(x, y)) return false;
+  return true;
+}
+
+/** Can you walk in a straight line from a to b without bumping into anything? */
+export function lineClear(ax: number, ay: number, bx: number, by: number, ok: (x: number, y: number) => boolean, r = PLAYER_RADIUS): boolean {
+  const d = Math.hypot(bx - ax, by - ay);
+  const n = Math.max(1, Math.ceil(d / 0.1));
+  for (let i = 1; i <= n; i++) {
+    const t = i / n;
+    if (!clearAt(ax + (bx - ax) * t, ay + (by - ay) * t, ok, r)) return false;
+  }
+  return true;
+}
+
+/**
+ * Straighten a tile path: skip every tile you can walk to directly, so you head
+ * straight for the far corner instead of zig-zagging tile by tile. Keeps the
+ * last tile (where you're going). `from` is where you stand now (with fractions).
+ */
+export function smoothPath(from: { x: number; y: number }, path: Point[]): Point[] {
+  if (path.length < 2) return path;
+  const goal = path[path.length - 1];
+  // Doors only count as open ground when they're where you're going.
+  const ok = (x: number, y: number) => isWalkable(x, y) && (!doorAt(x, y) || (x === goal.x && y === goal.y));
+  const out: Point[] = [];
+  let ax = from.x, ay = from.y;
+  let i = 0;
+  while (i < path.length) {
+    // The farthest tile ahead we can see in a straight line (at least the next one).
+    // (Looks up to 30 tiles ahead, so long walks stay quick to work out.)
+    let best = i;
+    for (let j = i + 1; j < path.length && j <= i + 30; j++) {
+      if (!lineClear(ax, ay, path[j].x + 0.5, path[j].y + 0.5, ok)) break;
+      best = j;
+    }
+    out.push(path[best]);
+    ax = path[best].x + 0.5;
+    ay = path[best].y + 0.5;
+    i = best + 1;
+  }
+  return out;
+}
