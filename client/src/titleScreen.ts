@@ -31,7 +31,7 @@ interface Ember { x: number; y: number; vx: number; vy: number; r: number; life:
 interface Star { x: number; y: number; vx: number; vy: number; life: number }
 
 /** Animate the embers and falling stars. Returns a function that stops it. */
-function drawSky(canvas: HTMLCanvasElement): () => void {
+export function drawSky(canvas: HTMLCanvasElement): () => void {
   const ctx = canvas.getContext("2d");
   if (!ctx) return () => {};
   const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
