@@ -13,6 +13,15 @@ export interface GameUpdate { version: string; date: string; title: string; chan
 
 export const UPDATES: GameUpdate[] = [
   {
+    version: "0.7",
+    date: "2026-11-25",
+    title: "An Emberfall login screen",
+    changes: [
+      { text: "The login screen matches the title screen: the same night sky with rising embers and falling stars, and an ember-glow login box." },
+      { text: "The health bars, bag, buttons and the rest of the game stay hidden until you've logged in." },
+    ],
+  },
+  {
     version: "0.6",
     date: "2026-11-25",
     title: "Emberfall: the game's name and title screen",

@@ -1,7 +1,7 @@
 import type { Room } from "colyseus.js";
 import type { LoginDetails } from "./network";
 import { startTitleMusic, stopTitleMusic } from "./titleMusic";
-import { showTitleScreen } from "./titleScreen";
+import { drawSky, showTitleScreen } from "./titleScreen";
 
 const LAST_USERNAME = "rpg.lastUsername";
 
@@ -19,6 +19,13 @@ export function showLogin(join: (login: LoginDetails) => Promise<Room>): Promise
 
   try { username.value = localStorage.getItem(LAST_USERNAME) ?? ""; } catch { /* storage blocked */ }
   box.style.display = "flex";
+  // The same night sky as the title screen, with embers and falling stars, behind
+  // the login box. It covers the game's bars and buttons until you're logged in.
+  // (?at=x,y keeps the world showing through, for looking around and testing.)
+  box.classList.toggle("see-through", new URLSearchParams(location.search).has("at"));
+  let sky = box.querySelector<HTMLCanvasElement>("canvas.login-sky");
+  if (!sky) { sky = document.createElement("canvas"); sky.className = "login-sky"; box.prepend(sky); }
+  const stopSky = drawSky(sky);
   showTitleScreen(() => (username.value ? password : username).focus());
   startTitleMusic();
   (username.value ? password : username).focus();
@@ -33,6 +40,7 @@ export function showLogin(join: (login: LoginDetails) => Promise<Room>): Promise
         const room = await join({ username: username.value.trim(), password: password.value, create });
         try { localStorage.setItem(LAST_USERNAME, username.value.trim()); } catch { /* ignore */ }
         box.style.display = "none";
+        stopSky();
         stopTitleMusic();
         form.onsubmit = null;
         resolve(room);

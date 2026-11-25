@@ -6,6 +6,11 @@ in `shared/version.ts` (the game reads it from there), so update both together.
 Each update adds 0.1 to the number. Version 1.0 is saved for the finished game on Steam
 (see docs/VERSION-1.0-PLAN.md).
 
+## 0.7 · 25 November 2026 · An Emberfall login screen
+
+- The login screen matches the title screen: the same night sky with rising embers and falling stars, and an ember-glow login box.
+- The health bars, bag, buttons and the rest of the game stay hidden until you've logged in.
+
 ## 0.6 · 25 November 2026 · Emberfall: the game's name and title screen
 
 - The game has a name: Emberfall. It's on the title screen, the login box and the browser tab.
