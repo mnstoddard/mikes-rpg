@@ -17,6 +17,10 @@ import { createFood } from "../food";
 import { isWeapon, parseWeapon } from "../../../shared/gear";
 import { createEnv, type EnvPiece } from "../environment";
 import { tileCenter } from "./terrain";
+import { TILE } from "../environment";
+
+/** How far behind the server we show people walking (ms): just enough to always have the next position. */
+const GLIDE_MS = 90;
 import { lookToRecipe } from "./look";
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -93,6 +97,9 @@ export class Person {
   private dur = TICK_MS / 1000;
   private yaw = 0;
   private wantYaw = 0;
+  /** Positions from the server (smooth movement), shown a moment late so we can glide between them. */
+  private snaps: { t: number; x: number; z: number }[] = [];
+  private glidingUntil = 0;
   action = "idle";
   private face = new THREE.Vector3();
   private held?: { obj: THREE.Object3D; dispose: () => void };
@@ -180,6 +187,7 @@ export class Person {
 
   /** Stand on a tile straight away. */
   place(x: number, y: number) {
+    this.snaps = [];
     this.to.copy(tileCenter(x, y));
     this.from.copy(this.to);
     this.t = 1;
@@ -198,7 +206,54 @@ export class Person {
     if (d.lengthSq() > 0.01) this.wantYaw = Math.atan2(d.x, d.z);
   }
 
-  get moving() { return this.t < 1; }
+  get moving() { return this.t < 1 || performance.now() < this.glidingUntil; }
+
+  /**
+   * Smooth movement: where the server says they are now (in tiles, with
+   * fractions). Updates come about 20 times a second; we show them GLIDE_MS
+   * late and slide evenly between them, so walking never looks jumpy.
+   */
+  glide(fx: number, fy: number) {
+    const now = performance.now();
+    const x = fx * TILE, z = fy * TILE;
+    const last = this.snaps[this.snaps.length - 1];
+    if (Math.hypot(x - this.root.position.x, z - this.root.position.z) > TILE * 3) {
+      // A far jump (a door, waking up): just be there.
+      this.snaps = [{ t: now, x, z }];
+      this.root.position.set(x, this.root.position.y, z);
+      this.t = 1;
+      return;
+    }
+    if (last && now - last.t < 8) { last.x = x; last.z = z; return; } // the other half of the same update
+    // Setting off after standing still: start from where we stand, one update ago.
+    if (!last || now - last.t > 150) this.snaps = [{ t: now - 50, x: this.root.position.x, z: this.root.position.z }];
+    this.snaps.push({ t: now, x, z });
+    if (this.snaps.length > 30) this.snaps.splice(0, this.snaps.length - 30);
+    this.t = 1;
+  }
+
+  /** Each frame: where to stand between the last two updates from the server. */
+  private updateGlide() {
+    const s = this.snaps;
+    if (!s.length) return;
+    const now = performance.now();
+    const rt = now - GLIDE_MS;
+    while (s.length >= 2 && s[1].t <= rt) s.shift();
+    const a = s[0], b = s[1];
+    let x = a.x, z = a.z;
+    if (b && rt > a.t) {
+      const k = Math.min(1, (rt - a.t) / Math.max(1, b.t - a.t));
+      x = a.x + (b.x - a.x) * k;
+      z = a.z + (b.z - a.z) * k;
+    }
+    const dx = x - this.root.position.x, dz = z - this.root.position.z;
+    if (dx * dx + dz * dz > 1e-6) {
+      this.wantYaw = Math.atan2(dx, dz);
+      this.glidingUntil = now + 90;
+    }
+    this.root.position.x = x;
+    this.root.position.z = z;
+  }
 
   /** The weapon they hold now (item id, or "" for fists). Shows next time they fight. */
   setWeapon(item: string) {
@@ -303,13 +358,13 @@ export class Person {
     if (this.t < 1) {
       this.t = Math.min(1, this.t + dt / this.dur);
       this.root.position.lerpVectors(this.from, this.to, this.t);
-    }
+    } else this.updateGlide();
     // Turn smoothly toward where we're going.
     let dy = this.wantYaw - this.yaw;
     dy = Math.atan2(Math.sin(dy), Math.cos(dy));
     this.yaw += dy * Math.min(1, dt * 12);
     this.hero.object.rotation.y = this.yaw;
-    const walking = this.t < 1;
+    const walking = this.moving;
     this.hero.setAnim(walking ? (this.running ? "run" : "walk") : "idle");
     this.hero.update(dt, time);
     const fists = this.action === "fighting" && !isWeapon(this.weapon);
@@ -318,8 +373,18 @@ export class Person {
       const secs = Math.max(ARM[a.move].seconds, a.hits ? TICK_MS / 1000 * 1.5 : 0);
       const before = this.swingT;
       this.swingT = (this.swingT + dt / secs) % 1;
-      const [sh, el] = armAngles(a.move, this.swingT);
+      let [sh, el] = armAngles(a.move, this.swingT);
       const J = this.hero.joints;
+      // A fish on: the arm dips as it bites, then both hands heave the rod up and back.
+      const c = this.catching;
+      if (c) {
+        const f = Math.min(1, c.t / 1.3);
+        const lift = f < 0.3 ? -0.25 * (f / 0.3) : f < 0.6 ? -0.25 + 1.25 * ((f - 0.3) / 0.3) : 1 - (f - 0.6) / 0.4;
+        sh -= 0.85 * lift;
+        el -= 0.45 * Math.max(0, lift);
+        J.shoulderL.rotation.set(sh * 0.85, 0, 0.3);
+        J.elbowL.rotation.set(el, 0, 0);
+      }
       J.shoulderR.rotation.set(sh, 0, -0.2);
       J.elbowR.rotation.set(el, 0, 0);
       if (fists) {
@@ -357,7 +422,24 @@ export class Person {
         }
         if (f >= 1) { c.dispose(); this.catching = undefined; b.position.copy(c.from); }
       }
-      this.rodSegs.forEach((sg) => { sg.rotation.z = bend * 0.45; });
+      // Bend each piece of the rod toward the fish (tip down to the water), not off to one side.
+      if (this.rodSegs.length) {
+        const pq = new THREE.Quaternion(), wp = new THREE.Vector3(), dir = new THREE.Vector3(), to = new THREE.Vector3(), axis = new THREE.Vector3();
+        for (const sg of this.rodSegs) {
+          sg.quaternion.identity();
+          if (bend <= 0.001) continue;
+          sg.parent!.updateWorldMatrix(true, false);
+          sg.parent!.getWorldQuaternion(pq);
+          sg.updateWorldMatrix(false, false);
+          sg.getWorldPosition(wp);
+          dir.set(0, 1, 0).applyQuaternion(pq); // the rod runs along its local y
+          to.copy(b.position).sub(wp).normalize();
+          axis.crossVectors(dir, to);
+          if (axis.lengthSq() < 1e-6) continue;
+          axis.normalize().applyQuaternion(pq.invert());
+          sg.quaternion.setFromAxisAngle(axis, bend * 0.4);
+        }
+      }
       const tip = new THREE.Vector3();
       if (this.rodTip) this.rodTip.getWorldPosition(tip);
       else { this.hero.joints.handR.getWorldPosition(tip); tip.y += 1.2; }

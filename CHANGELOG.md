@@ -6,6 +6,30 @@ in `shared/version.ts` (the game reads it from there), so update both together.
 Each update adds 0.1 to the number. Version 1.0 is saved for the finished game on Steam
 (see docs/VERSION-1.0-PLAN.md).
 
+## 0.12 · 25 November 2026 · Training, the new quest menu and fixes
+
+- Training: new players stay in town until Old Maren's lessons are done. Try to walk out past the lake, the river or the edges of town and you're turned back with a note saying what to do next.
+- The 📜 Quests menu is new. At the top: what you're on now, then everything you can start right now (who to see, and where). Then 🎓 Training, a master quest with every skill's lesson, the skills each one teaches, and a bar for how many you've done. Then the story, side quests and bounties. Tap a heading to fold it away; finished story chapters fold into one line.
+- Skill lessons now come in a sensible order: Miner Greta before Smith Brann, Forester Holt before Woodworker Rook, Herbalist Wren before Alchemist Moss, Huntmaster Kael before Archmage Rowan, and Shopkeeper Tam before Captain Bryn. Talk to a trainer too early and they tell you who to see first. A lesson you've already started carries on as normal.
+- Brother Oren's tour now comes first in The Hall of Light: Keeper Aldric sends you straight to him, then you meet Lisette, Tomas and Wynne. (#26)
+- Cooking has levels that matter: harder meals and better firewood (oak, birch, maple...) need a higher Cooking level, and meals well above your level burn more often. The stove tells you the level you need. (#25)
+- Carrying too much now slows you down instead of stopping you: over your limit you walk at half speed, then a quarter, then an eighth (the 🐢 by your weight shows it). Past four times your limit you can't pick up any more, and you can't run while overloaded. (#31)
+- Little paths now lead from house doors out to the nearest road. (#28)
+- Other players show up as blue dots with their names on the minimap and the big map, and the big map names the key people (quest givers and the repairer) by their doors. (#29)
+- The guide arrow and map marks now point at the next thing for every quest step: the nearest fishing spot, tree or rock you have the level for, the right stove, furnace or anvil, the shop, the board, or the nearest monster to fight. (#30)
+- Every early quest was checked for ways to get stuck. Old Maren now hands you firewood and minnows if you've run out for her cooking lesson, Smith Brann won't let you sell or lose the platelegs he wants to see, and items you've equipped now count when a quest asks for them. (#32)
+- Buttons and quest lines say Equip and Unequip everywhere now (no more Wear, Hold or Put on belt). (#22)
+- Walking through a door shows a short loading sign so the new room doesn't pop in. (#27)
+- Chopped trees fall and sink into the ground instead of shrinking, and the stump shows its rings. Catching a fish has a proper two-handed heave, and the rod bends toward the bobber. (#23, #24)
+
+## 0.11 · 25 November 2026 · Smooth movement
+
+- Walking is smooth now, not tile by tile. You can stand anywhere and walk in any direction, and you glide instead of hopping from square to square.
+- Clicking the ground walks you straight to the exact spot you clicked. The path cuts the corners, so you head straight there instead of zig-zagging.
+- W A S D walks the way the camera faces at any angle, not just 8 directions. Turn the camera while you walk and you turn with it.
+- Walking into a wall at an angle slides you along it, and walking at the edge of a doorway or a gap between trees eases you into it instead of getting stuck.
+- Other players glide smoothly too, and footsteps keep an even beat whichever way you walk.
+
 ## 0.10 · 25 November 2026 · The Emberguard, Embervale and the Emberheart
 
 - New names, to match the Emberfall story: the Lighthall is now the Emberhall, the Lightkeepers are the Emberguard, the Kindled are the Emberborn, and the land is Embervale. Its heart, deep under Heartvale, is the Emberheart.

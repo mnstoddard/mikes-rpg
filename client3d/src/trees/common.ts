@@ -221,6 +221,12 @@ export function makeTree(shape: TreeShape, rng: Rng): Tree {
   pivot.add(swayer);
   swayer.add(shape.top);
   if (shape.extra) swayer.add(shape.extra.object);
+  // The underside of the falling trunk: cut wood, so it isn't hollow as it tips over.
+  const underside = new THREE.Mesh(new THREE.CircleGeometry(shape.trunkRadius * 0.98, 7), mat(shape.heartwood));
+  underside.rotation.x = Math.PI / 2;
+  underside.position.y = 0.004;
+  underside.visible = false;
+  swayer.add(underside);
 
   const phase = rng() * Math.PI * 2;
   const leafPhase = shape.leaves.map(() => rng() * Math.PI * 2);
@@ -231,6 +237,11 @@ export function makeTree(shape: TreeShape, rng: Rng): Tree {
   let fallT = 0;
   let fallDir = rng() * Math.PI * 2;
   let growT = 0;
+  // How far down the fallen tree has to go to be out of sight: its widest reach, lying on its side.
+  const sinkDepth = (() => {
+    const b = new THREE.Box3().setFromObject(shape.top);
+    return Math.max(1.5, Math.max(b.max.x - b.min.x, b.max.z - b.min.z) * 0.6 + 0.5);
+  })();
   const debris: { mesh: THREE.Mesh; vel: THREE.Vector3; spin: THREE.Vector3; life: number }[] = [];
 
   function puff(count: number, color: number, at: THREE.Vector3) {
@@ -295,12 +306,16 @@ export function makeTree(shape: TreeShape, rng: Rng): Tree {
             const land = new THREE.Vector3(Math.cos(fallDir), 0, Math.sin(fallDir)).multiplyScalar(2.2);
             puff(16, leafColor, land);
           }
-          // Then it sinks away and is gone.
-          if (after > 1.2) {
-            const s = Math.max(0, 1 - (after - 1.2) / 0.6);
-            pivot.scale.setScalar(s);
-            if (s === 0) {
+          // Then it sinks slowly into the ground and is gone (shrinking it back into the stump looked fake).
+          if (after > 1.4) {
+            const k = Math.min(1, (after - 1.4) / 1.8);
+            const e = k * k * (3 - 2 * k); // smooth start and end
+            pivot.position.y = shape.cutHeight - e * (sinkDepth + shape.cutHeight);
+            pivot.scale.setScalar(1 - e * 0.35);
+            if (k >= 1) {
               pivot.visible = false;
+              pivot.position.y = shape.cutHeight;
+              underside.visible = false;
               state = "stump";
             }
           }
@@ -358,6 +373,7 @@ export function makeTree(shape: TreeShape, rng: Rng): Tree {
       if (state !== "standing") return;
       state = "falling";
       cutFace.visible = true;
+      underside.visible = true;
       fallT = 0;
       fallDir = rng() * Math.PI * 2;
     },

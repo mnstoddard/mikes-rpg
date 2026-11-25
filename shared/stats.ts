@@ -16,6 +16,14 @@ export const maxStamina = (endurance: number) => 95 + 5 * endurance;
 export const maxMana = (wisdom: number) => 45 + 5 * wisdom;
 /** What you can carry, in tenths of a kg: 45 kg at Dexterity 1, +1 kg per level (143 kg at 99). */
 export const carryCapacity = (dexterity: number) => 440 + 10 * dexterity;
+/**
+ * Carrying too much (report #31): you can go over what you can carry, but you slow down.
+ * Over 1x: half speed and no running. Over 2x: a quarter. Over 3x: an eighth.
+ * 4x is as much as you can drag at all.
+ */
+export const OVERLOAD_MAX = 4;
+export const loadLevel = (carried: number, capacity: number) => (carried <= capacity ? 0 : Math.min(3, Math.ceil(carried / capacity) - 1));
+export const loadSpeed = (level: number) => 1 / 2 ** level;
 /** Walking: 1% faster per Dexterity level above 1, capped at 30% (reached at Dexterity 31). */
 export const WALK_BONUS_CAP = 0.3;
 export const walkBonus = (dexterity: number) => Math.min(WALK_BONUS_CAP, 0.01 * Math.max(0, dexterity - 1));

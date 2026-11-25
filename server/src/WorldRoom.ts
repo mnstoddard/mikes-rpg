@@ -1,7 +1,7 @@
 import { Room, Client, ServerError } from "colyseus";
 import { ArraySchema, MapSchema, Schema, type } from "@colyseus/schema";
-import { Door, MAP, MAP_HEIGHT, MAP_WIDTH, TICK_MS, TOWN_SPOT, WAKE_SPOT, areaAt, doorAt, isDanger, isWalkable, randomSpawn, spotNear } from "../../shared/map";
-import { findPath, Point } from "../../shared/pathfinding";
+import { Door, MAP, MAP_HEIGHT, MAP_WIDTH, TICK_MS, TOWN_SPOT, WAKE_SPOT, areaAt, doorAt, isDanger, isWalkable, inTrainingBounds, randomSpawn, spotNear } from "../../shared/map";
+import { PLAYER_RADIUS, clearAt, findPath, Point, smoothPath } from "../../shared/pathfinding";
 import {
   RESOURCES, RESOURCE_FOR_ITEM, ROCK_EMPTY_CHANCE, ResourceId, TREE_FALL_CHANCE,
   FORAGE_FINDS, PATCH_EMPTY_CHANCE, isDigPatch, rollForageFind,
@@ -40,7 +40,7 @@ import {
   stackName, takeFromEntry, takeItem, usedSlots,
 } from "../../shared/bag";
 import { carriedWeight, carryCapacity, kg, weightOf } from "../../shared/weight";
-import { RUN_COST, RUN_REFILL, RUN_REST_MS, RUN_SPEED, buyWithCharisma, maxStamina, sellWithCharisma, tradingXp, walkBonus } from "../../shared/stats";
+import { RUN_COST, RUN_REFILL, RUN_REST_MS, OVERLOAD_MAX, RUN_SPEED, buyWithCharisma, loadLevel, loadSpeed, maxStamina, sellWithCharisma, tradingXp, walkBonus } from "../../shared/stats";
 import {
   CHEST_MAX, CHEST_RENT, CHEST_START, CHEST_STEP, GUILD_BOUNTY_COUNT, GuildBounty, GuildView, RANKS, REAGENTS, expandCost, guildBountyName,
   guildRenown, guildReward, newGuildBoard, newGuildBounty, rankFor, validGuildBounty,
@@ -96,6 +96,7 @@ import { canBuyHere } from "../../shared/shops";
 import { CHAPTERS, gateMet, litLanterns, oathSworn, opensAfter, rankOf, talkWith } from "../../shared/quests";
 import { BLESS_MINUTES, BLESS_POWER, RANKS as LIGHT_RANKS, STORY_ITEMS, SPOT_NAMES, TITHE_MAX, TITHE_SHARE, isStoryItem, titheCost } from "../../shared/story";
 import { AREAS, DOORS, PLACES } from "../../shared/map";
+import { stepSpots } from "./questTargets";
 import { cleanLook } from "../../shared/look";
 import {
   CROPS, CROP_IDS, CropId, FARM_CHEST_PRICE, FarmView, LOTS, LOT_SIZE, MASTERY_EXTRA, PLANT_XP, PLOT_SIZES, SEED_BACK, SEED_BACK_PER_LEVEL, SeedId,
@@ -133,6 +134,8 @@ export class Player extends Schema {
   @type("string") name = "";
   @type("number") x = 0; // tile coordinates
   @type("number") y = 0;
+  @type("number") fx = 0.5; // where exactly you stand, in tiles with fractions (you can stand anywhere, not just mid-tile); x/y is the tile under you
+  @type("number") fy = 0.5;
   @type("number") color = 0xffffff;
   @type("string") action = "idle"; // "idle" | "chopping" | "fishing" | "mining" | "smelting" | "smithing" | "cooking" (so others see the animation)
   @type("number") faceX = 0; // tile the player is working on, for the animation
@@ -152,7 +155,12 @@ export class Player extends Schema {
 
   // Server-only (not synced to everyone):
   path: Point[] = [];
-  walkDir: Point | null = null; // the way they're holding the keyboard (WASD) to walk, one tile at a time; null when not
+  walkDir: Point | null = null; // the way they're holding the keyboard (WASD) to walk, any angle (length 1); null when not
+  smoothed: Point[] | null = null; // the path we last straightened (a new path from anywhere gets straightened too)
+  goalF: Point | null = null; // the exact spot clicked, inside the path's last tile
+  movedAt = 0; // when we last moved them (ms), to know how far to go this time
+  gateToldAt = 0; // when we last told them the Dark Forest gate is shut (ms)
+  runDist = 0; // how far they've run since breath was last taken for it (tiles)
   target: Point | null = null; // tree or water the player is heading to / working on
   activity: SkillId | null = null; // what they'll do when they get there
   resource: ResourceId | null = null; // which type of tree / rock / fish
@@ -173,13 +181,13 @@ export class Player extends Schema {
   stamina = MAX_STAMINA; // each action costs some; food and time bring it back (max from Endurance)
   maxStamina = MAX_STAMINA;
   regenTicks = 0; // ticks since the last stamina came back on its own
-  winded = 0; // stamina used up for now by running (it all comes back once you stop: shared/stats.ts RUN_COST)
+  winded = 0;
+  loadLevel = 0; // 0 = fine, 1-3 = overloaded (shared/stats.ts loadLevel) // stamina used up for now by running (it all comes back once you stop: shared/stats.ts RUN_COST)
   lastRunAt = 0; // when they last ran a tile (ms)
   outOfBreath = false; // told them they're out of breath (once per run)
   locked: boolean[] = []; // per entry: locked items can't be sold or dropped by accident
   talkTo: NpcDef | null = null; // person the player is walking over to talk to
   quest: QuestProgress = newQuestProgress(); // where they are in the main quest (Maren's chapter, then the trainers')
-  nextStepAt = 0; // time (ms) this player may take their next step
   gear: Gear = emptyGear(); // weapon and armor being worn (don't use bag space)
   mana = 50;
   spell: BoltSpellId = "fire_blast"; // the spell cast when holding a staff
@@ -374,29 +382,37 @@ export class WorldRoom extends Room<WorldState> {
     });
 
     // Clients only send intent; the server decides what actually happens.
-    this.onMessage("move", (client, msg: { x: number; y: number }) => {
+    // fx, fy (optional) is the exact spot clicked inside that tile, so you walk right to it.
+    this.onMessage("move", (client, msg: { x: number; y: number; fx?: number; fy?: number }) => {
       const p = this.state.players.get(client.sessionId);
       if (!p || !Number.isInteger(msg?.x) || !Number.isInteger(msg?.y)) return;
       if (!isWalkable(msg.x, msg.y)) return;
       this.stopActions(p);
-      p.path = findPath({ x: p.x, y: p.y }, { x: msg.x, y: msg.y });
+      const goal = { x: msg.x, y: msg.y };
+      const path = p.x === goal.x && p.y === goal.y ? [goal] : findPath({ x: p.x, y: p.y }, goal);
+      p.path = smoothPath({ x: p.fx, y: p.fy }, path);
+      p.smoothed = p.path;
+      const fx = msg.fx, fy = msg.fy;
+      const exact = Number.isFinite(fx) && Number.isFinite(fy) && Math.floor(fx!) === goal.x && Math.floor(fy!) === goal.y
+        && clearAt(fx!, fy!, (x, y) => isWalkable(x, y) && !doorAt(x, y));
+      p.goalF = path.length && exact && !doorAt(goal.x, goal.y) ? { x: fx!, y: fy! } : null;
     });
 
     // Walking with the keyboard (WASD): the client says which way the keys point
-    // (dx and dy are each -1, 0 or 1) whenever that changes, and 0,0 when they're let go.
-    // You keep stepping that way, one tile at a time, until then.
+    // (dx, dy: any direction, not just the 8 tile directions) whenever that changes,
+    // and 0,0 when they're let go. You keep walking that way until then.
     this.onMessage("walk", (client, msg: { dx: number; dy: number }) => {
       const p = this.state.players.get(client.sessionId);
       const dx = msg?.dx, dy = msg?.dy;
-      if (!p || ![-1, 0, 1].includes(dx) || ![-1, 0, 1].includes(dy)) return;
-      if (!dx && !dy) {
+      if (!p || !Number.isFinite(dx) || !Number.isFinite(dy)) return;
+      const len = Math.hypot(dx, dy);
+      if (len < 0.01) {
         if (p.walkDir) { p.walkDir = null; p.path = []; }
         return;
       }
-      this.stopActions(p);
-      p.walkDir = { x: dx, y: dy };
-      const next = this.keyStep(p);
-      p.path = next ? [next] : [];
+      if (!p.walkDir) this.stopActions(p);
+      p.walkDir = { x: dx / len, y: dy / len };
+      p.path = [];
     });
 
     // Run (Shift, or the 🏃 button): faster, using stamina for the moment (it comes back once you stop).
@@ -610,7 +626,7 @@ export class WorldRoom extends Room<WorldState> {
       clearEntry(p, msg.slot);
       if (old) this.place(p, slot, old.item, old.durability); // the same kind of tool, so it goes where this one was
       this.sendInventory(client, p);
-      this.say(client, `You put the ${ITEMS[item].single} on your belt: ${this.toolEffect(item)}.` +
+      this.say(client, `You equip the ${ITEMS[item].single} (it goes on your tool belt): ${this.toolEffect(item)}.` +
         (old ? ` Your ${ITEMS[old.item].single} goes in your bag.` : ""));
       this.saveSoon(p);
     });
@@ -637,7 +653,7 @@ export class WorldRoom extends Room<WorldState> {
       p.belt[type] = null;
       this.give(p, t.item, 1, t.durability, true);
       this.sendInventory(client, p);
-      this.say(client, `You take the ${ITEMS[t.item].single} off your belt.`);
+      this.say(client, `You unequip the ${ITEMS[t.item].single}.`);
       if (this.step(p)?.needsTool === type) this.say(client, `${GUIDE_NAME} said to keep your ${TOOL_TYPES[type].name.toLowerCase()} on your belt for this. Put it back on before you carry on.`);
       this.saveSoon(p);
     });
@@ -1311,60 +1327,134 @@ export class WorldRoom extends Room<WorldState> {
     this.monsterTick(tick);
   }
 
-  /** Walking speed: one tile per 600ms, timed per player. */
+  /**
+   * Walking, smoothly: every 50ms everyone who's walking moves a little, at their
+   * own speed (one tile per stepMs). You can stand anywhere, not just mid-tile;
+   * the tile under you (x, y) is what talking, gathering, doors and quests use.
+   */
   private stepPlayers() {
     const now = Date.now();
     this.state.players.forEach((p) => {
-      // Holding a direction key: line up the next tile that way.
-      if (p.walkDir && !p.path.length && !p.fighting && !p.target && !p.talkTo && !p.crafting) {
-        const next = this.keyStep(p);
-        if (next) p.path = [next];
-      }
-      if (!p.path.length || now < p.nextStepAt) return;
-      // The Dark Forest's gate stays shut until Old Maren says you're ready.
-      if (isDanger(p.path[0].x, p.path[0].y) && !isDanger(p.x, p.y) && !gateOpen(p.quest)) {
-        p.path = [];
-        this.stopActions(p);
-        const client = this.clients.find((c) => this.state.players.get(c.sessionId) === p);
-        if (client) this.say(client, this.notReady());
+      const dt = Math.min(0.2, Math.max(0, (now - (p.movedAt || now)) / 1000));
+      p.movedAt = now;
+      // Moved by something else (a door, waking up at the shrine...): stand in the middle of that tile.
+      if (Math.floor(p.fx) !== p.x || Math.floor(p.fy) !== p.y) { p.fx = p.x + 0.5; p.fy = p.y + 0.5; }
+      if (!p.path.length) { p.goalF = null; p.smoothed = null; }
+      let dist = dt * 1000 / Math.max(50, p.stepMs);
+      if (p.path.length) {
+        // A new path (from talking, fighting, gathering...): straighten it.
+        if (p.path !== p.smoothed) { p.path = smoothPath({ x: p.fx, y: p.fy }, p.path); p.smoothed = p.path; p.goalF = null; }
+        while (dist > 0 && p.path.length) {
+          const wp = p.path[0];
+          const last = p.path.length === 1;
+          const tx = last && p.goalF ? p.goalF.x : wp.x + 0.5, ty = last && p.goalF ? p.goalF.y : wp.y + 0.5;
+          const d = Math.hypot(tx - p.fx, ty - p.fy);
+          const go = Math.min(d, dist);
+          const nx = d > 0 ? p.fx + ((tx - p.fx) / d) * go : tx, ny = d > 0 ? p.fy + ((ty - p.fy) / d) * go : ty;
+          dist -= go;
+          if (!this.moveTo(p, nx, ny, false)) return;
+          if (go >= d) p.path.shift();
+          if (!p.path.length) this.arrived(p);
+        }
         return;
       }
-      const next = p.path.shift()!;
-      p.x = next.x;
-      p.y = next.y;
-      p.dirty = true;
-      if (this.canRun(p)) this.runStep(p, now);
-      // Walked onto a door: through it you go.
-      const door = !p.path.length ? doorAt(p.x, p.y) : null;
-      if (door) {
-        this.goThrough(p, door);
-        p.nextStepAt = now + p.stepMs;
-        return;
+      // Holding a direction key: walk that way, sliding along walls and round corners.
+      if (p.walkDir && !p.fighting && !p.target && !p.talkTo && !p.crafting) {
+        const next = this.keyMove(p, p.walkDir, dist);
+        if (next) this.moveTo(p, next.x, next.y, true);
       }
-      this.checkReach(p);
-      if (!p.path.length && p.talkTo) {
-        const npc = p.talkTo;
-        p.talkTo = null;
-        const client = this.clients.find((c) => this.state.players.get(c.sessionId) === p);
-        if (client && this.isNextTo(p, npc)) this.openShop(client, p, npc);
-      }
-      // Keep a steady pace; if they'd been standing still, start the clock from now.
-      p.nextStepAt = Math.max(p.nextStepAt + p.stepMs, now + p.stepMs - STEP_LOOP_MS);
     });
   }
 
   /**
-   * The next tile when walking with the keys. Same rules as clicking (no cutting
-   * the corner of a wall); if a diagonal is blocked you slide along the wall instead.
+   * Put a walking player at a new spot. Crossing onto a new tile is a "step": it
+   * costs running breath, opens doors, counts for quests. False if they stopped
+   * (the Dark Forest gate, or through a door).
    */
-  private keyStep(p: Player): Point | null {
-    const d = p.walkDir;
-    if (!d) return null;
-    const tries = d.x && d.y ? [d, { x: d.x, y: 0 }, { x: 0, y: d.y }] : [d];
-    for (const t of tries) {
-      if (!isWalkable(p.x + t.x, p.y + t.y)) continue;
-      if (t.x && t.y && (!isWalkable(p.x + t.x, p.y) || !isWalkable(p.x, p.y + t.y))) continue;
-      return { x: p.x + t.x, y: p.y + t.y };
+  private moveTo(p: Player, nx: number, ny: number, byKeys: boolean): boolean {
+    const tx = Math.floor(nx), ty = Math.floor(ny);
+    // Running costs a little breath for every tile's length you run.
+    if (this.canRun(p) && !(isDanger(tx, ty) && !isDanger(p.x, p.y) && !gateOpen(p.quest))) {
+      p.runDist += Math.hypot(nx - p.fx, ny - p.fy);
+      if (p.runDist >= 1) { p.runDist -= 1; this.runStep(p, Date.now()); }
+    }
+    if (tx === p.x && ty === p.y) { p.fx = nx; p.fy = ny; return true; }
+    // The Dark Forest's gate stays shut until Old Maren says you're ready.
+    if (isDanger(tx, ty) && !isDanger(p.x, p.y) && !gateOpen(p.quest)) {
+      p.path = [];
+      const now = Date.now();
+      if (!byKeys || now - p.gateToldAt > 4000) {
+        this.stopActions(p);
+        const client = this.clientOf(p);
+        if (client) this.say(client, this.notReady());
+      }
+      p.gateToldAt = now;
+      return false;
+    }
+    // New players stay in town (the training grounds) until Old Maren's lessons are done.
+    if (this.heldInTown(p, { x: tx, y: ty })) {
+      p.path = [];
+      const now = Date.now();
+      if (!byKeys || now - p.gateToldAt > 4000) {
+        this.stopActions(p);
+        const client = this.clientOf(p);
+        if (client) this.say(client, this.stayInTown());
+      }
+      p.gateToldAt = now;
+      return false;
+    }
+    p.fx = nx; p.fy = ny;
+    p.x = tx; p.y = ty;
+    p.dirty = true;
+    // Walked onto a door: through it you go (when walking with the keys, or when it's where you were going).
+    const door = doorAt(tx, ty);
+    const last = p.path[p.path.length - 1];
+    if (door && (byKeys || (last && last.x === tx && last.y === ty))) {
+      p.path = [];
+      this.goThrough(p, door);
+      p.fx = p.x + 0.5; p.fy = p.y + 0.5;
+      return false;
+    }
+    this.checkReach(p);
+    return true;
+  }
+
+  /** At the end of a path: if you were walking over to talk to someone, talk. */
+  private arrived(p: Player) {
+    if (!p.talkTo) return;
+    const npc = p.talkTo;
+    p.talkTo = null;
+    const client = this.clientOf(p);
+    if (client && this.isNextTo(p, npc)) this.openShop(client, p, npc);
+  }
+
+  /**
+   * Where the keys take you this time: straight that way if it's clear; if not,
+   * slide along the wall; walking into the edge of a gap (a doorway, between two
+   * trees), you're eased round the corner into it.
+   */
+  private keyMove(p: Player, d: Point, dist: number): Point | null {
+    const ok = (x: number, y: number) => isWalkable(x, y);
+    const fits = (x: number, y: number) => clearAt(x, y, ok);
+    const full = { x: p.fx + d.x * dist, y: p.fy + d.y * dist };
+    if (fits(full.x, full.y)) return full;
+    // Slide: keep the part of the move that isn't into the wall (at full speed, so it doesn't feel sticky).
+    const slides: Point[] = [];
+    if (Math.abs(d.x) > 0.05) slides.push({ x: p.fx + Math.sign(d.x) * dist * Math.max(Math.abs(d.x), 0.7), y: p.fy });
+    if (Math.abs(d.y) > 0.05) slides.push({ x: p.fx, y: p.fy + Math.sign(d.y) * dist * Math.max(Math.abs(d.y), 0.7) });
+    if (Math.abs(d.y) > Math.abs(d.x)) slides.reverse();
+    for (const s of slides) if (fits(s.x, s.y)) return s;
+    // Round the corner: the tile straight ahead is open, but we're a little off to one side of it.
+    const ax = Math.abs(d.x) >= Math.abs(d.y);
+    const ahead = ax ? { x: Math.floor(p.fx) + Math.sign(d.x), y: Math.floor(p.fy) } : { x: Math.floor(p.fx), y: Math.floor(p.fy) + Math.sign(d.y) };
+    if (ok(ahead.x, ahead.y)) {
+      const mid = ax ? Math.floor(p.fy) + 0.5 : Math.floor(p.fx) + 0.5;
+      const off = (ax ? p.fy : p.fx) - mid;
+      if (Math.abs(off) > 0.001) {
+        const step = Math.sign(-off) * Math.min(Math.abs(off), dist);
+        const nudged = ax ? { x: p.fx, y: p.fy + step } : { x: p.fx + step, y: p.fy };
+        if (fits(nudged.x, nudged.y)) return nudged;
+      }
     }
     return null;
   }
@@ -1374,7 +1464,7 @@ export class WorldRoom extends Room<WorldState> {
     const res = RESOURCES[resource];
     const skill = res.skill;
     const { def } = findSkill(skill);
-    if (!isUnlocked(p.unlocked, skill)) return this.say(client, this.notTaught(skill));
+    if (!isUnlocked(p.unlocked, skill)) return this.say(client, this.notTaught(skill, p));
     const skillLevel = levelForXp(p.skillXp[skill]);
     if (skillLevel < res.level) {
       return this.say(client, `You need ${def.name} level ${res.level} to ${verbFor(resource)}. (You're level ${skillLevel}.)`);
@@ -1528,7 +1618,7 @@ export class WorldRoom extends Room<WorldState> {
     const after = cloneBag(p);
     for (const input of recipe.inputs) takeItem(after, input, 1, (i) => !after.locked[i]);
     const inputsWeight = recipe.inputs.reduce((sum, i) => sum + weightOf(i), 0);
-    if (roomFor(after, recipe.output) < 1 || this.carried(p) - inputsWeight + weightOf(recipe.output) > this.capacity(p)) {
+    if (roomFor(after, recipe.output) < 1 || this.carried(p) - inputsWeight + weightOf(recipe.output) > this.capacity(p) * OVERLOAD_MAX) {
       if (client) this.say(client, roomFor(after, recipe.output) < 1 ? "Your bag is full. Make room first." : this.fullReason(p, recipe.output));
       return this.stopActions(p);
     }
@@ -1595,12 +1685,13 @@ export class WorldRoom extends Room<WorldState> {
   private stepMsOf(p: Player) {
     const now = worldNow();
     const speed = 1 + walkBonus(p.levels.dexterity) + (buffPower(p.buffs, "swift", now) + buffPower(p.buffs, "haste", now)) / 100;
-    return Math.round(TICK_MS / Math.max(0.5, speed - metalSlow(p.gear)) / (this.canRun(p) ? RUN_SPEED : 1));
+    const load = loadSpeed(loadLevel(this.carried(p), this.capacity(p)));
+    return Math.round(TICK_MS / Math.max(0.5, speed - metalSlow(p.gear)) / (this.canRun(p) ? RUN_SPEED : 1) / load);
   }
 
   /** Running, with breath left for another tile. */
   private canRun(p: Player) {
-    return p.running && p.stamina - p.winded >= RUN_COST;
+    return p.running && p.stamina - p.winded >= RUN_COST && this.carried(p) <= this.capacity(p);
   }
 
   /** A tile run: a little breath used up for now. Out of breath, you're back to walking. */
@@ -1703,7 +1794,7 @@ export class WorldRoom extends Room<WorldState> {
   /** How many more of this item you could carry, by weight. */
   private canLift(p: Player, item: ItemId): number {
     const w = weightOf(item);
-    const spare = this.capacity(p) - this.carried(p);
+    const spare = this.capacity(p) * OVERLOAD_MAX - this.carried(p);
     return w <= 0 ? Infinity : Math.max(0, Math.floor(spare / w));
   }
 
@@ -1715,7 +1806,7 @@ export class WorldRoom extends Room<WorldState> {
   /** Why you can't take one more of this: bag full, or too heavy. */
   private fullReason(p: Player, item: ItemId) {
     if (roomFor(p, item) < 1) return "Your bag is full. Sell or drop something first, or put things in your enchanted chest.";
-    return `That's too heavy: you're carrying ${kg(this.carried(p))} of ${kg(this.capacity(p))}. Sell, drop or eat something, or put things in your enchanted chest.`;
+    return `That's too heavy even to drag: you're carrying ${kg(this.carried(p))}, ${OVERLOAD_MAX} times the ${kg(this.capacity(p))} you can carry. Sell, drop or eat something, or put things in your enchanted chest.`;
   }
 
   /** One catch uses up a little of the bait. When it runs out, it's gone. */
@@ -1790,12 +1881,13 @@ export class WorldRoom extends Room<WorldState> {
   }
 
   /** "Old Maren hasn't taught you Mining yet." */
-  private notTaught(skill: SkillId) {
+  private notTaught(skill: SkillId, p?: Player) {
+    const marenDoneQ = !p || marenDone(p.quest);
     const name = findSkill(skill).def.name;
     const c = teacherOf(skill);
     if (!c) return `You haven't learned ${name} yet.`;
     return c.id === "maren" ? `${GUIDE_NAME} hasn't taught you ${name} yet. Keep following her lessons in the 📜 Quests tab.`
-      : `You haven't learned ${name} yet. ${c.name} teaches it (${c.where}).`;
+      : `You haven't learned ${name} yet. ${c.name} teaches it (${c.where}).` + (skill === "woodcutting" && !marenDoneQ ? ` Need firewood? Talk to ${GUIDE_NAME}: she'll give you some.` : "");
   }
 
   /**
@@ -1850,7 +1942,7 @@ export class WorldRoom extends Room<WorldState> {
 
   /** Your chance at one crafting try: Mastery, belt tool, and the skill tree's "Steady hands". */
   private craftChance(p: Player, recipe: Recipe) {
-    return successFor(recipe, p.mastery, p.belt, this.tree(p, recipe.skill, "success"));
+    return successFor(recipe, p.mastery, p.belt, this.tree(p, recipe.skill, "success"), levelForXp(p.skillXp[recipe.skill as SkillId] ?? 0));
   }
 
   /** After buying or resetting: max health may change, and the client redraws the trees. */
@@ -2198,6 +2290,10 @@ export class WorldRoom extends Room<WorldState> {
       if (client) this.say(client, this.notReady());
       return;
     }
+    if (this.heldInTown(p, door.to)) {
+      if (client) this.say(client, this.stayInTown());
+      return;
+    }
     this.stopActions(p);
     p.path = [];
     p.x = door.to.x;
@@ -2205,6 +2301,15 @@ export class WorldRoom extends Room<WorldState> {
     p.dirty = true;
     // Monsters chasing you lose track of you.
     this.state.monsters.forEach((m) => { if (m.target === sid) m.target = null; });
+  }
+
+  /** Would this step take a new player out of town before their training is done? */
+  private heldInTown(p: Player, to: { x: number; y: number }) {
+    return !marenDone(p.quest) && inTrainingBounds(p.x, p.y) && !inTrainingBounds(to.x, to.y);
+  }
+
+  private stayInTown() {
+    return `🧭 Not so fast: stay in town until your training is done. Open 📜 Quests to see what's next (finish Old Maren's lessons and the wider world opens up).`;
   }
 
   private notReady() {
@@ -2226,7 +2331,7 @@ export class WorldRoom extends Room<WorldState> {
     if (!want) return null;
     const w = p.gear.weapon?.item;
     const who = this.giverName(p);
-    if (want === "weapon" && !w) return `${who} wants you to fight with a weapon. Click one in your bag and press "Hold" first.`;
+    if (want === "weapon" && !w) return `${who} wants you to fight with a weapon. Click one in your bag and press "Equip" first.`;
     if (want !== "weapon" && (!isWeapon(w) || WEAPONS[parseWeapon(w).type].style !== want)) {
       return want === "magic" ? `${who} wants you to use Spellcasting for this. Hold your staff first.` : `${who} wants you to use Ranged for this. Hold your sling first.`;
     }
@@ -3383,7 +3488,7 @@ export class WorldRoom extends Room<WorldState> {
     if (!tool) return null;
     const name = TOOL_TYPES[tool].name.toLowerCase();
     if (step.needsTool === tool && !p.belt[tool]) {
-      return `${this.giverName(p)} wants you to use your ${name} for this. Click it in your bag and press "Put on belt" first.`;
+      return `${this.giverName(p)} wants you to use your ${name} for this. Click it in your bag and press "Equip" first.`;
     }
     const g = step.goal;
     if (g.kind === "gather" && g.byHand && g.skill === skill && p.belt[tool]) {
@@ -3430,7 +3535,20 @@ export class WorldRoom extends Room<WorldState> {
         this.say(client, `${chapter.name}: ${npc.kind === "person" ? "I'll have something more for you later." : ""} (📜 ${chapter.title}: ${opensAfter(q, chapter.id).toLowerCase()}.)`);
         return false;
       }
-      this.say(client, `${chapter.name}: Come and see me for a lesson once ${GUIDE_NAME} has shown you the basics. She lives in the cottage on the lake shore, west along the road.`);
+      if (!marenDone(q)) {
+        this.say(client, `${chapter.name}: Come and see me for a lesson once ${GUIDE_NAME} has shown you the basics. She lives in the cottage on the lake shore, west along the road.`);
+        return false;
+      }
+      // Lessons that build on another skill: send them to that trainer first.
+      const first = chapterById((chapter.after ?? []).find((a) => !chapterDone(q, a))!);
+      const why: Partial<Record<string, string>> = {
+        brann: "You'll need to know your way round ore before you can smelt and smith it.",
+        rook: "You'll need to know how to cut wood before you can work it.",
+        moss: "You'll need to know your herbs before you can brew with them.",
+        ysolde: "Learn to look after yourself in a fight before you start throwing spells about.",
+        bryn: "Learn how buying and selling works first: the bounty board pays in coin.",
+      };
+      this.say(client, `${chapter.name}: ${why[chapter.id] ?? "Not yet."} Go and see ${first.name} first (${first.where}).`);
       return false;
     }
     if (q.active !== chapter.id) {
@@ -3465,7 +3583,10 @@ export class WorldRoom extends Room<WorldState> {
   /** Do a talk step: they say their piece, take what they need, and hand over the rewards. */
   private doTalk(client: Client, p: Player, chapter: Chapter, step: QuestStep, npc: NpcDef): boolean {
     const speaker = npc.kind === "person" ? npc.name : chapter.name;
-    if (step.need && !p.inventory.some((it) => it?.startsWith(step.need!.prefix))) {
+    // Worn or on your belt counts too (you might have put the platelegs on).
+    const hasNeed = (pre: string) => p.inventory.some((it) => it?.startsWith(pre))
+      || GEAR_SLOTS.some((s) => p.gear[s]?.item.startsWith(pre)) || Object.values(p.belt).some((t) => (t as { item?: string } | null)?.item?.startsWith(pre));
+    if (step.need && !hasNeed(step.need.prefix)) {
       this.dialog(client, [step.need.line], speaker);
       return true;
     }
@@ -3707,7 +3828,7 @@ export class WorldRoom extends Room<WorldState> {
     const prog = this.prog(p);
     const spots = step?.goal.kind === "reach"
       ? step.goal.spots.filter((k) => !prog?.got?.includes(k)).map((k) => ({ ...PLACES[k], label: SPOT_NAMES[k] ?? "" }))
-      : undefined;
+      : step ? stepSpots(step, p, this.levelOf(p), [...this.state.monsters.values()], (it) => this.countOf(p, it)) : undefined;
     const lessons = chapters.filter((c) => !c.act);
     const base = { number: lessons.filter((c) => c.state === "done").length, of: lessons.length, marks: questMarks(p.quest, this.levelOf(p)), chapters,
       spots, lit: litLanterns(p.quest), rank: rankOf(p.quest) };
@@ -4262,11 +4383,25 @@ export class WorldRoom extends Room<WorldState> {
 
   // The inventory goes only to its owner, not to every player.
   private sendInventory(client: Client, p: Player) {
+    this.checkLoad(client, p);
     client.send("belt", p.belt);
     this.sendGear(client, p);
     this.sendBag(client, p);
     client.send("coins", p.coins);
     this.checkQuest(p, client); // "Have 2 copper ore" steps
+  }
+
+  /** Carrying more than you can: slower, and say so when it changes (report #31). */
+  private checkLoad(client: Client, p: Player) {
+    const lv = loadLevel(this.carried(p), this.capacity(p));
+    if (lv === p.loadLevel) return;
+    const was = p.loadLevel;
+    p.loadLevel = lv;
+    p.stepMs = this.stepMsOf(p);
+    const SPEED = ["", "half speed, and you can't run", "a quarter of your speed", "an eighth of your speed"];
+    if (lv > was) this.say(client, `🏋️ You're carrying ${kg(this.carried(p))}, more than the ${kg(this.capacity(p))} you can carry. You slow to ${SPEED[lv]}. Sell, drop or eat something, or use your enchanted chest.`);
+    else if (lv === 0) this.say(client, "🎒 Your load is light enough again: you're back to full speed.");
+    else this.say(client, `🏋️ A little lighter: you're at ${SPEED[lv]} now.`);
   }
 
   /** The bag as the client sees it (shared/bag.ts), sent in one go so the lists always line up. */

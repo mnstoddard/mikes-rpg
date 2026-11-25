@@ -391,12 +391,14 @@
       #dialog-text { font-size: 14px; }
     }
     /* 📜 Quests tab: Maren's quest and the board's bounties. Tap one to track it. */
-    #quests { width: 260px; max-height: calc(100vh - 100px); overflow-y: auto; }
+    #quests { width: 290px; max-height: calc(100vh - 100px); overflow-y: auto; }
     .qt-head { font-size: 11px; color: #c9bc9c; margin: 6px 0 3px; }
-    .qt-row { display: grid; grid-template-columns: 26px 1fr; gap: 1px 6px; align-items: center; padding: 6px 7px; margin-bottom: 3px; background: rgba(0,0,0,.25); border: 1px solid transparent; border-radius: 3px; cursor: pointer; touch-action: manipulation; }
+    .qt-row { display: grid; grid-template-columns: auto 26px 1fr; gap: 1px 6px; align-items: center; padding: 6px 7px; margin-bottom: 3px; background: rgba(0,0,0,.25); border: 1px solid transparent; border-radius: 3px; cursor: pointer; touch-action: manipulation; }
     .qt-row:hover { background: rgba(255,255,255,.08); }
     .qt-row.tracked { border-color: #ffd84a; background: rgba(90, 74, 47, .95); }
-    .qt-icon { grid-row: span 3; font-size: 20px; text-align: center; }
+    .qt-icon { grid-row: span 4; font-size: 20px; text-align: center; }
+    .qt-row > .speak-btn { grid-row: span 4; align-self: center; margin-right: 0; }
+    .qt-title, .qt-sub, .qt-state, .qt-skills { grid-column: 3; }
     .qt-title { font-size: 13px; color: #fff; }
     .qt-sub { font-size: 11.5px; color: #f2e6c9; }
     .qt-state { font-size: 11px; color: #9be28a; }
@@ -405,6 +407,17 @@
     .qt-chapter:hover { background: rgba(0,0,0,.25); }
     .qt-chapter.done { opacity: .6; }
     .qt-note { font-size: 12px; color: #c9bc9c; padding: 4px 2px; }
+    .qt-fold { cursor: pointer; user-select: none; font-size: 12.5px; color: #ffe8a8; padding: 5px 2px 3px; border-top: 1px solid rgba(255,255,255,.12); margin-top: 8px; }
+    .qt-fold::before { content: "▾ "; color: #c9bc9c; }
+    .qt-fold.folded::before { content: "▸ "; }
+    .qt-fold .q-bar { margin-top: 4px; height: 5px; background: #1d170f; border: 1px solid #6b5a3e; border-radius: 3px; overflow: hidden; }
+    .qt-fold .q-bar div { height: 100%; background: #9be28a; }
+    .qt-fold-line { cursor: pointer; user-select: none; }
+    .qt-act { color: #c9bc9c; margin: 4px 2px 2px; }
+    .qt-skills { font-size: 11px; color: #9fd3ff; }
+    .qt-chapter.open { border-color: rgba(255, 216, 74, .55); }
+    .qt-chapter.locked { opacity: .75; }
+
     /* Full message history: tap the message box */
     #history { display: none; left: 50%; top: 10%; transform: translateX(-50%); width: min(460px, calc(100vw - 32px)); padding: 12px 14px; z-index: 8; }
     body.history-open #history { display: block; }

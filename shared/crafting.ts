@@ -257,9 +257,21 @@ export function beltBonus(belt: Belt, skill: string): number | null {
   return t ? toolBonus(t.item) : null;
 }
 
+/**
+ * Cooking with better fish or wood than you're used to (report #25): right at the
+ * level it needs, a meal is much harder to get right (35% of its usual start),
+ * and it eases back to normal over the next 10 Cooking levels. Level-1 meals are
+ * never affected, so beginners' stews stay easy.
+ */
+export function levelGapFactor(recipe: Recipe, skillLevel: number): number {
+  if (recipe.skill !== "cooking" || recipe.level <= 1) return 1;
+  return Math.min(1, 0.35 + 0.065 * Math.max(0, skillLevel - recipe.level));
+}
+
 /** Your chance that one try of this recipe works, with what's on your belt. */
-export function successFor(recipe: Recipe, mastery: ItemMasteryXp, belt: Belt, treeSuccess = 0): number {
-  const chance = craftSuccess(masteryIn(mastery, recipe.mastery), beltBonus(belt, recipe.skill), recipe.start, recipe.needsTool);
+export function successFor(recipe: Recipe, mastery: ItemMasteryXp, belt: Belt, treeSuccess = 0, skillLevel?: number): number {
+  const start = recipe.start * (skillLevel === undefined ? 1 : levelGapFactor(recipe, skillLevel));
+  const chance = craftSuccess(masteryIn(mastery, recipe.mastery), beltBonus(belt, recipe.skill), start, recipe.needsTool);
   // The skill tree's "Steady hands" removes that share of your failures, like a tool does.
   return Math.min(MAX_SUCCESS, 1 - (1 - chance) * (1 - treeSuccess));
 }

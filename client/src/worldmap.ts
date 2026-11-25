@@ -4,6 +4,7 @@ import { AreaDef, DOORS, MAP, MAP_NODES, OUTDOORS, areaAt, isDanger } from "../.
 import { MAP_LABELS } from "../../shared/world";
 import { TILE_COLORS } from "./mapDraw";
 import { NPCS } from "../../shared/npcs";
+import { CHAPTERS } from "../../shared/quests";
 
 const PX = 3; // pixels per tile
 let base: HTMLCanvasElement | null = null;
@@ -12,6 +13,22 @@ let here: AreaDef = OUTDOORS;
 let marks: string[] = [];
 let spots: { x: number; y: number; label: string }[] = [];
 let open = false;
+let players: { x: number; y: number; name: string }[] = [];
+
+/** Who to name on the map: everyone who gives lessons or story chapters, plus the repairer. */
+function keyPeople(): { x: number; y: number; names: string[] }[] {
+  const ids = new Set<string>([...CHAPTERS.map((c) => c.giver as string), "repairer"]);
+  const at = new Map<string, { x: number; y: number; names: string[] }>();
+  for (const n of NPCS) {
+    if (!ids.has(n.id) || n.kind !== "person") continue;
+    const o = outdoorSpot(n);
+    if (!o) continue;
+    const k = `${o.x},${o.y}`;
+    if (!at.has(k)) at.set(k, { x: o.x, y: o.y, names: [] });
+    at.get(k)!.names.push(n.name.split(" ").slice(-1)[0]); // "Shopkeeper Tam" -> "Tam"
+  }
+  return [...at.values()];
+}
 
 const panel = document.getElementById("worldmap");
 const canvas = document.getElementById("worldmap-canvas") as HTMLCanvasElement | null;
@@ -45,6 +62,20 @@ function drawBase(): HTMLCanvasElement {
     g.strokeText(l.text, l.x * PX, l.y * PX);
     g.fillText(l.text, l.x * PX, l.y * PX);
   }
+  // Key people, at their door (or where they stand outside).
+  g.font = "10px sans-serif";
+  g.textBaseline = "top";
+  for (const k of keyPeople()) {
+    g.fillStyle = "#7fe0ff";
+    g.beginPath();
+    g.arc(k.x * PX + 1, k.y * PX + 1, 2.5, 0, Math.PI * 2);
+    g.fill();
+    g.lineWidth = 3;
+    g.strokeStyle = "rgba(0,0,0,.85)";
+    const text = k.names.join(", ");
+    g.strokeText(text, k.x * PX + 1, k.y * PX + 5);
+    g.fillText(text, k.x * PX + 1, k.y * PX + 5);
+  }
   return c;
 }
 
@@ -61,7 +92,7 @@ export function outdoorSpot(p: { x: number; y: number }): { x: number; y: number
   return via ? outdoorSpot(via) : null;
 }
 
-function render() {
+function render(scroll = true) {
   if (!open || !canvas) return;
   base ??= drawBase();
   canvas.width = base.width;
@@ -92,6 +123,25 @@ function render() {
       g.textBaseline = "bottom";
     }
   }
+  // Other players: blue dots with their names.
+  g.font = "10px sans-serif";
+  g.textBaseline = "bottom";
+  for (const pl of players) {
+    const o = outdoorSpot(pl);
+    if (!o) continue;
+    g.fillStyle = "#5fb8ff";
+    g.strokeStyle = "#000";
+    g.lineWidth = 1.5;
+    g.beginPath();
+    g.arc(o.x * PX + 1, o.y * PX + 1, 4, 0, Math.PI * 2);
+    g.fill();
+    g.stroke();
+    g.lineWidth = 3;
+    g.strokeStyle = "rgba(0,0,0,.85)";
+    g.fillStyle = "#cfe9ff";
+    g.strokeText(pl.name, o.x * PX + 1, o.y * PX - 4);
+    g.fillText(pl.name, o.x * PX + 1, o.y * PX - 4);
+  }
   const at = me && outdoorSpot(me);
   if (at) {
     g.fillStyle = "#ffffff";
@@ -106,9 +156,9 @@ function render() {
     g.arc(at.x * PX + 1, at.y * PX + 1, 3, 0, Math.PI * 2);
     g.fill();
   }
-  if (caption) caption.textContent = here === OUTDOORS ? "You are the white and red dot. ❗ = someone (or something) has something for you. 📍 = a place your quest sends you." : `You're inside: ${here.name} (the dot is its door).`;
+  if (caption) caption.textContent = here === OUTDOORS ? "You are the white and red dot. Blue dots are other players. ❗ = someone (or something) has something for you. 📍 = a place your quest sends you." : `You're inside: ${here.name} (the dot is its door).`;
   // Keep you in view on small screens.
-  if (at && panel) {
+  if (at && panel && scroll) {
     const box = canvas.parentElement!;
     box.scrollLeft = at.x * PX - box.clientWidth / 2;
     box.scrollTop = at.y * PX - box.clientHeight / 2;
@@ -130,6 +180,12 @@ export function setWorldMapMarks(list: string[], places: { x: number; y: number;
 /** What the 🗺️ map marks now (for the 3D game's minimap): people with something for you, and quest spots. */
 export function worldMapMarks() {
   return { marks, spots };
+}
+
+/** Where everyone else is (the 3D game tells us every second; drawn only while the map is open). */
+export function setWorldMapPlayers(list: { x: number; y: number; name: string }[]) {
+  players = list;
+  if (open) render(false);
 }
 
 export function toggleWorldMap(show = !open) {

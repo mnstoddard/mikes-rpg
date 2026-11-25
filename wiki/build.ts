@@ -51,6 +51,7 @@ import { BOUNTY_COUNT, REROLL_FEE } from "../shared/bounties";
 import { SPELL_BOOKS, SPELL_BOOK_IDS } from "../shared/spells";
 import { MASTERY_FIRST_LEVEL_XP, MASTERY_GROWTH } from "../shared/mastery";
 import { TICK_MS } from "../shared/map";
+import { PLAYER_RADIUS } from "../shared/pathfinding";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
@@ -596,8 +597,16 @@ function mechanicsPages() {
     `A full day is ${DAY_MS / 60000} minutes of daylight and ${NIGHT_MS / 60000} minutes of night, with ${TWILIGHT_MS / 60000} minutes of dusk and dawn between. Some monsters (like the [[Giant bat]]) and some finds (like [[Moonpetal]]) only come out at night. Your [[Your lantern|lantern]] makes nights less dark.`);
   gamePage({ title: "Money", category: "Mechanics", icon: "🪙", sources: ["shared/money.ts"], summary: "Coins, from bronze up to iridium." }, () =>
     `Coins come in ${COIN_KINDS.length} kinds: ${[...COIN_KINDS].reverse().join(", ")}. Each is worth 100 of the one below it (100 bronze = 1 silver, 100 silver = 1 gold, and so on).`);
+  gamePage({ title: "Walking", category: "Mechanics", icon: "🚶", sources: ["shared/pathfinding.ts", "server/src/WorldRoom.ts"], aliases: ["Movement", "WASD"], summary: "Smooth, free movement: walk anywhere, any direction." }, () => [
+    `You can stand anywhere, not just in the middle of a tile, and walk in any direction. You walk about ${Math.round(10000 / TICK_MS) / 10} tiles a second; [[Dexterity]], swiftness potions and [[Running]] make you faster.`,
+    "- **Click** the ground to walk straight to that exact spot. The game finds a way round walls, trees and water, then cuts the corners so you head straight there instead of zig-zagging.",
+    "- **W A S D** walks the way the camera faces, at any angle (turn the camera with Q / E or by dragging, and you turn with it). Walking into a wall at an angle slides you along it, and walking at the edge of a doorway or a gap between trees eases you into it.",
+    `- People are about ${Math.round(PLAYER_RADIUS * 2 * 100) / 100} tiles wide, so you don't clip into walls and trees.`,
+    "- The tile you're standing on is what counts for talking, gathering, fighting, doors and quests. Walking onto a door takes you through it.",
+    "- Everyone else sees you glide smoothly too.",
+  ].join("\n"));
   gamePage({ title: "Running", category: "Mechanics", icon: "🏃", sources: ["shared/stats.ts"], summary: "Hold Shift or tap 🏃." }, () =>
-    `Hold Shift or tap 🏃 to run ${pct(RUN_SPEED - 1)} faster. Each tile uses 1 stamina for the moment; stop for ${RUN_REST_MS / 1000} seconds and it all comes back. Running never costs stamina for good.`);
+    `Hold Shift or tap 🏃 to run ${pct(RUN_SPEED - 1)} faster (see [[Walking]]). Each tile's length you run uses 1 stamina for the moment; stop for ${RUN_REST_MS / 1000} seconds and it all comes back. Running never costs stamina for good.`);
   gamePage({ title: "Parties", category: "Mechanics", icon: "🚩", sources: ["shared/party.ts"], summary: `Up to ${PARTY_MAX} players.` }, () =>
     `Click another player to invite them. A party holds up to ${PARTY_MAX}. Members within ${PARTY_NEAR} tiles of the leader share in kills and quest steps, and the leader trains [[Leadership]].`);
   gamePage({ title: "Bounties", category: "Mechanics", icon: "📋", sources: ["shared/bounties.ts", "shared/guild.ts"], summary: "Jobs on the bounty board that pay double." }, () => [
