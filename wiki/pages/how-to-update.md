@@ -8,7 +8,7 @@ The wiki lives in the game's repository, in the `wiki` folder. It's one web page
 
 ## 1. Facts from the game (automatic)
 
-Monsters, items, skills, spells, quests, shops, books, the version history and the numbers on the mechanics pages are read straight from the game's code (the `shared` folder). After any change to the game, rebuild the wiki and those pages match the game again. Nobody has to remember to copy numbers across.
+Maps, monsters, items, skills, spells, quests, shops, books, the version history and the numbers on the mechanics pages are read straight from the game's code (the `shared` folder). After any change to the game, rebuild the wiki and those pages match the game again. Nobody has to remember to copy numbers across.
 
 To rebuild, run this in the game's folder:
 

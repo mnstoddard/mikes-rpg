@@ -148,6 +148,15 @@ body.no-secrets .secret-only { display: none; }
 .list .row small { display: block; color: var(--muted); font-size: 13px; line-height: 1.35; }
 .hit mark { background: var(--ember-soft); color: inherit; padding: 0 1px; border-radius: 2px; }
 
+
+/* ---- maps (drawn from the game's map data) ---- */
+.map { margin: 0 0 18px; clear: both; }
+.map .mw { overflow: auto; width: fit-content; max-width: 100%; border: 1px solid var(--line); border-radius: 8px; background: #000; max-height: 80vh; }
+.map canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; cursor: zoom-in; }
+.map.zoomed canvas { width: auto; max-width: none; cursor: zoom-out; }
+.map figcaption { font-size: 13px; color: var(--muted); margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.map .tip { position: fixed; z-index: 40; pointer-events: none; background: var(--paper); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; font-size: 13px; box-shadow: 0 4px 14px rgba(0,0,0,.2); }
+
 @media (max-width: 900px) {
   .frame { grid-template-columns: minmax(0, 1fr); padding-top: 14px; }
   .side { position: fixed; z-index: 25; top: calc(env(safe-area-inset-top, 0px) + 58px); left: 0; bottom: 0; width: min(290px, 85vw); max-height: none; background: var(--paper); border-right: 1px solid var(--line); padding: 16px; padding-left: max(16px, env(safe-area-inset-left, 0px)); transform: translateX(-105%); transition: transform .2s; }
@@ -206,7 +215,7 @@ const textOf = new Map(WIKI.pages.map((p) => [p.s, (p.t + " " + p.a.join(" ") + 
 const side = document.getElementById("side");
 function drawSide(current) {
   const counts = {}; for (const p of WIKI.pages) counts[p.c] = (counts[p.c] || 0) + 1;
-  side.innerHTML = `<h3>Start</h3><a href="#main-page" class="${current === "main-page" ? "on" : ""}"><span>Main page</span></a><a href="#random"><span>Random page</span></a>` +
+  side.innerHTML = `<h3>Start</h3><a href="#main-page" class="${current === "main-page" ? "on" : ""}"><span>Main page</span></a><a href="#maps" class="${current === "maps" ? "on" : ""}"><span>🗺️ Maps</span></a><a href="#random"><span>Random page</span></a>` +
     `<h3>Categories</h3>` + WIKI.categories.map((c) => `<a href="#${catSlug(c)}" class="${current === catSlug(c) ? "on" : ""}"><span>${CAT_ICONS[c] || ""} ${esc(c)}</span><span>${counts[c]}</span></a>`).join("") +
     `<h3>This wiki</h3><a href="#how-to-update-the-wiki"><span>How to update it</span></a><a href="#names"><span>Names</span></a><a href="#version-history"><span>Game version ${esc(WIKI.version)}</span></a>`;
 }
@@ -280,6 +289,52 @@ function showSearch(q) {
   view.innerHTML = `<div class="crumb"><a href="#main-page">Main page</a></div><h1>Search: ${esc(q)}</h1><p class="lede">${list.length ? `${list.length} page${list.length > 1 ? "s" : ""} mention it.` : "No page mentions that yet."}</p><div class="content">${rows(list, q.trim().toLowerCase())}</div>`;
 }
 
+
+// ---- maps: drawn tile by tile from the game's own map ----
+const MARK_STYLE = { person: ["#ffffff", "#1b2029"], monster: ["#ff5a5a", "#3a0d0d"], door: ["#ffd84a", "#3a2a00"] };
+function drawMaps() {
+  for (const fig of view.querySelectorAll(".map[data-area]")) {
+    const m = WIKI.maps[fig.dataset.area];
+    if (!m) continue;
+    const px = Math.max(4, Math.min(24, Math.floor(1200 / m.w)));
+    const c = document.createElement("canvas");
+    c.width = m.w * px; c.height = m.h * px;
+    const g = c.getContext("2d");
+    for (let y = 0; y < m.h; y++) {
+      const row = m.rows[y];
+      for (let x = 0; x < m.w; x++) { g.fillStyle = m.palette[row.charCodeAt(x) - 48]; g.fillRect(x * px, y * px, px, px); }
+    }
+    const r = Math.max(3, px * 0.45);
+    const dots = m.marks.filter((k) => MARK_STYLE[k.kind]);
+    for (const k of dots) {
+      const [fill, ring] = MARK_STYLE[k.kind];
+      g.beginPath(); g.arc((k.x + .5) * px, (k.y + .5) * px, r, 0, Math.PI * 2);
+      g.fillStyle = fill; g.fill(); g.lineWidth = Math.max(1.5, px / 6); g.strokeStyle = ring; g.stroke();
+    }
+    g.textAlign = "center"; g.textBaseline = "middle"; g.lineJoin = "round";
+    const text = (t, x, y, size, color) => { g.font = `600 ${size}px "Source Sans 3", sans-serif`; g.lineWidth = Math.max(3, size / 4); g.strokeStyle = "rgba(0,0,0,.85)"; g.strokeText(t, x, y); g.fillStyle = color; g.fillText(t, x, y); };
+    for (const k of m.marks) if (k.kind === "label" || k.kind === "big") text(k.text, k.x * px, k.y * px, k.kind === "big" ? px * 4.2 : px * 3.2, k.kind === "big" ? "#ffe9a8" : "#ffffff");
+    if (px >= 10) for (const k of dots) if (k.kind !== "monster") text(k.text, (k.x + .5) * px, (k.y - .6) * px, Math.max(11, px * .75), k.kind === "door" ? "#ffe9a8" : "#ffffff");
+    if (m.w < 120) c.style.maxWidth = m.w * 16 + "px"; // small rooms stay small
+    const wrap = document.createElement("div"); wrap.className = "mw"; wrap.appendChild(c);
+    const cap = document.createElement("figcaption");
+    cap.innerHTML = `<span>${esc(m.name)}: ${m.w} × ${m.h} tiles</span><span>⚪ people</span><span>🔴 monsters</span><span>🟡 doors</span><span>Tap to zoom; tap a dot to open its page.</span>`;
+    fig.replaceChildren(wrap, cap);
+    const tip = document.createElement("div"); tip.className = "tip"; tip.hidden = true; fig.appendChild(tip);
+    const hit = (e) => {
+      const b = c.getBoundingClientRect(), s = b.width / c.width;
+      const tx = (e.clientX - b.left) / s / px, ty = (e.clientY - b.top) / s / px;
+      let best = null, bd = Infinity;
+      for (const k of dots) { const d = Math.hypot(k.x + .5 - tx, k.y + .5 - ty); if (d < bd) { bd = d; best = k; } }
+      const reach = Math.max(1.2, 10 / (s * px));
+      return bd <= reach ? best : null;
+    };
+    c.addEventListener("mousemove", (e) => { const k = hit(e); tip.hidden = !k; if (k) { tip.textContent = k.text; tip.style.left = e.clientX + 12 + "px"; tip.style.top = e.clientY + 12 + "px"; } c.style.cursor = k ? "pointer" : ""; });
+    c.addEventListener("mouseleave", () => { tip.hidden = true; });
+    c.addEventListener("click", (e) => { const k = hit(e); if (k && k.to && bySlug.has(k.to)) location.hash = k.to; else fig.classList.toggle("zoomed"); });
+  }
+}
+
 // ---- routing (plain #slug links) ----
 function route() {
   let h = decodeURIComponent(location.hash.slice(1)) || "main-page";
@@ -288,6 +343,7 @@ function route() {
   const cat = WIKI.categories.find((c) => catSlug(c) === h);
   if (cat) showCategory(cat); else showPage(bySlug.get(h) || bySlug.get("main-page"));
   drawSide(h);
+  drawMaps();
   document.body.classList.remove("menu-open");
   window.scrollTo(0, 0);
 }

@@ -25,8 +25,8 @@ import { ITEMS, ItemId } from "../shared/items";
 import { MONSTERS, MONSTER_IDS, SPELLS, SPELL_IDS, MonsterId, ATTACK_STAMINA, POTION_HEAL, WANDER_RADIUS, LEASH_RADIUS, AGGRO_RADIUS, MANA_REGEN_TICKS, HEALTH_REGEN_MS, ARMOR_LEVEL } from "../shared/combat";
 import { DISCIPLINES, DISCIPLINE_IDS, SkillId, xpForLevel, MAX_LEVEL, findSkill } from "../shared/disciplines";
 import { NPCS } from "../shared/npcs";
-import { AREAS, MAP_LABELS, WORLD_SPAWNS, FENCE_Y } from "../shared/world";
-import { areaAt } from "../shared/map";
+import { AREAS, MAP_LABELS, WORLD_SPAWNS, FENCE_Y, DOORS } from "../shared/world";
+import { areaAt, MAP, MAP_NODES, isDanger } from "../shared/map";
 import { SHOPS, SHOP_IDS } from "../shared/shops";
 import { CHAPTERS, Chapter } from "../shared/quests";
 import { TREES } from "../shared/skilltree";
@@ -522,6 +522,7 @@ function placePages() {
     for (const [kind, x, y] of WORLD_SPAWNS) if (areaAt(x, y)?.id === a.id) mons.set(kind, (mons.get(kind) ?? 0) + 1);
     gamePage({ title: a.name, category: "Places", icon: a.kind === "cave" ? "🕳️" : a.kind === "indoor" ? "🏠" : "🗺️", sources: ["shared/world.ts", "shared/npcs.ts"],
       infobox: [["Kind", a.kind === "outdoor" ? "Outdoors" : a.kind === "cave" ? "Cave" : "Indoors"], ["Danger", a.danger ? "Monsters attack on sight" : "Safe"], ["Size", `${a.w} × ${a.h} tiles`]] }, () => [
+      `{{map:${a.id}}}`,
       people.length ? "**People here:** " + people.map((n) => link(canon(n.name))).join(", ") + "." : "",
       stations.length ? "**Things to use:** " + stations.join(", ") + "." : "",
       mons.size ? "**Monsters:** " + [...mons].map(([m, c]) => `${link(canon(MONSTERS[m as MonsterId].name))} (${c})`).join(", ") + "." : "",
@@ -623,6 +624,72 @@ function namesPage() {
   ].join("\n\n"));
 }
 
+
+// ---------------------------------------------------------------- maps
+
+/**
+ * The maps are drawn from the game's own map (shared/world.ts), tile by tile,
+ * with the same colours as the in-game 🗺️ map (read from client/src/mapDraw.ts),
+ * so they change whenever the game's map changes.
+ */
+function tileColors(): Record<string, number> {
+  const src = readFileSync(path.join(HERE, "../client/src/mapDraw.ts"), "utf8");
+  const block = src.match(/export const TILE_COLORS[^{]*\{([\s\S]*?)\n\};/);
+  if (!block) throw new Error("Couldn't find TILE_COLORS in client/src/mapDraw.ts");
+  return Object.fromEntries([...block[1].matchAll(/(\w+):\s*0x([0-9a-f]{6})/gi)].map((m) => [m[1], parseInt(m[2], 16)]));
+}
+
+interface MapMark { x: number; y: number; kind: "person" | "monster" | "door" | "label" | "big"; text: string; to?: string }
+interface AreaMap { id: string; name: string; w: number; h: number; palette: string[]; rows: string[]; marks: MapMark[] }
+const MAPS: Record<string, AreaMap> = {};
+
+function buildMaps() {
+  const COLORS = tileColors();
+  const hex = (n: number) => "#" + n.toString(16).padStart(6, "0");
+  for (const a of AREAS) {
+    const palette: string[] = [];
+    const idx = new Map<string, number>();
+    const code = (col: string) => {
+      if (!idx.has(col)) { idx.set(col, palette.length); palette.push(col); }
+      return String.fromCharCode(48 + idx.get(col)!); // "0", "1", ... one character per tile
+    };
+    const rows: string[] = [];
+    for (let y = a.y; y < a.y + a.h; y++) {
+      let row = "";
+      for (let x = a.x; x < a.x + a.w; x++) {
+        const t = MAP[y][x];
+        const node = MAP_NODES[y][x];
+        let col = COLORS[t] ?? 0x000000;
+        const danger = isDanger(x, y);
+        if (t === "tree") col = danger ? 0x16331a : 0x2a5a22;
+        else if (t === "rock") col = node ? RESOURCES[node].color : 0xb07a4c;
+        else if (t === "grass" && danger) col = 0x23432a;
+        else if (t === "door") col = 0xffd84a;
+        else if (t === "water" && node) col = 0x3f86bd; // a special fishing spot
+        row += code(hex(col));
+      }
+      rows.push(row);
+    }
+    const marks: MapMark[] = [];
+    const inside = (x: number, y: number) => x >= a.x && y >= a.y && x < a.x + a.w && y < a.y + a.h;
+    for (const n of NPCS) if (n.kind === "person" && inside(n.x, n.y)) marks.push({ x: n.x - a.x, y: n.y - a.y, kind: "person", text: canon(n.name), to: slugify(canon(n.name)) });
+    for (const [kind, x, y] of WORLD_SPAWNS) if (inside(x, y)) marks.push({ x: x - a.x, y: y - a.y, kind: "monster", text: canon(MONSTERS[kind].name), to: slugify(canon(MONSTERS[kind].name)) });
+    for (const d of DOORS) if (inside(d.x, d.y) && d.area !== a.id) {
+      const to = AREAS.find((b) => b.id === d.area);
+      if (to) marks.push({ x: d.x - a.x, y: d.y - a.y, kind: "door", text: canon(to.name), to: slugify(canon(to.name)) });
+    }
+    if (a.kind === "outdoor") for (const l of MAP_LABELS) marks.push({ x: l.x - a.x, y: l.y - a.y, kind: l.big ? "big" : "label", text: canon(l.text) });
+    MAPS[a.id] = { id: a.id, name: canon(a.name), w: a.w, h: a.h, palette, rows, marks };
+  }
+  const outdoors = AREAS.find((a) => a.kind === "outdoor")!;
+  gamePage({ title: "Maps", category: "Places", icon: "🗺️", sources: ["shared/world.ts", "shared/npcs.ts", "client/src/mapDraw.ts"], aliases: ["Map", "World map"],
+    summary: "Every map in the game, drawn tile by tile from the game itself." }, () => [
+    "These maps are drawn from the game's own map, tile by tile, so they always match the game. Tap a map to zoom in. Tap a dot to open its page: ⚪ people, 🔴 monsters, 🟡 doors into buildings and caves. Darker green is the danger zone, where monsters attack on sight.",
+    `## ${outdoors.name} (outdoors)`, `{{map:${outdoors.id}}}`,
+    ...AREAS.filter((a) => a.kind !== "outdoor").map((a) => `## ${link(canon(a.name))}\n\n{{map:${a.id}}}`),
+  ].join("\n\n"));
+}
+
 // ---------------------------------------------------------------- markdown -> HTML
 
 const escHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -659,6 +726,10 @@ function md(src: string): string {
       out.push(`<div class="box ${m[1]}"><div class="box-label">${label}</div>${md(inner.join("\n"))}</div>`);
       continue;
     }
+    if ((m = l.match(/^\{\{map:([\w-]+)\}\}$/))) {
+      if (!MAPS[m[1]]) throw new Error(`No map called ${m[1]}`);
+      out.push(`<figure class="map" data-area="${m[1]}"></figure>`); i++; continue;
+    }
     if ((m = l.match(/^(#{2,4})\s+(.*)$/))) {
       const level = m[1].length;
       const id = slugify(m[2].replace(/\[\[([^\]|]+)\|?([^\]]*)\]\]/g, (_x, a, b) => b || a));
@@ -694,6 +765,7 @@ function md(src: string): string {
 
 // ---------------------------------------------------------------- build
 
+buildMaps();
 readWritten();
 itemPages();
 gearPages();
@@ -725,7 +797,7 @@ const out = [...pages.values()].map((p) => {
   };
 }).sort((a, b) => a.t.localeCompare(b.t));
 
-const data = { built: new Date().toISOString().slice(0, 10), version: GAME_VERSION, categories: CATEGORY_ORDER.filter((c) => out.some((p) => p.c === c)), pages: out };
+const data = { maps: MAPS, built: new Date().toISOString().slice(0, 10), version: GAME_VERSION, categories: CATEGORY_ORDER.filter((c) => out.some((p) => p.c === c)), pages: out };
 const template = readFileSync(path.join(HERE, "template.html"), "utf8");
 const html = template.replace("/*WIKI_DATA*/null", JSON.stringify(data).replace(/</g, "\\u003c"));
 writeFileSync(path.join(HERE, "emberfall-wiki.html"), html);
