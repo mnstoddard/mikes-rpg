@@ -87,6 +87,11 @@ export function isDanger(x: number, y: number): boolean {
   return a === OUTDOORS ? y >= DANGER_TOP : !!a.danger;
 }
 
+/** The training grounds: the town, from the lake to the river. New players stay inside until Old Maren's lessons are done. */
+export const TRAINING_BOUNDS = { x0: 48, y0: 30, x1: 161, y1: 100 };
+export const inTrainingBounds = (x: number, y: number) =>
+  !isOutdoors(x, y) || (x >= TRAINING_BOUNDS.x0 && x <= TRAINING_BOUNDS.x1 && y >= TRAINING_BOUNDS.y0 && y <= TRAINING_BOUNDS.y1);
+
 export function isWalkable(x: number, y: number): boolean {
   if (y < 0 || y >= MAP_HEIGHT || x < 0 || x >= MAP_WIDTH) return false;
   return !BLOCKED.has(MAP[y][x]) && !npcAt(x, y);

@@ -159,7 +159,7 @@ export interface Chapter {
   requires?: { skill: SkillId; level: number };
   /** A story chapter (shared/story.ts), not a lesson. */
   act?: "prologue" | "act1";
-  /** Story chapters: these chapters must be done first. */
+  /** These chapters must be done first (story chapters, and lessons that build on another skill). */
   after?: ChapterId[];
   /** Story chapters: and this many trainers' lessons. */
   lessons?: number;
@@ -223,13 +223,13 @@ const LESSONS: Chapter[] = [
         lines: [
           "Ha! Took you a while, didn't it? That's fishing by hand.",
           "Here, take my old rod. It's nearly worn out, but any tool on your belt makes you much faster at its job: rods for fishing, axes for chopping, pickaxes for mining.",
-          "Click the rod in your bag and press \"Put on belt\". A tool only works when it's on your belt.",
+          "Click the rod in your bag and press \"Equip\". A tool only works when it's on your belt.",
         ],
         give: [WORN_ROD],
       },
       {
-        task: "Put the rod on your belt (click it in your bag)", goal: { kind: "equip", tools: ["rod_"], names: "rod" },
-        hint: "Click the rod in your bag, then press \"Put on belt\". It'll show up in the tool belt above your bag.",
+        task: "Equip the rod (click it in your bag, then Equip)", goal: { kind: "equip", tools: ["rod_"], names: "rod" },
+        hint: "Click the rod in your bag, then press \"Equip\". It'll show up in the tool belt above your bag.",
         ensure: [WORN_ROD], protect: ["rod_"],
       },
       {
@@ -283,17 +283,17 @@ const LESSONS: Chapter[] = [
         lines: [
           "Burned it to a crisp, eh? Don't feel bad: everyone burns their first stew. When you fail, the fish and the log are gone, but you still learn a little.",
           "Here's the secret. Some tools make you faster, others make you succeed more often. Rods, axes and pickaxes are about speed. A pot, a hammer and tongs are about success.",
-          "Cooking without a pot halves your chance. Take my old bronze pot and put it on your belt, just like the rod. It's seen better days, but it'll do. Here's another log.",
+          "Cooking without a pot halves your chance. Take my old bronze pot and equip it, just like the rod. It's seen better days, but it'll do. Here's another log.",
         ],
         give: [POT, LOG],
       },
       {
-        task: "Put the pot on your belt (click it in your bag)", goal: { kind: "equip", tools: ["pot_"], names: "pot" },
-        hint: "Click the pot in your bag, then press \"Put on belt\".",
+        task: "Equip the pot (click it in your bag, then Equip)", goal: { kind: "equip", tools: ["pot_"], names: "pot" },
+        hint: "Click the pot in your bag, then press \"Equip\".",
         ensure: [POT, LOG, MINNOW], protect: ["pot_", "minnow", "pine_logs"],
       },
       {
-        task: "Cook a stew with the pot on your belt", goal: { kind: "craft", skill: "cooking", prefix: "meal_stew_", count: 1 },
+        task: "Cook a stew with the pot equipped", goal: { kind: "craft", skill: "cooking", prefix: "meal_stew_", count: 1 },
         hint: "Cook a stew at the stove with the pot on your belt. I'll keep an eye on it this time.",
         ensure: [POT, LOG, MINNOW], guaranteed: true, protect: ["pot_", "minnow", "pine_logs"], needsTool: "pot",
       },
@@ -322,14 +322,14 @@ const LESSONS: Chapter[] = [
         lines: [
           "You've got the hang of living off the land: fish, cook, eat, and sell what you don't need.",
           "Here's your reward: an oak fishing rod and a brand new bronze pot. Faster fishing, and they'll last you a good long while. And some coins and a couple of stews for the road.",
-          "Put them both on your belt. My old pot goes back in your bag when you do.",
+          "Equip them both. My old pot goes back in your bag when you do.",
         ],
         give: [{ item: "rod_oak" }, { item: "pot_bronze" }, { item: SHOP_STEW, count: 2 }],
         coins: 50,
       },
       {
-        task: "Put the oak rod and bronze pot on your belt", goal: { kind: "equip", tools: ["rod_oak", "pot_bronze"], names: "oak rod and bronze pot" },
-        hint: "Click the oak fishing rod in your bag and press \"Put on belt\", then the same for the bronze pot.",
+        task: "Equip the oak rod and the bronze pot", goal: { kind: "equip", tools: ["rod_oak", "pot_bronze"], names: "oak rod and bronze pot" },
+        hint: "Click the oak fishing rod in your bag and press \"Equip\", then the same for the bronze pot.",
         protect: ["rod_", "pot_bronze"],
       },
       {
@@ -348,8 +348,9 @@ const LESSONS: Chapter[] = [
       },
       {
         task: "Reach Cooking level 3 (cook stews)", goal: { kind: "skillLevel", skill: "cooking", level: 3 },
-        hint: "Cook stews at the stove with your pot on your belt. More ingredients in the pot give more XP. If you run low on stamina, eat one!",
-        needsTool: "pot", protect: ["pot_bronze"],
+        hint: "Cook stews at the stove with your pot on your belt. More ingredients in the pot give more XP. If you run low on stamina, eat one! Out of firewood or fish? Come and see me and I'll give you some.",
+        // You can't chop trees yet, so firewood can't run out: Maren hands you more (and it can't be sold).
+        ensure: [{ item: "pine_logs", count: 3 }, { item: "minnow", count: 2 }], needsTool: "pot", protect: ["pot_bronze", "pine_logs"],
       },
       {
         task: `Go back to ${MAREN}`, goal: { kind: "talk" },
@@ -415,13 +416,13 @@ const LESSONS: Chapter[] = [
         task: `Go back to ${HOLT}`, goal: { kind: "talk" },
         lines: [
           "Sore hands? Good. Now you know why folks use tools.",
-          "Here's my old bronze axe. Put it on your belt and chop 10 logs. Chopping costs 10 stamina a log, so keep some food handy. Logs are heavy too (2 kg each): the ⚖️ bar under your bag shows how much more you can carry.",
+          "Here's my old bronze axe. Equip it and chop 10 logs. Chopping costs 10 stamina a log, so keep some food handy. Logs are heavy too (2 kg each): the ⚖️ bar under your bag shows how much more you can carry.",
         ],
         give: [AXE],
       },
       {
-        task: "Put the bronze axe on your belt", goal: { kind: "equip", tools: ["axe_"], names: "axe" },
-        hint: "Click the axe in your bag and press \"Put on belt\".",
+        task: "Equip the bronze axe", goal: { kind: "equip", tools: ["axe_"], names: "axe" },
+        hint: "Click the axe in your bag and press \"Equip\".",
         ensure: [AXE], protect: ["axe_"],
       },
       {
@@ -453,13 +454,13 @@ const LESSONS: Chapter[] = [
         task: `Talk to ${GRETA} on Trainer Row`, goal: { kind: "talk" }, unlocks: ["mining"],
         lines: [
           "You want to learn Mining? Good. It's hard work, but rocks don't run away. Mining is part of Endurance.",
-          "The quarry is up the north road, past the Emberhall: take the road on the Emberhall's west side. Here's a worn bronze pickaxe. Put it on your belt, then mine 2 copper ore from the orange-flecked rocks. Eat when you get tired.",
+          "The quarry is up the north road, past the Emberhall: take the road on the Emberhall's west side. Here's a worn bronze pickaxe. Equip it, then mine 2 copper ore from the orange-flecked rocks. Eat when you get tired.",
         ],
         give: [WORN_PICK],
       },
       {
-        task: "Put the pickaxe on your belt", goal: { kind: "equip", tools: ["pickaxe_"], names: "pickaxe" },
-        hint: "Click the pickaxe in your bag and press \"Put on belt\".",
+        task: "Equip the pickaxe", goal: { kind: "equip", tools: ["pickaxe_"], names: "pickaxe" },
+        hint: "Click the pickaxe in your bag and press \"Equip\".",
         ensure: [WORN_PICK], protect: ["pickaxe_"],
       },
       {
@@ -494,7 +495,7 @@ const LESSONS: Chapter[] = [
 
   // ---------------- Smith Brann: Hammer and fire ----------------
   {
-    id: "brann", title: "Hammer and fire", giver: "brann", name: BRANN, where: "in the smithy on Trainer Row",
+    id: "brann", title: "Hammer and fire", giver: "brann", name: BRANN, where: "in the smithy on Trainer Row", after: ["greta"],
     steps: [
       {
         task: `Talk to ${BRANN} at the smithy`, goal: { kind: "talk" }, unlocks: ["smithing", "smelting"],
@@ -511,8 +512,8 @@ const LESSONS: Chapter[] = [
         ensure: [BAR, LOG], guaranteed: true, protect: ["bronze_bar", "pine_logs"],
       },
       {
-        task: "Put the hammer on your belt", goal: { kind: "equip", tools: ["hammer_"], names: "hammer" },
-        hint: "Click the hammer in your bag and press \"Put on belt\".",
+        task: "Equip the hammer", goal: { kind: "equip", tools: ["hammer_"], names: "hammer" },
+        hint: "Click the hammer in your bag and press \"Equip\".",
         protect: ["hammer_"],
       },
       {
@@ -536,6 +537,7 @@ const LESSONS: Chapter[] = [
       {
         task: `Show ${BRANN} your platelegs`, goal: { kind: "talk" },
         need: { prefix: "platelegs_bronze", line: "Where are your platelegs? Make them at the anvil from 2 bronze bars." },
+        protect: ["platelegs_bronze"],
         lines: [
           "Fine work! Weapons and armor are made just like tools, and they wear out like tools too, so keep a spare.",
           "Take these bronze tongs and a bronze hammer with a good oak handle. With those on your belt, you'll fail much less at the furnace and the anvil.",
@@ -548,7 +550,7 @@ const LESSONS: Chapter[] = [
 
   // ---------------- Woodworker Rook: Handy work ----------------
   {
-    id: "rook", title: "Handy work", giver: "rook", name: ROOK, where: "in the workshop just west of the square",
+    id: "rook", title: "Handy work", giver: "rook", name: ROOK, where: "in the workshop just west of the square", after: ["holt"],
     steps: [
       {
         task: `Talk to ${ROOK} at the workshop`, goal: { kind: "talk" }, unlocks: ["handicraft"],
@@ -585,13 +587,13 @@ const LESSONS: Chapter[] = [
         lines: [
           "So you want to fight? I'm Kael. South of here, past the gate, is the Dark Forest. Wolves, goblins, giant spiders and worse, and they attack anyone who wanders in.",
           "See the ❤ bar at the top left? That's your health. Fighting skills are Strength, and Strength raises your max health. If it runs out, you'll wake up at the Heart Shrine in the Emberhall, a bit shaken but with all your things.",
-          "Let's start small. With nothing in your hand you fight with your fists: it works, but only just. So here's a bronze dagger. Weapons and armor go in your gear strip, under the tool belt. Click the dagger in your bag and press \"Hold\".",
+          "Let's start small. With nothing in your hand you fight with your fists: it works, but only just. So here's a bronze dagger. Weapons and armor go in your gear strip, under the tool belt. Click the dagger in your bag and press \"Equip\".",
         ],
         give: [DAGGER],
       },
       {
-        task: "Hold the dagger (click it in your bag, then Hold)", goal: { kind: "gear", items: ["dagger_"], names: "dagger" },
-        hint: "Click the dagger in your bag and press \"Hold\". It goes in the Weapon slot of your gear strip.",
+        task: "Equip the dagger (click it in your bag, then Equip)", goal: { kind: "gear", items: ["dagger_"], names: "dagger" },
+        hint: "Click the dagger in your bag and press \"Equip\". It goes in the Weapon slot of your gear strip.",
         ensure: [DAGGER], protect: ["dagger_"],
       },
       {
@@ -608,8 +610,8 @@ const LESSONS: Chapter[] = [
         give: [{ item: "helmet_bronze" }, { item: "shield_bronze" }],
       },
       {
-        task: "Wear the helmet and the shield", goal: { kind: "gear", items: ["helmet_", "shield_"], names: "helmet and shield" },
-        hint: "Click the helmet in your bag and press \"Wear\", then the same for the shield.",
+        task: "Equip the helmet and the shield", goal: { kind: "gear", items: ["helmet_", "shield_"], names: "helmet and shield" },
+        hint: "Click the helmet in your bag and press \"Equip\", then the same for the shield.",
         ensure: [{ item: "helmet_bronze" }, { item: "shield_bronze" }], protect: ["helmet_", "shield_"],
       },
       {
@@ -639,8 +641,8 @@ const LESSONS: Chapter[] = [
         give: [SLING],
       },
       {
-        task: "Hold the sling", goal: { kind: "gear", items: ["sling_"], names: "sling" },
-        hint: "Click the sling in your bag and press \"Hold\".",
+        task: "Equip the sling", goal: { kind: "gear", items: ["sling_"], names: "sling" },
+        hint: "Click the sling in your bag and press \"Equip\".",
         ensure: [SLING], protect: ["sling_"],
       },
       {
@@ -685,13 +687,13 @@ const LESSONS: Chapter[] = [
         lines: [
           "Oh! Mind the drying herbs. I'm Wren. Everyone else round here chops and mines and fishes, but the best things grow under your feet.",
           "See the little patches of turned earth that glint in the grass? Those are dig patches. Dig one with a shovel and you'll turn up roots, worms and mushrooms, and herbs once you know what to look for. That's Foraging, part of Endurance.",
-          "Here's a bronze shovel. Put it on your belt like any other tool.",
+          "Here's a bronze shovel. Equip it like any other tool.",
         ],
         give: [SHOVEL],
       },
       {
-        task: "Put the shovel on your belt (click it in your bag)", goal: { kind: "equip", tools: ["shovel_"], names: "shovel" },
-        hint: "Click the shovel in your bag, then press \"Put on belt\".",
+        task: "Equip the shovel (click it in your bag, then Equip)", goal: { kind: "equip", tools: ["shovel_"], names: "shovel" },
+        hint: "Click the shovel in your bag, then press \"Equip\".",
         ensure: [SHOVEL], protect: ["shovel_"],
       },
       {
@@ -713,7 +715,7 @@ const LESSONS: Chapter[] = [
 
   // ---------------- Archmage Rowan: Sparks and spells ----------------
   {
-    id: "ysolde", title: "Sparks and spells", giver: "archmage", name: YSOLDE, where: "at the Mages' Guild, south-west of town",
+    id: "ysolde", title: "Sparks and spells", giver: "archmage", name: YSOLDE, where: "at the Mages' Guild, south-west of town", after: ["kael"],
     steps: [
       {
         task: `Talk to ${YSOLDE} at the Mages' Guild`, goal: { kind: "talk" }, unlocks: ["magic"],
@@ -725,8 +727,8 @@ const LESSONS: Chapter[] = [
         give: [STAFF],
       },
       {
-        task: "Hold the staff", goal: { kind: "gear", items: ["staff_"], names: "staff" },
-        hint: "Click the staff in your bag and press \"Hold\".",
+        task: "Equip the staff", goal: { kind: "gear", items: ["staff_"], names: "staff" },
+        hint: "Click the staff in your bag and press \"Equip\".",
         ensure: [STAFF], protect: ["staff_"],
       },
       {
@@ -770,7 +772,7 @@ const LESSONS: Chapter[] = [
 
   // ---------------- Alchemist Moss: A drop of something ----------------
   {
-    id: "moss", title: "A drop of something", giver: "moss", name: MOSS, where: "at the Mages' Guild, south-west of town",
+    id: "moss", title: "A drop of something", giver: "moss", name: MOSS, where: "at the Mages' Guild, south-west of town", after: ["wren"],
     steps: [
       {
         task: `Talk to ${MOSS} at the Mages' Guild`, goal: { kind: "talk" }, unlocks: ["alchemy"],
@@ -806,7 +808,7 @@ const LESSONS: Chapter[] = [
 
   // ---------------- Captain Bryn: Odd jobs ----------------
   {
-    id: "bryn", title: "Odd jobs", giver: "bryn", name: BRYN, where: "by the bounty board in the square",
+    id: "bryn", title: "Odd jobs", giver: "bryn", name: BRYN, where: "by the bounty board in the square", after: ["tam"],
     steps: [
       {
         task: `Talk to ${BRYN} by the bounty board`, goal: { kind: "talk" }, opensBoard: true, unlocks: ["renown"],
@@ -997,12 +999,18 @@ export function chapterOpen(q: QuestProgress, id: ChapterId): boolean {
   const c = chapterById(id);
   if (c.act) return (c.after ?? []).every((a) => chapterDone(q, a)) && lessonsDone(q) >= (c.lessons ?? 0);
   if (id === "maren") return !!q.ch.maren || chapterDone(q, "sweeper");
-  return marenDone(q);
+  // Lessons come in a sensible order: one skill feeds the next (mine ore before you smith it).
+  return !!q.ch[id] || (marenDone(q) && (c.after ?? []).every((a) => chapterDone(q, a)));
 }
 /** Why a chapter isn't open yet: "Opens after The Oath of the Flame". */
 export function opensAfter(q: QuestProgress, id: ChapterId): string {
   const c = chapterById(id);
-  if (!c.act) return id === "maren" ? "Opens after The Old Sweeper" : `Opens after ${GUIDE_NAME}'s lessons`;
+  if (!c.act) {
+    if (id === "maren") return "Opens after The Old Sweeper";
+    if (!marenDone(q)) return `Opens after ${GUIDE_NAME}'s lessons`;
+    const first = (c.after ?? []).filter((a) => !chapterDone(q, a)).map((a) => `${chapterById(a).name}'s lesson`);
+    return first.length ? `Opens after ${first.join(" and ")}` : "";
+  }
   const missing = (c.after ?? []).filter((a) => !chapterDone(q, a)).map((a) => chapterById(a).title);
   const need = (c.lessons ?? 0) - lessonsDone(q);
   if (need > 0) missing.push(`${need} more trainer lesson${need === 1 ? "" : "s"}`);
@@ -1079,6 +1087,8 @@ export interface ChapterView {
   /** Step number and how many steps. */
   step: number;
   of: number;
+  /** Skills this chapter teaches (for the 🎓 Training list). */
+  skills?: SkillId[];
 }
 
 /** What the client's tracker shows. */
@@ -1144,6 +1154,7 @@ export function chapterViews(q: QuestProgress, levelOf?: LevelOf): ChapterView[]
       needs: gated && c.requires ? `${findSkill(c.requires.skill).def.name} ${c.requires.level}` : undefined,
       task: prog && !done ? c.steps[prog.step]?.task : undefined,
       step: Math.min(prog?.step ?? 0, c.steps.length), of: c.steps.length,
+      skills: [...new Set(c.steps.flatMap((s) => s.unlocks ?? []))],
     };
   });
 }

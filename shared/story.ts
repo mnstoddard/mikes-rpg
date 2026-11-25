@@ -94,7 +94,7 @@ export const PROLOGUE_START: Chapter[] = [
           "Easy, easy. Take my hand. There you are.",
           "You've just woken on the steps of the Heart Shrine. Light poured out of it, and there you were. That's how all of you come to us.",
           "Do you remember your name? Anything at all? No? Don't be frightened. None of you ever do.",
-          "Here, put this robe on. Click it in your bag and press Wear. Then come and meet Keeper Aldric. He'll want to welcome you himself.",
+          "Here, put this robe on. Click it in your bag and press Equip. Then come and meet Keeper Aldric. He'll want to welcome you himself.",
         ],
         give: [{ item: "platebody_cloth" }],
       },
@@ -116,32 +116,20 @@ export const PROLOGUE_START: Chapter[] = [
         task: `Talk to ${ALDRIC}`, goal: { kind: "talk" },
         lines: [
           "Let me show you our home. The Emberhall is the Emberguard's temple, built round the Heart Shrine: the brightest shrine in all Embervale.",
-          "Go and meet my brothers and sisters. Brother Oren keeps the Hall of Champions, through the east arch. Sister Lisette keeps the library, Brother Tomas the stores, and Sister Wynne the beds.",
-          "They'll each have a word for you. Come back to me when you've met all four.",
+          "Brother Oren will show you round first. He keeps the Hall of Champions, through the east arch, and he's waiting for you now.",
+          "Then meet the rest of my brothers and sisters: Sister Lisette keeps the library, Brother Tomas the stores, and Sister Wynne the beds. Come back to me when you've met them all.",
         ],
       },
       {
-        task: "Meet four Emberguard: Oren, Lisette, Tomas and Wynne", goal: { kind: "visit", npcs: ["oren", "lisette", "tomas", "wynne"], names: "Emberguard" },
-        hint: "Brother Oren is in the Hall of Champions (east), Sister Lisette in the library (south-east), Brother Tomas in the stores (west) and Sister Wynne in the dormitory (south-west).",
-        visitLines: {
-          oren: ["Welcome, welcome! I'm Brother Oren. I keep the Hall of Champions: the statues of the Radiants, the greatest heroes the shrines ever raised. Every one of them woke where you woke.",
-            "Go and meet the others first. Then come back, and I'll walk you round properly. Every new Emberborn ought to know whose footsteps they're following."],
-          lisette: ["Welcome to the library! Every Emberborn's deeds are written down here, so the light remembers them even if you don't.",
-            "The oldest books are older than the town. The very oldest are in the ledger room, and only the Keepers read those."],
-          tomas: ["The stores, yes, and that gold-locked door is the ledger room. Keepers only, I'm afraid. Just old accounts. Very dull.",
-            "Now, if you ever need anything, you only have to ask. The Emberhall gives freely."],
-          wynne: ["Welcome to the dormitory. You'll always have a bed here. The doors never close to an Emberborn.",
-            "Let me tell you what happens when you fall out there, so it doesn't frighten you. When your health runs out, the shrine's light gathers you up and makes you again, on the shrine's steps.",
-            "You'll wake up weak and dizzy, and we'll bring you in here and nurse you back onto your feet. Nobody is left alone on the cold stone.",
-            "But it isn't free. Each time the light remakes you, it keeps a little piece back. Once you've taken the Oath, every fall leaves a Tithe mark, and a share of everything you learn goes to the shrine until it's paid. So try not to fall too often, hm?"],
-        },
-      },
-      {
         // Brother Oren's tour of the Hall of Champions: he tells you about each Radiant, and who the Emberguard are.
-        task: "Take Brother Oren's tour: the 4 Radiants and the empty plinth", goal: { kind: "visit", npcs: ["radiant_1", "radiant_2", "radiant_3", "radiant_4", "plinth"], names: "stops on Oren's tour" },
-        hint: "Brother Oren is waiting in the Hall of Champions, through the east arch. Click each statue with a ❗, and the empty plinth at the far end, and he'll tell you about it. Start with the two nearest him.",
+        task: "Take Brother Oren's tour of the Hall of Champions (east): Oren, the 4 Radiants and the empty plinth", goal: { kind: "visit", npcs: ["oren", "radiant_1", "radiant_2", "radiant_3", "radiant_4", "plinth"], names: "stops on Oren's tour" },
+        hint: "Brother Oren is waiting in the Hall of Champions, through the east arch. Talk to him, then click each statue with a ❗, and the empty plinth at the far end, and he'll tell you about it.",
         speaker: "Brother Oren",
         visitLines: {
+          oren: [
+            "Welcome, welcome! I'm Brother Oren. I keep the Hall of Champions: the statues of the Radiants, the greatest heroes the shrines ever raised. Every one of them woke where you woke.",
+            "Come, I'll walk you round right now. Every new Emberborn ought to know whose footsteps they're following. Click each statue with a ❗ and I'll tell you about them.",
+          ],
           radiant_1: [
             "Let's start at the beginning. Five hundred years ago came the Emberfall: the land's fire burst up out of the earth in anger, and embers rained down for a whole year. No one was to blame. That's why we count the years After the Fall.",
             "Then the lords fought over the glowing shards it left, and the Sundering War nearly ended Embervale. The Old Kingdom fell, and there was almost no one left to fight.",
@@ -164,8 +152,22 @@ export const PROLOGUE_START: Chapter[] = [
           ],
           plinth: [
             "(Brother Oren hurries you past the empty plinth. Someone has scratched the name off the stone, very carefully, letter by letter. You can just make out the first letter. It might be an M.)",
-            "That? An old mistake. A name that didn't deserve to be kept. Don't trouble yourself with it. Come on, Keeper Aldric will be waiting.",
+            "That? An old mistake. A name that didn't deserve to be kept. Don't trouble yourself with it. Now go and meet the others: Sister Lisette in the library, Brother Tomas in the stores and Sister Wynne in the dormitory.",
           ],
+        },
+      },
+      {
+        task: "Meet three more Emberguard: Lisette, Tomas and Wynne", goal: { kind: "visit", npcs: ["lisette", "tomas", "wynne"], names: "Emberguard" },
+        hint: "Sister Lisette is in the library (south-east), Brother Tomas in the stores (west) and Sister Wynne in the dormitory (south-west).",
+        visitLines: {
+          lisette: ["Welcome to the library! Every Emberborn's deeds are written down here, so the light remembers them even if you don't.",
+            "The oldest books are older than the town. The very oldest are in the ledger room, and only the Keepers read those."],
+          tomas: ["The stores, yes, and that gold-locked door is the ledger room. Keepers only, I'm afraid. Just old accounts. Very dull.",
+            "Now, if you ever need anything, you only have to ask. The Emberhall gives freely."],
+          wynne: ["Welcome to the dormitory. You'll always have a bed here. The doors never close to an Emberborn.",
+            "Let me tell you what happens when you fall out there, so it doesn't frighten you. When your health runs out, the shrine's light gathers you up and makes you again, on the shrine's steps.",
+            "You'll wake up weak and dizzy, and we'll bring you in here and nurse you back onto your feet. Nobody is left alone on the cold stone.",
+            "But it isn't free. Each time the light remakes you, it keeps a little piece back. Once you've taken the Oath, every fall leaves a Tithe mark, and a share of everything you learn goes to the shrine until it's paid. So try not to fall too often, hm?"],
         },
       },
       {

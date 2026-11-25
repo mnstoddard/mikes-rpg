@@ -13,6 +13,26 @@ export interface GameUpdate { version: string; date: string; title: string; chan
 
 export const UPDATES: GameUpdate[] = [
   {
+    version: "0.12",
+    date: "2026-11-25",
+    title: "Training, the new quest menu and fixes",
+    changes: [
+      { text: "Training: new players stay in town until Old Maren's lessons are done. Try to walk out past the lake, the river or the edges of town and you're turned back with a note saying what to do next." },
+      { text: "The 📜 Quests menu is new. At the top: what you're on now, then everything you can start right now (who to see, and where). Then 🎓 Training, a master quest with every skill's lesson, the skills each one teaches, and a bar for how many you've done. Then the story, side quests and bounties. Tap a heading to fold it away; finished story chapters fold into one line." },
+      { text: "Skill lessons now come in a sensible order: Miner Greta before Smith Brann, Forester Holt before Woodworker Rook, Herbalist Wren before Alchemist Moss, Huntmaster Kael before Archmage Rowan, and Shopkeeper Tam before Captain Bryn. Talk to a trainer too early and they tell you who to see first. A lesson you've already started carries on as normal." },
+      { text: "Brother Oren's tour now comes first in The Hall of Light: Keeper Aldric sends you straight to him, then you meet Lisette, Tomas and Wynne.", reports: [26] },
+      { text: "Cooking has levels that matter: harder meals and better firewood (oak, birch, maple...) need a higher Cooking level, and meals well above your level burn more often. The stove tells you the level you need.", reports: [25] },
+      { text: "Carrying too much now slows you down instead of stopping you: over your limit you walk at half speed, then a quarter, then an eighth (the 🐢 by your weight shows it). Past four times your limit you can't pick up any more, and you can't run while overloaded.", reports: [31] },
+      { text: "Little paths now lead from house doors out to the nearest road.", reports: [28] },
+      { text: "Other players show up as blue dots with their names on the minimap and the big map, and the big map names the key people (quest givers and the repairer) by their doors.", reports: [29] },
+      { text: "The guide arrow and map marks now point at the next thing for every quest step: the nearest fishing spot, tree or rock you have the level for, the right stove, furnace or anvil, the shop, the board, or the nearest monster to fight.", reports: [30] },
+      { text: "Every early quest was checked for ways to get stuck. Old Maren now hands you firewood and minnows if you've run out for her cooking lesson, Smith Brann won't let you sell or lose the platelegs he wants to see, and items you've equipped now count when a quest asks for them.", reports: [32] },
+      { text: "Buttons and quest lines say Equip and Unequip everywhere now (no more Wear, Hold or Put on belt).", reports: [22] },
+      { text: "Walking through a door shows a short loading sign so the new room doesn't pop in.", reports: [27] },
+      { text: "Chopped trees fall and sink into the ground instead of shrinking, and the stump shows its rings. Catching a fish has a proper two-handed heave, and the rod bends toward the bobber.", reports: [23, 24] },
+    ],
+  },
+  {
     version: "0.11",
     date: "2026-11-25",
     title: "Smooth movement",
