@@ -6,6 +6,15 @@ in `shared/version.ts` (the game reads it from there), so update both together.
 Each update adds 0.1 to the number. Version 1.0 is saved for the finished game on Steam
 (see docs/VERSION-1.0-PLAN.md).
 
+## 0.9 · 25 November 2026 · Sound effects
+
+- Sound effects! Chopping, mining, smithing, smelting, cooking and fighting each have their own sounds: a swoosh as you swing, a thunk when the tool lands, and a little reward sound when something goes into your bag.
+- Cooking makes stirring and chopping sounds, picked at random from three so it never sounds like a loop.
+- Footsteps change with the ground: grass, dirt paths, wooden floors and bridges, stone, and carpet.
+- Level ups play a 16-bit treasure fanfare (once, even when a skill and its mastery go up together), and finishing a quest plays a victory tune.
+- Hitting a monster, a monster getting hurt, a monster going down, and a monster hitting you all have sounds.
+- Settings has a new 🔔 Sound effects switch and a volume slider. The game remembers both.
+
 ## 0.8 · 25 November 2026 · Soul stone is now called emberstone
 
 - Soul stone has a new name: emberstone. The rocks in the crystal cave, the raw stones in your bag, and everything people and books say about it all use the new name. Stones you already have keep working; only the name changed. Soul gems keep their name.

@@ -55,6 +55,7 @@ import { Terrain, tileCenter } from "./terrain";
 import { MonsterView, Person, label, makeStation, npcRecipe, playerRecipe, type StationView } from "./actors";
 import { openCreator } from "./creator";
 import { lookToRecipe } from "./look";
+import * as sfx from "./sfx";
 
 const MIN_DIST = 7;
 const MAX_DIST = 42;
@@ -101,6 +102,10 @@ export class World3D {
   private skillXpSeen = false;
   private skillXp: SkillXp = emptySkills();
   private hasLantern = false;
+  /** For sound effects: what you're doing, how full your bag is, and the monster you last hit. */
+  private myAction = "idle";
+  private bagTotal = -1;
+  private lastTarget = { id: "", at: 0 };
   private clockOffset = 0;
   private wasNight: boolean | null = null;
   private here: AreaDef = OUTDOORS;
@@ -203,6 +208,7 @@ export class World3D {
 
   async start() {
     this.hud.textContent = "Log in to play";
+    sfx.setupSoundSettings();
     // ?at=x,y shows that spot of the world behind the login box (for looking around and testing).
     const at = new URLSearchParams(location.search).get("at")?.split(",").map(Number);
     if (at && at.length === 2 && at.every(Number.isFinite)) this.lookAt(at[0], at[1]);
@@ -234,6 +240,7 @@ export class World3D {
     this.updateWalk();
     this.placeCamera(dt);
     const mine = this.room?.state.players?.get(this.room.sessionId);
+    sfx.update(dt, this.myAction);
     this.minimap.update(mine ? { x: mine.x, y: mine.y } : null, this.focus.x / TILE, this.focus.z / TILE, this.here, this.yaw);
     const night = this.nightLevel();
     this.terrain.update(dt, this.time, night, 0.6);
@@ -539,7 +546,7 @@ export class World3D {
       }
     } catch { /* ignore */ }
     room.onMessage("disciplines", (disciplines: DisciplineView) => { this.lastDisciplines = disciplines; renderDisciplines(disciplines); });
-    room.onMessage("levelup", (msg: { discipline: DisciplineId; level: number }) => this.celebrateLevelUp(msg.discipline));
+    room.onMessage("levelup", (msg: { discipline: DisciplineId; level: number }) => { sfx.onLevelUp(); this.celebrateLevelUp(msg.discipline); });
     room.onMessage("skillxp", (skillXp: SkillXp) => {
       if (this.skillXpSeen) {
         for (const id of Object.keys(skillXp) as SkillId[]) {
@@ -552,8 +559,8 @@ export class World3D {
       renderSkillXp(skillXp);
     });
     room.onMessage("mastery", (mastery: ItemMasteryXp) => renderMastery(mastery));
-    room.onMessage("skillup", (msg: { skill: SkillId; level: number }) => this.celebrateSkill(msg.skill, msg.level));
-    room.onMessage("masteryup", (msg: { resource: MasteryId; level: number }) => this.celebrateMastery(msg.resource, msg.level));
+    room.onMessage("skillup", (msg: { skill: SkillId; level: number }) => { sfx.onLevelUp(); this.celebrateSkill(msg.skill, msg.level); });
+    room.onMessage("masteryup", (msg: { resource: MasteryId; level: number }) => { sfx.onLevelUp(); this.celebrateMastery(msg.resource, msg.level); });
     setInventoryActions({
       drop: (slot) => room.send("drop", { slot }),
       sell: (slot, count) => room.send("sell", { slot, count }),
@@ -621,7 +628,7 @@ export class World3D {
       this.wasNight = null;
       this.updateDaylight();
     });
-    room.onMessage("questDone", () => this.floatText("Quest complete!", "#ffd84a", true));
+    room.onMessage("questDone", () => { sfx.onQuestDone(); this.floatText("Quest complete!", "#ffd84a", true); });
     room.onMessage("vitals", (v: { hp: number; maxHp: number; mana: number; maxMana: number }) => renderVitals(v.hp, v.maxHp, v.mana, v.maxMana));
     room.onMessage("gear", (msg: { gear: Gear; spell: BoltSpellId }) => renderGear(msg.gear, msg.spell));
     room.onMessage("spellbook", (b: Parameters<typeof setSpellbook>[0]) => setSpellbook(b));
@@ -635,10 +642,15 @@ export class World3D {
     });
     room.onMessage("combatmastery", (m: CombatMasteryXp) => renderCombatMastery(m));
     room.onMessage("combatmasteryup", (msg: { id: CombatMasteryId; level: number }) => {
+      sfx.onLevelUp();
       setTimeout(() => this.floatText(`${combatMasteryName(msg.id)} Mastery ${msg.level}!`, "#7fd0ff"), 700);
       flashCombatMastery(msg.id);
     });
-    room.onMessage("hit", (h: { on: "monster" | "player"; id: string; damage: number; miss: boolean; spell: SpellId | null; from: string }) => this.showHit(h));
+    room.onMessage("hit", (h: { on: "monster" | "player"; id: string; damage: number; miss: boolean; spell: SpellId | null; from: string }) => {
+      if (h.on === "monster" && h.from === room.sessionId) { sfx.onFightHit(h.miss); this.lastTarget = { id: h.id, at: performance.now() }; }
+      if (h.on === "player" && h.id === room.sessionId && !h.miss) sfx.onPlayerHurt();
+      this.showHit(h);
+    });
     room.onMessage("died", () => this.showDeath());
     room.onMessage("dialog", (msg: { name: string; lines: string[] }) => { this.marker.visible = false; openDialog(msg.name, msg.lines); });
     room.onMessage("stamina", (msg: { stamina: number; max: number; winded?: number }) => renderStamina(msg.stamina, msg.max, msg.winded ?? 0));
@@ -658,6 +670,9 @@ export class World3D {
     room.onMessage("guildRank", (msg: { rank: string }) => this.floatText(`Guild ${msg.rank}!`, "#c9a2ff", true));
     room.onMessage("bag", (bag: Bag) => {
       renderBag(bag);
+      const total = bag.inventory.reduce((n, item, i) => n + (item ? bag.counts[i] || 1 : 0), 0);
+      if (this.bagTotal >= 0 && total > this.bagTotal) sfx.onGot(this.myAction);
+      this.bagTotal = total;
       const lantern = bag.inventory.includes("lantern");
       if (lantern !== this.hasLantern) { this.hasLantern = lantern; this.updateDaylight(); }
     });
@@ -756,6 +771,7 @@ export class World3D {
       const view = new Person(playerRecipe(player.look, player.name, player.color), { name: player.name, me: isMe });
       view.place(player.x, player.y);
       view.onHit = (x, y) => this.terrain.hitNode(x, y);
+      if (isMe) view.onBeat = (phase, action) => (phase === "swing" ? sfx.onSwing(action) : sfx.onToolHit(action));
       this.scene.add(view.root);
       this.players.set(sessionId, view);
       view.setTitle(player.title);
@@ -772,6 +788,7 @@ export class World3D {
       $(player).listen("y", () => this.moveTo(view, player, isMe));
       $(player).listen("action", (action: string) => {
         view.setAction(action, player.faceX, player.faceY);
+        if (isMe) this.myAction = action;
         if (isMe && action !== "idle") this.marker.visible = false;
       });
       $(player).listen("held", (item: string) => view.setWeapon(item || ""));
@@ -821,6 +838,7 @@ export class World3D {
     const a = areaAt(player.x, player.y) ?? OUTDOORS;
     view.root.userData.show = a === this.here || isMe;
     if (!isMe) return;
+    sfx.onStep(player.x, player.y);
     if (this.pendingBook && Math.max(Math.abs(this.pendingBook.x - player.x), Math.abs(this.pendingBook.y - player.y)) <= 1) {
       const b = this.pendingBook; this.pendingBook = null;
       this.openBook(b.x, b.y);
@@ -1055,7 +1073,10 @@ export class World3D {
     $(m).listen("hp", () => view.bar.set(m.hp, m.maxHp));
     $(m).listen("alive", (alive: boolean) => {
       if (alive) { view.place(m.x, m.y); view.setAlive(true); view.root.userData.show = inArea(); }
-      else view.setAlive(false);
+      else {
+        view.setAlive(false);
+        if (this.lastTarget.id === id && performance.now() - this.lastTarget.at < 4000) sfx.onMonsterDefeated();
+      }
     });
     $(m).listen("status", (st: string) => view.setStatus(st));
   }
