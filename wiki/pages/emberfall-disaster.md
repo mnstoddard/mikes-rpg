@@ -40,7 +40,7 @@ The lesson people take from it: the land's fire is dangerous, the shrines keep i
 
 - The in-game book *The Sundering War (a short history for new Emberborn)* and the other books in [[Books in the game]].
 - *A Child's Book of the Emberborn*, which [[Sister Lisette]] reads to the town children (see [[Planned quests]]).
-- [[Brother Oren]]'s tour of the Hall of Champions.
+- [[Brother Oren]]'s tour of the statues of [[The Extinguished]].
 - The Emberguard's welcome talk when you start as a [[Hopefuls|Hopeful]].
 
 ::: secret

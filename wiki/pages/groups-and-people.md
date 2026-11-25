@@ -29,6 +29,6 @@ summary: Every group and character in the story, including ones not in the game 
 
 ## The past
 
-[[Archmage Vale]], [[King Aldemar]], the [[Radiants]], [[Orla the Kind]].
+[[Archmage Vale]], [[King Aldemar]], [[The Extinguished]], [[Orla the Kind]].
 
 See also [[People in the game]] for everyone you can talk to today.
