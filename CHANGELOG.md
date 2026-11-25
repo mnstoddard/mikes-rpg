@@ -6,6 +6,14 @@ in `shared/version.ts` (the game reads it from there), so update both together.
 Each update adds 0.1 to the number. Version 1.0 is saved for the finished game on Steam
 (see docs/VERSION-1.0-PLAN.md).
 
+## 0.11 · 25 November 2026 · Smooth movement
+
+- Walking is smooth now, not tile by tile. You can stand anywhere and walk in any direction, and you glide instead of hopping from square to square.
+- Clicking the ground walks you straight to the exact spot you clicked. The path cuts the corners, so you head straight there instead of zig-zagging.
+- W A S D walks the way the camera faces at any angle, not just 8 directions. Turn the camera while you walk and you turn with it.
+- Walking into a wall at an angle slides you along it, and walking at the edge of a doorway or a gap between trees eases you into it instead of getting stuck.
+- Other players glide smoothly too, and footsteps keep an even beat whichever way you walk.
+
 ## 0.10 · 25 November 2026 · The Emberguard, Embervale and the Emberheart
 
 - New names, to match the Emberfall story: the Lighthall is now the Emberhall, the Lightkeepers are the Emberguard, the Kindled are the Emberborn, and the land is Embervale. Its heart, deep under Heartvale, is the Emberheart.
