@@ -13,6 +13,18 @@ export interface GameUpdate { version: string; date: string; title: string; chan
 
 export const UPDATES: GameUpdate[] = [
   {
+    version: "0.11",
+    date: "2026-11-25",
+    title: "Smooth movement",
+    changes: [
+      { text: "Walking is smooth now, not tile by tile. You can stand anywhere and walk in any direction, and you glide instead of hopping from square to square." },
+      { text: "Clicking the ground walks you straight to the exact spot you clicked. The path cuts the corners, so you head straight there instead of zig-zagging." },
+      { text: "W A S D walks the way the camera faces at any angle, not just 8 directions. Turn the camera while you walk and you turn with it." },
+      { text: "Walking into a wall at an angle slides you along it, and walking at the edge of a doorway or a gap between trees eases you into it instead of getting stuck." },
+      { text: "Other players glide smoothly too, and footsteps keep an even beat whichever way you walk." },
+    ],
+  },
+  {
     version: "0.10",
     date: "2026-11-25",
     title: "The Emberguard, Embervale and the Emberheart",
