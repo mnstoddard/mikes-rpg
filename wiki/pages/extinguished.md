@@ -10,6 +10,8 @@ infobox.Old_name: The Radiants
 ---
 **The Extinguished** are the greatest [[Emberborn]] heroes of the past. Each one was honoured with a [[Radiance Ceremony]], where they burned brighter than ever and then went out like a candle. Their statues line the walls of the great hall in [[The Emberhall]], where [[Brother Oren]] tells their stories. One plinth stands empty, its name scratched off.
 
+Every one of the Extinguished went through a Radiance Ceremony: that's what makes someone one of them. None of them died any other way.
+
 They used to be called the Radiants, and their statues had a room of their own, the Hall of Champions. Since version 0.14 the statues line the walls of the Emberhall's great hall instead, and the game calls them the Extinguished too.
 
 ## The official story
@@ -47,5 +49,5 @@ Why it matters: every Hopeful is being raised to become one of the Extinguished.
 | Halric the Dawnbringer | Held the Greyspine pass alone for three days. Fell and rose eleven times. | One of the first Emberborn. Drained to feed the Circle, who were still weak from the Emberfall. |
 | Ida of the Saltmere | Rowed the Saltmere coast lighting dark shrines. The fisherfolk still leave shells at her feet. | Her family was told she "went into the Emberheart", and never got a body. |
 | Tilda Ashwalker | Walked into the Withering and led two hundred people home. | Learned the truth and left warnings in stone piles across the Barrens. Drained anyway. |
-| [[Orla the Kind]] | Nursed the sick through the Grey Fever, rising nine times. | Each rising skimmed her a little; by the end she was "almost see-through". |
+| [[Orla the Kind]] | Nursed the sick through the Grey Fever, rising nine times. Honoured in year 461. | Each rising skimmed her a little; by the end she was "almost see-through". |
 | (the empty plinth) | One letter is left under the dust: S. | [[Sable]], the only one who survived. |
