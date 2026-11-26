@@ -82,5 +82,5 @@ The official story isn't all made up. It's the true story with Vale and Wick swa
 
 ### When players learn it
 
-Hopefuls only hear the official story. Players piece the truth together through quests, books and Memory Echoes. On the day they're invited into the Emberguard, they learn the Undying's version: that the Circle lives, and the shrines feed them. Only the Ashbound know that Wick was framed, and even Wick has only guessed who killed the king (see [[Main story]]).
+Hopefuls only hear the official story. Players piece the truth together through quests, books and Memory Echoes. At the end of Act 3, after Rhys is drained, Wick tells them his side: the Circle lives, the shrines feed them, and Wick was framed. At their Joining, Vale confirms it himself. Even Wick has only guessed who killed the king; players prove it in the endgame (see [[Main story]]).
 :::

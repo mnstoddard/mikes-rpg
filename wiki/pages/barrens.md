@@ -3,7 +3,8 @@ category: Places
 icon: 🏜️
 summary: Desert of glass and sand, full of Aldmeran ruins, and the Ashbound camp.
 aliases: Barrens, The Barrens, Ashen Barrens
-infobox.Levels: 45 to 60
+infobox.Levels: 20 to 60 (easy near the city, harder further out)
+infobox.Home_of: Gold, topaz and Aldmeran relics (see [[Resources by region]])
 ---
 **The Ashen Barrens** are a desert in the west: once Aldmera's richest farmland, now glass and sand. They hold ruins of [[Aldmera]], the King's Road, and [[The Ashbound]]'s camp. Past its far western edge lies [[The Sundered Crown]], the ruins of [[Whitestone]] and the endgame area. Warden Dunn keeps its great shrine, and the city around it ([[Emberwardens]]).
 

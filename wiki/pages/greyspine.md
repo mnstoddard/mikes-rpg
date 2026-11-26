@@ -3,7 +3,8 @@ category: Places
 icon: 🏔️
 summary: Volcanic mountains: quarry, the Crystal Cave and goblin tunnels.
 aliases: Greyspine
-infobox.Levels: 25 to 40
+infobox.Levels: 20 to 60 (easy near the city, harder further out)
+infobox.Home_of: Mining: iron, coal, silver, emberstone and rubies (see [[Resources by region]])
 ---
 **Greyspine Peaks** are the volcanic mountains north of [[Heartvale]]: the quarry, [[The crystal cave|the Crystal Cave]] and goblin tunnels. Warden Flint keeps its great shrine ([[Emberwardens]]). Goblins there sing an old [[The Tenders|Tender]] song to keep the grey sickness away.
 

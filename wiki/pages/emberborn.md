@@ -28,4 +28,4 @@ The Emberborn were made for a good reason, and are used for a bad one. Each time
 
 ## How it looks in play
 
-After the final choice, Ashbound players get grey ash marks that slowly spread up their hands, and rise at Ashbound hearths instead of shrines. Emberguard players get a faint gold glow in their eyes. (Planned; not in the game yet.)
+In Act 4, Wick cuts the player's thread from the Heart Shrine. Grey ash marks slowly spread up their hands, the Tithe ends, and they rise at Ashbound hearths, then at the great shrines they've turned. (Planned; not in the game yet.)

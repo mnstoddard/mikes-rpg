@@ -33,5 +33,7 @@ Wick didn't kill the king, and he didn't know who did. For four hundred years he
 
 **The Ashbound:** about twenty years ago he finally made his move. He reached [[Sable]], the Emberguard's brightest champion, before her Ceremony and showed her the truth. She vanished the night before, and together they started [[The Ashbound]]. Sable is its public face. Wick stays hidden.
 
-His hope is the [[Ember Seed]]: the thing the Circle's working was meant to make.
+**In the story:** players meet him at the end of Act 3, after Rhys is drained. In Act 4 he cuts their thread from the Heart Shrine, teaches them to turn the great shrines, and gets his strength back when they thaw his own shrine in Frostfell. He fights Vale beside them.
+
+His hope is the [[Ember Seed]]: the thing the Circle's working was meant to make, and in the endgame, the only way to save the Emberborn for good.
 :::

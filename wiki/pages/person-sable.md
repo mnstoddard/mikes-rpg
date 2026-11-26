@@ -6,7 +6,7 @@ infobox.Leads: [[The Ashbound]]
 infobox.Once: The Emberguard's brightest champion
 infobox.Ceremony: Chosen about year 780; she never came
 ---
-**Sable** leads [[The Ashbound]]. Her hands are grey with ash. To the player at their Joining, she offers nothing but the truth: *"Better ash than a thief."*
+**Sable** leads [[The Ashbound]]. Her hands are grey with ash. She's the one who takes the player to Wick after Rhys is drained, and who gets them out of the Emberhall after they refuse Vale.
 
 ## What the Emberguard say about her
 

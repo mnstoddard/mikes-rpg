@@ -16,9 +16,9 @@ Red links are pages that don't exist yet. Secrets (the twists players shouldn't 
 
 - [[Embervale]]: the land, and the one-paragraph story.
 - [[The Emberheart]] and [[The ember]]: what everything runs on.
-- [[The Emberguard]] and [[The Ashbound]]: the two sides.
+- [[The Emberguard]] and [[The Ashbound]]: the protectors, and the rebels.
 - [[Maps]]: the whole world and every building, drawn from the game.
 - [[History]]: 800 years, as it happened and as people tell it.
-- [[Main story]]: the acts, from waking up as a Hopeful to the final choice.
+- [[Main story]]: the acts, from waking up as a Hopeful to the fall of Vale and the endgame.
 - [[Version history]]: what changed in each game update.
 - [[How to update the wiki]]: keeping it current.

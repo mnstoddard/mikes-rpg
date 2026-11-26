@@ -3,8 +3,9 @@ category: Places
 icon: 🌴
 aliases: Tangle
 summary: Jungle, with a city in the canopy around its great shrine. Far from it, the vines strangle everything.
-infobox.Levels: 30 to 45
+infobox.Levels: 20 to 60 (easy near the city, harder further out)
 infobox.Great_shrine: Kept by Warden Ivy
+infobox.Home_of: Foraging and Hunting: ironwood, rare jungle herbs, emeralds and big game hides (see [[Resources by region]])
 ---
 **The Tangle** is a hot, wet jungle: giant trees, rivers, waterfalls and old [[Aldmera|Aldmeran]] bridges swallowed by roots. Its great shrine stands in a city built up into the canopy. Warden Ivy keeps it ([[Emberwardens]]).
 

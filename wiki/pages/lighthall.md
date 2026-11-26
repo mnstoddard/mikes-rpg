@@ -18,6 +18,6 @@ A ring-of-fire mark is carved over its front door.
 The floating embers aren't in the game yet.
 
 ::: secret
-It's built right over [[The Ember Circle]]'s old shaft, where the working broke loose. Its sealed stair leads down to the Undying's Sanctum, and further down to [[The Hollow Heart]]. At the Joining, players go down that stair. The drifting embers are scraps of sparks the Ceremonies couldn't fully drain.
+It's built right over [[The Ember Circle]]'s old shaft, where the working broke loose. Its sealed stair leads down to the Undying's Sanctum, and further down to [[The Hollow Heart]]. At their Joining, at the end of Act 3, players go down that stair and meet Vale. The drifting embers are scraps of sparks the Ceremonies couldn't fully drain.
 :::
 

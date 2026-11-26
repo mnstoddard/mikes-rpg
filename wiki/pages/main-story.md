@@ -2,34 +2,100 @@ title: Main story
 category: Story
 icon: 🎭
 aliases: Main quest, Acts
-summary: From waking as a Hopeful to the final choice: the acts of the main quest.
+summary: From waking as a Hopeful to the fall of Vale and the search for the Ember Seed: the acts of the main quest.
 ---
-You start as a [[Hopefuls|Hopeful]], not a member. [[The Emberguard]]'s trials take you across the land, and when you've proven yourself, they invite you to join. That's the day you learn the truth and choose a side.
+You start as a [[Hopefuls|Hopeful]], not a member. [[The Emberguard]]'s trials take you across the land, and each act ends with a new trial mark: Ember, Flame, Blaze, Radiant. When you've earned Radiant, the Emberguard invite you to join, and that's when you learn the truth. There is no choosing sides: every player ends up fighting the Undying beside [[Wick]] and [[The Ashbound]].
 
-| Act | Where, levels | What happens | What the player learns |
+| Act | Where, levels | What happens | Trial mark |
 |---|---|---|---|
-| Prologue: Awakening (built) | [[The Emberhall]] and [[Emberhold]], 1 to 10 | You wake at [[The Heart Shrine]]. The Emberguard welcome you kindly, but you're one of hundreds. Learn the trades, then swear the Oath of the Flame to be allowed to try for the Emberguard. Trial mark: Ember. | The happy story: Wick broke the land long ago, and the Emberguard's shrines keep everyone safe. |
-| Act 1: The First Trial (built) | [[Heartvale]], 5 to 20 | Prove yourself around home: lantern rounds, the first Tithe mark, rebuilding the Westroad shrine, the Hollow Wolves, lighting the Thornwood shrine. Trial mark: Flame. | Small things feel off. Trees die nearest the shrines. The Dark Forest is growing. |
-| Act 2: The Trials | Thornwood, Greyspine, the Tangle, Saltmere, the Barrens, Blackfen, 15 to 65 | Each [[Emberwardens|Emberwarden]] sets you a trial in their region: relight their great shrine, solve a local problem, beat a boss. [[Rhys]] is always one trial ahead. Trial marks: Blaze, then Radiant. | 🔒 The shrines pull ember out of the land. The shrines were meant to close once the land healed. The Ceremony isn't what it seems. |
-| Act 3: The Joining | Emberhold and the Barrens, 55 to 65 | Rhys is invited to join first, and comes back up the Emberhall stair drained. You find Rhys, meet [[The Ashbound]], steal the ledger, and hear Wick's side of history. Then your own invitation comes. | 🔒 The Circle never died: they're the Emberguard's leaders, living on the shrines. The Ceremony drains champions. Stopping the shrines will turn every Emberborn to ash. |
-| Your Joining: the choice | The Emberhall stair, or the Ashbound camp | [[Archmage Vale|Vale]] offers you a place among [[The Undying]]: *"Join us, and you'll never fall again."* [[Sable]] offers you nothing but the truth: *"Better ash than a thief."* You choose. | |
-| Act 4A: Breaking the Thread (Ashbound) | Everywhere, [[Frostfell]], [[The Hollow Heart]], 60 to 75 | Gather five pieces and cut your own thread, like Sable did. Break the Undying's hold on the great shrines one by one, unmask Vale, and fight him at the Emberheart. | Every shrine you break makes the land warmer, and brings your own end a little closer. |
-| Act 4B: Ascension (Emberguard) | Everywhere, Frostfell, the Hollow Heart, 60 to 75 | Go down the stair and become a true member. Harvest sparks, hunt the Ashbound, drive off Sable's raid on the Emberheart, and have your thread turned so it feeds you. You become Undying. | Vale admits the Emberheart is dying, and doesn't care. |
-| Endgame | [[The Sundered Crown]], 75+ | After the story, both sides search the ruins of [[Whitestone]], the old capital: the Emberguard for the other half of the [[Ember Crown]], the Ashbound for the [[Ember Seed]]. | Who really killed the king, and the one hope that Emberborn could live without stealing. |
+| **Prologue: Awakening** (built) | [[The Emberhall]] and [[Emberhold]], 1 to 10 | The tutorial. You wake at [[The Heart Shrine]], take Brother Oren's tour, and learn every skill from the townsfolk. Then you swear the Oath of the Flame to be allowed to try for the Emberguard. | Ember |
+| **Act 1: The First Trial** (built, changes planned) | [[Heartvale]] only, 5 to 20 | You learn the base story and prove yourself around home. Small things feel off: trees die near the shrines, and the land at the valley's edge turns to grey dust. | Flame |
+| **Act 2: The Outer Shrines** | All six outer regions, 20 to 40 | The roads open. You travel to every region's city, meet its [[Emberwardens|Emberwarden]], and do the first tier of its quests (the *Arrival* stage). | Blaze |
+| **Act 3: The Far Reaches** | The outer reaches of all six regions, 40 to 60 | You head into the withering wilds far from the cities (the *Wilds* stage), then take each Emberwarden's trial and relight their great shrine (the *Trial* stage). It ends with your invitation, and the truth. | Radiant |
+| **Act 4: The Truth** | All six regions, [[Frostfell]], [[The Hollow Heart]], 60 to 75 | You hunt down the Emberwardens one by one and turn their great shrines. You thaw Wick's shrine in Frostfell, then face Vale at the Emberheart. | |
+| **Endgame: The Seed** | [[The Sundered Crown]] and every region, 75+ | You search Whitestone's ruins for the [[Ember Seed]], gather what it needs to be finished, and stop Vale coming back. Alongside it runs [[The Mending]]. | |
 
 The Prologue and Act 1 are in the game: see [[Quests]] for every built quest, step by step.
 
-## How turning to ash works in play
+## Act 1 in detail (Heartvale only)
 
-Ashbound players never really crumble away; it's the story they live under. After you cut your thread, grey ash marks slowly spread up your character's hands, Ember Debt ends, and you rise at Ashbound hearths instead of shrines. Emberguard players get the opposite look: a faint gold glow in the eyes.
+Act 1 stays inside [[Heartvale]]. Keeper Aldric gives most of it. These are the quests in the game today, with the changes planned to keep everything in Heartvale and in line with the new story.
+
+| Quest | Giver | What you do | Story beat | Planned change |
+|---|---|---|---|---|
+| Lantern Rounds | [[Keeper Aldric]] | Light six shrine lanterns around Heartvale. | "THE FLAME EATS" painted on the inn wall. Aldric blames the Ashbound. | |
+| The First Tithe | Keeper Aldric | Hear how the Tithe works; get two Tithe tonics. | Falling now costs you. | |
+| Blessing the Fields | [[Sister Celene]] | Bless Farmer Odo's three fields. | Odo refuses blessings. | |
+| Tithe Tonics | [[Alchemist Moss]] | Brew five Tithe tonics. | "They sell the cure for a debt they put on you." | |
+| The Totem | [[Woodworker Rook]] | Chop oak for a shrine totem and deliver it. | Rook hides a note in it. | |
+| Ash on the Road | [[Captain Bryn]] | Drive Ashbound scouts off the Westroad shrine. | A dropped note: "They aren't what they seem." | |
+| Rebuild the Shrine | Keeper Aldric | Bring oak and bronze and rebuild the Westroad shrine. | The grass around it turns brown. | |
+| What Holt Saw | [[Forester Holt]] | Count dead trees in six places. | 28 dead near shrines, 2 far away. | Move the Thornwood gate and Greyspine foothill spots to Heartvale meadows. |
+| Odo's Stubborn Field | [[Farmer Odo]] | Grow four crops with no blessing. | The ground grew fine before the shrines. | |
+| The Hollow Wolves | [[Huntmaster Kael]] | Clear five Blighted wolves. | "The Blight is always worst downhill of a shrine." | Move the pack from Wolf Hollow (Thornwood) to the grey-dust edge of the valley, raiding the pasture. |
+| Maren's Question | [[Old Maren]] | Talk to Maren. | She asks if you felt something was taken when you came back. | Reword: she isn't an Emberborn, but after decades of caring for them she's noticed they come back "a little less". She asks out of worry. |
+| A Flame at the Valley's Edge | Keeper Aldric | Escort two Emberguard to the edge of the valley, protect them, and light a new roadside shrine. | You meet [[Rhys]]. Aldric names you a Flame. | Replaces *A Flame in the Thornwood*, which is outside Heartvale and says "the Thornwood has never had a shrine". |
+
+## Acts 2 and 3: the regions in parallel
+
+There's no fixed order. When Act 1 ends, all six outer regions open at once: [[The Thornwood]], [[Greyspine Peaks]], [[The Tangle]], [[Saltmere Coast]], [[The Ashen Barrens]] and [[Blackfen]]. Each region's Emberwarden gives a quest chain in three stages:
+
+| Stage | Act | Levels | What it is |
+|---|---|---|---|
+| **Arrival** | Act 2 | about 20 to 40 | Reach the region's city, meet the Emberwarden, help the town, learn the local trouble, and work the region's edge. |
+| **Wilds** | Act 3 | about 40 to 55 | Go out into the withering lands far from the city and deal with the region's problem: the rot, the eruptions, the vines, the tides, the glass, the fog. Most clues and side quests live here. |
+| **Trial** | Act 3 | about 50 to 60 | The Emberwarden's trial: go to the heart of the region, beat its boss and relight the great shrine. |
+
+Each region is a ring: safe around its great shrine, and more dangerous the further out you go, where [[The Withering]] is worst. Players pick their own path, and [[Resources by region]] gives each player a reason to go somewhere different first.
+
+**Story beats follow your count, not the region.** The story moves on when you've finished a number of stages, whichever regions they were in:
+
+- **Act 2, after 3 Arrivals:** a Radiance Ceremony is announced in Emberhold, and you watch a champion you know go into the light.
+- **Act 2, after all 6 Arrivals:** you earn Blaze, and the outer reaches open (Act 3).
+- **Act 3, after 2 Trials:** you see the grass die around a great shrine you just relit.
+- **Act 3, after 4 Trials:** Rhys is invited to his Joining first. He comes back up the Emberhall stair drained, grey and back to level 1. You go looking for him, and find him with the Ashbound.
+- **Act 3, after all 6 Trials:** you earn Radiant, and your own invitation comes.
+
+**Rhys** is always one step ahead. The game counts your stages and puts him one past you; he mentions the region he just finished, always one you haven't done.
+
+Each region also holds one secret only it can reveal, such as Ivy and Reed being impostors, or Tilda's cairns in the Barrens. By the Joining, a player who explored has pieced most of the truth together, whatever order they went in.
+
+::: secret
+## The Joining (end of Act 3)
+
+After Rhys is drained, Sable takes you to meet Wick, and you hear the true history: the Ceremony, the Undying, the Sundering War. Then your invitation comes. You go down the Emberhall stair anyway. Vale reveals himself and makes his offer: *"Join us, and you'll never fall again."* You refuse, and Sable and the Ashbound get you out.
+
+## Act 4: The Truth
+
+- **Cut free:** Wick cuts your thread from the Heart Shrine so the Undying can't drain you. Ash starts to creep up your hands, the Tithe ends, and you rise at Ashbound hearths until you've turned a shrine of your own.
+- **The Emberwardens:** you hunt down all six, in any order. Each time one falls, Wick shows you how to **turn** their great shrine, so it gives ember back to the land instead of taking it. Each region gets warmer straight away. Unmasking Ivy and Reed as impostors is part of it.
+- **Frostfell:** the last stop before Vale. You thaw Wick's frozen shrine and turn it first, which gives Wick back enough strength to face Vale beside you.
+- **Vale:** you unmask [[Enchanter Vale]] and fight him in [[The Hollow Heart]], at the Emberheart.
+- **The catch:** when Vale falls, every shrine shudders. The shrines are what hold the Emberborn together. Turned shrines keep them alive for now, but Wick warns it won't last: without a lasting fix, every Emberborn will slowly fade. That sets up the endgame.
+
+## Endgame: The Seed
+
+1. **Find the Seed.** The half-made [[Ember Seed]] lies in the royal Crown Vault under [[The Sundered Crown]]. Reaching it is the first big endgame dungeon.
+2. **Finish the Seed.** Wick's research says it needs a piece of each region's healed land, such as Thornwood heartwood, Greyspine fire-glass and Saltmere pearl, each from hard endgame content in that region.
+3. **Vale isn't quite gone.** As he died, his spark fled into his half of the [[Ember Crown]]. The impostor wardens Ivy and Reed escaped with it, and are hunting the other half in Whitestone to bring him back. They're the recurring endgame villains.
+4. **Plant the Seed.** Planted at the Emberheart, it lets the Emberborn live on their own fire, without the shrines. This can be saved for a later update. Wick may have to give up what's left of his power to make it take root.
+:::
+
+## The Mending
+
+Alongside the story, every region has repeatable quests at every level to fight [[The Withering]]. They're open to everyone, wherever they are in the story. See [[The Mending]].
+
+## How the ash marks work in play
+
+After Wick cuts your thread in Act 4, grey ash marks slowly spread up your character's hands, Ember Debt ends, and you rise at Ashbound hearths, then at the great shrines you've turned. You never actually crumble away.
 
 ## Changes still to make in the game
 
 - The Oath of the Flame today says you join and become an Ember. It should become an oath to *try* for the Emberguard, with Ember, Flame, Blaze and Radiant as trial marks, not ranks (see [[Trial marks]]).
 - Act 1's title, "The Light Welcomes You", should become "The First Trial".
-- The old names in the code should be swapped (see [[Names]]).
+- The Act 1 changes in the table above.
+- The game's outdoor map includes the edge of the Thornwood (the Goblin camp, Spider hollow, Wolf Hollow, an Ashbound camp and the Graveyard). With Act 1 kept to Heartvale, that content belongs to the Thornwood's Arrival stage in Act 2.
 
 ## Open questions
 
-- When does your Joining happen? The plan puts it at the end of Act 3. It could come at the end of Act 2 instead.
-- Can the siphon ever fully stop? As planned, the endgame is a tug of war, and the Ember Seed is the Ashbound's hope. A future update could let them finally plant it.
+- Does Act 3 need all six Trials before the Joining, or only four, so players can leave their two least favourite regions for later?

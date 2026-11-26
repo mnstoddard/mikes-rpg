@@ -4,7 +4,7 @@ icon: 🏰
 aliases: Emberwarden, Lightwardens
 summary: The six Emberguard leaders who each keep a region's great shrine, carrying the old Circle names as titles.
 ---
-The six **Emberwardens** each keep a region's great shrine, and each sets the player a trial in Act 2 (see [[Main story]]). Each carries the name of the [[The Ember Circle|Ember Circle]] member who first raised that shrine. Everyone believes the names are titles, handed down from warden to warden since the Circle passed into legend.
+The six **Emberwardens** each keep a region's great shrine, and each gives the player a quest chain in Acts 2 and 3, ending in a trial (see [[Main story]]). In Act 4 the player hunts all six down. Each carries the name of the [[The Ember Circle|Ember Circle]] member who first raised that shrine. Everyone believes the names are titles, handed down from warden to warden since the Circle passed into legend.
 
 | Emberwarden | Region | 🔒 Who they really are |
 |---|---|---|

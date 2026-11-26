@@ -4,6 +4,7 @@ icon: 🕳️
 aliases: Deeps
 summary: The caves under the land, used as dungeons.
 infobox.Levels: Various
+infobox.Home_of: Platinum, amethyst and gems of every kind (see [[Resources by region]])
 ---
 **The Deeps** are the caves that run under every region: old mines, goblin tunnels, Aldmeran cellars and natural caverns. They're the game's dungeons. There are no shrines down here, so falling in the Deeps means waking at the nearest shrine above.
 
