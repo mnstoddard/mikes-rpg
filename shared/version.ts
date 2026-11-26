@@ -13,6 +13,16 @@ export interface GameUpdate { version: string; date: string; title: string; chan
 
 export const UPDATES: GameUpdate[] = [
   {
+    version: "0.15",
+    date: "2026-11-26",
+    title: "Music for the whole world",
+    changes: [
+      { text: "Music everywhere: Mike's song \"Realm of Exploration\" now plays softly anywhere that doesn't have its own music (out in Heartvale, in the houses, shops and caves). The Emberhall keeps its chant." },
+      { text: "The song repeats forever without a break: its last bar blends into its first, so you can't hear where it starts again." },
+      { text: "Walking into the Emberhall fades the world music out and the chant in, and walking out fades them back. ⚙️ Settings > 🎵 Music turns all music on or off and sets the volume." },
+    ],
+  },
+  {
     version: "0.14",
     date: "2026-11-26",
     title: "The Emberhall comes alive",
