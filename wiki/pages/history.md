@@ -14,10 +14,13 @@ The game takes place in **year 500 After the Fall**. Oldest first. For the offic
 | 40 | The first [[The shrines|shrines]]. The Circle builds the shrines and the first [[Emberborn]] wake, [[Old Maren]] among them. They win the war. | "Archmage Vale built the shrines and saved us." |
 | 60 | 🔒 Vale fakes his death. The Circle becomes [[The Emberguard]], and its leaders [[The Undying]]. | "Vale died soon after the war. No one knows where he's buried." |
 | 60 to 200 | The shrines should have closed. Instead the Emberguard build more, and [[Emberhold]] grows up around their temple, [[The Emberhall]]. | "The Emberguard protect us." |
+| about 140 | 🔒 [[Sable]], the brightest champion, is chosen for a Ceremony. The night before, she goes down to [[The Emberheart]] herself. It takes hold in her, keeps her alive, and burns away her memory. | "Sable went into the Emberheart with honour." Her statue goes up among [[The Extinguished]]. |
 | about 200 | [[The Mages' Guild]]'s records about the Emberheart stop. The Emberguard took them. | Scholars find it odd. |
 | 200 to 500 | The Emberguard raise hundreds of Emberborn, skim from every death, and drain a champion every few decades in a [[Radiance Ceremony]]. The Emberheart weakens. | "The Extinguished gave their ember back so new heroes could wake." |
 | about 430 | 🔒 Maren learns the truth and cuts her own thread. Without the siphon feeding her, she starts to age, and slowly to turn to ash. | "Harmless old Maren, she's been here forever." |
-| 460 | [[Sable]], the brightest champion, is drained at her Ceremony and survives. She founds [[The Ashbound]]. [[Orla the Kind]] rises nine times through the Grey Fever, and is drained at her Ceremony the next year. | "Sable went mad. Orla was a saint." |
+| 460 | [[Orla the Kind]] rises nine times through the Grey Fever, and is drained at her Ceremony the next year. | "Orla was a saint." |
+| about 470 | 🔒 Sable remembers enough to understand the siphon, and founds [[The Ashbound]]. | "Bandits in the woods." |
+| about 495 | 🔒 The Emberguard learn the Ashbound's leader is Sable. They pull down her statue overnight and scratch her name off the plinth. | "Sable fled her Ceremony like a coward. Now she and the Ashbound are poisoning the land." |
 | 500 | Now. The Dark Forest spreads toward Emberhold. [[Frostfell]]'s ice creeps south. You wake at [[The Heart Shrine]]. | "The Blight is just bad luck, and the Ashbound make it worse." |
 
 🔒 rows are secrets. Players piece them together through quests, books and Memory Echoes.

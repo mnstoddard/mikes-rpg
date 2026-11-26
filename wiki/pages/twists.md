@@ -13,7 +13,7 @@ summary: Each twist is hinted at early and revealed later, so a careful player c
 | 4 | [[Emberborn]] are made of stolen ember, and ending the siphon will turn them to ash. | Maren's ash; Sable's grey hands; Ashbound who whisper "better ash". | Act 3 |
 | 5 | [[Old Maren]] was the first Emberborn, and she's dying by choice. | She's "been here forever"; ash on her sleeves; Rook's note "Ask Maren about the first one." | Act 3, Maren's Story |
 | 6 | [[Enchanter Vale]] is [[Archmage Vale]]. | "Named after the Archmage"; "older than the Guild"; no one knows where Vale is buried. | Act 4 |
-| 7 | The empty plinth is [[Sable]]'s. | One letter left under the dust: S. | Act 2 side quest |
+| 7 | The empty plinth is [[Sable]]'s, and she never had a Ceremony: she went down to the Emberheart herself. | One letter left under the dust: S; Oren's "black sheep"; the Withering is older than the Ashbound. | Act 2 side quest (the plinth), Act 3 (why) |
 | 8 | [[The Emberheart]] is weakening, and if it goes out the land dies. | The heartbeat in the Crystal Cave slows each year; Frostfell's ice moves south. | Act 4 |
 | 9 | The [[Ember Seed]] might let Emberborn live without the siphon. | Odo's old seed jar; Old Kingdom coins show a seed. | Endgame |
 | 10 | The [[Ember Crown]] is in two halves; one is in Vale's staff. | Vale never lets anyone touch his staff. | Endgame |
