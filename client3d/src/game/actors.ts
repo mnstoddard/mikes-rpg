@@ -17,6 +17,7 @@ import { createFood } from "../food";
 import { isWeapon, parseWeapon } from "../../../shared/gear";
 import { createEnv, type EnvPiece } from "../environment";
 import { tileCenter } from "./terrain";
+import { makeFlame } from "./flame";
 import { TILE } from "../environment";
 
 /** How far behind the server we show people walking (ms): just enough to always have the next position. */
@@ -120,6 +121,8 @@ export class Person {
   private weapon = "";
   /** Running (they move faster and the legs go quicker). */
   running = false;
+  /** 1 = lying on their back (head to the north), 0 = standing: the opening scene, where a new hero wakes by the shrine. */
+  lying = 0;
   /** A fish being pulled out of the water (fishing). */
   private catching?: { fish: THREE.Object3D; t: number; from: THREE.Vector3; dispose: () => void };
   private rodTip?: THREE.Object3D;
@@ -207,6 +210,12 @@ export class Person {
   }
 
   get moving() { return this.t < 1 || performance.now() < this.glidingUntil; }
+
+  /** Turn to face this way (radians; 0 faces south, toward the camera). */
+  faceYaw(yaw: number, now = false) {
+    this.wantYaw = yaw;
+    if (now) this.yaw = yaw;
+  }
 
   /**
    * Smooth movement: where the server says they are now (in tiles, with
@@ -367,6 +376,11 @@ export class Person {
     const walking = this.moving;
     this.hero.setAnim(walking ? (this.running ? "run" : "walk") : "idle");
     this.hero.update(dt, time);
+    // Lying down (the opening scene): tip over backwards from the feet, lifted a little off the floor.
+    const lie = Math.max(0, Math.min(1, this.lying));
+    const ease = lie * lie * (3 - 2 * lie);
+    this.hero.object.rotation.x = -ease * Math.PI / 2;
+    this.hero.object.position.y = ease * 0.16;
     const fists = this.action === "fighting" && !isWeapon(this.weapon);
     const a = fists ? { move: "punch" as Move, hits: false } : ACTIONS[this.action];
     if (a && !walking) {
@@ -642,8 +656,31 @@ export function makeStation(npc: NpcDef): StationView {
     const box = new THREE.Box3().setFromObject(item.object);
     tag.obj.position.y = box.max.y + 0.4;
   } else if (npc.id.startsWith("radiant_")) {
-    // The Radiants' statues are part of the hall already: just their name.
+    // The statues of the Extinguished are part of the hall already: just their name.
     tag.obj.position.y = 3.4;
+  } else if (npc.id === "heart_shrine") {
+    // The Heart Shrine (version 0.14): a tall flame in a wide stone bowl, ringed with gold.
+    const stone = new THREE.MeshStandardMaterial({ color: 0xe8e0cc, roughness: 0.6 });
+    const gold = new THREE.MeshStandardMaterial({ color: 0xd4a640, roughness: 0.35, metalness: 0.75 });
+    const coals = new THREE.MeshStandardMaterial({ color: 0x3a1a0c, emissive: 0xff5a10, emissiveIntensity: 1.2, roughness: 1, flatShading: true });
+    const step = new THREE.Mesh(new THREE.CylinderGeometry(1.35, 1.5, 0.3, 10), stone);
+    step.position.y = 0.15;
+    const column = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.8, 0.9, 10), stone);
+    column.position.y = 0.75;
+    const bowl = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 0.6, 0.45, 12, 1, true), stone);
+    bowl.position.y = 1.42;
+    (bowl.material as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.07, 6, 20), gold);
+    rim.rotation.x = Math.PI / 2;
+    rim.position.y = 1.64;
+    const bed = new THREE.Mesh(new THREE.CylinderGeometry(0.98, 0.98, 0.08, 12), coals);
+    bed.position.y = 1.5;
+    root.add(step, column, bowl, rim, bed);
+    const flame = makeFlame(1.7, 7);
+    flame.object.position.y = 1.52;
+    root.add(flame.object);
+    parts.push({ update: (dt, t) => flame.update(dt, t), dispose: () => flame.dispose() });
+    tag.obj.position.y = 4.2;
   } else if (npc.id.startsWith("lantern_") || npc.id.startsWith("round_")) {
     const lamp: EnvPiece = createEnv("decor-lamp", { variant: npc.id.startsWith("round_") ? 0 : 1, seed: 4 });
     root.add(lamp.object);
@@ -652,33 +689,26 @@ export function makeStation(npc: NpcDef): StationView {
     parts.push({ update: (dt, t) => lamp.update(dt, t, { night: lit ? 1 : 0, wind: 0.2 }), dispose: () => lamp.dispose() });
     tag.obj.position.y = 3.6;
   } else {
-    // Shrines and the plinth: white stone, with a golden crystal when lit.
+    // Shrines out in Heartvale and the plinth: white stone. A lit shrine burns with a flame, like the Heart Shrine.
     const stone = new THREE.MeshStandardMaterial({ color: 0xd8d2c2, roughness: 0.7 });
     const base = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1, 0.5, 8), stone);
     base.position.y = 0.25;
     root.add(base);
-    const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.55), new THREE.MeshStandardMaterial({ color: 0xfff2b0, emissive: 0xffd84a, emissiveIntensity: 1.4, flatShading: true }));
-    crystal.scale.y = 1.8;
-    crystal.position.y = 1.6;
-    const light = new THREE.PointLight(0xffe27a, npc.id === "heart_shrine" ? 3 : 2, 9, 1.6);
-    light.position.y = 1.6;
     const rubble = createEnv("decor-rocks", { variant: 0, seed: 9 });
     const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.55, 0.9, 8), stone);
     pillar.position.y = 0.9;
-    if (npc.id === "plinth") {
-      root.add(pillar);
-    } else {
-      root.add(crystal, light);
-      if (npc.id !== "heart_shrine") {
-        root.add(pillar, rubble.object);
-        setLit = (lit) => { crystal.visible = light.visible = pillar.visible = lit; base.visible = lit; rubble.object.visible = !lit; };
-        setLit(false);
-      } else root.add(pillar);
+    root.add(pillar);
+    if (npc.id !== "plinth") {
+      const flame = makeFlame(0.7, npc.x);
+      flame.object.position.y = 1.35;
+      root.add(flame.object, rubble.object);
+      setLit = (lit) => { flame.object.visible = pillar.visible = base.visible = lit; rubble.object.visible = !lit; };
+      setLit(false);
+      parts.push({ update: (dt, t) => flame.update(dt, t), dispose: () => { flame.dispose(); rubble.dispose(); } });
     }
-    parts.push({ update: (_dt, t) => { crystal.rotation.y = t * 0.6; crystal.position.y = 1.6 + Math.sin(t * 1.5) * 0.08; }, dispose: () => rubble.dispose() });
     tag.obj.position.y = 3;
   }
-  root.traverse((o) => { if ((o as THREE.Mesh).isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  root.traverse((o) => { if ((o as THREE.Mesh).isMesh && !o.userData.noShadow) { o.castShadow = true; o.receiveShadow = true; } });
   // A ❗ over it when your quest wants you here.
   const alert = label("alert3d", "❗");
   alert.obj.position.y = tag.obj.position.y + 0.5;

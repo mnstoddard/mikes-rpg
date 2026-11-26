@@ -24,6 +24,8 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export class Bot {
   room!: Room;
   quest: QuestView | null = null;
+  /** What Sister Celene said in the opening scene (new characters). */
+  intro: string[] | null = null;
   log: string[] = [];
   started = Date.now();
   deaths = 0;
@@ -34,6 +36,7 @@ export class Bot {
     this.room.onMessage("quest", (q: QuestView) => { this.quest = q; });
     this.room.onMessage("message", (t: string) => { this.note(`💬 ${t}`); if (t.startsWith("☠")) this.deaths++; });
     this.room.onMessage("dialog", (d: { name: string; lines: string[] }) => this.note(`🗨️ ${d.name}: ${d.lines.join(" / ")}`));
+    this.room.onMessage("intro", (d: { name: string; lines: string[] }) => { this.intro = d.lines; this.note(`🎬 ${d.name}: ${d.lines.join(" / ")}`); });
     this.room.onMessage("*", () => {});
     await this.until(() => !!this.me, 8000, "join");
     this.room.send("ready");
@@ -214,22 +217,34 @@ async function prologue(name: string) {
   b.watchBag();
   const step = (s: string) => console.log(`[${b.minutes()} min] ${s} -> task: ${b.task}`);
   step("woke up");
-  await b.talkUntilNew("celene"); step("Celene");
-  // Put the robe on.
-  await b.until(() => b.has("platebody_cloth"), 3000, "the robe");
+  // The opening scene: Celene comes over and talks by herself, and hands over the robe.
+  await b.until(() => !!b.intro && b.has("platebody_cloth"), 5000, "the opening scene and the robe"); step("Celene's opening scene");
+  if (!/robe/i.test(b.task)) throw new Error(`expected the robe step, got: ${b.task}`);
+  // Can't leave the Emberhall in just a shirt.
+  const out = DOORS.find((d) => areaAt(d.x, d.y)?.id === "lighthall")!;
+  b.room.send("move", { x: out.x, y: out.y });
+  await sleep(6000);
+  if (areaAt(b.pos.x, b.pos.y)?.id !== "lighthall") throw new Error("walked out of the Emberhall without the robe");
+  step("the doors stay shut without the robe");
+  // Aldric walks you through the robe instead of going on with the story.
+  const t0 = b.task;
+  await b.talk("aldric");
+  if (b.task !== t0 || !b.log.slice(-4).some((l) => l.includes("Equip"))) throw new Error("Aldric didn't help with the robe");
+  step("Aldric explains the robe");
   b.room.send("wear", { slot: b.slotOf("platebody_cloth") });
-  await b.talkUntilNew("aldric"); step("Aldric (Awakening done)");
-  await b.talkUntilNew("aldric"); step("Aldric: the Hall of Light");
-  for (const id of ["oren", "lisette", "tomas", "wynne"]) await b.talk(id);
-  step("met the four");
-  await b.talk("plinth"); step("plinth");
-  await b.talkUntilNew("aldric"); step("Hall done");
-  await b.talkUntilNew("aldric"); step("Light the Way");
+  await b.until(() => /Aldric/.test(b.task), 5000, "the robe to count"); step("robe on");
+  // One flowing talk with Aldric: Awakening's end and the start of The Hall of Embers together.
+  await b.talkUntilNew("aldric"); step("Aldric (Awakening done, Hall of Embers started)");
+  if (!/Oren/.test(b.task)) throw new Error(`expected Oren's tour next, got: ${b.task}`);
+  for (const id of ["oren", "radiant_1", "radiant_2", "radiant_3", "radiant_4", "plinth"]) await b.talk(id);
+  step("Oren's tour");
+  for (const id of ["lisette", "tomas", "wynne"]) await b.talk(id);
+  step("met the three");
+  await b.talkUntilNew("aldric"); step("Hall done, Light the Way started");
   for (let n = 1; n <= 6; n++) await b.talk(`lantern_${n}`);
   step("lanterns lit");
-  await b.talkUntilNew("aldric"); step("got the lantern");
+  await b.talkUntilNew("aldric"); step("got the lantern, The Old Sweeper too");
   if (!b.has("lantern")) throw new Error("no lantern");
-  await b.talk("aldric");
   await b.until(() => b.quest!.marks.includes("maren"), 5000, "Maren's ❗"); step("The Old Sweeper");
   await b.talkUntilNew("maren"); step("Maren's first lesson");
   const marks = b.quest!.marks;

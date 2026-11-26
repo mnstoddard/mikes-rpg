@@ -19,6 +19,7 @@ import { createRock, ROCK_TYPES, type Rock, type RockKind } from "../rocks";
 import { createFood } from "../food";
 import { Instancer } from "./instancer";
 import { bed, bookshelf, goodsShelf, tableTop } from "./furniture";
+import { makeBrazier } from "./flame";
 
 export const CHUNK = 8;
 /** How far from you (in tiles) chunks are built. */
@@ -56,7 +57,7 @@ function floorOf(t: Tile, area: AreaDef): Ground | null {
 }
 
 /** Tiles with something standing on them get the ground of their neighbours underneath. */
-const STANDS_ON = new Set<Tile>(["tree", "rock", "dig", "sign", "fence", "gate", "hedge", "well", "barricade", "statue", "grave", "crates", "table", "shelf", "bed", "door", "lockeddoor"]);
+const STANDS_ON = new Set<Tile>(["tree", "rock", "dig", "sign", "fence", "gate", "hedge", "well", "barricade", "statue", "grave", "crates", "table", "shelf", "bed", "door", "lockeddoor", "brazier", "innerdoor"]);
 
 function groundUnder(x: number, y: number, area: AreaDef): Ground {
   for (let r = 1; r <= 3; r++) {
@@ -173,6 +174,10 @@ export class Terrain {
   readonly signs: { text: string; at: THREE.Vector3 }[] = [];
   /** Invisible boxes over the outside doors, so tapping the door itself works. */
   private doorPicks: THREE.Mesh[] = [];
+  /** Doors inside buildings (between rooms, and the way out): tap anywhere on one to walk through it. */
+  private insideDoors = new Set<THREE.Object3D>();
+  /** Where people are standing (you, and anyone else here): doors swing open as they come near. */
+  walkers: THREE.Vector3[] = [];
 
   /**
    * How tall whatever stands on this tile is, in metres (0 for open ground):
@@ -340,7 +345,7 @@ export class Terrain {
 
   /** Objects worth raycasting (trees, rocks, doors), before falling back to the ground. */
   pickables(): THREE.Object3D[] {
-    const out: THREE.Object3D[] = [...this.instancer.meshes(), ...this.doorPicks];
+    const out: THREE.Object3D[] = [...this.instancer.meshes(), ...this.doorPicks, ...this.insideDoors];
     for (const n of this.nodes.values()) if (n.live) out.push(n.live.object);
     return out;
   }
@@ -580,6 +585,16 @@ export class Terrain {
         spot.object.position.copy(tileCenter(x, y)).setY(-0.08);
         c.group.add(spot.object);
         c.live.push({ object: spot.object, update: (dt, tt) => spot.update(dt, tt), dispose: () => spot.dispose() });
+      } else if (t === "brazier") {
+        const b = makeBrazier(x * 3 + y);
+        b.object.position.copy(tileCenter(x, y));
+        b.object.userData.tile = { x, y };
+        c.group.add(b.object);
+        c.live.push({ object: b.object, update: (dt, tt) => b.update(dt, tt), dispose: () => b.dispose() });
+      } else if (t === "innerdoor" || (t === "door" && a.kind === "indoor")) {
+        const d = this.insideDoor(x, y, a);
+        c.group.add(d.object);
+        c.live.push(d);
       } else {
         const prop = PROPS[t];
         if (prop) {
@@ -601,6 +616,73 @@ export class Terrain {
     }
     // Trees and rocks that were already used up show as stumps / empty rocks.
     for (const k of c.nodes) if (this.depleted.has(k)) this.wake(this.nodes.get(k)!, true);
+  }
+
+  /**
+   * A real door in a doorway inside a building (Mike's note #4): between rooms
+   * ("d" on the map), and the way out. It sits in the wall with the wall's own
+   * stone either side, swings open when someone walks up to it, and tapping
+   * anywhere on it walks you through.
+   */
+  private insideDoor(x: number, y: number, a: AreaDef): Live {
+    const at = (dx: number, dy: number) => MAP[y + dy]?.[x + dx];
+    const wallsEW = BLOCKING.has(at(-1, 0)!) && BLOCKING.has(at(1, 0)!);
+    // The door's front faces into the room (for the way out), or south / east (between rooms).
+    let face = wallsEW ? 0 : Math.PI / 2;
+    if (MAP[y][x] === "door") {
+      for (const [dx, dy] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+        if (areaAt(x + dx, y + dy) === a && !BLOCKING.has(at(dx, dy)!)) { face = Math.atan2(dx, dy); break; }
+      }
+    }
+    const object = new THREE.Group();
+    object.position.copy(tileCenter(x, y));
+    const marble = a.id === "lighthall";
+    const piece = createEnv("wall-door", { variant: marble ? 1 : 0, seed: x * 7 + y });
+    piece.object.scale.setScalar(0.95);
+    piece.object.rotation.y = face;
+    object.add(piece.object);
+    // The wall either side of the door (the doorway is wider than the door), and a strip over it.
+    const col = marble ? 0xf2efe8 : a.id === "guild" ? 0x6a4a9a : 0x9c6a42;
+    const wallMat = new THREE.MeshStandardMaterial({ color: col, roughness: 0.9 });
+    const geos: THREE.BufferGeometry[] = [];
+    const side = (TILE - 1.32) / 2;
+    for (const sx of [-1, 1]) {
+      const g = new THREE.BoxGeometry(side, 2.2, TILE);
+      geos.push(g);
+      const m = new THREE.Mesh(g, wallMat);
+      m.position.set(sx * (TILE / 2 - side / 2), 1.1, 0);
+      m.castShadow = m.receiveShadow = true;
+      const holder = new THREE.Group();
+      holder.rotation.y = face;
+      holder.add(m);
+      object.add(holder);
+    }
+    const top = new THREE.BoxGeometry(TILE, 0.12, TILE);
+    geos.push(top);
+    const lintel = new THREE.Mesh(top, wallMat);
+    lintel.position.y = 2.16;
+    object.add(lintel);
+    // Tap anywhere on the door, not just the floor under it.
+    const pick = new THREE.Mesh(DOOR_PICK, PICK_MAT);
+    pick.position.y = 1.3;
+    pick.rotation.y = face;
+    pick.visible = false;
+    object.add(pick);
+    object.userData.tile = { x, y };
+    this.insideDoors.add(object);
+    object.traverse((o) => { if ((o as THREE.Mesh).isMesh && o !== pick) o.castShadow = true; });
+    let open = false;
+    const here = new THREE.Vector3();
+    return {
+      object,
+      update: (dt, t, night) => {
+        object.getWorldPosition(here);
+        const near = this.walkers.some((w) => Math.hypot(w.x - here.x, w.z - here.z) < TILE * 1.5);
+        if (near !== open) { open = near; piece.poke?.(); }
+        piece.update(dt, t, { night, wind: 0 });
+      },
+      dispose: () => { this.insideDoors.delete(object); piece.dispose(); geos.forEach((g) => g.dispose()); wallMat.dispose(); },
+    };
   }
 
   /** Things built once for the whole area: buildings, their doors, the water. */
@@ -693,6 +775,11 @@ function facing(t: Tile, x: number, y: number, h: number): number {
     return Math.PI;
   }
   if (t === "crates") return Math.floor(h * 4) * Math.PI / 2;
+  if (t === "statue") {
+    // Statues against a wall face away from it (the Extinguished line the Emberhall's walls).
+    if (BLOCKING.has(at(-1, 0)!)) return Math.PI / 2;
+    if (BLOCKING.has(at(1, 0)!)) return -Math.PI / 2;
+  }
   return 0;
 }
 

@@ -17,6 +17,7 @@ export const TILE_COLORS: Record<Tile, number> = {
   void: 0x000000, door: 0x5c3a1a, lockeddoor: 0x3e2712, cobble: 0x9a958b, sand: 0xe0cc8e, withered: 0x8c8a4e, cliff: 0x5e5650,
   hedge: 0x2f6a2a, well: 0x9a958b, barricade: 0xb89b6a, roof: 0x8e3b2b, goldroof: 0xe2bd52, marblewall: 0xe2ddd0, marble: 0xf3efe4,
   glow: 0xfff1b8, carpet: 0xb8862b, statue: 0xf3efe4, table: 0xa47a4c, shelf: 0xa47a4c, crates: 0xa47a4c, bed: 0xc8c0e8, grave: 0x23432a, gravel: 0x7f8a5a,
+  brazier: 0xf3efe4, innerdoor: 0x8b5a2b,
 };
 /** The Dark Forest's ground is darker and bluer, so you can see where danger starts. */
 const DARK_COLORS: Partial<Record<Tile, number>> = { grass: 0x23432a, path: 0x6b5a42, fence: 0x23432a, gate: 0x6b5a42, dig: 0x23432a, sand: 0x9c8e62, gravel: 0x3f4a32 };
@@ -48,7 +49,7 @@ function groundUnder(x: number, y: number, t: Tile, area: AreaDef | null): Tile 
   if (t === "tree") return area?.kind === "outdoor" && [charAt(x - 1, y), charAt(x + 1, y), charAt(x, y + 1)].includes("s") ? "sand" : "grass";
   if (t === "dig") return area?.kind === "cave" ? "cave" : charAt(x, y + 1) === "l" ? "gravel" : "grass";
   if (t === "sign" || t === "fence" || t === "gate" || t === "grave") return "grass";
-  if (t === "well" || t === "statue") return t === "well" ? "cobble" : "marble";
+  if (t === "well" || t === "statue" || t === "brazier" || t === "innerdoor") return t === "well" ? "cobble" : "marble";
   if (t === "table" || t === "shelf" || t === "crates" || t === "bed") {
     const below = MAP[y + 1]?.[x];
     return below === "marble" || below === "carpet" || below === "glow" ? "marble" : below === "floor" ? "floor" : area?.kind === "outdoor" ? "grass" : "boards";
@@ -144,6 +145,17 @@ function paint(g: Phaser.GameObjects.Graphics, px: number, py: number, l: Look) 
       g.fillStyle(0x8a1f2a).fillRect(px, py, S, S);
       g.fillStyle(0xd4a640).fillRect(px, py + 2, S, 2).fillRect(px, py + S - 4, S, 2);
       g.fillStyle(0xd4a640, 0.6).fillCircle(px + 16, py + 16, 3);
+      break;
+    case "brazier":
+      g.fillStyle(0x3a3530).fillRect(px + 9, py + 18, 3, 12).fillRect(px + 20, py + 18, 3, 12);
+      g.fillStyle(0x4a4038).fillEllipse(px + 16, py + 18, 22, 8);
+      g.fillStyle(0xff7a1a).fillTriangle(px + 8, py + 17, px + 24, py + 17, px + 16, py + 1);
+      g.fillStyle(0xffd84a).fillTriangle(px + 11, py + 17, px + 21, py + 17, px + 16, py + 7);
+      break;
+    case "innerdoor":
+      g.fillStyle(0x5c3a1a).fillRect(px + 2, py + 2, S - 4, S - 4);
+      g.fillStyle(0x8b5a2b).fillRect(px + 5, py + 4, S - 10, S - 6);
+      g.fillStyle(0xd4a640).fillCircle(px + S - 10, py + 17, 2);
       break;
     case "statue":
       g.fillStyle(0xbdb6a0).fillRect(px + 6, py + 22, 20, 8);

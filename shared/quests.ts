@@ -136,6 +136,9 @@ export interface QuestStep {
   visitLines?: Partial<Record<NpcId, string[]>>;
   /** Reach steps: what you see at each place. */
   spotLines?: Record<string, string>;
+  /** Steps that finish by themselves (putting on the robe): what someone says when it's done, and who. */
+  doneLines?: string[];
+  doneSpeaker?: string;
 }
 
 export type ChapterId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "wren" | "ysolde" | "moss" | "bryn" | "odo" | "bryn_bandits" | "kael_hunt"
@@ -1193,8 +1196,10 @@ export function teacherOf(skill: SkillId): Chapter | null {
  * Rev 5: the story. Older saves skip the Prologue's start (Awakening to The
  * Old Sweeper): they've already met Maren. A Blessing, the Oath and Act 1 are
  * open to them like anyone.
+ * Rev 6 (version 0.14): a step added to Awakening after Celene's first talk
+ * (putting on the robe). Anyone past her first talk moves one step along.
  */
-export const QUEST_REV = 5;
+export const QUEST_REV = 6;
 const PROLOGUE_SKIP: ChapterId[] = ["awakening", "hall", "lanterns", "sweeper"];
 export function migrateQuest(saved: unknown, rev: number | undefined): QuestProgress {
   const q = migrateOld(saved, rev);
@@ -1205,6 +1210,7 @@ export function migrateQuest(saved: unknown, rev: number | undefined): QuestProg
       if (!q.ch.maren) q.ch.maren = { step: 0, count: 0 };
     }
   }
+  if ((rev ?? 1) < 6 && q.ch.awakening && q.ch.awakening.step >= 1) q.ch.awakening.step = Math.min(q.ch.awakening.step + 1, chapterById("awakening").steps.length);
   return q;
 }
 /** Rev 4 added two steps to Maren's chapter after "Tell Maren your rod broke" (the trip to the Repairer). */

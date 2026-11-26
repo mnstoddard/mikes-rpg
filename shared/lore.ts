@@ -30,7 +30,7 @@ const LIGHTHALL: Book[] = [
   {
     title: "On the Shrines, by Keeper Aldric",
     pages: [
-      "A shrine is a door the light comes through. It finds a spark in the Emberheart, deep under Heartvale, and gives it a body.",
+      "A shrine is a door the ember comes through. It finds a spark in the Emberheart, deep under Heartvale, and gives it a body.",
       "When an Emberborn falls, the shrine nearest them gathers up what's left of the spark and makes them again. We do not fully understand it. We tend it, as a gardener tends what he did not plant.",
       "Every shrine must be lit by hand, and kept lit. A dark shrine raises no one.",
     ],
@@ -38,7 +38,7 @@ const LIGHTHALL: Book[] = [
   {
     title: "The Order of the Emberguard: its Rule",
     pages: [
-      "1. Welcome every Emberborn who wakes. 2. Keep every shrine lit. 3. Write down every deed, so the light remembers.",
+      "1. Welcome every Emberborn who wakes. 2. Keep every shrine lit. 3. Write down every deed, so the Emberheart remembers.",
       "4. Ask nothing of the Rooted (the ordinary folk) but their trust. 5. Honor the worthy with Radiance.",
       "6. The ledgers are for the Keepers alone. (Someone has underlined this one twice.)",
     ],
@@ -47,7 +47,7 @@ const LIGHTHALL: Book[] = [
     title: "A Calendar of Radiance Ceremonies",
     pages: [
       "A long list of names and years, one every few decades. Halric. Ida. Tilda. Orla. Dozens more.",
-      "Beside each name, in a neat hand: \"light returned to the Heart Shrine\". Beside a few, in a different ink: \"spark flawed\".",
+      "Beside each name, in a neat hand: \"ember returned to the Heart Shrine\". Beside a few, in a different ink: \"spark flawed\".",
       "One line near the end has been cut out of the page with a very sharp knife.",
     ],
   },
@@ -62,7 +62,7 @@ const LIGHTHALL: Book[] = [
     title: "The Withering: notes from the Barrens",
     pages: [
       "It began in the far west, where the Old Kingdom's city stood. Grass greys, then crumbles. Animals grow thin and angry. Wells taste of ash.",
-      "The Ashbound blame the shrines. This is, of course, nonsense. The shrines are the only light the Barrens have left.",
+      "The Ashbound blame the shrines. This is, of course, nonsense. The shrines are the only warmth the Barrens have left.",
       "Note in the margin, in pencil: \"Then why is it worst where the shrines are brightest?\" It has been rubbed half out.",
     ],
   },
@@ -154,7 +154,7 @@ const TOWN: Book[] = [
   {
     title: "A Child's Book of the Emberborn",
     pages: [
-      "\"Where do heroes come from?\" asked little Pip. \"From the light,\" said his mother. \"And where do they go?\" \"Back to the light, when they're done.\"",
+      "\"Where do heroes come from?\" asked little Pip. \"From the Emberheart,\" said his mother. \"And where do they go?\" \"Back to the Emberheart, when they're done.\"",
       "Pip thought about this for a long time. \"That's sad,\" he said. His mother didn't answer.",
     ],
   },

@@ -930,7 +930,12 @@ export class WorldRoom extends Room<WorldState> {
       if (msg?.reconnected) return;
       const step = this.step(p);
       if (!step) this.say(client, tutorialDone(p.quest) ? "Welcome back!" : "Welcome back! Talk to anyone with a ❗ for your next lesson.");
-      else if (p.quest.active === "awakening" && p.quest.ch.awakening?.step === 0) this.say(client, "✨ You open your eyes on the steps of the Heart Shrine. Light pours over you. Someone is kneeling beside you: talk to Sister Celene (the ❗, just below the shrine).");
+      else if (p.quest.active === "awakening" && p.quest.ch.awakening?.step === 0) {
+        // The opening scene (Mike's note #1): you wake lying by the shrine, and Sister Celene comes over, helps you up and talks to you.
+        this.say(client, "✨ You open your eyes on the steps of the Heart Shrine. The flame crackles above you, and someone is hurrying over.");
+        const celene = npcById("celene")!;
+        this.doTalk(client, p, chapterById("awakening"), this.step(p)!, celene, [], true);
+      }
       else if (p.quest.active === "maren" && p.quest.ch.maren?.step === 0) this.say(client, `Welcome! Go and talk to ${GUIDE_NAME} in her cottage by the lake (${areaAt(p.x, p.y)?.id === "lighthall" ? "walk out of the big doors at the bottom of this hall, then " : ""}west along the road: your 🗺️ map shows her ❗). She'll show you how to get started.`);
       else this.say(client, `Welcome back! Your task: ${step.task}.`);
       for (const note of p.loginNotes.splice(0)) this.say(client, note);
@@ -1994,6 +1999,7 @@ export class WorldRoom extends Room<WorldState> {
     p.faceX = npc.x;
     p.faceY = npc.y;
     if (npc.id === "bryn") this.renownTalk(client, p); // a new rank, if you've earned one
+    if (this.robeHelp(client, p, npc)) return;
     if (this.storyClick(client, p, npc)) return;
     if (this.talkQuest(client, p, npc)) return;
     if (STORY_STATIONS.has(npc.id)) return this.say(client, `${npc.name}: ${this.stationLook(p, npc)}`);
@@ -2286,6 +2292,10 @@ export class WorldRoom extends Room<WorldState> {
   private goThrough(p: Player, door: Door) {
     const sid = this.sidOf(p);
     const client = sid ? this.clients.getById(sid) : undefined;
+    if (this.robeStep(p)) {
+      if (client) this.dialog(client, ["Not like that, friend! Put your robe on first: open your 🎒 bag, click the robe, then press Equip. Then come and meet Keeper Aldric."], "Sister Celene");
+      return;
+    }
     if (isDanger(door.to.x, door.to.y) && !isDanger(p.x, p.y) && !gateOpen(p.quest)) {
       if (client) this.say(client, this.notReady());
       return;
@@ -3435,6 +3445,9 @@ export class WorldRoom extends Room<WorldState> {
     const prog = this.prog(p);
     if (!prog) return;
     const chapter = chapterById(p.quest.active!);
+    const finished = this.step(p);
+    // A step that finished by itself (putting the robe on): someone says something about it.
+    if (client && finished?.doneLines?.length) this.dialog(client, finished.doneLines, finished.doneSpeaker ?? chapter.name);
     prog.step++;
     prog.count = 0;
     prog.got = []; // a fresh list for the next step (the last step's people don't count twice)
@@ -3581,7 +3594,7 @@ export class WorldRoom extends Room<WorldState> {
   }
 
   /** Do a talk step: they say their piece, take what they need, and hand over the rewards. */
-  private doTalk(client: Client, p: Player, chapter: Chapter, step: QuestStep, npc: NpcDef): boolean {
+  private doTalk(client: Client, p: Player, chapter: Chapter, step: QuestStep, npc: NpcDef, before: string[] = [], asIntro = false): boolean {
     const speaker = npc.kind === "person" ? npc.name : chapter.name;
     // Worn or on your belt counts too (you might have put the platelegs on).
     const hasNeed = (pre: string) => p.inventory.some((it) => it?.startsWith(pre))
@@ -3619,7 +3632,6 @@ export class WorldRoom extends Room<WorldState> {
       this.say(client, `🎁 ${speaker} gives you ${list}.`);
       if (step.coins) client.send("reward", { text: `+${formatMoney(step.coins)}` });
     }
-    this.dialog(client, lines, speaker);
     if (take.length) this.say(client, `You hand over ${take.map(([item, n]) => (n === 1 ? aOr(ITEMS[item].single) : `${n} ${plural(ITEMS[item].name)}`)).join(" and ")}.`);
     for (const [skill, xp] of Object.entries(step.xp ?? {}) as [SkillId, number][]) this.addSkillXp(p, client, skill, xp);
     // Alchemist Moss tells you the Tithe tonic's secret recipe.
@@ -3640,6 +3652,50 @@ export class WorldRoom extends Room<WorldState> {
     if (extra) this.say(client, `${chapter.name} also gives you ${extra}.`);
     this.sendInventory(client, p);
     this.saveSoon(p);
+    // One flowing conversation (Mike's note #10): if the same person has the next thing to say
+    // (the next step, or the next story chapter starting with a talk to them), carry straight on.
+    const next = this.nextTalkWith(p, npc);
+    if (next) return this.doTalk(client, p, next.chapter, next.step, npc, [...before, ...lines], asIntro);
+    const all = [...before, ...lines];
+    if (asIntro) client.send("intro", { name: speaker, lines: all, from: npc.id });
+    else this.dialog(client, all, speaker);
+    return true;
+  }
+
+  /** The talk step this person has for you right now, if any: the current step, or the first step of the story chapter they give next. */
+  private nextTalkWith(p: Player, npc: NpcDef): { chapter: Chapter; step: QuestStep } | null {
+    const q = p.quest;
+    const step = this.step(p);
+    if (q.active && step) {
+      const c = chapterById(q.active);
+      return step.goal.kind === "talk" && talkWith(c, step) === npc.id ? { chapter: c, step } : null;
+    }
+    const c = CHAPTERS.find((ch) => ch.act && ch.giver === npc.id && !q.ch[ch.id] && chapterOpen(q, ch.id) && gateMet(ch, this.levelOf(p)));
+    const first = c?.steps[0];
+    if (!c || !first || first.goal.kind !== "talk" || talkWith(c, first) !== npc.id) return null;
+    q.ch[c.id] = { step: 0, count: 0 };
+    q.active = c.id;
+    p.dirty = true;
+    return { chapter: c, step: first };
+  }
+
+  /** The robe step at the start (Mike's notes #2 and #3): the story waits, and the Emberhall's doors stay shut, until the robe is on. */
+  private robeStep(p: Player): boolean {
+    const step = this.step(p);
+    return p.quest.active === "awakening" && step?.goal.kind === "gear";
+  }
+
+  /** Keeper Aldric or Sister Celene, clicked while you're still in your shirt: they walk you through putting the robe on. */
+  private robeHelp(client: Client, p: Player, npc: NpcDef): boolean {
+    if ((npc.id !== "aldric" && npc.id !== "celene") || !this.robeStep(p)) return false;
+    const step = this.step(p)!;
+    const given = this.giveMissing(p, step.ensure);
+    if (given) this.sendInventory(client, p);
+    this.dialog(client, [
+      npc.id === "aldric" ? "Welcome, welcome! But first things first: let's get you dressed, and then we'll talk properly." : "Let's get you dressed first, then you can meet Keeper Aldric.",
+      "Open your 🎒 bag with the button at the bottom right of the screen. Click the robe, then press Equip. That's all there is to it.",
+      ...(given ? [`Here, take ${given}. You must have dropped yours.`] : []),
+    ], npc.name);
     return true;
   }
 
@@ -3835,7 +3891,7 @@ export class WorldRoom extends Room<WorldState> {
     if (!step) {
       return tutorialDone(p.quest)
         ? { ...base, done: true, quest: "All lessons done", giver: "", task: "Tap 📜 Quests to track a bounty from the board.", talk: false }
-        : { ...base, done: false, quest: "Pick your next lesson", giver: "", task: "Talk to anyone with a ❗ (the 📜 Quests tab says where they are)", talk: true };
+        : this.nextChapterView(p, base);
     }
     const chapter = chapterById(p.quest.active!);
     const progNow = this.prog(p)!;
@@ -3871,6 +3927,13 @@ export class WorldRoom extends Room<WorldState> {
     const warning = step.needsTool && !p.belt[step.needsTool] ? `Put your ${TOOL_TYPES[step.needsTool].name.toLowerCase()} back on your belt first!`
       : this.fightBlock(p) ? (step.fightWith === "magic" ? "Hold your staff first!" : step.fightWith === "ranged" ? "Hold your sling first!" : "Hold a weapon first!") : undefined;
     return { ...base, done: false, quest: chapter.title, giver: chapter.name, task: step.task, progress, fraction, talk: g.kind === "talk", warning, need };
+  }
+
+  /** Between chapters: the story chapter (or Maren's lessons) you can start next, by name, else "pick your next lesson" (Mike's note #11). */
+  private nextChapterView(p: Player, base: Omit<QuestView, "done" | "quest" | "giver" | "task" | "talk">): QuestView {
+    const next = CHAPTERS.find((c) => (c.act || c.id === "maren") && !p.quest.ch[c.id] && chapterOpen(p.quest, c.id) && gateMet(c, this.levelOf(p)));
+    if (next) return { ...base, done: false, quest: next.title, giver: next.name, task: `Talk to ${next.name}, ${next.where}`, talk: true };
+    return { ...base, done: false, quest: "Pick your next lesson", giver: "", task: "Talk to anyone with a ❗ (the 📜 Quests tab says where they are)", talk: true };
   }
 
   /** The quest tracker's picture checklist: one picture per thing the step needs, with how many you have. */

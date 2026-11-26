@@ -57,6 +57,8 @@ import { openCreator } from "./creator";
 import { lookToRecipe } from "./look";
 import * as sfx from "./sfx";
 import { AutoQuality } from "./quality";
+import { Townsfolk } from "./townsfolk";
+import { setMusicPlace, setupMusicSettings, updateMusic } from "./music";
 
 const MIN_DIST = 7;
 const MAX_DIST = 42;
@@ -132,6 +134,13 @@ export class World3D {
   private areaSwitch: (() => void) | null = null;
   private areaHold = 0;
   private mapPlayersTimer = 0; // how soon to tell the 🗺️ map where other players are
+  /** Ordinary people walking round town and the Emberhall (shared/townsfolk.ts). */
+  private folk: Townsfolk;
+  /**
+   * The opening scene for a new character (Mike's note #1): they're formed lying by
+   * the Heart Shrine, Sister Celene walks over and helps them up, then she talks.
+   */
+  private intro: { t: number; wait?: number; name: string; lines: string[]; talked: boolean; cam: { yaw: number; pitch: number; dist: number }; skip?: HTMLButtonElement; sparks?: THREE.Points } | null = null;
 
   /** Turn on only the nearest few lamps (every point light costs on every pixel). */
   private pickLights() {
@@ -195,6 +204,7 @@ export class World3D {
     } catch { /* storage blocked */ }
 
     this.drawNpcs();
+    this.folk = new Townsfolk(this.scene);
     this.showArea(OUTDOORS, 120, 95);
     this.setupInput();
     window.addEventListener("resize", () => this.resize());
@@ -216,6 +226,7 @@ export class World3D {
   async start() {
     this.hud.textContent = "Log in to play";
     sfx.setupSoundSettings();
+    setupMusicSettings();
     // ?at=x,y shows that spot of the world behind the login box (for looking around and testing).
     const at = new URLSearchParams(location.search).get("at")?.split(",").map(Number);
     if (at && at.length === 2 && at.every(Number.isFinite)) this.lookAt(at[0], at[1]);
@@ -275,7 +286,15 @@ export class World3D {
       return show;
     };
     for (const p of this.players.values()) { near(p.root); p.update(dt, this.time); }
+    this.updateIntro(dt, me);
     for (const p of this.npcs.values()) if (near(p.root)) p.update(dt, this.time);
+    const worldMs = Date.now() + this.clockOffset;
+    this.folk.update(dt, this.time, worldMs, this.here.id);
+    for (const r of this.folk.all()) near(r);
+    // Doors swing open for anyone walking up to them.
+    this.terrain.walkers = [...[...this.players.values()].filter((p) => p.root.visible).map((p) => p.root.position), ...this.folk.roots().map((r) => r.position)];
+    setMusicPlace(this.room ? this.here.id : "");
+    updateMusic(dt);
     for (const m of this.monsters.values()) if (near(m.root)) m.update(dt, this.time);
     for (const s of this.stations.values()) if (near(s.root)) s.update(dt, this.time, night);
     if ((this.lightTimer -= dt) < 0) { this.lightTimer = 0.5; this.pickLights(); }
@@ -451,7 +470,7 @@ export class World3D {
     const fwd = (k.has("KeyW") ? 1 : 0) - (k.has("KeyS") ? 1 : 0);
     const right = (k.has("KeyD") ? 1 : 0) - (k.has("KeyA") ? 1 : 0);
     // Not while making your character (its window covers the game).
-    if (this.walkPaused || (!fwd && !right) || document.getElementById("creator")) return { dx: 0, dy: 0 };
+    if (this.walkPaused || (!fwd && !right) || document.getElementById("creator") || this.intro) return { dx: 0, dy: 0 };
     // The camera sits at (sin yaw, cos yaw) from you, so it looks along -(sin yaw, cos yaw).
     const s = Math.sin(this.yaw), c = Math.cos(this.yaw);
     const vx = -s * fwd + c * right, vz = -c * fwd - s * right;
@@ -536,8 +555,18 @@ export class World3D {
   }
 
   private onClick(sx: number, sy: number) {
-    if (!this.room) return;
+    if (!this.room || this.intro) return;
     const t = this.tileAt(sx, sy);
+    // Townsfolk: they just say something (they aren't part of any quest).
+    const folkHit = this.raycaster.intersectObjects(this.folk.roots(), true)[0];
+    if (folkHit) {
+      for (let o: THREE.Object3D | null = folkHit.object; o; o = o.parent) {
+        if (!o.userData.folk) continue;
+        const said = this.folk.lineFor(o.userData.folk, Date.now() + this.clockOffset);
+        if (said) { this.closePanels(); openDialog(said.name, [said.line]); }
+        return;
+      }
+    }
     if (!t) return;
     const { x, y } = t;
     this.closePanels();
@@ -695,6 +724,7 @@ export class World3D {
     });
     room.onMessage("died", () => this.showDeath());
     room.onMessage("dialog", (msg: { name: string; lines: string[] }) => { this.marker.visible = false; openDialog(msg.name, msg.lines); });
+    room.onMessage("intro", (msg: { name: string; lines: string[] }) => this.startIntro(msg.name, msg.lines));
     room.onMessage("stamina", (msg: { stamina: number; max: number; winded?: number }) => renderStamina(msg.stamina, msg.max, msg.winded ?? 0));
     room.onMessage("reward", (msg: { text: string }) => this.floatText(msg.text, "#ffd84a", true));
     room.onMessage("caught", (msg: { id: string; item: string }) => this.players.get(msg.id)?.catchFish(msg.item));
@@ -786,6 +816,92 @@ export class World3D {
     this.marker.visible = false;
     this.lastDisciplines = undefined;
     this.skillXpSeen = false;
+  }
+
+  // ---------------------------------------------------------------- the opening scene
+
+  /** A new character's first moments: wait for the character maker to close, then play the scene. */
+  private startIntro(name: string, lines: string[]) {
+    if (this.intro) return;
+    this.intro = { t: -1, name, lines, talked: false, cam: { yaw: this.yaw, pitch: this.pitch, dist: this.dist } };
+  }
+
+  private updateIntro(dt: number, me: Person | undefined) {
+    const it = this.intro;
+    if (!it || !me) return;
+    const celene = this.npcs.get("celene");
+    const home = NPCS.find((n) => n.id === "celene")!;
+    const wake = { x: Math.floor(me.root.position.x / TILE), y: Math.floor(me.root.position.z / TILE) };
+    // Lying still while the character maker is open.
+    if (it.t < 0) {
+      me.lying = 1;
+      me.faceYaw(0, true);
+      // (A brand-new character makes their look first: the character maker opens a moment after logging in.)
+      const mine = this.room?.state.players.get(this.room.sessionId);
+      it.wait = (it.wait ?? 0) + dt;
+      if (document.getElementById("creator") || (!mine?.look && it.wait < 3)) return;
+      it.t = 0;
+      this.yaw = 0.35; this.pitch = 0.55; this.dist = 10;
+      const skip = document.createElement("button");
+      skip.id = "intro-skip";
+      skip.className = "shop-btn";
+      skip.textContent = "Skip ▸";
+      skip.onclick = () => { if (this.intro) this.intro.t = Math.max(this.intro.t, 4.4); };
+      document.body.append(skip);
+      it.skip = skip;
+      // Embers gather where the new hero is being formed.
+      const n = 60, pos = new Float32Array(n * 3);
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      it.sparks = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffb040, size: 0.12, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+      it.sparks.frustumCulled = false;
+      this.scene.add(it.sparks);
+      me.setFaded(0);
+    }
+    const before = it.t;
+    it.t += dt;
+    const t = it.t;
+    const passed = (s: number) => before < s && t >= s;
+    // 0 - 2 s: the embers swirl in and the body forms.
+    if (it.sparks) {
+      const pos = it.sparks.geometry.attributes.position as THREE.BufferAttribute;
+      const k = Math.min(1, t / 2.2);
+      for (let i = 0; i < pos.count; i++) {
+        const a = i * 2.4 + t * 2, r = (1 - k) * (1.6 + (i % 5) * 0.3) + 0.15;
+        pos.setXYZ(i, me.root.position.x + Math.cos(a) * r, 0.2 + ((i * 0.37) % 1) * (1 - k) * 2 + 0.1, me.root.position.z - 0.8 + Math.sin(a) * r * 0.8);
+      }
+      pos.needsUpdate = true;
+      (it.sparks.material as THREE.PointsMaterial).opacity = t < 2 ? 1 : Math.max(0, 1 - (t - 2) / 0.6);
+      if (t > 2.7) { this.scene.remove(it.sparks); it.sparks.geometry.dispose(); (it.sparks.material as THREE.Material).dispose(); it.sparks = undefined; }
+    }
+    me.setFaded(Math.min(1, Math.max(0, (t - 0.3) / 1.6)));
+    // 1.2 s: Sister Celene hurries over to the left of you.
+    if (celene) {
+      if (passed(1.2)) celene.walkTo(home.x + 1, home.y - 1, 650);
+      if (passed(1.85)) celene.walkTo(wake.x - 1, wake.y, 650);
+      if (t > 2.5 && t < 4.6) celene.faceYaw(Math.PI / 2);
+    }
+    // 2.8 - 4 s: she takes your hand and helps you up.
+    me.lying = t < 2.8 ? 1 : Math.max(0, 1 - (t - 2.8) / 1.2);
+    if (t > 3.6) me.faceYaw(-Math.PI / 2);
+    // 4.4 s: she talks.
+    if (t >= 4.4 && !it.talked) {
+      it.talked = true;
+      if (celene && t - before > 0.5) celene.walkTo(wake.x - 1, wake.y, 10); // skipped: be there already
+      me.lying = 0;
+      me.setFaded(1);
+      it.skip?.remove();
+      openDialog(it.name, it.lines);
+    }
+    // Once you've read what she says, she goes back to her place by the shrine and the game is yours.
+    if (it.talked && !document.body.classList.contains("dialog-open")) {
+      if (celene) {
+        celene.walkTo(home.x + 1, home.y - 1, 650);
+        setTimeout(() => celene.walkTo(home.x, home.y, 650), 700);
+      }
+      this.yaw = it.cam.yaw; this.pitch = it.cam.pitch; this.dist = it.cam.dist;
+      this.intro = null;
+    }
   }
 
   private onResume() {
@@ -988,10 +1104,12 @@ export class World3D {
       this.sky.setTime(d < 0.25 ? "day" : d < 0.75 ? "sunset" : "night");
     } else {
       const cave = this.here.kind === "cave";
-      this.hemi.color.setHex(cave ? 0x8a8ab0 : 0xfff0d8);
-      this.hemi.groundColor.setHex(cave ? 0x1a1814 : 0x5a4a38);
-      this.hemi.intensity = cave ? 0.7 : 1.3;
-      this.sun.color.setHex(cave ? 0xffb070 : 0xfff1d6);
+      // The Emberhall glows warm, like firelight (version 0.14).
+      const ember = this.here.id === "lighthall";
+      this.hemi.color.setHex(cave ? 0x8a8ab0 : ember ? 0xffdcb0 : 0xfff0d8);
+      this.hemi.groundColor.setHex(cave ? 0x1a1814 : ember ? 0x6a3a20 : 0x5a4a38);
+      this.hemi.intensity = cave ? 0.7 : ember ? 1.15 : 1.3;
+      this.sun.color.setHex(cave ? 0xffb070 : ember ? 0xffc890 : 0xfff1d6);
       this.sun.intensity = cave ? 0.7 : 1.4;
       this.sun.position.copy(this.focus).add(new THREE.Vector3(10, 40, 20));
       this.renderer.toneMappingExposure = 1.05;

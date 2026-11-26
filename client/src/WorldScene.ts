@@ -279,6 +279,8 @@ export class WorldScene extends Phaser.Scene {
       this.marker.setVisible(false);
       openDialog(msg.name, msg.lines);
     });
+    // The opening scene (the 3D game plays it; here it's just what Sister Celene says).
+    room.onMessage("intro", (msg: { name: string; lines: string[] }) => openDialog(msg.name, msg.lines));
     room.onMessage("stamina", (msg: { stamina: number; max: number }) => renderStamina(msg.stamina, msg.max));
     room.onMessage("belt", (belt: Belt) => renderBelt(belt));
     room.onMessage("station", (msg: { npc: string }) => {

@@ -24,6 +24,7 @@ import { ITEMS, ItemId } from "../shared/items";
 import { MONSTERS, MONSTER_IDS, SPELLS, SPELL_IDS, MonsterId, ATTACK_STAMINA, POTION_HEAL, WANDER_RADIUS, LEASH_RADIUS, AGGRO_RADIUS, MANA_REGEN_TICKS, HEALTH_REGEN_MS, ARMOR_LEVEL } from "../shared/combat";
 import { DISCIPLINES, DISCIPLINE_IDS, SkillId, xpForLevel, MAX_LEVEL, findSkill } from "../shared/disciplines";
 import { NPCS } from "../shared/npcs";
+import { TOWNSFOLK } from "../shared/townsfolk";
 import { AREAS, MAP_LABELS, WORLD_SPAWNS, FENCE_Y, DOORS } from "../shared/world";
 import { areaAt, MAP, MAP_NODES, isDanger } from "../shared/map";
 import { SHOPS, SHOP_IDS } from "../shared/shops";
@@ -512,6 +513,14 @@ function peoplePages() {
   gamePage({ title: "People in the game", category: "People", icon: "🧑", sources: ["shared/npcs.ts"], summary: "Everyone you can talk to in the game today." }, () => [
     "Everyone you can talk to in the game today. The [[Groups and people]] page lists the story's characters too, including ones not in the game yet.",
     table(["Person", "Where", "Quests"], rows),
+    "Ordinary people also walk about town and the Emberhall: see [[Townsfolk]].",
+  ].join("\n\n"));
+  gamePage({ title: "Townsfolk", category: "People", icon: "🚶", sources: ["shared/townsfolk.ts"], summary: "Ordinary people of Emberhold going about their day." }, () => [
+    "Townsfolk are ordinary people of [[Emberhold]] going about their day, so the town and [[The Emberhall]] feel lived in (since version 0.14). They aren't part of any quest and never block your way. Each walks a loop between a few spots and stops a moment at each. Everyone sees them in the same place, because where they are depends only on the world clock. Click one and they say one of their lines.",
+    table(["Who", "Where", "About them", "What they might say"], TOWNSFOLK.map((f) => {
+      const a = AREAS.find((x) => x.id === f.area);
+      return [`${f.badge} ${f.name}`, a ? link(a.name) : f.area, canon(f.about), f.lines.map((l) => `*"${canon(l)}"*`).join(" · ")];
+    })),
   ].join("\n\n"));
 }
 

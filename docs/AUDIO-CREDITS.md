@@ -14,3 +14,19 @@ always know where each one came from. The file name prefix tells you the source.
 
 Mike picked every sound in the Sound Gallery. To swap one, change its name in `PICKS` in
 `client3d/src/game/sfx.ts` and drop the new file into the `sfx` folder.
+
+## Music
+
+| File | Where it plays | Source | License |
+| --- | --- | --- | --- |
+| `client3d/src/game/music/gregorian-chant.mp3` | Inside the Emberhall | "Gregorian Chant" by Kevin MacLeod (incompetech.com) | CC BY 4.0 |
+
+CC BY means the game **must** credit him wherever the game is shown. The game does this in
+⚙️ Settings > 🎶 Credits. The credit line is:
+
+> "Gregorian Chant" Kevin MacLeod (incompetech.com)
+> Licensed under Creative Commons: By Attribution 4.0 License
+> http://creativecommons.org/licenses/by/4.0/
+
+To add a song for another place, drop the mp3 in `client3d/src/game/music/`, add it to `SONGS` in
+`client3d/src/game/music.ts`, and credit it here and in Settings if its license asks for that.

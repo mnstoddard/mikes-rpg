@@ -14,7 +14,8 @@ export const TICK_MS = 600; // one game tick, like old-school RuneScape
 export type Tile = "grass" | "path" | "water" | "tree" | "rock" | "bridge" | "fence" | "gate" | "sign" | "wall" | "floor" | "house" | "boards"
   | "dig" | "cave" | "cavewall" | "crystal" | "field"
   | "void" | "door" | "lockeddoor" | "cobble" | "sand" | "withered" | "cliff" | "hedge" | "well" | "barricade" | "roof" | "goldroof"
-  | "marblewall" | "marble" | "glow" | "carpet" | "statue" | "table" | "shelf" | "crates" | "bed" | "grave" | "gravel";
+  | "marblewall" | "marble" | "glow" | "carpet" | "statue" | "table" | "shelf" | "crates" | "bed" | "grave" | "gravel"
+  | "brazier" | "innerdoor";
 
 const LEGEND: Record<string, Tile> = {
   ".": "grass", ",": "path", "~": "water", "=": "bridge", ":": "grass", "|": "fence", "+": "gate", "!": "sign",
@@ -22,6 +23,7 @@ const LEGEND: Record<string, Tile> = {
   "*": "dig", C: "cave", K: "cavewall", G: "crystal", f: "field",
   " ": "void", D: "door", J: "lockeddoor", ";": "cobble", s: "sand", w: "withered", "^": "cliff", h: "hedge", q: "well", x: "barricade",
   r: "roof", u: "goldroof", A: "marblewall", a: "marble", o: "glow", z: "carpet", S: "statue", n: "table", b: "shelf", e: "crates", y: "bed", V: "grave", l: "gravel",
+  F: "brazier", d: "innerdoor",
 };
 
 /** Map letters for each type of tree, rock and fishing spot. */
@@ -49,7 +51,7 @@ export const charAt = (x: number, y: number) => ROWS[y]?.[x] ?? " ";
 
 const BLOCKED: ReadonlySet<Tile> = new Set<Tile>([
   "water", "tree", "rock", "fence", "sign", "wall", "house", "cavewall",
-  "void", "lockeddoor", "cliff", "hedge", "well", "barricade", "roof", "goldroof", "marblewall", "statue", "table", "shelf", "crates", "bed", "grave",
+  "void", "lockeddoor", "cliff", "hedge", "well", "barricade", "roof", "goldroof", "marblewall", "statue", "table", "shelf", "crates", "bed", "grave", "brazier",
 ]);
 export const isBlockedTile = (t: Tile) => BLOCKED.has(t);
 

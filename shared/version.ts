@@ -13,6 +13,25 @@ export interface GameUpdate { version: string; date: string; title: string; chan
 
 export const UPDATES: GameUpdate[] = [
   {
+    version: "0.14",
+    date: "2026-11-26",
+    title: "The Emberhall comes alive",
+    changes: [
+      { text: "A new opening: your character is formed lying on the floor by the Heart Shrine. Sister Celene hurries over, helps you up and starts talking (a Skip button skips the scene)." },
+      { text: "Before the story goes on, you put on your robe. Celene gives it to you, and talking to Keeper Aldric or Celene walks you through it (open your 🎒 bag, click the robe, press Equip). You can't leave the Emberhall until it's on." },
+      { text: "Talking to Keeper Aldric at the start is now one conversation: he carries straight on into the next part instead of making you click him again and again." },
+      { text: "At the very start the hint now says to talk to Keeper Aldric, instead of \"pick your next lesson\". When nothing is going on it names the next person to see." },
+      { text: "Real doors instead of gaps in the walls. Click anywhere on a door, not just the bottom of it, to use it. Doors swing open as people walk up to them." },
+      { text: "The Emberhall has a makeover: burning braziers, the statues of the Extinguished line the walls of the great hall (the separate statue room is gone), a library through a door on one side, and an infirmary on the other with a bedroom for each patient. Warmer, ember-coloured light inside." },
+      { text: "The Heart Shrine is now a tall, flickering flame in a stone bowl, with embers rising from it. Lit shrines elsewhere show a small flame too." },
+      { text: "Townsfolk: 14 ordinary people now walk about town, the Emberhall and the Hearthstone Inn (Baker Hanna, little Pip, Guard Dunstan, Scholar Quill and more). They aren't part of any quest and don't get in your way. Click one and they'll say something." },
+      { text: "Music: Kevin MacLeod's \"Gregorian Chant\" plays softly inside the Emberhall. ⚙️ Settings has a 🎵 Music switch and volume, and a new 🎶 Credits section." },
+      { text: "Ember words instead of light words: Keeper Aldric says the Emberheart made you, and every bit of dialogue was checked for leftover \"light\" wording. The heroes of the past are now called the Extinguished everywhere (no more Radiants or Hall of Champions). Story chapter names changed to match: The Hall of Embers, A Flame in the Thornwood and Act 1: The First Trial." },
+      { text: "The 📜 Quests menu only shows quests you can do now or have done. Locked ones are hidden, with a short note saying how many more open up as you go." },
+      { text: "Everything people say to you now goes into the message log too, so you can read it again. The log (tap the message box) has filter buttons: 💬 Dialogue, 🚩 Chat, ⭐ Events and ⚠️ Warnings." },
+    ],
+  },
+  {
     version: "0.13",
     date: "2026-11-25",
     title: "A faster, smoother game",
