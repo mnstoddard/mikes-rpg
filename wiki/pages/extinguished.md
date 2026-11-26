@@ -8,9 +8,9 @@ infobox.How: A [[Radiance Ceremony]], every few decades
 infobox.Statues: In [[The Emberhall]]
 infobox.Old_name: The Radiants
 ---
-**The Extinguished** are the greatest [[Emberborn]] heroes of the past. Each one was honoured with a [[Radiance Ceremony]], where they burned brighter than ever and then went out like a candle. Their statues stand in [[The Emberhall]], where [[Brother Oren]] tells their stories. One plinth stands empty, its name scratched off.
+**The Extinguished** are the greatest [[Emberborn]] heroes of the past. Each one was honoured with a [[Radiance Ceremony]], where they burned brighter than ever and then went out like a candle. Their statues line the walls of the great hall in [[The Emberhall]], where [[Brother Oren]] tells their stories. One plinth stands empty, its name scratched off.
 
-They used to be called the Radiants, and their statues had a room of their own, the Hall of Champions. The next game update moves the statues into the main hall.
+They used to be called the Radiants, and their statues had a room of their own, the Hall of Champions. Since version 0.14 the statues line the walls of the Emberhall's great hall instead, and the game calls them the Extinguished too.
 
 ## The official story
 

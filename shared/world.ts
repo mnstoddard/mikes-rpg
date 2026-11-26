@@ -13,7 +13,7 @@
 //   . grass   , dirt path   ; cobblestones   ~ water   = bridge   s sand   w withered grass
 //   ^ cliff   h hedge   q well   x barricade   | fence   + gate   ! warning sign
 //   r roof    u gold roof (the Emberhall)   H wooden wall   p floorboards   D door   J locked door
-//   A white stone wall   a white stone floor   o glowing floor   z gold carpet   S statue
+//   A white stone wall   a white stone floor   o glowing floor   z gold carpet   S statue   F brazier   d inside door (between rooms)
 //   W purple wall   _ purple rug (the Mages' Guild)   n table   b bookshelf   e crates   y bed
 //   C cave floor   K cave wall   G crystal floor   V gravestone   l stony ground   * dig patch   f farm lot
 //   Trees: T pine  O oak  B birch  M maple  Y yew  I ironwood  E elderwood
@@ -538,29 +538,47 @@ function insides(): Inside[] {
   const list: Inside[] = [];
 
   // ---- The Emberhall: the Emberguard's temple, built around the Heart Shrine ----
+  // Three parts (version 0.14): the great hall in the middle (the Heart Shrine's
+  // flame at the top, braziers, and the statues of the Extinguished along both
+  // walls), the library and the stores to the west, and the infirmary to the
+  // east, with a bedroom for each patient. Real doors ("d") join the rooms.
   {
     const c = new Canvas(37, 27).room("A", "a");
-    // The west wing: the ledger room (locked), Enchanter Vale's alcove, the keepers' quarters.
+    // ---- West: the library (north) and the stores (south), each with a door into the great hall.
     c.fill(10, 1, 10, 25, "A");
-    c.fill(1, 9, 9, 9, "A"); c.fill(1, 18, 9, 18, "A");
-    c.set(5, 9, "J"); // the ledger room's locked door
-    c.fill(10, 13, 10, 14, "a"); c.fill(10, 21, 10, 22, "a");
-    c.fill(2, 2, 8, 2, "b"); c.fill(2, 4, 3, 7, "n"); c.fill(6, 4, 8, 4, "e");
-    // Sister Wynne's dormitory: beds along the walls (the way in from the nave stays clear).
-    for (let y = 19; y <= 25; y++) c.set(1, y, "y");
-    for (const y of [19, 24, 25]) c.set(9, y, "y");
-    c.fill(2, 10, 4, 10, "b");
-    // The east wing: the Hall of Champions (statues of past Radiants) and the library.
+    c.fill(1, 14, 9, 14, "A");
+    c.set(10, 7, "d"); // library door
+    c.set(10, 20, "d"); // stores door
+    // The library: shelves along the north wall, then rows of shelves (books on both sides), and a reading table.
+    c.fill(1, 1, 9, 1, "b");
+    c.fill(2, 4, 4, 4, "b"); c.fill(6, 4, 8, 4, "b");
+    c.fill(2, 7, 4, 7, "b");
+    c.fill(2, 10, 4, 10, "b"); c.fill(6, 10, 8, 10, "b");
+    c.fill(6, 12, 7, 12, "n");
+    // The stores: crates, and the ledger room (locked) in the corner. Enchanter Vale keeps a corner here too.
+    c.fill(4, 15, 4, 18, "A"); c.fill(1, 18, 4, 18, "A");
+    c.set(2, 18, "J"); // the ledger room's locked door
+    c.fill(1, 15, 3, 15, "b");
+    c.fill(6, 15, 9, 15, "e"); c.set(9, 16, "e");
+    c.fill(1, 25, 3, 25, "b"); c.set(1, 23, "n");
+    // ---- East: the infirmary. A hall (Sister Wynne's) with four bedrooms off it, one bed each.
     c.fill(26, 1, 26, 25, "A");
-    c.fill(27, 18, 35, 18, "A");
-    c.fill(26, 12, 26, 14, "a"); c.fill(26, 21, 26, 22, "a");
-    for (const [x, y] of [[28, 3], [31, 3], [34, 3], [28, 8], [34, 8], [28, 13], [34, 13]] as const) c.set(x, y, "S");
-    // The library: shelves along both walls, and two rows of free-standing shelves (books on both sides).
-    c.fill(28, 19, 35, 19, "b"); c.fill(28, 25, 35, 25, "b");
-    for (const y of [21, 23]) { c.fill(29, y, 30, y, "b"); c.fill(33, y, 34, y, "b"); }
-    // The nave: pillars, a gold carpet from the door to the shrine, and the shrine's glow.
-    for (const [x, y] of [[13, 5], [23, 5], [13, 11], [23, 11], [13, 17], [23, 17], [13, 22], [23, 22]] as const) c.set(x, y, "A");
+    c.set(26, 13, "d"); // infirmary door
+    c.fill(29, 1, 29, 25, "A");
+    for (const y of [7, 13, 19]) c.fill(30, y, 35, y, "A");
+    for (const [top, door] of [[1, 4], [8, 10], [14, 16], [20, 22]] as const) {
+      c.set(29, door, "d");
+      c.set(35, top + 1, "y"); // the bed, head against the east wall
+      c.set(35, top + 3, "n"); // a bedside table
+    }
+    c.fill(27, 1, 28, 1, "e"); // linen and bandages
+    c.fill(27, 25, 28, 25, "b"); // remedies
+    // ---- The great hall: the Heart Shrine's flame, braziers, pillars, and a gold carpet from the door.
     c.fill(16, 3, 20, 7, "o");
+    for (const [x, y] of [[14, 4], [22, 4], [14, 23], [22, 23]] as const) c.set(x, y, "F"); // braziers
+    for (const [x, y] of [[13, 12], [23, 12], [13, 19], [23, 19]] as const) c.set(x, y, "A"); // pillars
+    // The Extinguished: statues along both walls (Brother Oren's tour), and the empty plinth.
+    for (const [x, y] of [[11, 10], [11, 15], [25, 10], [25, 16]] as const) c.set(x, y, "S");
     c.fill(17, 8, 19, 25, "z");
     const door = { x: 18, y: 26 };
     c.set(door.x, door.y, "D");
@@ -568,10 +586,11 @@ function insides(): Inside[] {
       id: "lighthall", name: "The Emberhall", kind: "indoor", canvas: c, doors: [door],
       spots: {
         heartShrine: { x: 18, y: 5 }, wake: { x: 18, y: 8 }, aldric: { x: 21, y: 9 }, celene: { x: 15, y: 9 },
-        vale: { x: 3, y: 14 }, ledgerDoor: { x: 5, y: 9 }, oren: { x: 31, y: 13 }, lisette: { x: 31, y: 22 },
-        tomas: { x: 6, y: 11 }, wynne: { x: 5, y: 22 }, plinth: { x: 31, y: 8 },
-        // Four of the Radiants' statues (Brother Oren's tour).
-        radiant_1: { x: 28, y: 13 }, radiant_2: { x: 34, y: 13 }, radiant_3: { x: 28, y: 8 }, radiant_4: { x: 34, y: 8 },
+        oren: { x: 13, y: 14 }, plinth: { x: 25, y: 21 },
+        lisette: { x: 7, y: 8 }, ledgerDoor: { x: 2, y: 18 }, tomas: { x: 4, y: 21 }, vale: { x: 3, y: 23 },
+        wynne: { x: 28, y: 10 },
+        // The four statues on Brother Oren's tour.
+        radiant_1: { x: 11, y: 10 }, radiant_2: { x: 25, y: 10 }, radiant_3: { x: 11, y: 15 }, radiant_4: { x: 25, y: 16 },
       },
     });
   }

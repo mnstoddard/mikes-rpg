@@ -169,11 +169,11 @@ export const NPCS: NpcDef[] = [
   {
     // Where new heroes wake (and come back to when they're knocked out).
     id: "heart_shrine", name: "The Heart Shrine", kind: "station", ...at("lighthall.heartShrine"), color: 0xfff2b0,
-    greeting: "Golden light pours from the shrine. It feels warm, like being remembered.",
+    greeting: "The Heart Shrine's flame burns tall and gold. Its warmth feels like being remembered.",
   },
   {
     id: "aldric", name: "Keeper Aldric", kind: "person", ...at("lighthall.aldric"), color: 0xf4e3b0, badge: "🕯️",
-    greeting: "Welcome, friend! The light made you for a reason. Everything here is yours to learn.",
+    greeting: "Welcome, friend! The Emberheart made you for a reason. Everything here is yours to learn.",
   },
   {
     id: "celene", name: "Sister Celene", kind: "person", ...at("lighthall.celene"), color: 0xfdfdfd, badge: "🤍",
@@ -185,7 +185,7 @@ export const NPCS: NpcDef[] = [
   },
   {
     id: "oren", name: "Brother Oren", kind: "person", ...at("lighthall.oren"), color: 0xeadcb5, badge: "🏛️",
-    greeting: "These are the Radiants: the greatest heroes the shrines ever raised. Perhaps one day, you.",
+    greeting: "These are the Extinguished: the greatest heroes the shrines ever raised. Perhaps one day, you.",
   },
   {
     id: "lisette", name: "Sister Lisette", kind: "person", ...at("lighthall.lisette"), color: 0xeadcb5, badge: "📚",
@@ -197,20 +197,20 @@ export const NPCS: NpcDef[] = [
   },
   {
     id: "wynne", name: "Sister Wynne", kind: "person", ...at("lighthall.wynne"), color: 0xeadcb5, badge: "🛏️",
-    greeting: "Rest whenever you need to. The Emberhall's doors never close to an Emberborn.",
+    greeting: "The infirmary is here whenever you need it. Every patient gets a room of their own, and the Emberhall's doors never close to an Emberborn.",
   },
   {
     id: "plinth", name: "Empty plinth", kind: "station", ...at("lighthall.plinth"), color: 0xbdb6a0,
     greeting: "A plinth with no statue. Someone has scratched the name off the stone.",
   },
-  // Four of the Radiants' statues (Brother Oren's tour, in shared/story.ts). Their plaques:
+  // Four of the Extinguished's statues, along the great hall's walls (Brother Oren's tour, in shared/story.ts). Their plaques:
   {
     id: "radiant_1", name: "Halric the Dawnbringer", kind: "station", ...at("lighthall.radiant_1"), color: 0xf3efe4,
     greeting: "HALRIC THE DAWNBRINGER. He held the Greyspine pass for three days, and fell eleven times. \"Again.\"",
   },
   {
     id: "radiant_2", name: "Ida of the Saltmere", kind: "station", ...at("lighthall.radiant_2"), color: 0xf3efe4,
-    greeting: "YSRA OF THE SALTMERE. She lit the coast's shrines from a fishing boat. Someone has left a seashell at her feet.",
+    greeting: "IDA OF THE SALTMERE. She lit the coast's shrines from a fishing boat. Someone has left a seashell at her feet.",
   },
   {
     id: "radiant_3", name: "Tilda Ashwalker", kind: "station", ...at("lighthall.radiant_3"), color: 0xf3efe4,
@@ -235,11 +235,11 @@ export const NPCS: NpcDef[] = [
   },
   {
     id: "thorn_shrine", name: "Thornwood shrine", kind: "station", ...at("thornShrine"), color: 0xbdb6a0,
-    greeting: "Shrine stones laid out in a ring, waiting for the light.",
+    greeting: "Shrine stones laid out in a ring, waiting for the flame.",
   },
   {
     id: "rhys", name: "Rhys", kind: "person", ...at("rhys"), color: 0xe67e22, badge: "🔥",
-    greeting: "Ha! Still at it? I'm going to be a Radiant before you, you know.",
+    greeting: "Ha! Still at it? I'm going to have a statue in the Emberhall before you do, you know.",
   },
 ];
 

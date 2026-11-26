@@ -14,7 +14,7 @@ import {
 import { GUIDE_NAME, teacherOf, type ChapterView, type QuestView } from "../../shared/quests";
 import { RANKS as LIGHT_RANKS, STORY_ITEMS, TITHE_MAX, isStoryItem } from "../../shared/story";
 import { SHOPS, SHOP_IDS, sellersOf, type ShopId } from "../../shared/shops";
-import { npcById } from "../../shared/npcs";
+import { NPCS, npcById } from "../../shared/npcs";
 import { isBroken, type RepairJob } from "../../shared/repair";
 import { PLAYER_COLORS } from "../../shared/colors";
 import {
@@ -685,19 +685,67 @@ renderDisciplines(lastDisciplines);
 // ---- Messages: the last few in the box, and every one since you logged in when you tap it ----
 
 const MAX_HISTORY = 500;
-const history: { at: Date; text: string }[] = [];
+/**
+ * What kind of message it is, for the message log's filters (Mike's note #14):
+ * what people say, party chat, game events (level ups, quests, gifts, news), and warnings.
+ */
+export type MessageKind = "dialogue" | "chat" | "event" | "warning";
+const history: { at: Date; text: string; kind: MessageKind }[] = [];
 const historyList = document.getElementById("history-list")!;
+const KIND_LABELS: [MessageKind, string][] = [["dialogue", "💬 Dialogue"], ["chat", "🚩 Chat"], ["event", "⭐ Events"], ["warning", "⚠️ Warnings"]];
+const FILTER_KEY = "rpg.logFilters";
+const shownKinds = new Set<MessageKind>(KIND_LABELS.map(([k]) => k));
+try {
+  const saved = JSON.parse(localStorage.getItem(FILTER_KEY) ?? "null");
+  if (Array.isArray(saved) && saved.length) { shownKinds.clear(); for (const k of saved) if (KIND_LABELS.some(([id]) => id === k)) shownKinds.add(k); }
+} catch { /* storage blocked */ }
+const filterBar = document.createElement("div");
+filterBar.id = "history-filters";
+historyList.before(filterBar);
+function renderFilters() {
+  filterBar.replaceChildren();
+  for (const [kind, text] of KIND_LABELS) {
+    const b = document.createElement("button");
+    b.className = "hf-btn" + (shownKinds.has(kind) ? " on" : "");
+    b.textContent = text;
+    b.title = shownKinds.has(kind) ? "Showing these. Tap to hide them." : "Hidden. Tap to show them.";
+    b.onclick = () => {
+      if (shownKinds.has(kind)) { if (shownKinds.size > 1) shownKinds.delete(kind); } else shownKinds.add(kind);
+      try { localStorage.setItem(FILTER_KEY, JSON.stringify([...shownKinds])); } catch { /* ignore */ }
+      renderFilters();
+      renderHistory();
+    };
+    filterBar.append(b);
+  }
+}
+renderFilters();
+
+const NPC_NAMES = NPCS.filter((n) => n.kind === "person").map((n) => n.name);
+/** Sort a message into one of the log's four kinds. */
+function kindOf(text: string): MessageKind {
+  if (text.startsWith("🚩")) return "chat";
+  if (/^(⚠|❌|🚫|🧭 Not so fast)/u.test(text) || /\b(can't|cannot|too full|not enough|you need|only buys|is locked|isn't ready)\b/i.test(text)) return "warning";
+  if (NPC_NAMES.some((n) => text.startsWith(`${n}: `))) return "dialogue";
+  return "event";
+}
+
+/** Everything someone says in a conversation box goes into the message log too, so it can be read again (Mike's note #13). */
+export function logDialogue(name: string, lines: string[]) {
+  for (const line of lines) history.push({ at: new Date(), text: `${name}: ${line}`, kind: "dialogue" });
+  while (history.length > MAX_HISTORY) history.shift();
+  if (document.body.classList.contains("history-open")) renderHistory();
+}
 
 /** Chat messages read aloud by themselves (with "Read aloud automatically" on): someone talking, gifts and warnings. (New quest steps are read from the quest box.) */
 const SAY_ALOUD = /^(🎁|📍|⚠|❗|🎉|🏅|📖)|^\S*\s?[A-Z][\w' ]{1,28}: /u;
 
-export function showMessage(text: string) {
+export function showMessage(text: string, kind?: MessageKind) {
   const line = document.createElement("div");
   line.append(speakButton(() => text), text);
   messagesEl.appendChild(line);
   if (SAY_ALOUD.test(text) && !text.startsWith("📜")) autoSpeak(text, true);
   while (messagesEl.children.length > MAX_MESSAGES) messagesEl.firstChild!.remove();
-  history.push({ at: new Date(), text });
+  history.push({ at: new Date(), text, kind: kind ?? kindOf(text) });
   if (history.length > MAX_HISTORY) history.shift();
   if (document.body.classList.contains("history-open")) renderHistory();
 }
@@ -711,13 +759,15 @@ function renderHistory() {
   // Only jump to the newest message if you were already at the bottom (not while reading back).
   const atBottom = historyList.scrollHeight - historyList.scrollTop - historyList.clientHeight < 30;
   historyList.replaceChildren();
-  if (!history.length) historyList.append(el("", "No messages yet."));
-  for (const h of history) {
+  const shown = history.filter((h) => shownKinds.has(h.kind));
+  if (!shown.length) historyList.append(el("", history.length ? "Nothing here with these filters. Tap a filter above to show more." : "No messages yet."));
+  for (const h of shown) {
     const row = document.createElement("div");
     const time = document.createElement("span");
     time.className = "h-time";
     time.textContent = h.at.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
     const words = h.text;
+    row.className = "h-" + h.kind;
     row.append(time, speakButton(() => words), words);
     historyList.appendChild(row);
   }
@@ -2841,16 +2891,20 @@ function renderQuestTab() {
     if (lessonsDoneN < lessons.length) box.append(el("qt-note", lessons[0]?.state === "done"
       ? "Each trainer teaches a skill or two. Talk to anyone with a ❗ over their head to start their lesson."
       : `Start with ${GUIDE_NAME}'s lessons: they open up every other trainer.`));
-    // Ones you can do now first, then the rest, finished ones last.
+    // Ones you can do now first, finished ones last. Locked ones are hidden (Mike's note #12): just a count.
     const order: Record<ChapterView["state"], number> = { active: 0, started: 1, open: 2, locked: 3, done: 4 };
-    const sorted = [...lessons].sort((a, b) => order[a.state] - order[b.state]);
+    const sorted = [...lessons].filter((c) => c.state !== "locked").sort((a, b) => order[a.state] - order[b.state]);
+    const lockedLessons = lessons.filter((c) => c.state === "locked").length;
     // Before Maren's lessons are done, the trainers are all shut: show Maren, then just name the rest.
     const marenRow = lessons.find((c) => c.id === "maren");
     if (marenRow && marenRow.state !== "done") {
       box.append(chapterRow(marenRow, true));
       const rest = sorted.filter((c) => c !== marenRow);
-      box.append(el("qt-note", `🔒 Then ${rest.length} trainers: ${rest.map((c) => (c.skills ?? []).map((id) => findSkill(id).def.icon).join("")).join(" ")}`));
-    } else for (const c of sorted) box.append(chapterRow(c, true));
+      box.append(el("qt-note", `🔒 Then ${rest.length} more trainers open up.`));
+    } else {
+      for (const c of sorted) box.append(chapterRow(c, true));
+      if (lockedLessons) box.append(el("qt-note", `🔒 ${lockedLessons} more lesson${lockedLessons === 1 ? "" : "s"} open up as you go.`));
+    }
 
     // ✨ The story: the Prologue, then Act 1 (once it's in sight). Finished chapters fold into one line.
     const prologue = q.chapters.filter((c) => c.act === "prologue");
@@ -2869,15 +2923,22 @@ function renderQuestTab() {
     for (const act of [prologue, showAct1 ? act1 : []]) {
       const left = act.filter((c) => c.state !== "done");
       if (!left.length) continue;
-      sbox.append(el("qt-sub qt-act", act === prologue ? "Prologue: Awakening in the Light" : "Act 1: The Light Welcomes You"));
-      for (const c of left) sbox.append(chapterRow(c));
+      const open = left.filter((c) => c.state !== "locked");
+      if (!open.length) continue;
+      sbox.append(el("qt-sub qt-act", act === prologue ? "Prologue: Awakening" : "Act 1: The First Trial"));
+      for (const c of open) sbox.append(chapterRow(c));
     }
+    const lockedStory = story.filter((c) => c.state === "locked").length;
+    if (lockedStory) sbox.append(el("qt-note", `🔒 ${lockedStory} more chapter${lockedStory === 1 ? "" : "s"} of the story open up as you go.`));
 
     // ⭐ Side quests: extras, for later.
     const side = q.chapters.filter((c) => c.side);
-    if (side.length) {
+    const sideOpen = side.filter((c) => c.state !== "locked");
+    if (sideOpen.length) {
       const xbox = section("side", `⭐ Side quests (${side.filter((c) => c.state === "done").length} of ${side.length})`);
-      for (const c of side) xbox.append(chapterRow(c));
+      for (const c of sideOpen) xbox.append(chapterRow(c));
+      const sideLocked = side.length - sideOpen.length;
+      if (sideLocked) xbox.append(el("qt-note", `🔒 ${sideLocked} more side quest${sideLocked === 1 ? "" : "s"} open up as you go.`));
     }
   }
   const bbox = section("bounties", `📋 Bounties${bounties.length ? ` (${bounties.length})` : ""}`);
@@ -2915,6 +2976,7 @@ export function openDialog(name: string, lines: string[]) {
   dialogLines = lines;
   dialogAt = 0;
   dialogName.textContent = name;
+  logDialogue(name, lines);
   document.body.classList.add("dialog-open");
   renderDialog();
 }
@@ -3096,7 +3158,7 @@ export function showPartyInvite(from: string) {
 export function addPartyChat(from: string, text: string) {
   partyChatLines.push({ from, text });
   while (partyChatLines.length > 6) partyChatLines.shift();
-  showMessage(`🚩 ${from}: ${text}`);
+  showMessage(`🚩 ${from}: ${text}`, "chat");
   drawParty();
 }
 
