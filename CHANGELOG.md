@@ -6,6 +6,11 @@ in `shared/version.ts` (the game reads it from there), so update both together.
 Each update adds 0.1 to the number. Version 1.0 is saved for the finished game on Steam
 (see docs/VERSION-1.0-PLAN.md).
 
+## 0.16 · 26 November 2026 · A login log for the admin
+
+- The server now keeps a login log: who logged in and when, new accounts, wrong passwords, what kind of device they used, and when they logged out (so you can see how long they played).
+- Only the admin can see it, at /admin/logins on the game's address (the same password as the bug report page). It shows who's playing right now, every login newest first, and a By player view with each player's last login, number of logins and total time played.
+
 ## 0.15 · 26 November 2026 · Music for the whole world
 
 - Music everywhere: Mike's song "Realm of Exploration" now plays softly anywhere that doesn't have its own music (out in Heartvale, in the houses, shops and caves). The Emberhall keeps its chant.

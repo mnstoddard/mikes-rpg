@@ -1,4 +1,4 @@
-import { Room, Client, ServerError } from "colyseus";
+import { Room, Client, ServerError, type AuthContext } from "colyseus";
 import { ArraySchema, MapSchema, Schema, type } from "@colyseus/schema";
 import { Door, MAP, MAP_HEIGHT, MAP_WIDTH, TICK_MS, TOWN_SPOT, WAKE_SPOT, areaAt, doorAt, isDanger, isWalkable, inTrainingBounds, randomSpawn, spotNear } from "../../shared/map";
 import { PLAYER_RADIUS, clearAt, findPath, Point, smoothPath } from "../../shared/pathfinding";
@@ -129,6 +129,36 @@ const failedLogins = new Map<string, { count: number; until: number }>();
 // RECONNECT_SECONDS to come back as if nothing happened before being logged out.
 const RECONNECT_SECONDS = 120;
 const waitingToReconnect = new Map<string, { reject: Function }>();
+// The login log (the admin's /admin/logins page): which log line each connected player's session is.
+const loginLines = new Map<string, Promise<number | null>>(); // sessionId -> login log id
+
+/** A short name for the player's browser and computer, from its user agent, e.g. "Chrome on Windows". */
+export function deviceName(userAgent: string | string[] | undefined): string {
+  const ua = String(userAgent ?? "");
+  if (!ua) return "unknown";
+  const browser = /Edg\//.test(ua) ? "Edge" : /OPR\/|Opera/.test(ua) ? "Opera" : /Firefox\//.test(ua) ? "Firefox"
+    : /Chrome\//.test(ua) ? "Chrome" : /Safari\//.test(ua) ? "Safari" : "a browser";
+  const system = /iPhone/.test(ua) ? "iPhone" : /iPad/.test(ua) ? "iPad" : /Android/.test(ua) ? "Android"
+    : /Windows/.test(ua) ? "Windows" : /Mac OS X|Macintosh/.test(ua) ? "Mac" : /CrOS/.test(ua) ? "Chromebook" : /Linux/.test(ua) ? "Linux" : "";
+  return system ? `${browser} on ${system}` : browser;
+}
+
+/** Add a line to the login log without ever holding up (or breaking) a login. */
+function logLogin(username: string, outcome: string, device: string): Promise<number | null> {
+  return store.addLogin({ username: username.slice(0, 40), outcome, device }).catch((err) => {
+    console.error("Login log failed:", err.message);
+    return null;
+  });
+}
+function logLogout(sessionId: string, how: string) {
+  const line = loginLines.get(sessionId);
+  loginLines.delete(sessionId);
+  return line?.then((id) => id === null ? undefined : store.endLogin(id, how))
+    .catch((err) => console.error("Login log failed:", err.message));
+}
+
+/** What onAuth hands to onJoin (client.auth): the account, plus a little about this login for the log. */
+type AuthedAccount = Account & { isNew?: boolean; device?: string };
 
 export class Player extends Schema {
   @type("string") name = "";
@@ -4479,7 +4509,8 @@ export class WorldRoom extends Room<WorldState> {
   // ---- Accounts ----
 
   /** Runs before a player joins: checks their username and password. */
-  async onAuth(_client: Client, options: { username?: string; password?: string; create?: boolean }) {
+  async onAuth(_client: Client, options: { username?: string; password?: string; create?: boolean }, context?: AuthContext) {
+    const device = deviceName(context?.headers?.["user-agent"]);
     const username = String(options?.username ?? "").trim();
     const password = String(options?.password ?? "");
     const k = usernameKey(username);
@@ -4512,17 +4543,19 @@ export class WorldRoom extends Room<WorldState> {
         f.count++;
         if (f.count >= 5) { f.count = 0; f.until = Date.now() + 60_000; }
         failedLogins.set(k, f);
+        logLogin(username, "failed", device);
         throw new ServerError(401, "Wrong username or password.");
       }
     }
     failedLogins.delete(k);
     if (online.has(k)) throw new ServerError(409, "That account is already logged in.");
     store.touchLogin(username).catch((err) => console.error("touchLogin failed:", err.message));
-    return account; // becomes client.auth
+    const authed: AuthedAccount = { ...account!, isNew: !!options?.create, device };
+    return authed; // becomes client.auth
   }
 
   onJoin(client: Client) {
-    const account = client.auth as Account;
+    const account = client.auth as AuthedAccount;
     const k = usernameKey(account.username);
     if (online.has(k)) throw new ServerError(409, "That account is already logged in.");
     online.add(k);
@@ -4534,6 +4567,7 @@ export class WorldRoom extends Room<WorldState> {
     p.lastSavedAt = Date.now();
     this.state.players.set(client.sessionId, p);
     console.log(`${p.name} logged in (${this.state.players.size} online)`);
+    loginLines.set(client.sessionId, logLogin(p.name, account.isNew ? "new" : "login", account.device ?? "unknown"));
   }
 
   async onLeave(client: Client, consented: boolean) {
@@ -4560,6 +4594,7 @@ export class WorldRoom extends Room<WorldState> {
     p.invite = null;
     this.state.players.delete(client.sessionId);
     console.log(`${p.name} logged out (${this.state.players.size} online)`);
+    logLogout(client.sessionId, "logged out");
     const saving = this.save(p).finally(() => { pendingSaves.delete(k); });
     pendingSaves.set(k, saving);
     online.delete(k);
@@ -4570,6 +4605,7 @@ export class WorldRoom extends Room<WorldState> {
     rooms.delete(this);
     // Normally onLeave already saved everyone; this is a safety net.
     await Promise.all([...this.state.players.values()].map((p) => this.save(p)));
+    await Promise.all([...this.state.players.keys()].map((sid) => logLogout(sid, "logged out")));
     if (this.farmSaveTimer) { clearTimeout(this.farmSaveTimer); await this.saveFarms(); }
   }
 
