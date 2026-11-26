@@ -1,12 +1,12 @@
 title: The Ashen Barrens
 category: Places
 icon: 🏜️
-summary: Dead badlands, Old Kingdom ruins, and the Ashbound camp.
+summary: Desert of glass and sand, full of Aldmeran ruins, and the Ashbound camp.
 aliases: Barrens, The Barrens, Ashen Barrens
 infobox.Levels: 45 to 60
 ---
-**The Ashen Barrens** are dead badlands in the west: ruins of the [[Old Kingdom]], the King's Road, and [[The Ashbound]]'s camp. Warden Dunn runs its great shrine ([[Emberwardens]]).
+**The Ashen Barrens** are a desert in the west: once Aldmera's richest farmland, now glass and sand. They hold ruins of [[Aldmera]], the King's Road, [[The Sundered Crown]] (the ruins of [[Whitestone]]), and [[The Ashbound]]'s camp. Warden Dunn keeps its great shrine, and the city around it ([[Emberwardens]]).
 
-It burned in the [[Sundering War]], and [[The Withering]] started here. [[Tamsin]]'s village withered away here.
+It burned when the Emberfall's torrent tore through Whitestone, and [[The Withering]] keeps turning what's left to glass and sand. [[Tamsin]]'s village withered away here.
 
 Not in the game yet; the road west is closed.

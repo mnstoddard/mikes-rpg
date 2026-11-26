@@ -5,7 +5,7 @@ aliases: The Emberborn, Kindled, Players
 summary: Heroes the shrines make from ember. No past, no family, and they come back when they fall. The players.
 infobox.Who: Every player character
 infobox.Made_at: [[The shrines]]
-infobox.First: [[Old Maren]], year 40
+infobox.First: About year 30, Halric the Dawnbringer among them
 infobox.Old_name: Kindled
 ---
 **Emberborn** are heroes [[The shrines]] make from [[The ember|ember]]. They wake on a shrine's steps with no past and no family, and when they fall they come back at a shrine. Every player is one. There are hundreds of them.
@@ -16,10 +16,14 @@ New Emberborn start as [[Hopefuls]]: they aren't members of [[The Emberguard]], 
 
 The ordinary folk who can't come back from death are called [[The Rooted]].
 
-::: secret
-Emberborn are made of stolen ember, and farmed for it. Each time one falls, the shrine skims a little ember off them ([[The Tithe]]). A strong Emberborn can be drained all at once in a [[Radiance Ceremony]], which feeds [[The Undying]] for years. And if the siphon stops, every Emberborn turns to ash. The emberstone pebble they wake holding is their thread's anchor.
+## Where they came from
 
-The first Emberborn were made in year 40 as soldiers to end the [[Sundering War]]. [[Old Maren]] was one of them.
+After [[The Emberfall (disaster)|the Emberfall]], wild ember was still tearing through the land. [[The Ember Circle]]'s great shrines caught it, and about thirty years after the Fall they began giving it bodies: the first Emberborn, protectors to stabilize and guard the ruined land. They fought through [[The Rebuilding]] and made the land safe again.
+
+Emberborn don't age, but after centuries they wear thin ([[The Fading]]). When a great champion has carried the flame long enough, they may be invited to a [[Radiance Ceremony]].
+
+::: secret
+The Emberborn were made for a good reason, and are used for a bad one. Each time one falls, the shrine skims a little ember off them ([[The Tithe]]). A bright Emberborn can be drained all at once in a [[Radiance Ceremony]], which feeds [[Archmage Vale]] for years. And if the shrines go dark, every Emberborn turns to ash. The emberstone pebble they wake holding is their thread's anchor.
 :::
 
 ## How it looks in play

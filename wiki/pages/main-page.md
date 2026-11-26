@@ -3,7 +3,7 @@ category: Wiki
 icon: 🔥
 summary: The team's book of everything in Emberfall and its land, Embervale: the story, the world, and how the game actually works.
 ---
-Welcome to the **Emberfall Wiki**. It's the place to look things up and keep the game consistent: who someone is, what an item does, where a monster lives, what really happened 500 years ago.
+Welcome to the **Emberfall Wiki**. It's the place to look things up and keep the game consistent: who someone is, what an item does, where a monster lives, what really happened 800 years ago.
 
 Pages come in two kinds, and each page says which it is at the bottom:
 
@@ -18,7 +18,7 @@ Red links are pages that don't exist yet. Secrets (the twists players shouldn't 
 - [[The Emberheart]] and [[The ember]]: what everything runs on.
 - [[The Emberguard]] and [[The Ashbound]]: the two sides.
 - [[Maps]]: the whole world and every building, drawn from the game.
-- [[History]]: 500 years, as it happened and as people tell it.
+- [[History]]: 800 years, as it happened and as people tell it.
 - [[Main story]]: the acts, from waking up as a Hopeful to the final choice.
 - [[Version history]]: what changed in each game update.
 - [[How to update the wiki]]: keeping it current.
