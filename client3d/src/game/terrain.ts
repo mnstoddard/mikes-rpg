@@ -11,8 +11,11 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { AREAS, AreaDef, DOORS, MAP, MAP_NODES, OUTDOORS, Tile, areaAt, charAt } from "../../../shared/map";
+import { CITY_BUILDINGS, CITY_SIGNS, type CityBuilding } from "../../../shared/world";
+import { cityBackdrop, cityLand, emberhallCrown, rampartBlock, RAMPART_H } from "./city";
 import { treeKey, type ResourceId } from "../../../shared/foraging";
 import { createEnv, house, TILE, type EnvPiece } from "../environment";
+import type { RoofKind, WallKind } from "../environment/building";
 import { hash2, makeRng, noise2, mix, rockGeo, painted } from "../environment/kit";
 import { createTree, TREE_TYPES, type Tree, type TreeKind } from "../trees";
 import { createRock, ROCK_TYPES, type Rock, type RockKind } from "../rocks";
@@ -57,7 +60,7 @@ function floorOf(t: Tile, area: AreaDef): Ground | null {
 }
 
 /** Tiles with something standing on them get the ground of their neighbours underneath. */
-const STANDS_ON = new Set<Tile>(["tree", "rock", "dig", "sign", "fence", "gate", "hedge", "well", "barricade", "statue", "grave", "crates", "table", "shelf", "bed", "door", "lockeddoor", "brazier", "innerdoor"]);
+const STANDS_ON = new Set<Tile>(["tree", "rock", "dig", "sign", "fence", "gate", "hedge", "well", "barricade", "statue", "grave", "crates", "table", "shelf", "bed", "door", "lockeddoor", "brazier", "innerdoor", "rampart", "tower", "citygate", "lamp", "stall"]);
 
 function groundUnder(x: number, y: number, area: AreaDef): Ground {
   for (let r = 1; r <= 3; r++) {
@@ -186,7 +189,7 @@ export class Terrain {
   blockHeight(x: number, y: number): number {
     if (areaAt(x, y) !== this.area) return 0;
     const t = MAP[y]?.[x];
-    if (this.area.kind === "outdoor") return buildingHeight(x, y);
+    if (this.area.kind === "outdoor") return t === "rampart" || t === "tower" || t === "citygate" ? RAMPART_H[t] : buildingHeight(x, y);
     return t === "wall" || t === "house" || t === "marblewall" || t === "lockeddoor" ? 2.2 : 0;
   }
 
@@ -496,6 +499,8 @@ export class Terrain {
         band.deleteAttribute("uv");
         band.translate((x + 0.5) * TILE, h - 0.1, (y + 0.5) * TILE);
         blocks.push(painted(band, t === "marblewall" || a.id === "guild" ? 0xd4a640 : 0x5c3a1a));
+      } else if (t === "rampart" || t === "tower" || t === "citygate") {
+        blocks.push(...rampartBlock(t, x, y));
       } else if (t === "cavewall") {
         for (let k = 0; k < 3; k++) {
           const r = 0.9 + rng() * 0.5;
@@ -591,6 +596,13 @@ export class Terrain {
         b.object.userData.tile = { x, y };
         c.group.add(b.object);
         c.live.push({ object: b.object, update: (dt, tt) => b.update(dt, tt), dispose: () => b.dispose() });
+      } else if (t === "lamp") {
+        // Emberhold's street lamps: they light up at night (the nearest few really light the street).
+        const lamp = createEnv("decor-lamp", { variant: 0, seed: x * 5 + y });
+        lamp.object.position.copy(tileCenter(x, y));
+        lamp.object.traverse((o) => { if ((o as THREE.Mesh).isMesh) o.castShadow = true; });
+        c.group.add(lamp.object);
+        c.live.push({ object: lamp.object, update: (dt, tt, night) => lamp.update(dt, tt, { night, wind: 0.3 }), dispose: () => lamp.dispose() });
       } else if (t === "innerdoor" || (t === "door" && a.kind === "indoor")) {
         const d = this.insideDoor(x, y, a);
         c.group.add(d.object);
@@ -692,15 +704,34 @@ export class Terrain {
       this.areaObjects.push({ object, update, dispose });
     };
     if (a.kind === "outdoor") {
-      // The sea all round, and the lakes and rivers (land sits on top of it).
-      const sea = new THREE.Mesh(new THREE.PlaneGeometry(a.w * TILE + 900, a.h * TILE + 900, 80, 80), this.water.material);
+      const city = CITY_BUILDINGS.some((b) => areaAt(b.x, b.y) === a);
+      // The sea all round, and the lakes and rivers (land sits on top of it). In the city, just under its river and ponds.
+      let [wx0, wy0, wx1, wy1] = [a.x - 225, a.y - 225, a.x + a.w + 225, a.y + a.h + 225];
+      if (city) {
+        [wx0, wy0, wx1, wy1] = [Infinity, Infinity, -Infinity, -Infinity];
+        for (let y = a.y; y < a.y + a.h; y++) for (let x = a.x; x < a.x + a.w; x++) if (MAP[y][x] === "water" || MAP[y][x] === "bridge") {
+          wx0 = Math.min(wx0, x); wy0 = Math.min(wy0, y); wx1 = Math.max(wx1, x + 1); wy1 = Math.max(wy1, y + 1);
+        }
+      }
+      const sea = new THREE.Mesh(new THREE.PlaneGeometry((wx1 - wx0) * TILE, (wy1 - wy0) * TILE, 80, 80), this.water.material);
       sea.rotation.x = -Math.PI / 2;
-      sea.position.set((a.x + a.w / 2) * TILE, -0.16, (a.y + a.h / 2) * TILE);
+      sea.position.set((wx0 + wx1) / 2 * TILE, -0.16, (wy0 + wy1) / 2 * TILE);
       sea.receiveShadow = true;
       add(sea);
-      for (const b of findBuildings()) {
+      if (city) {
+        // Emberhold: land all round instead of sea, the backdrop city, and its buildings you can go into.
+        add(cityLand(a.x * TILE, a.y * TILE, a.w * TILE, a.h * TILE));
+        const back = cityBackdrop((x, y, h) => HEIGHTS.set(y * 100000 + x, h));
+        add(back.object, back.update, back.dispose);
+        for (const s of CITY_SIGNS) if (areaAt(s.x, s.y) === a) this.signs.push({ text: s.text, at: tileCenter(s.x, s.y).setY(s.big ? 7 : 6.2) });
+      }
+      for (const b of city ? cityDetailed(a) : findBuildings()) {
         const built = makeBuilding(b);
         add(built.object, (dt, t, night) => built.update(dt, t, night), () => built.dispose());
+        if (b.city?.landmark === "emberhall") {
+          const crown = emberhallCrown(b.city, built.height * 0.6);
+          add(crown.object, crown.update, crown.dispose);
+        }
         // Tap anywhere on a door (not just the step in front of it) to walk through it.
         for (const d of b.doors) {
           const pick = new THREE.Mesh(DOOR_PICK, PICK_MAT);
@@ -746,6 +777,7 @@ const PROPS: Partial<Record<Tile, (x: number, y: number) => [string, number]>> =
   table: () => ["box-table", 0],
   shelf: (x, y) => [areaAt(x, y)?.id === "tam" ? "box-goods" : "box-shelf", Math.floor(hash2(x, y, 23) * 3)],
   bed: (x, y) => ["box-bed", Math.floor(hash2(x, y, 24) * 4)],
+  stall: (x, y) => ["box-stall", Math.floor(hash2(x, y, 25) * 4)],
 };
 
 /** Rooms whose tables have things on them (furniture.ts tableTop). */
@@ -803,6 +835,7 @@ function boxProp(id: string, variant = 0): THREE.Object3D {
   if (id === "box-shelf") return bookshelf(5 + variant);
   if (id === "box-goods") return goodsShelf(5 + variant);
   if (id === "box-bed") return bed(9 + variant);
+  if (id === "box-stall") return marketStall(variant);
   const g = new THREE.Group();
   const wood = new THREE.MeshStandardMaterial({ color: 0x8a5a34, roughness: 0.85 });
   const dark = new THREE.MeshStandardMaterial({ color: 0x5c3a1a, roughness: 0.85 });
@@ -825,6 +858,37 @@ function boxProp(id: string, variant = 0): THREE.Object3D {
       book.position.set(-0.75 + b * 0.18, 0.35 + s * 0.6, 0.12);
       g.add(book);
     }
+  }
+  g.traverse((o) => { if ((o as THREE.Mesh).isMesh) o.castShadow = true; });
+  return g;
+}
+
+/** A market stall (Emberhold): a counter of goods under a striped awning. */
+function marketStall(variant: number): THREE.Object3D {
+  const g = new THREE.Group();
+  const wood = new THREE.MeshStandardMaterial({ color: 0x7a5232, roughness: 0.85 });
+  const cloth = [0xc0392b, 0x2f7d6a, 0xe6b840, 0xd9772f][variant % 4];
+  const stripeA = new THREE.MeshStandardMaterial({ color: cloth, roughness: 0.9, side: THREE.DoubleSide });
+  const stripeB = new THREE.MeshStandardMaterial({ color: 0xf4ead0, roughness: 0.9, side: THREE.DoubleSide });
+  const counter = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.8, 0.9), wood);
+  counter.position.set(0, 0.4, 0.2);
+  g.add(counter);
+  for (const [x, z] of [[-0.85, -0.45], [0.85, -0.45], [-0.85, 0.6], [0.85, 0.6]]) {
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.1, 0.08), wood);
+    post.position.set(x, 1.05, z);
+    g.add(post);
+  }
+  for (let i = 0; i < 6; i++) {
+    const s = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.05, 1.4), i % 2 ? stripeB : stripeA);
+    s.position.set(-0.85 + 0.17 + i * 0.34, 2.15, 0.08);
+    s.rotation.x = -0.18;
+    g.add(s);
+  }
+  const goods = [0xd9772f, 0xc0392b, 0xe6b840, 0x7a9a4a, 0x8a5a9a];
+  for (let i = 0; i < 6; i++) {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(0.13, 6, 4), new THREE.MeshStandardMaterial({ color: goods[(i + variant) % goods.length], roughness: 0.7 }));
+    m.position.set(-0.65 + i * 0.26, 0.9, 0.25 + (i % 2) * 0.15);
+    g.add(m);
   }
   g.traverse((o) => { if ((o as THREE.Mesh).isMesh) o.castShadow = true; });
   return g;
@@ -886,7 +950,18 @@ const PICK_MAT = new THREE.MeshBasicMaterial();
 
 // ---------------------------------------------------------------- buildings seen from outside
 
-interface Building { x: number; y: number; w: number; h: number; roof: string; wall: string; doors: { x: number; y: number }[] }
+interface Building { x: number; y: number; w: number; h: number; roof: string; wall: string; doors: { x: number; y: number }[]; city?: CityBuilding }
+
+/** Emberhold's buildings drawn in full: the ones you can go into, and the Emberhall. */
+function cityDetailed(a: AreaDef): Building[] {
+  return CITY_BUILDINGS.filter((b) => b.detail && areaAt(b.x, b.y) === a).map((b) => {
+    const doors: { x: number; y: number }[] = [];
+    for (let y = b.y; y < b.y + b.h; y++) for (let x = b.x; x < b.x + b.w; x++) if (MAP[y][x] === "door") doors.push({ x, y });
+    return { x: b.x, y: b.y, w: b.w, h: b.h, roof: charAt(b.x, b.y), wall: charAt(b.x + 1, b.y + b.h - 1), doors, city: b };
+  });
+}
+
+const CITY_ROOF: Record<CityBuilding["roof"], [RoofKind, number]> = { slate: ["tile", 2], red: ["tile", 0], dark: ["tile", 1], thatch: ["thatch", 0], gold: ["gold", 1] };
 
 let buildingCache: Building[] | null = null;
 
@@ -932,11 +1007,12 @@ function buildingHeight(x: number, y: number): number {
   return HEIGHTS.get(y * 100000 + x) ?? 0;
 }
 
-function makeBuilding(b: Building): { object: THREE.Object3D; update: (dt: number, t: number, night: number) => void; dispose: () => void } {
+function makeBuilding(b: Building): { object: THREE.Object3D; height: number; update: (dt: number, t: number, night: number) => void; dispose: () => void } {
   const seed = b.x * 31 + b.y;
-  const wall = b.wall === "A" ? "marble" : b.wall === "W" ? "guild" : b.x >= 160 && b.y < 60 ? "plank" : "timber";
-  const roof = b.roof === "u" ? "gold" : wall === "plank" ? "thatch" : "tile";
-  const built = house({ tw: b.w, td: b.h - 0.5, wall, wallVariant: wall === "timber" ? seed % 3 : 0, roof, roofVariant: roof === "gold" ? 1 : seed % 3, seed });
+  const wall: WallKind = b.city ? b.city.wall : b.wall === "A" ? "marble" : b.wall === "W" ? "guild" : b.x >= 160 && b.y < 60 ? "plank" : "timber";
+  const [roof, roofVariant]: [RoofKind, number] = b.city ? CITY_ROOF[b.city.roof] : [b.roof === "u" ? "gold" : wall === "plank" ? "thatch" : "tile", b.roof === "u" ? 1 : seed % 3];
+  const wallVariant = wall === "timber" ? seed % 3 : wall === "plank" && b.city ? 1 : 0;
+  const built = house({ tw: b.w, td: b.h - 0.5, wall, wallVariant, roof, roofVariant, seed });
   for (let yy = b.y; yy < b.y + b.h; yy++) for (let xx = b.x; xx < b.x + b.w; xx++) HEIGHTS.set(yy * 100000 + xx, built.height);
   const object = new THREE.Group();
   built.piece.object.position.set((b.x + b.w / 2) * TILE, 0, (b.y + (b.h - 0.5) / 2) * TILE);
@@ -972,6 +1048,7 @@ function makeBuilding(b: Building): { object: THREE.Object3D; update: (dt: numbe
   object.traverse((o) => { if ((o as THREE.Mesh).isMesh) { o.castShadow = true; o.receiveShadow = true; } });
   return {
     object,
+    height: built.height,
     update: (dt, t, night) => parts.forEach((p) => p.update(dt, t, { night, wind: 0.3 })),
     dispose: () => parts.forEach((p) => p.dispose()),
   };

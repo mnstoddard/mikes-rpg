@@ -51,6 +51,16 @@ number of logins and total time played. Anyone playing right now is listed at th
 Lines older than a year are cleared out when the server starts. The JSON version is at
 `/admin/api/logins`. See `server/src/logins.ts`.
 
+## Emberhold and the Training Ground (version 0.17)
+
+The game now takes place inside **Emberhold**, a walled city (`buildEmberhold` in
+`shared/world.ts`, drawn in 3D by `client3d/src/game/city.ts`). Its four gates are shut
+for now. New characters wake in the Emberhall on Ember Hill; Keeper Aldric sends them to
+the **Emberhall Training Ground** just east of the hall, where every trainer teaches
+(their spots are the `tg.*` places in `shared/world.ts`). The Oath of the Flame opens once
+every trainer's lesson is done. The older Heartvale map is still there, past the gates.
+Some of the text below still describes the old village.
+
 ## The tutorial: Old Maren
 
 Every new character starts with empty hands next to **Old Maren**, a retired

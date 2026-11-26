@@ -2,7 +2,7 @@
 // docs/QUESTLINE.md. These chapters go round the trainers'
 // lessons in shared/quests.ts:
 //
-//   Awakening -> The Hall of Embers -> Light the Way -> The Old Sweeper
+//   Awakening -> The Hall of Embers -> Light the Way -> The Training Ground
 //   -> Old Maren's lessons and the trainers' lessons
 //   -> A Blessing (after 4 lessons) -> Oath of the Flame (after Kael's lesson)
 //   -> Act 1: twelve quests, mostly in any order, ending with
@@ -81,7 +81,7 @@ export const SPOT_NAMES: Record<string, string> = {
 
 const ALDRIC = "Keeper Aldric";
 const CELENE = "Sister Celene";
-const LIGHTHALL = "in the Emberhall, the great white temple in the town square";
+const LIGHTHALL = "in the Emberhall, the great white temple on Ember Hill, in the middle of Emberhold";
 
 /** Prologue chapters before Old Maren's lessons. */
 export const PROLOGUE_START: Chapter[] = [
@@ -198,26 +198,26 @@ export const PROLOGUE_START: Chapter[] = [
       {
         task: `Talk to ${ALDRIC}`, goal: { kind: "talk" },
         lines: [
-          "Now, a small job, but an important one. Every evening we light the lanterns on the Emberhall's steps and round the square, so no one in town walks in the dark.",
+          "Now, a small job, but an important one. Every evening we light the lanterns on the Emberhall's steps and round the plaza below them, so no one in the city walks in the dark.",
           "Walk out through the great doors at the bottom of the hall and light all six: click each lantern. The ❗ marks show you which are still dark.",
         ],
       },
       {
-        task: "Light the 6 lanterns on the steps and round the square", goal: { kind: "visit", npcs: ["lantern_1", "lantern_2", "lantern_3", "lantern_4", "lantern_5", "lantern_6"], names: "lanterns" },
-        hint: "Go out through the great doors at the bottom of the hall. The lanterns stand on the steps and round the square: click each one with a ❗.",
+        task: "Light the 6 lanterns on the steps and round the plaza", goal: { kind: "visit", npcs: ["lantern_1", "lantern_2", "lantern_3", "lantern_4", "lantern_5", "lantern_6"], names: "lanterns" },
+        hint: "Go out through the great doors at the bottom of the hall. The lanterns stand on the steps and round the plaza: click each one with a ❗.",
         visitLines: {
           lantern_1: ["You light the lantern. Warm light spills across the white steps."],
           lantern_2: ["You light the lantern. Its glow catches the gold on the Emberhall's doors."],
           lantern_3: ["You light the lantern. A cat stretches out in the warm light under it."],
-          lantern_4: ["You light the lantern. Captain Bryn nods to you from the bounty board."],
-          lantern_5: ["You light the lantern. Someone in the square claps."],
-          lantern_6: ["You light the last lantern. The whole square glows gold."],
+          lantern_4: ["You light the lantern. A guard on the plaza nods to you."],
+          lantern_5: ["You light the lantern. Someone on the plaza claps."],
+          lantern_6: ["You light the last lantern. The whole plaza glows gold."],
         },
       },
       {
         task: `Go back to ${ALDRIC}`, goal: { kind: "talk" },
         lines: [
-          "I saw the square light up from here! Beautiful. A flame shared is a gift, friend, and you've just given some.",
+          "I saw the plaza light up from here! Beautiful. A flame shared is a gift, friend, and you've just given some.",
           "Take this lantern for yourself. With it in your bag, the nights won't be so dark for you.",
         ],
         give: [{ item: "lantern" }],
@@ -225,14 +225,15 @@ export const PROLOGUE_START: Chapter[] = [
     ],
   },
   {
-    id: "sweeper", act: "prologue", title: "The Old Sweeper", giver: "aldric", name: ALDRIC, where: LIGHTHALL, after: ["lanterns"],
+    id: "sweeper", act: "prologue", title: "The Training Ground", giver: "aldric", name: ALDRIC, where: LIGHTHALL, after: ["lanterns"],
     steps: [
       {
         task: `Talk to ${ALDRIC}`, goal: { kind: "talk" },
         lines: [
           "One more thing. You'll need to feed yourself, and earn your way. Old Maren can teach you that.",
-          "She lives in the little cottage on the lake shore, west along the road. Harmless. She's been here forever, and she teaches every new hero the basics.",
-          "The Emberguard pay every trainer in town to teach the Emberborn, so every lesson is a gift from the Emberhall. Off you go: out of the great doors, then west along the road to the lake. Your 🗺️ map shows her ❗.",
+          "You'll find her in the Emberhall Training Ground, just east of the hall, behind the green hedge. She's been here forever, and she teaches every new hero the basics.",
+          "Every trainer in the city works there too: woodcutting, mining, smithing, cooking, fighting, magic, farming, all of it. The Emberguard pay them to teach the Emberborn, so every lesson is a gift from the Emberhall.",
+          "Learn from all of them, then come back to me and swear the Oath. Off you go: out of the great doors, then east across the plaza. Your 🗺️ map shows Maren's ❗.",
         ],
       },
     ],
@@ -247,7 +248,7 @@ export const PROLOGUE_END: Chapter[] = [
       {
         task: `Talk to ${CELENE}`, goal: { kind: "talk" }, bless: true,
         lines: [
-          "Look at you! Four trainers already. Aldric is so proud, and so am I.",
+          "Look at you! Trainers lining up to teach you already. Aldric is so proud, and so am I.",
           "Kneel a moment. There. That's a blessing of the Heart Shrine: for half an hour, everything you learn sticks better. You'll earn half as much XP again.",
           "Use it well! Gather 20 of anything: logs, ore, fish, herbs. I want to see you shine.",
         ],
@@ -268,7 +269,7 @@ export const PROLOGUE_END: Chapter[] = [
     ],
   },
   {
-    id: "oath", act: "prologue", title: "Oath of the Flame", giver: "aldric", name: ALDRIC, where: LIGHTHALL, after: ["blessing", "kael"],
+    id: "oath", act: "prologue", title: "Oath of the Flame", giver: "aldric", name: ALDRIC, where: LIGHTHALL, after: ["blessing", "maren", "tam", "holt", "greta", "brann", "rook", "kael", "wren", "ysolde", "moss", "bryn", "odo"],
     steps: [
       {
         task: `Talk to ${ALDRIC}`, goal: { kind: "talk" },
@@ -587,7 +588,7 @@ export const ACT_ONE: Chapter[] = [
     ],
   },
   {
-    id: "hollow_wolves", act: "act1", title: "The Hollow Wolves", giver: "kael", name: "Huntmaster Kael", where: "in the lodge by the gate", after: ["oath", "kael"],
+    id: "hollow_wolves", act: "act1", title: "The Hollow Wolves", giver: "kael", name: "Huntmaster Kael", where: "in his lodge in the Lower Town", after: ["oath", "kael"],
     steps: [
       {
         task: "Talk to Huntmaster Kael", goal: { kind: "talk" },

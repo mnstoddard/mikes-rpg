@@ -9,7 +9,7 @@ import * as THREE from "three";
 import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { getStateCallbacks, Room } from "colyseus.js";
-import { AreaDef, MAP, OUTDOORS, TICK_MS, areaAt, doorAt, isWalkable } from "../../../shared/map";
+import { AreaDef, MAP, OUTDOORS, TICK_MS, TOWN_SPOT, areaAt, doorAt, isWalkable } from "../../../shared/map";
 import { bookAt } from "../../../shared/lore";
 import { Minimap, nextGoal } from "./minimap";
 import { CombatMasteryId, CombatMasteryXp, MONSTERS, MonsterId, SpellId, combatMasteryName } from "../../../shared/combat";
@@ -205,7 +205,8 @@ export class World3D {
 
     this.drawNpcs();
     this.folk = new Townsfolk(this.scene);
-    this.showArea(OUTDOORS, 120, 95);
+    const town = areaAt(TOWN_SPOT.x, TOWN_SPOT.y) ?? OUTDOORS;
+    this.showArea(town, TOWN_SPOT.x, TOWN_SPOT.y);
     this.setupInput();
     window.addEventListener("resize", () => this.resize());
     this.resize();
@@ -1054,7 +1055,7 @@ export class World3D {
     this.stations.forEach((s, id) => { const n = NPCS.find((d) => d.id === id)!; s.root.userData.show = inArea(n.x, n.y); });
     this.room?.state.players.forEach((pl: any, id: string) => { const v = this.players.get(id); if (v) v.root.userData.show = inArea(pl.x, pl.y) || id === this.room!.sessionId; });
     this.room?.state.monsters?.forEach((m: any, id: string) => { const v = this.monsters.get(id); if (v) v.root.userData.show = m.alive && inArea(m.x, m.y); });
-    this.plotViews.forEach((v) => { v.group.visible = a === OUTDOORS; });
+    this.plotViews.forEach((v, key) => { const lot = LOTS[Number(key)]; v.group.visible = !!lot && a === areaAt(lot.x, lot.y); });
     this.sky.object.visible = a.kind === "outdoor";
     this.scene.background = a.kind === "outdoor" ? null : new THREE.Color(0x000000);
     this.updateDaylight();
@@ -1371,7 +1372,7 @@ export class World3D {
     let view = this.plotViews.get(key);
     if (view) { this.scene.remove(view.group); view.sign.element.remove(); view.crops.forEach((c) => c.element.remove()); }
     const group = new THREE.Group();
-    group.visible = this.here === OUTDOORS;
+    group.visible = this.here === areaAt(lot.x, lot.y);
     const plot = this.plots.get(key);
     const sign = label("sign3d small", plot ? `${plot.owner}'s farm` : "Free lot: ask Farmer Odo");
     sign.obj.position.copy(tileCenter(lot.x, lot.y)).add(new THREE.Vector3(LOT_SIZE * TILE / 2 - TILE / 2, 1.2, -TILE / 2));

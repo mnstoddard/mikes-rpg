@@ -140,7 +140,14 @@ const lots: Point[] = [];
 const areas: AreaDef[] = [];
 const doors: Door[] = [];
 /** Outside door tiles waiting to be linked to their area's inside door. */
-const pendingDoors: { x: number; y: number; out: Point; area: string; sign?: string; label: string }[] = [];
+const pendingDoors: { x: number; y: number; out: Point; area: string; sign?: string; label: string; from?: string }[] = [];
+/**
+ * Version 0.17: the town moved inside Emberhold's walls. Heartvale's old village
+ * buildings are still drawn (it's where the gates will lead one day), but their
+ * doors don't go anywhere now: the same shops and houses are in the city.
+ */
+const oldTown = (_d: { x: number; y: number; out: Point; area: string; sign?: string; label: string }) => {};
+const oldLots: Point[] = [];
 
 export const OVER_W = 240;
 export const OVER_H = 160;
@@ -271,7 +278,7 @@ function buildOverworld(): Canvas {
   c.fill(93, 63, 109, 63, "A");
   c.set(lh!.x, lh!.y, "D");
   c.fill(96, 64, 106, 65, "a"); // the white steps
-  pendingDoors.push({ ...lh!, area: "lighthall", label: "Enter the Emberhall", sign: "✨ The Emberhall" });
+  oldTown({ ...lh!, area: "lighthall", label: "Enter the Emberhall", sign: "✨ The Emberhall" });
   places.lighthallSteps = { x: 101, y: 65 };
   places.board = { x: 110, y: 69 };
   places.bryn = { x: 112, y: 69 };
@@ -281,33 +288,33 @@ function buildOverworld(): Canvas {
 
   // ---- West of the square: the General Store and Rook's workshop (south of the road) ----
   const tam = building(c, 74, 76, 9, 7, { side: "n", at: 4 });
-  pendingDoors.push({ ...tam!, area: "tam", label: "Enter the General Store", sign: "💰 General Store" });
+  oldTown({ ...tam!, area: "tam", label: "Enter the General Store", sign: "💰 General Store" });
   const rook = building(c, 63, 76, 9, 7, { side: "n", at: 4 });
-  pendingDoors.push({ ...rook!, area: "rook", label: "Enter Woodworker Rook's workshop", sign: "🪚 Woodworker Rook" });
+  oldTown({ ...rook!, area: "rook", label: "Enter Woodworker Rook's workshop", sign: "🪚 Woodworker Rook" });
   places.tanning_rack = { x: 72, y: 76 };
   // Old Maren's cottage, on the lake's east shore (her stove is inside).
   const maren = building(c, 64, 64, 5, 4, { side: "s", at: 2 });
-  pendingDoors.push({ ...maren!, area: "maren", label: "Enter Old Maren's cottage", sign: "🎣 Old Maren" });
+  oldTown({ ...maren!, area: "maren", label: "Enter Old Maren's cottage", sign: "🎣 Old Maren" });
   // Wren's hut, by the lake, and the chicken coop north of the road.
   const wren = building(c, 54, 76, 7, 6, { side: "n", at: 3 });
-  pendingDoors.push({ ...wren!, area: "wren", label: "Enter Herbalist Wren's hut", sign: "🌱 Herbalist Wren" });
+  oldTown({ ...wren!, area: "wren", label: "Enter Herbalist Wren's hut", sign: "🌱 Herbalist Wren" });
   c.fill(72, 61, 82, 69, "|"); c.fill(73, 62, 81, 68, "."); c.set(77, 69, "."); // the coop's fence, with a gap
   spawnIn(c, "chicken", 6, 73, 62, 81, 68, r);
   // The Mages' Guild, south-west of town, near the lake shore.
   c.road(39, 74, 39, 81, ",", 1);
   const guild = building(c, 31, 82, 17, 11, { side: "n", at: 8 }, { roof: "r", wall: "W" });
   for (let x = 31; x <= 47; x++) c.set(x, 82, x === 39 ? "D" : "W"); // purple stone front
-  pendingDoors.push({ ...guild!, area: "guild", label: "Enter the Mages' Guild", sign: "🔮 Mages' Guild" });
+  oldTown({ ...guild!, area: "guild", label: "Enter the Mages' Guild", sign: "🔮 Mages' Guild" });
 
   // ---- East of the square: Trainer Row (north of the road) and the inn ----
   const holt = building(c, 121, 63, 8, 9, { side: "s", at: 3 });
-  pendingDoors.push({ ...holt!, area: "holt", label: "Enter Forester Holt's house", sign: "🪓 Forester Holt" });
+  oldTown({ ...holt!, area: "holt", label: "Enter Forester Holt's house", sign: "🪓 Forester Holt" });
   const greta = building(c, 131, 63, 8, 9, { side: "s", at: 3 });
-  pendingDoors.push({ ...greta!, area: "greta", label: "Enter Miner Greta's house", sign: "⛏️ Miner Greta" });
+  oldTown({ ...greta!, area: "greta", label: "Enter Miner Greta's house", sign: "⛏️ Miner Greta" });
   const brann = building(c, 141, 62, 10, 10, { side: "s", at: 4 });
-  pendingDoors.push({ ...brann!, area: "smithy", label: "Enter Smith Brann's smithy", sign: "🔨 Smith Brann" });
+  oldTown({ ...brann!, area: "smithy", label: "Enter Smith Brann's smithy", sign: "🔨 Smith Brann" });
   const inn = building(c, 153, 63, 8, 9, { side: "s", at: 3 });
-  pendingDoors.push({ ...inn!, area: "inn", label: "Enter the Hearthstone Inn", sign: "🍺 Hearthstone Inn" });
+  oldTown({ ...inn!, area: "inn", label: "Enter the Hearthstone Inn", sign: "🍺 Hearthstone Inn" });
   c.fill(119, 72, 162, 72, ",", ".");
   // Cottages where the townsfolk live (no way in).
   for (const [x, y] of [[121, 52], [131, 51], [141, 52], [151, 53], [70, 86], [80, 88], [106, 79], [62, 92]] as const) building(c, x, y, 6, 6, null);
@@ -319,7 +326,7 @@ function buildOverworld(): Canvas {
   spawnIn(c, "cow", 5, 118, 82, 156, 96, r);
   spawnIn(c, "boar", 3, 130, 84, 156, 96, r);
   const kael = building(c, 104, 89, 8, 9, { side: "w", at: 5 });
-  pendingDoors.push({ ...kael!, area: "kael", label: "Enter Huntmaster Kael's lodge", sign: "🏹 Huntmaster Kael" });
+  oldTown({ ...kael!, area: "kael", label: "Enter Huntmaster Kael's lodge", sign: "🏹 Huntmaster Kael" });
   // The fence, with its one gate on the south road.
   c.fill(3, FENCE_Y, OVER_W - 1, FENCE_Y, "|", ".,:wsTOBMY*");
   c.fill(GATE.x, FENCE_Y, GATE.x + 1, FENCE_Y, "+");
@@ -396,11 +403,11 @@ function buildOverworld(): Canvas {
   for (const y of [44, 52, 60, 77, 85, 93]) {
     for (const x of [177, 185, 193]) {
       if (y === 93 && x !== 177) continue;
-      lots.push({ x, y });
+      oldLots.push({ x, y });
     }
   }
-  // Keep the first seven lots in the old order: everyone's farm stays theirs (only the place moves).
-  for (const l of lots) c.fill(l.x, l.y, l.x + 5, l.y + 5, "f");
+  // The old farm's fields (the lots themselves moved into Emberhold in version 0.17).
+  for (const l of oldLots) c.fill(l.x, l.y, l.x + 5, l.y + 5, "f");
 
   // ---- The Saltmere Coast ----
   places.chest_east = { x: 203, y: 71 };
@@ -506,6 +513,333 @@ function buildOverworld(): Canvas {
     for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if ("TOBMYIE#ctikvgmV".includes(c.get(p.x + dx, p.y + dy))) c.set(p.x + dx, p.y + dy, c.get(p.x, p.y) === ";" ? ";" : ".");
   }
   pickSpawns(c, r);
+  return c;
+}
+
+// ---------------------------------------------------------------- Emberhold, the walled capital (version 0.17)
+//
+// Emberhold is its own outdoor area, below the inside places on the grid. A ring
+// of stone walls with towers, and four gates (all shut for now). Inside:
+//   Ember Hill (north): the Emberhall, and the Emberhall Training Ground beside it,
+//     where every trainer teaches.
+//   Market Square (middle): the warm well, stalls, the bounty board, the General Store, the bell tower.
+//   Forge Row (west): smiths and workshops.   The Docks (east): wharves along the Glass River.
+//   Lower Town (south): crowded homes, the Hearthstone Inn, the Mages' Guild, the allotments.
+// Most buildings are scenery ("backdrop"): you can see them but not go in. The
+// 3D game draws them from CITY_BUILDINGS (a kit: walls, a roof, chimneys, windows).
+
+export const CITY_W = 150;
+export const CITY_H = 112;
+export type District = "hill" | "forge" | "market" | "docks" | "lower";
+/** One building in Emberhold, for the 3D game (the tiles under it are roof, so you can't walk there). */
+export interface CityBuilding {
+  x: number; y: number; w: number; h: number;
+  district: District;
+  /** Storeys (the backdrop kit stacks them). */
+  floors: number;
+  wall: "stone" | "timber" | "plank" | "marble" | "guild";
+  roof: "slate" | "red" | "dark" | "thatch" | "gold";
+  /** Drawn in full detail (doors, lanterns): the ones you can go into, and the Emberhall. */
+  detail: boolean;
+  landmark?: "emberhall" | "belltower";
+  chimney: boolean;
+  seed: number;
+}
+const cityBuildings: CityBuilding[] = [];
+/** The middles of the towers on the city wall. */
+const cityTowers: Point[] = [];
+/** Floating name signs: the gates and the districts. */
+const citySigns: { x: number; y: number; text: string; big?: boolean }[] = [];
+/** Which lots are where, for "your plot is in ..." (by lot number). */
+const lotPlaces: string[] = [];
+
+function districtOf(x: number, y: number, riverX: number): District {
+  if (x >= riverX - 10) return "docks";
+  if (y < 41) return "hill";
+  if (y >= 67) return "lower";
+  if (x < 58) return "forge";
+  return "market";
+}
+
+function buildEmberhold(o: Point): Canvas {
+  const r = rng(20261126);
+  const c = new Canvas(CITY_W, CITY_H, ".");
+  const A = (x: number, y: number): Point => ({ x: o.x + x, y: o.y + y });
+  const UNSET = "?";
+
+  // ---- The wall: a rounded ring (a "superellipse"), towers at the corners ----
+  const cx = 74, cy = 57, rx = 63, ry = 47, N = 20, P = 3.5;
+  const poly: [number, number][] = [];
+  for (let i = 0; i < N; i++) {
+    const a = (i / N) * Math.PI * 2 - Math.PI / 2;
+    const co = Math.cos(a), si = Math.sin(a);
+    const k = 1 + (r() - 0.5) * 0.05;
+    poly.push([cx + rx * k * Math.sign(co) * Math.abs(co) ** (2 / P), cy + ry * k * Math.sign(si) * Math.abs(si) ** (2 / P)]);
+  }
+  const inside = (x: number, y: number) => {
+    let ins = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const [xi, yi] = poly[i], [xj, yj] = poly[j];
+      if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) ins = !ins;
+    }
+    return ins;
+  };
+  const wallDist = (x: number, y: number) => {
+    let m = Infinity;
+    for (let i = 0; i < poly.length; i++) {
+      const [ax, ay] = poly[i], [bx, by] = poly[(i + 1) % poly.length];
+      const dx = bx - ax, dy = by - ay, l = dx * dx + dy * dy;
+      const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l));
+      m = Math.min(m, Math.hypot(ax + t * dx - x, ay + t * dy - y));
+    }
+    return m;
+  };
+  const interior = (x: number, y: number) => c.get(x, y) !== "%" && c.get(x, y) !== "&" && inside(x + 0.5, y + 0.5);
+  for (let y = 0; y < CITY_H; y++) for (let x = 0; x < CITY_W; x++) {
+    const d = wallDist(x + 0.5, y + 0.5);
+    if (d < 1.05) c.set(x, y, "%");
+    else if (inside(x + 0.5, y + 0.5)) c.set(x, y, d < 3.6 ? ";" : UNSET); // a lane runs round the inside of the wall
+  }
+  for (const [px, py] of poly) {
+    const tx = Math.round(px - 0.5), ty = Math.round(py - 0.5);
+    c.fill(tx - 1, ty - 1, tx + 1, ty + 1, "&");
+    cityTowers.push(A(tx, ty));
+  }
+
+  // ---- Outside the walls: meadows, a few trees, the roads (you can't get out yet) ----
+  c.scatter(0, 0, CITY_W - 1, CITY_H - 1, "O", 0.012, r, ".");
+  c.scatter(0, 0, CITY_W - 1, CITY_H - 1, "T", 0.01, r, ".");
+
+  // ---- The Glass River, through the east of the city ----
+  const riverAt = (y: number) => 116 + Math.round(Math.sin(y / 9));
+  for (let y = 0; y < CITY_H; y++) {
+    const x = riverAt(y);
+    for (let k = 0; k < 4; k++) if (c.get(x + k, y) !== "&") c.set(x + k, y, c.get(x + k, y) === "%" ? "%" : "~");
+  }
+
+  // ---- Streets, squares and the four gates ----
+  const gates: { name: string; tiles: Point[] }[] = [];
+  /** Pave a street. Where it crosses the wall it becomes a gate; outside, a dirt road; over the river, a bridge. */
+  const street = (x0: number, y0: number, x1: number, y1: number, gate?: string) => {
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      const ch = c.get(x, y);
+      if (ch === " ") continue;
+      if (ch === "%" || ch === "&") {
+        if (!gate) continue;
+        c.set(x, y, "@");
+        let g = gates.find((q) => q.name === gate);
+        if (!g) gates.push(g = { name: gate, tiles: [] });
+        g.tiles.push({ x, y });
+      } else if (ch === "~" || ch === "=") c.set(x, y, "=");
+      else if (inside(x + 0.5, y + 0.5)) c.set(x, y, ";");
+      else c.set(x, y, ",");
+    }
+  };
+  street(45, 0, 47, 34, "North Gate");          // north street: the North Gate (to Frostfell) down to the Emberhall plaza
+  street(0, 56, 58, 58, "West Gate");           // the West street through Forge Row (to Cinderfall Pass)
+  street(90, 56, CITY_W - 1, 58, "Saltmere Gate"); // east, over the river bridge (to Saltmere and the Thornwood)
+  street(71, 67, 75, CITY_H - 1, "River Gate");  // south through Lower Town (to the Tangle and Blackfen)
+  street(46, 34, 85, 39);   // the Emberhall plaza
+  street(70, 40, 72, 49);   // the hill road down to the square
+  street(58, 49, 90, 66);   // Market Square
+  street(20, 77, 107, 79);  // Lower Town's long street
+  street(30, 14, 31, 55);   // lanes: Ember Hill down to Forge Row
+  street(14, 44, 58, 45);   // Forge Row's back lane
+  street(32, 24, 44, 25);   // the hill lane
+  street(108, 14, 111, 104); // the dock street
+  street(56, 67, 57, 104);  // Lower Town's west lane
+  street(92, 59, 93, 77);   // the lane from the square to the docks
+  street(76, 68, 107, 69);  // the lane behind the square
+  street(20, 92, 55, 93);   // the Guild lane
+  street(121, 46, 129, 68); // the fish market, over the river
+  // The wharf: boards along the river's west bank.
+  for (let y = 14; y < 104; y++) for (let x = 112; x < riverAt(y); x++) if (interior(x, y)) c.set(x, y, "p");
+  // Fish in the river: trout by the wharf, salmon further out.
+  const riverSpot = (ch: string, n: number) => {
+    for (let tries = 0; n > 0 && tries < 4000; tries++) {
+      const y = 20 + Math.floor(r() * 80), x = riverAt(y) + (ch === "2" ? 0 : 3);
+      if (c.get(x, y) !== "~" || !interior(x, y)) continue;
+      c.set(x, y, ch);
+      n--;
+    }
+  };
+  riverSpot("2", 6);
+  riverSpot("4", 5);
+
+  // ---- The Emberhall, on Ember Hill ----
+  const pushDoor = (d: { x: number; y: number; out: Point } | null, area: string, label: string, sign: string) => {
+    if (!d) return;
+    pendingDoors.push({ x: o.x + d.x, y: o.y + d.y, out: A(d.out.x, d.out.y), area, label, sign, from: "emberhold" });
+  };
+  const detail = (x: number, y: number, w: number, h: number, wall: CityBuilding["wall"], roof: CityBuilding["roof"], extra: Partial<CityBuilding> = {}) =>
+    cityBuildings.push({ ...A(x, y), w, h, district: districtOf(x, y, 116), floors: 1, wall, roof, detail: true, chimney: false, seed: x * 31 + y, ...extra });
+  c.fill(56, 11, 86, 33, ".", UNSET + ";"); // the Emberhall's garden all round it
+  const lh = building(c, 62, 15, 19, 17, { side: "s", at: 9 }, { roof: "u", wall: "A" });
+  c.fill(62, 31, 80, 31, "A");
+  c.set(lh!.x, lh!.y, "D");
+  c.fill(66, 32, 76, 33, "a"); // the white steps
+  detail(62, 15, 19, 17, "marble", "gold", { landmark: "emberhall" });
+  pushDoor(lh, "lighthall", "Enter the Emberhall", "✨ The Emberhall");
+  for (const [x, y] of [[58, 14], [84, 14], [58, 30], [84, 30]] as const) c.set(x, y, "S"); // statues in the garden
+  c.fill(57, 12, 57, 32, "h"); c.fill(85, 12, 85, 32, "h");
+  places.lighthallSteps = A(71, 34);
+
+  // ---- The Emberhall Training Ground: every trainer, and everything they teach with ----
+  const TX0 = 86, TY0 = 16, TX1 = 107, TY1 = 54;
+  c.fill(TX0, TY0, TX1, TY1, "h");
+  c.fill(TX0 + 1, TY0 + 1, TX1 - 1, TY1 - 1, ".");
+  c.fill(TX0, 35, TX0, 38, ";"); // the way in from the Emberhall plaza
+  c.fill(96, TY1, 98, 55, ";");  // and from the east street
+  c.fill(87, 36, 106, 37, ","); c.fill(96, 17, 96, 53, ","); // sandy paths across it
+  // The practice grove (Forester Holt): pines and two oaks.
+  for (const [x, y] of [[88, 18], [90, 19], [92, 18], [94, 19], [89, 21], [91, 22], [93, 21], [95, 22]] as const) c.set(x, y, "T");
+  c.set(88, 23, "O"); c.set(94, 24, "O");
+  // The pond (Old Maren): minnows anywhere at the edge, a few trout spots.
+  c.fill(99, 19, 105, 23, "~");
+  for (const [x, y] of [[99, 19], [105, 19], [99, 23], [105, 23]] as const) c.set(x, y, ".");
+  c.set(99, 21, "2"); c.set(105, 22, "2");
+  // The rocks (Miner Greta): copper and tin, one iron and one coal.
+  for (const x of [88, 90, 92]) { c.set(x, 27, "c"); c.set(x, 29, "t"); }
+  c.set(94, 27, "i"); c.set(94, 29, "k");
+  c.fill(87, 26, 95, 30, "l", ".");
+  // Dig patches (Herbalist Wren).
+  for (const [x, y] of [[100, 28], [103, 27], [106, 28], [101, 31]] as const) c.set(x, y, "*");
+  // Pens (Huntmaster Kael): the chicken coop and the rat pit.
+  c.fill(87, 39, 94, 45, "|"); c.fill(88, 40, 93, 44, "."); c.set(94, 42, ".");
+  c.fill(87, 47, 94, 53, "|"); c.fill(88, 48, 93, 52, "l"); c.set(94, 50, "l");
+  pickSpawn(c, "chicken", 5, 88, 40, 93, 44, r, ".", o.x, o.y);
+  pickSpawn(c, "rat", 4, 88, 48, 93, 52, r, "l", o.x, o.y);
+  // Farmer Odo's four training-ground lots.
+  for (const [x, y] of [[99, 40], [99, 47]] as const) { lots.push(A(x, y)); lotPlaces.push("in the Emberhall Training Ground"); c.fill(x, y, x + 5, y + 5, "f"); }
+  const tg: Record<string, [number, number]> = {
+    maren: [100, 25], stove: [102, 25], holt: [97, 20], greta: [95, 28],
+    furnace: [88, 33], anvil: [91, 33], brann: [89, 35],
+    workbench: [98, 33], spinning_wheel: [100, 33], tanning_rack: [102, 33], rook: [99, 35],
+    alchemy_table: [104, 33], moss: [104, 35], altar: [106, 33], archmage: [106, 35],
+    wren: [104, 30], kael: [97, 45], odo: [97, 40], chest_farm: [97, 48],
+  };
+  for (const [k, [x, y]] of Object.entries(tg)) places[`tg.${k}`] = A(x, y);
+  places.tanning_rack = A(...tg.tanning_rack);
+  places.odo = A(...tg.odo);
+  places.chest_farm = A(...tg.chest_farm);
+  citySigns.push({ ...A(99, 15), text: "⚔️ Emberhall Training Ground" });
+
+  // ---- Market Square ----
+  const tam = building(c, 60, 42, 9, 7, { side: "s", at: 4 });
+  detail(60, 42, 9, 7, "timber", "red", { floors: 1 });
+  pushDoor(tam, "tam", "Enter the General Store", "💰 General Store");
+  c.fill(80, 44, 83, 47, "r"); // the bell tower
+  cityBuildings.push({ ...A(80, 44), w: 4, h: 4, district: "market", floors: 5, wall: "stone", roof: "slate", detail: false, landmark: "belltower", chimney: false, seed: 7 });
+  c.set(74, 58, "q"); // the warm well
+  places.board = A(86, 51);
+  places.bryn = A(88, 51);
+  for (const [x, y] of [[61, 52], [64, 52], [67, 52], [80, 63], [83, 63], [86, 63], [61, 62], [64, 62], [123, 50], [123, 54], [123, 60], [127, 50], [127, 56]] as const) c.set(x, y, "(");
+  // The story's lanterns (Light the Way): on the Emberhall's steps and round the plaza.
+  ([[65, 33], [77, 33], [52, 36], [82, 36], [60, 39], [84, 39]] as const).forEach(([x, y], i) => { places[`lantern_${i + 1}`] = A(x, y); });
+
+  // ---- Forge Row (west) ----
+  const holt = building(c, 16, 47, 7, 9, { side: "s", at: 3 });
+  detail(16, 47, 7, 9, "plank", "dark");
+  pushDoor(holt, "holt", "Enter Forester Holt's house", "🪓 Forester Holt's house");
+  const greta = building(c, 24, 47, 6, 9, { side: "s", at: 3 });
+  detail(24, 47, 6, 9, "stone", "dark");
+  pushDoor(greta, "greta", "Enter Miner Greta's house", "⛏️ Miner Greta's house");
+  const brann = building(c, 35, 47, 10, 9, { side: "s", at: 4 });
+  detail(35, 47, 10, 9, "stone", "dark", { chimney: true });
+  pushDoor(brann, "smithy", "Enter Smith Brann's smithy", "🔨 Brann's smithy");
+  const rook = building(c, 44, 59, 9, 7, { side: "n", at: 4 });
+  detail(44, 59, 9, 7, "timber", "dark");
+  pushDoor(rook, "rook", "Enter Woodworker Rook's workshop", "🪚 Rook's workshop");
+
+  // ---- The Docks (east) ----
+  const maren = building(c, 101, 61, 6, 5, { side: "e", at: 2 });
+  detail(101, 61, 6, 5, "plank", "red");
+  pushDoor(maren, "maren", "Enter Old Maren's cottage", "🎣 Old Maren's cottage");
+
+  // ---- Lower Town (south) ----
+  const inn = building(c, 62, 68, 9, 9, { side: "e", at: 4 });
+  detail(62, 68, 9, 9, "timber", "red", { chimney: true });
+  pushDoor(inn, "inn", "Enter the Hearthstone Inn", "🍺 Hearthstone Inn");
+  const kael = building(c, 62, 90, 8, 8, { side: "e", at: 3 });
+  detail(62, 90, 8, 8, "plank", "thatch");
+  pushDoor(kael, "kael", "Enter Huntmaster Kael's lodge", "🏹 Kael's lodge");
+  const wren = building(c, 46, 81, 7, 6, { side: "n", at: 3 });
+  detail(46, 81, 7, 6, "plank", "thatch");
+  pushDoor(wren, "wren", "Enter Herbalist Wren's hut", "🌱 Wren's hut");
+  const guild = building(c, 26, 80, 17, 11, { side: "n", at: 8 }, { roof: "r", wall: "W" });
+  for (let x = 26; x <= 42; x++) c.set(x, 80, x === 34 ? "D" : "W");
+  detail(26, 80, 17, 11, "guild", "slate");
+  pushDoor(guild, "guild", "Enter the Mages' Guild", "🔮 Mages' Guild");
+  // The allotments: eight more lots for Farmer Odo's farmers.
+  c.fill(78, 81, 106, 96, "h");
+  c.fill(79, 82, 105, 95, ",");
+  c.fill(91, 80, 92, 81, ","); // the gate in the hedge
+  for (const y of [82, 89]) for (const x of [79, 86, 93, 100]) { lots.push(A(x, y)); lotPlaces.push("in the Lower Town allotments"); c.fill(x, y, x + 5, y + 5, "f"); }
+
+  // ---- Lamps along the streets ----
+  const lampAt = (x: number, y: number) => { if (";,".includes(c.get(x, y))) c.set(x, y, ")"); };
+  for (let y = 14; y < 34; y += 7) lampAt(45, y);
+  for (const x of [16, 24, 32, 40, 56]) lampAt(x, 58);
+  for (const x of [100, 106]) lampAt(x, 58);
+  for (const y of [71, 85, 99]) lampAt(75, y);
+  for (let x = 24; x < 106; x += 9) lampAt(x, 77);
+  for (let y = 18; y < 104; y += 8) if (y !== 58) lampAt(108, y);
+  for (const [x, y] of [[58, 49], [90, 49], [58, 66], [90, 66], [46, 34], [69, 40], [73, 40], [121, 46], [129, 68], [129, 46]] as const) lampAt(x, y);
+  // The Emberguard's banners and a few barrels on the docks.
+  for (const [x, y] of [[113, 30], [113, 44], [113, 70], [113, 86], [107, 66]] as const) if (c.get(x, y) === "p" || c.get(x, y) === ";") c.set(x, y, "e");
+
+  // ---- Every other building: the backdrop, packed between the streets ----
+  const fits = (x: number, y: number, w: number, h: number) => {
+    for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) if (c.get(xx, yy) !== UNSET) return false;
+    return true;
+  };
+  for (let y = 0; y < CITY_H; y++) for (let x = 0; x < CITY_W; x++) {
+    if (c.get(x, y) !== UNSET) continue;
+    const d = districtOf(x, y, 116);
+    const sizes: [number, number][] = d === "lower" ? [[5, 4], [4, 4], [6, 5], [4, 3], [3, 3]] : [[6, 5], [7, 5], [5, 5], [5, 4], [4, 4], [4, 3], [3, 3]];
+    if (r() < 0.5) sizes.unshift(sizes.splice(1, 1)[0]);
+    const s = sizes.find(([w, h]) => fits(x, y, w, h));
+    if (!s) continue;
+    const [w, h] = s;
+    c.fill(x, y, x + w - 1, y + h - 1, "r");
+    const floors = d === "hill" ? 2 + (r() < 0.15 ? 1 : 0) : d === "market" ? 2 : d === "lower" ? (r() < 0.3 ? 2 : 1) : r() < 0.5 ? 2 : 1;
+    const wall: CityBuilding["wall"] = d === "lower" ? (r() < 0.5 ? "timber" : "plank") : d === "docks" ? (r() < 0.5 ? "plank" : "stone") : d === "market" && r() < 0.4 ? "timber" : "stone";
+    const roof: CityBuilding["roof"] = d === "hill" ? "slate" : d === "forge" ? "dark" : d === "lower" ? "thatch" : d === "docks" ? (r() < 0.5 ? "dark" : "red") : "red";
+    cityBuildings.push({ ...A(x, y), w, h, district: d, floors, wall, roof, detail: false, chimney: r() < (d === "forge" ? 0.8 : 0.4), seed: Math.floor(r() * 1e6) });
+    // Now and then a narrow alley after a building, so the blocks aren't one solid wall.
+    if (r() < 0.22) for (let yy = y; yy < y + h; yy++) if (c.get(x + w, yy) === UNSET) c.set(x + w, yy, ";");
+  }
+  for (let y = 0; y < CITY_H; y++) for (let x = 0; x < CITY_W; x++) if (c.get(x, y) === UNSET) c.set(x, y, ";");
+
+  // ---- Signs over the gates (all shut for now) and the districts ----
+  for (const g of gates) {
+    const mx = g.tiles.reduce((s, p) => s + p.x, 0) / g.tiles.length, my = g.tiles.reduce((s, p) => s + p.y, 0) / g.tiles.length;
+    citySigns.push({ x: o.x + Math.round(mx), y: o.y + Math.round(my), text: `🚪 ${g.name} (closed)` });
+  }
+  for (const [x, y, text] of [[71, 12, "Ember Hill"], [74, 54, "Market Square"], [36, 61, "Forge Row"], [113, 38, "The Docks"], [64, 81, "Lower Town"], [125, 47, "Fish market"]] as const) {
+    citySigns.push({ ...A(x, y), text, big: true });
+  }
+
+  // ---- Little paths from each front door to the street, and nobody standing in a wall ----
+  for (const d of pendingDoors) {
+    if (d.from !== "emberhold") continue;
+    const lx = d.out.x - o.x, ly = d.out.y - o.y;
+    const dx = lx - (d.x - o.x), dy = ly - (d.y - o.y);
+    const trail: Point[] = [];
+    let x = lx, y = ly;
+    for (let i = 0; i < 10; i++, x += dx, y += dy) {
+      const ch = c.get(x, y);
+      if (";,=pa".includes(ch)) { for (const p of trail) c.set(p.x, p.y, ";"); break; }
+      if (ch !== ".") break;
+      trail.push({ x, y });
+    }
+    if (!";,=pa.".includes(c.get(lx, ly))) c.set(lx, ly, ";");
+  }
+  for (const [k, p] of Object.entries(places)) {
+    const lx = p.x - o.x, ly = p.y - o.y;
+    if (!c.in(lx, ly) || k.includes(".") && !k.startsWith("tg.")) continue;
+    if (!".,;:asw*=lfp".includes(c.get(lx, ly))) c.set(lx, ly, ";");
+  }
   return c;
 }
 
@@ -719,9 +1053,14 @@ function assemble() {
     x += a.canvas.w + GAP;
     rowH = Math.max(rowH, a.canvas.h);
   }
-  const H = y + rowH + GAP;
+  // Emberhold, the walled capital, below the inside places (so nothing above it moved).
+  const cityAt = { x: GAP, y: y + rowH + GAP };
+  const city = buildEmberhold(cityAt);
+  areas.push({ id: "emberhold", name: "Emberhold", x: cityAt.x, y: cityAt.y, w: CITY_W, h: CITY_H, kind: "outdoor" });
+  const H = cityAt.y + CITY_H + GAP;
   const grid = new Canvas(OVER_W, H, " ");
   over.g.forEach((row, yy) => row.forEach((ch, xx) => grid.set(xx, yy, ch)));
+  city.g.forEach((row, yy) => row.forEach((ch, xx) => grid.set(cityAt.x + xx, cityAt.y + yy, ch)));
   for (const a of inside) {
     const o = pos[a.id];
     a.canvas.g.forEach((row, yy) => row.forEach((ch, xx) => grid.set(o.x + xx, o.y + yy, ch)));
@@ -744,7 +1083,7 @@ function assemble() {
   for (const p of pendingDoors) {
     const inner = inDoor(p.area);
     doors.push({ x: p.x, y: p.y, to: inward(inner), area: p.area, label: p.label, sign: p.sign });
-    doors.push({ x: inner.x, y: inner.y, to: p.out, area: "heartvale", label: "Leave" });
+    doors.push({ x: inner.x, y: inner.y, to: p.out, area: p.from ?? "heartvale", label: "Leave" });
   }
   // The spider cave goes on through to the crystal cave.
   const sc = inDoor("spider_cave", 1), cc = inDoor("crystal_cave");
@@ -787,5 +1126,21 @@ export const MAP_LABELS: readonly { x: number; y: number; text: string; big?: bo
   { x: 187, y: 132, text: "Graveyard" },
 ];
 
-/** The farm's lots (top-left tile of each 6 × 6 lot). The first seven are the original ones. */
+/** The farm's lots (top-left tile of each 6 × 6 lot). Since version 0.17 they're all in Emberhold. */
 export const WORLD_LOTS: readonly Point[] = lots;
+/** Where each lot is ("in the Lower Town allotments"), by lot number. */
+export const LOT_PLACES: readonly string[] = lotPlaces;
+/** Emberhold's buildings, wall towers and signs, for the 3D game. */
+export const CITY_BUILDINGS: readonly CityBuilding[] = cityBuildings;
+export const CITY_TOWERS: readonly Point[] = cityTowers;
+export const CITY_SIGNS: readonly { x: number; y: number; text: string; big?: boolean }[] = citySigns;
+/** The outdoor area a place belongs to: itself if it's outdoors, else where its front door is. */
+export function outdoorAreaOf(id: string): AreaDef | null {
+  const a = areas.find((ar) => ar.id === id);
+  if (!a) return null;
+  if (a.kind === "outdoor") return a;
+  const d = doors.find((dd) => dd.area === id && !(dd.x >= a.x && dd.x < a.x + a.w && dd.y >= a.y && dd.y < a.y + a.h));
+  if (!d) return null;
+  const from = areas.find((ar) => d.x >= ar.x && d.x < ar.x + ar.w && d.y >= ar.y && d.y < ar.y + ar.h);
+  return from ? outdoorAreaOf(from.id) : null;
+}

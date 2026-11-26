@@ -3,7 +3,7 @@
 // a fish -> Tam, kill chickens -> the nearest chicken... These become 📍
 // spots on the maps, and the gold arrow at your feet points to the nearest
 // one, so there's always somewhere to head for (report #30).
-import { DOORS, MAP, MAP_HEIGHT, MAP_NODES, MAP_WIDTH, OUTDOORS, areaAt } from "../../shared/map";
+import { DOORS, MAP, MAP_HEIGHT, MAP_NODES, MAP_WIDTH, areaAt } from "../../shared/map";
 import { NPCS } from "../../shared/npcs";
 import { RESOURCES, RESOURCE_FOR_ITEM, ResourceId, isDigPatch, isFishingSpot } from "../../shared/foraging";
 import type { QuestStep } from "../../shared/quests";
@@ -36,8 +36,8 @@ function allNodes() {
 /** Where a place is, as seen from outdoors (inside a building: its front door). */
 function outside(p: Pt): Pt {
   const a = areaAt(p.x, p.y);
-  if (!a || a === OUTDOORS) return p;
-  const door = DOORS.find((d) => d.area === a.id && areaAt(d.x, d.y) === OUTDOORS);
+  if (!a || a.kind === "outdoor") return p;
+  const door = DOORS.find((d) => d.area === a.id && areaAt(d.x, d.y)?.kind === "outdoor");
   return door ?? p;
 }
 

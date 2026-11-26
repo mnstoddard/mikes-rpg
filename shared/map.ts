@@ -15,7 +15,9 @@ export type Tile = "grass" | "path" | "water" | "tree" | "rock" | "bridge" | "fe
   | "dig" | "cave" | "cavewall" | "crystal" | "field"
   | "void" | "door" | "lockeddoor" | "cobble" | "sand" | "withered" | "cliff" | "hedge" | "well" | "barricade" | "roof" | "goldroof"
   | "marblewall" | "marble" | "glow" | "carpet" | "statue" | "table" | "shelf" | "crates" | "bed" | "grave" | "gravel"
-  | "brazier" | "innerdoor";
+  | "brazier" | "innerdoor"
+  // Emberhold (version 0.17): the city wall, its towers and gates, street lamps and market stalls.
+  | "rampart" | "tower" | "citygate" | "lamp" | "stall";
 
 const LEGEND: Record<string, Tile> = {
   ".": "grass", ",": "path", "~": "water", "=": "bridge", ":": "grass", "|": "fence", "+": "gate", "!": "sign",
@@ -24,6 +26,7 @@ const LEGEND: Record<string, Tile> = {
   " ": "void", D: "door", J: "lockeddoor", ";": "cobble", s: "sand", w: "withered", "^": "cliff", h: "hedge", q: "well", x: "barricade",
   r: "roof", u: "goldroof", A: "marblewall", a: "marble", o: "glow", z: "carpet", S: "statue", n: "table", b: "shelf", e: "crates", y: "bed", V: "grave", l: "gravel",
   F: "brazier", d: "innerdoor",
+  "%": "rampart", "&": "tower", "@": "citygate", ")": "lamp", "(": "stall",
 };
 
 /** Map letters for each type of tree, rock and fishing spot. */
@@ -52,6 +55,7 @@ export const charAt = (x: number, y: number) => ROWS[y]?.[x] ?? " ";
 const BLOCKED: ReadonlySet<Tile> = new Set<Tile>([
   "water", "tree", "rock", "fence", "sign", "wall", "house", "cavewall",
   "void", "lockeddoor", "cliff", "hedge", "well", "barricade", "roof", "goldroof", "marblewall", "statue", "table", "shelf", "crates", "bed", "grave", "brazier",
+  "rampart", "tower", "citygate", "lamp", "stall",
 ]);
 export const isBlockedTile = (t: Tile) => BLOCKED.has(t);
 

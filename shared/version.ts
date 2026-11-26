@@ -13,6 +13,20 @@ export interface GameUpdate { version: string; date: string; title: string; chan
 
 export const UPDATES: GameUpdate[] = [
   {
+    version: "0.17",
+    date: "2026-11-26",
+    title: "Emberhold, the walled city",
+    changes: [
+      { text: "Emberhold, the walled capital, is built (on the dev test server first). A great stone wall with towers runs round the whole city, with four gates: the North Gate, the West Gate, the Saltmere Gate and the River Gate. The gates are shut for now, so the whole game happens inside the walls." },
+      { text: "The Emberhall now stands on Ember Hill in the middle of the city, with a spire and a flame you can see from everywhere. Below it is a plaza, then Market Square with stalls, the well, the bell tower, the General Store and the bounty board." },
+      { text: "The city has districts: Forge Row to the west (Holt, Greta, the smithy and Rook's workshop), the Glass River and its docks to the east (with a fish market), and the Lower Town to the south (the Hearthstone Inn, the Mages' Guild, Kael's lodge, Wren's hut and the allotments). Hundreds of houses fill the streets, light enough for an iPad." },
+      { text: "New: the Emberhall Training Ground, just east of the Emberhall behind a hedge. Every trainer teaches there: Old Maren by the pond, Holt by the practice trees, Greta by the practice rocks, Brann at the furnace and anvil, Rook, Wren, Moss, Archmage Ysolde, Kael by the chicken coop and rat pit, and Farmer Odo by his plots." },
+      { text: "A shorter prologue that takes you through every skill. Keeper Aldric sends you to the Training Ground, Old Maren's first lessons are shorter (no more selling a fish to Tam, and no Fishing 3 or Cooking 3 at the end), and the Oath of the Flame now opens once you've learned from every trainer. Holt asks for 5 logs instead of 10, and Kael's last lesson is the rat pit instead of a wolf outside." },
+      { text: "The townsfolk (Baker Hanna, little Pip, Guard Dunstan and the others) now walk the streets of Emberhold. The old village in Heartvale is still out there, past the closed gates." },
+      { text: "Saves from before move along: anyone in the middle of Maren's lessons keeps their place in the shorter list, and everyone starts in Emberhold's plaza." },
+    ],
+  },
+  {
     version: "0.16",
     date: "2026-11-26",
     title: "A login log for the admin",

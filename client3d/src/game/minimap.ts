@@ -3,7 +3,7 @@
 // someone with something for you and 📍 for where your quest sends you. A
 // target too far away to fit sits on the edge, pointing the way to go. Tap it
 // to open the big 🗺️ map.
-import { AreaDef, DOORS, MAP, OUTDOORS, areaAt, isDanger } from "../../../shared/map";
+import { AreaDef, DOORS, MAP, areaAt, areaById, isDanger } from "../../../shared/map";
 import { NPCS } from "../../../shared/npcs";
 import { TILE_COLORS } from "../../../client/src/mapDraw";
 import { outdoorSpot, toggleWorldMap, worldMapMarks } from "../../../client/src/worldmap";
@@ -15,10 +15,10 @@ export function wayTo(p: { x: number; y: number }, here: AreaDef): { x: number; 
   const there = areaAt(p.x, p.y);
   if (!there) return null;
   if (there === here) return p;
-  if (here === OUTDOORS) return outdoorSpot(p);
+  if (here.kind === "outdoor") { const o = outdoorSpot(p); return o && areaAt(o.x, o.y) === here ? o : null; }
   // Inside: the door to that place if there is one, otherwise the way out.
   const doors = DOORS.filter((d) => areaAt(d.x, d.y) === here);
-  return doors.find((d) => d.area === there.id) ?? doors.find((d) => d.area === OUTDOORS.id) ?? doors[0] ?? null;
+  return doors.find((d) => d.area === there.id) ?? doors.find((d) => areaById(d.area)?.kind === "outdoor") ?? doors[0] ?? null;
 }
 
 /** The nearest place your quest wants you (a ❗ person or a 📍 spot), as the way to walk from (fx, fy): for the guide arrow. */

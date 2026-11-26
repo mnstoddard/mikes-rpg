@@ -18,6 +18,18 @@ These are planned, not built. (Built quests are on [[Quests]].) None are needed 
 | 4.19 | The Living Fire | [[Wick]] | 🎬 Put your hand in the Emberheart and feel how much it has lost. | The land is going cold, and how fast. |
 | E.1 | The Ember Seed | Wick | Follow the coins' clues into the Crown Vault under Whitestone. | The Seed is real, and half-made. |
 
+## Skill challenges (Mike's idea, version 0.17)
+
+After the Oath, each trainer from the [[Emberhall Training Ground]] can be found in [[The Emberhall]], and gives **skill challenge quests**: harder jobs in their own skill that pay bonus XP in it. Later challenges need other skills levelled too, so a player keeps growing across the board. Not built yet. Ideas so far:
+
+| Trainer | Challenge | Skill | Also needs |
+|---|---|---|---|
+| [[Old Maren]] | Cook a feast for the Emberhall's kitchens | Cooking | Fishing, Farming |
+| [[Forester Holt]] | Fell and deliver oak beams for the city wall | Woodcutting | Handicraft |
+| [[Miner Greta]] | Bring up emberstone from deep veins | Mining | Smelting |
+| [[Smith Brann]] | Forge the Emberguard a set of gate hinges | Smithing | Mining, Smelting |
+| [[Huntmaster Kael]] | Clear the rat warrens under the Lower Town | Melee, Hunting | Cooking (food to last) |
+
 ## Emberhold and Heartvale (levels 1 to 20)
 
 | Quest | Giver | What you do | Skills | What it reveals |

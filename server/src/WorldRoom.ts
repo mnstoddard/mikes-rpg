@@ -102,6 +102,7 @@ import {
   CROPS, CROP_IDS, CropId, FARM_CHEST_PRICE, FarmView, LOTS, LOT_SIZE, MASTERY_EXTRA, PLANT_XP, PLOT_SIZES, SEED_BACK, SEED_BACK_PER_LEVEL, SeedId,
   cropOfSeed, decodeCrop, encodeCrop, inPlot, isSeed, lotAt, plotPrice, seedId, tileOf, timeLeft,
 } from "../../shared/farming";
+import { LOT_PLACES } from "../../shared/world";
 
 const STEP_LOOP_MS = 50; // how often the server checks whether someone should take a step
 const AUTOSAVE_TICKS = 100; // 100 x 0.6s = once a minute
@@ -4118,7 +4119,7 @@ export class WorldRoom extends Room<WorldState> {
     }
     p.dirty = true;
     void this.saveFarms();
-    const where = LOTS[lot].y < 73 ? "north of the road" : "south of the road";
+    const where = LOT_PLACES[lot] ?? "in Emberhold";
     this.say(client, mine ? `🌾 Your plot is now ${plot.w} × ${plot.h}.`
       : `🌾 You have a plot! It's ${plot.w} × ${plot.h}, ${where}: look for your name on its sign. Click it to plant${price ? "" : " (Odo paid for this one)"}.`);
     client.send("coins", p.coins);
@@ -4636,7 +4637,7 @@ export class WorldRoom extends Room<WorldState> {
       p.x = spawn.x;
       p.y = spawn.y;
       if (save.mapRev !== MAP_REV) {
-        p.loginNotes.push("🗺️ The world has grown! You're in the town square, by the steps of the Emberhall, the Emberguard's great white temple. Shops and trainers work indoors now: walk onto a door to go in. Tap 🗺️ (top right) for a map.");
+        p.loginNotes.push("🏰 Welcome to the new Emberhold! The town is now a walled stone city. You're on the Emberhall's plaza. Every trainer now teaches in the Emberhall Training Ground, right next door (east of the Emberhall). The city gates are shut for now. Tap 🗺️ (top right) for a map of the city.");
       }
     }
     // Load the saved bag as it was (older saves had 28 slots, one entry each), then fit it into today's bag below.

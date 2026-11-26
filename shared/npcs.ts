@@ -37,11 +37,11 @@ export interface NpcDef {
 export const NPCS: NpcDef[] = [
   {
     // The guide (shared/quests.ts). Click her to talk; a ❗ shows when she has something for you.
-    id: "maren", name: "Old Maren", kind: "person", ...at("maren.maren"), color: 0x2e86c1, badge: "🎣",
+    id: "maren", name: "Old Maren", kind: "person", ...at("tg.maren"), color: 0x2e86c1, badge: "🎣",
     greeting: "",
   },
   {
-    id: "stove", name: "Stove", kind: "station", ...at("maren.stove"), color: 0x3a3a3a,
+    id: "stove", name: "Stove", kind: "station", ...at("tg.stove"), color: 0x3a3a3a,
     greeting: "The stove is ready. Pick a dish, put ingredients in the pot, and pick a log to burn.",
   },
   {
@@ -60,23 +60,23 @@ export const NPCS: NpcDef[] = [
   },
   // ---- Trainer Row (east of the square, north of the road) ----
   {
-    id: "holt", name: "Forester Holt", kind: "person", ...at("holt.holt"), color: 0x27ae60, badge: "🪓",
+    id: "holt", name: "Forester Holt", kind: "person", ...at("tg.holt"), color: 0x27ae60, badge: "🪓",
     greeting: "I buy logs and axes, and I sell bronze axes and logs.",
   },
   {
-    id: "greta", name: "Miner Greta", kind: "person", ...at("greta.greta"), color: 0x95a5a6, badge: "⛏️",
+    id: "greta", name: "Miner Greta", kind: "person", ...at("tg.greta"), color: 0x95a5a6, badge: "⛏️",
     greeting: "I buy ore and pickaxes, and I sell bronze pickaxes and ore.",
   },
   {
-    id: "brann", name: "Smith Brann", kind: "person", ...at("smithy.brann"), color: 0xc0392b, badge: "🔨",
+    id: "brann", name: "Smith Brann", kind: "person", ...at("tg.brann"), color: 0xc0392b, badge: "🔨",
     greeting: "I buy bars, tools, weapons and armor, and I sell hammers, tongs and bars.",
   },
   {
-    id: "furnace", name: "Furnace", kind: "station", ...at("smithy.furnace"), color: 0x8b3a1a,
+    id: "furnace", name: "Furnace", kind: "station", ...at("tg.furnace"), color: 0x8b3a1a,
     greeting: "The furnace roars. Pick a bar to smelt.",
   },
   {
-    id: "anvil", name: "Anvil", kind: "station", ...at("smithy.anvil"), color: 0x555a60,
+    id: "anvil", name: "Anvil", kind: "station", ...at("tg.anvil"), color: 0x555a60,
     greeting: "Pick a tool, weapon, armor or jewelry to make at the anvil, or cut a gem.",
   },
   // ---- Rook's workshop (just west of the square) ----
@@ -86,12 +86,12 @@ export const NPCS: NpcDef[] = [
     greeting: "Seeds for sale, and land if you want it. Everyone's crops grow while they sleep!",
   },
   {
-    id: "rook", name: "Woodworker Rook", kind: "person", ...at("rook.rook"), color: 0xa0522d, badge: "🪚",
+    id: "rook", name: "Woodworker Rook", kind: "person", ...at("tg.rook"), color: 0xa0522d, badge: "🪚",
     greeting: "Bows, arrows, staffs, leather and cloth: it all starts at my bench. I buy hides, silk and what you make, and sell worms, feathers and thread.",
   },
   {
     // Handicraft (shared/handicraft.ts): fishing bait for now.
-    id: "workbench", name: "Workbench", kind: "station", ...at("rook.workbench"), color: 0x8b5a2b,
+    id: "workbench", name: "Workbench", kind: "station", ...at("tg.workbench"), color: 0x8b5a2b,
     greeting: "A sturdy workbench. Pick something to make.",
   },
   {
@@ -101,36 +101,36 @@ export const NPCS: NpcDef[] = [
   },
   {
     // Handicraft: spider silk into thread, thread into cloth.
-    id: "spinning_wheel", name: "Spinning wheel", kind: "station", ...at("rook.spinning_wheel"), color: 0x8b5a2b,
+    id: "spinning_wheel", name: "Spinning wheel", kind: "station", ...at("tg.spinning_wheel"), color: 0x8b5a2b,
     greeting: "Spin spider silk into thread, and weave thread into cloth.",
   },
   // ---- Kael's lodge (by the gate to the Dark Forest) ----
   {
-    id: "kael", name: "Huntmaster Kael", kind: "person", ...at("kael.kael"), color: 0x6e2c00, badge: "🏹",
+    id: "kael", name: "Huntmaster Kael", kind: "person", ...at("tg.kael"), color: 0x6e2c00, badge: "🏹",
     greeting: "I buy weapons, armor and what monsters drop, and I sell starter weapons and potions.",
   },
   // ---- Wren's hut (by the lake, east of the Mages' Guild) ----
   {
-    id: "wren", name: "Herbalist Wren", kind: "person", ...at("wren.wren"), color: 0x3d8b37, badge: "🌱",
+    id: "wren", name: "Herbalist Wren", kind: "person", ...at("tg.wren"), color: 0x3d8b37, badge: "🌱",
     greeting: "I buy roots, herbs, mushrooms and shovels, and I sell bronze shovels.",
   },
   // ---- The Mages' Guild (shared/guild.ts): the hall south-west of town, past the lake ----
   {
-    id: "archmage", name: "Archmage Rowan", kind: "person", ...at("guild.archmage"), color: 0x5b2c9f, badge: "🔮",
+    id: "archmage", name: "Archmage Rowan", kind: "person", ...at("tg.archmage"), color: 0x5b2c9f, badge: "🔮",
     greeting: "Welcome to the Mages' Guild. Rent space in our enchanted chest, or help the guild to rise in rank.",
   },
   {
     // Alchemy (shared/alchemy.ts): teaches it, sells empty vials, buys potions and herbs.
-    id: "moss", name: "Alchemist Moss", kind: "person", ...at("guild.moss"), color: 0x1e8449, badge: "⚗️",
+    id: "moss", name: "Alchemist Moss", kind: "person", ...at("tg.moss"), color: 0x1e8449, badge: "⚗️",
     greeting: "I buy potions, herbs and monster parts, and I sell empty vials.",
   },
   {
-    id: "alchemy_table", name: "Alchemy table", kind: "station", ...at("guild.alchemy_table"), color: 0x4a3a6a,
+    id: "alchemy_table", name: "Alchemy table", kind: "station", ...at("tg.alchemy_table"), color: 0x4a3a6a,
     greeting: "Bottles, burners and a pestle. Pick two ingredients (and maybe a third) to brew.",
   },
   {
     // Enchanting (shared/enchanting.ts): refined emberstones add magic to staffs, armor and tools.
-    id: "altar", name: "Enchanting altar", kind: "station", ...at("guild.altar"), color: 0x8e44ad,
+    id: "altar", name: "Enchanting altar", kind: "station", ...at("tg.altar"), color: 0x8e44ad,
     greeting: "Runes glow on the stone. Place an item and a refined emberstone to enchant it.",
   },
   {

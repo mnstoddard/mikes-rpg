@@ -204,24 +204,24 @@ const ODO = "Farmer Odo";
 const LESSONS: Chapter[] = [
   // ---------------- Old Maren: Living off the land ----------------
   {
-    id: "maren", title: "Living off the land", giver: "maren", name: MAREN, where: "in her cottage on the lake shore, west along the road from the square",
+    id: "maren", title: "Living off the land", giver: "maren", name: MAREN, where: "by the pond in the Emberhall Training Ground, just east of the Emberhall",
     steps: [
       {
-        task: `Talk to ${MAREN} in her cottage by the lake (west along the road from the square)`, goal: { kind: "talk" }, unlocks: ["fishing"],
+        task: `Talk to ${MAREN} by the pond in the Emberhall Training Ground (east of the Emberhall)`, goal: { kind: "talk" }, unlocks: ["fishing"],
         lines: [
-          "Well now, a fresh face! I'm Maren. I fished these waters for forty years before my knees gave out.",
+          "Well now, a fresh face! I'm Maren. I fished the Glass River for forty years before my knees gave out. Now I teach here, with the other trainers.",
           "Everyone starts with empty hands, so let's begin with the oldest skill there is: fishing.",
-          "The lake is right outside my door. Click the water's edge. You've no rod, so it'll be slow. Bring me back one minnow.",
+          "This pond is stocked for practice. Click the water's edge. You've no rod, so it'll be slow. Bring me back one minnow.",
         ],
       },
       {
-        task: "Catch a minnow by hand at the lake (right outside Maren's cottage)",
+        task: "Catch a minnow by hand at the training ground's pond",
         goal: { kind: "gather", skill: "fishing", resource: "minnow", count: 1, byHand: true },
-        hint: "The lake is right outside my cottage: click the water at its edge. By hand it takes a while, so be patient.",
+        hint: "The pond is right here beside me: click the water at its edge. By hand it takes a while, so be patient.",
       },
       {
         task: `Bring your minnow back to ${MAREN}`, goal: { kind: "talk" },
-        need: { prefix: "minnow", line: "Where's my minnow? Go and catch one at the lake, then bring it here." },
+        need: { prefix: "minnow", line: "Where's my minnow? Catch one at the pond, then bring it here." },
         protect: ["minnow"],
         lines: [
           "Ha! Took you a while, didn't it? That's fishing by hand.",
@@ -245,13 +245,13 @@ const LESSONS: Chapter[] = [
         protect: ["rod_"],
         lines: [
           "Snapped, did it? Every tool wears down a little each time you use it: tools when you use them, weapons when you hit, armor when you get hit. It works just as well right up until it breaks.",
-          "A broken tool isn't gone, though. It's in your bag, and Oswin the Repairer can fix it. He works at the Mages' Guild, the purple hall south-west of town, past the lake. Walk onto its door to go in.",
+          "A broken tool isn't gone, though. It's in your bag, and Oswin the Repairer can fix it. He works at the Mages' Guild, the purple hall in Lower Town, in the south-west of the city. Walk onto its door to go in. It's a good walk, so you'll see a bit of Emberhold on the way.",
           "Take my rod to him. He's an old friend, so this first one's free. After that he charges a few coins, more for finer things.",
         ],
       },
       {
-        task: "Get your rod repaired at the Mages' Guild (south-west of town)", goal: { kind: "repair" },
-        hint: "Oswin the Repairer is inside the Mages' Guild, the purple hall south-west of town (follow the road west, then the little path south). Click him, then Repair. The first one's free.",
+        task: "Get your rod repaired at the Mages' Guild (Lower Town, south-west of the city)", goal: { kind: "repair" },
+        hint: "Oswin the Repairer is inside the Mages' Guild, the purple hall in Lower Town: go down the hill road to Market Square, take the south street, then turn west along Lower Town's long street. Click him, then Repair. The first one's free.",
         ensure: [{ item: "rod_pine", durability: 0 }], protect: ["rod_"],
       },
       {
@@ -270,7 +270,7 @@ const LESSONS: Chapter[] = [
         task: `Tell ${MAREN} what you picked`, goal: { kind: "talk" }, unlocks: ["cooking"],
         lines: [
           "Good choice! And don't fret about picking wrong: resetting a tree is free, and all your points come back. Here's a few coins for learning that.",
-          "Now, raw minnows won't keep you going for long. Take this pine log to my stove, right here, and cook your fish into a stew. Pick Stew, tap your minnow to put it in the pot, and pick the Pine log to burn.",
+          "Now, raw minnows won't keep you going for long. Take this pine log to the stove, right here beside me, and cook your fish into a stew. Pick Stew, tap your minnow to put it in the pot, and pick the Pine log to burn.",
         ],
         give: [LOG],
         coins: 25,
@@ -307,18 +307,13 @@ const LESSONS: Chapter[] = [
         lines: [
           "Now that's a stew! Smells like my mother's kitchen.",
           "See the ⚡ bar at the top left? That's your stamina. Everything you do costs some: a fish costs 1, cooking 2, and chopping or mining 10.",
-          "It comes back on its own, 1 every 30 seconds, but food is much faster. A raw minnow gives 2. A stew gives three times what its fish would, plus a bit from the fire. Go on, eat your stew.",
-          "Then sell a fish to Shopkeeper Tam at the General Store, just west of the square, on the south side of the road. Walk onto the door to go in. Tam buys anything.",
+          "It comes back on its own, 1 every 30 seconds, but food is much faster. A raw minnow gives 2. A stew gives three times what its fish would, plus a bit from the fire. Go on, eat your stew, then come back to me.",
         ],
       },
       {
         task: "Eat your stew (click it in your bag, then Eat)", goal: { kind: "eat" },
         hint: "Click the stew in your bag and press Eat.",
         ensure: [{ item: FIRST_STEW }],
-      },
-      {
-        task: "Sell a fish to Tam at the General Store (catch one if you have none)", goal: { kind: "sell", what: "fishing", count: 1 },
-        hint: "The General Store is just west of the square, on the south side of the road: walk onto its door to go in. Click Tam, then click a fish in your bag to sell it.",
       },
       {
         task: `Go back to ${MAREN} for your reward`, goal: { kind: "talk" },
@@ -336,32 +331,12 @@ const LESSONS: Chapter[] = [
         protect: ["rod_", "pot_bronze"],
       },
       {
-        task: "Reach Fishing level 3 (keep fishing)", goal: { kind: "skillLevel", skill: "fishing", level: 3 },
-        hint: "Keep fishing. Every fish gives Fishing XP. Come back at Fishing 3.",
-        needsTool: "rod", protect: ["rod_"],
-      },
-      {
         task: `Talk to ${MAREN}`, goal: { kind: "talk" },
         lines: [
-          "Fishing 3! Every skill belongs to a Discipline. Fishing is part of Endurance, which raises your max stamina. A Discipline's level is the average of the skills you've learned in it.",
-          "Open the 📊 panel and look: every kind of fish has its own Mastery too. The higher it is, the faster you catch it and the more shops pay for it.",
-          "One last thing from me: cook stews at the stove until you reach Cooking 3. More ingredients in the pot give more XP. Here's some firewood to get you going.",
-        ],
-        give: [{ item: "pine_logs", count: 5 }],
-      },
-      {
-        task: "Reach Cooking level 3 (cook stews)", goal: { kind: "skillLevel", skill: "cooking", level: 3 },
-        hint: "Cook stews at the stove with your pot on your belt. More ingredients in the pot give more XP. If you run low on stamina, eat one! Out of firewood or fish? Come and see me and I'll give you some.",
-        // You can't chop trees yet, so firewood can't run out: Maren hands you more (and it can't be sold).
-        ensure: [{ item: "pine_logs", count: 3 }, { item: "minnow", count: 2 }], needsTool: "pot", protect: ["pot_bronze", "pine_logs"],
-      },
-      {
-        task: `Go back to ${MAREN}`, goal: { kind: "talk" },
-        lines: [
-          "Cooking 3! Cooking is Dexterity, which lets you carry more and walk faster. You've learned all I have to teach.",
-          "Now it's time you met the trainers. Forester Holt, Miner Greta and Smith Brann live on Trainer Row, east of the square, on the north side of the road. Shopkeeper Tam and Woodworker Rook are just west of the square. Everyone works indoors: walk onto a door to go in.",
-          "Huntmaster Kael's lodge is down the south road, by the gate to the Dark Forest. Archmage Rowan runs the Mages' Guild to the south-west, and Captain Bryn, by the bounty board in the town square, always has work.",
-          "Visit them in any order you like. Anyone with a ❗ over their head has a lesson for you, and each one ends with a reward. Your 📜 Quests tab keeps track.",
+          "There, you've got the hang of living off the land: fish, cook, eat. Every skill belongs to a Discipline. Fishing is part of Endurance, which raises your max stamina, and Cooking is Dexterity, which lets you carry more and walk faster.",
+          "Now meet the others. Every trainer in Emberhold teaches right here in the training ground: Forester Holt by the trees, Miner Greta by the rocks, Smith Brann at the furnace, Woodworker Rook at the workbench, Herbalist Wren by the dig patches, Alchemist Moss and Archmage Rowan by the alchemy table and the altar, Huntmaster Kael by the pens and Farmer Odo by his plots.",
+          "Shopkeeper Tam keeps the General Store, at the top of Market Square, just down the hill road. Captain Bryn stands by the bounty board in the square.",
+          "Anyone with a ❗ over their head has a lesson for you, and each one ends with a reward. Learn them all, and Keeper Aldric will want a word. Your 📜 Quests tab keeps track.",
         ],
         coins: 50,
       },
@@ -370,7 +345,7 @@ const LESSONS: Chapter[] = [
 
   // ---------------- Shopkeeper Tam: Buying and selling ----------------
   {
-    id: "tam", title: "Buying and selling", giver: "tam", name: TAM, where: "in the General Store, just west of the square",
+    id: "tam", title: "Buying and selling", giver: "tam", name: TAM, where: "in the General Store, at the top of Market Square",
     steps: [
       {
         task: `Talk to ${TAM} at the General Store`, goal: { kind: "talk" }, unlocks: ["trading"],
@@ -401,25 +376,25 @@ const LESSONS: Chapter[] = [
 
   // ---------------- Forester Holt: The woodcutter's start ----------------
   {
-    id: "holt", title: "The woodcutter's start", giver: "holt", name: HOLT, where: "on Trainer Row, east of the square",
+    id: "holt", title: "The woodcutter's start", giver: "holt", name: HOLT, where: "by the practice trees in the Emberhall Training Ground",
     steps: [
       {
-        task: `Talk to ${HOLT} on Trainer Row`, goal: { kind: "talk" }, unlocks: ["woodcutting"],
+        task: `Talk to ${HOLT} in the training ground`, goal: { kind: "talk" }, unlocks: ["woodcutting"],
         lines: [
           "Come in, come in! Holt's the name, and trees are the game. I'll teach you Woodcutting.",
           "Woodcutting is part of Endurance, like Fishing and Mining. Every kind of log has its own Mastery, so the more of one you chop, the faster it goes.",
-          "Let's start the hard way: chop 3 logs by hand. The pointy pine trees grow in the meadow just north of Trainer Row.",
+          "Let's start the hard way: chop 3 logs by hand. The pointy pine trees are the practice grove, right behind me.",
         ],
       },
       {
         task: "Chop 3 logs by hand (no axe on your belt)", goal: { kind: "gather", skill: "woodcutting", count: 3, byHand: true },
-        hint: "Click a tree to chop it. Pine trees are the pointy ones, in the meadow just north of Trainer Row.",
+        hint: "Click a tree to chop it. Pine trees are the pointy ones, in the practice grove behind me.",
       },
       {
         task: `Go back to ${HOLT}`, goal: { kind: "talk" },
         lines: [
           "Sore hands? Good. Now you know why folks use tools.",
-          "Here's my old bronze axe. Equip it and chop 10 logs. Chopping costs 10 stamina a log, so keep some food handy. Logs are heavy too (2 kg each): the ⚖️ bar under your bag shows how much more you can carry.",
+          "Here's my old bronze axe. Equip it and chop 5 logs. Chopping costs 10 stamina a log, so keep some food handy. Logs are heavy too (2 kg each): the ⚖️ bar under your bag shows how much more you can carry.",
         ],
         give: [AXE],
       },
@@ -429,7 +404,7 @@ const LESSONS: Chapter[] = [
         ensure: [AXE], protect: ["axe_"],
       },
       {
-        task: "Chop 10 logs with your axe", goal: { kind: "gather", skill: "woodcutting", count: 10, withTool: true },
+        task: "Chop 5 logs with your axe", goal: { kind: "gather", skill: "woodcutting", count: 5, withTool: true },
         hint: "Chop trees with the axe on your belt. Remember to eat if you get tired.",
         ensure: [AXE], needsTool: "axe", protect: ["axe_"],
       },
@@ -451,13 +426,13 @@ const LESSONS: Chapter[] = [
 
   // ---------------- Miner Greta: Into the rocks ----------------
   {
-    id: "greta", title: "Into the rocks", giver: "greta", name: GRETA, where: "on Trainer Row, east of the square",
+    id: "greta", title: "Into the rocks", giver: "greta", name: GRETA, where: "by the practice rocks in the Emberhall Training Ground",
     steps: [
       {
-        task: `Talk to ${GRETA} on Trainer Row`, goal: { kind: "talk" }, unlocks: ["mining"],
+        task: `Talk to ${GRETA} in the training ground`, goal: { kind: "talk" }, unlocks: ["mining"],
         lines: [
           "You want to learn Mining? Good. It's hard work, but rocks don't run away. Mining is part of Endurance.",
-          "The quarry is up the north road, past the Emberhall: take the road on the Emberhall's west side. Here's a worn bronze pickaxe. Equip it, then mine 2 copper ore from the orange-flecked rocks. Eat when you get tired.",
+          "These practice rocks were hauled in from the quarry, just for Hopefuls like you. Here's a worn bronze pickaxe. Equip it, then mine 2 copper ore from the orange-flecked rocks. Eat when you get tired.",
         ],
         give: [WORN_PICK],
       },
@@ -467,13 +442,13 @@ const LESSONS: Chapter[] = [
         ensure: [WORN_PICK], protect: ["pickaxe_"],
       },
       {
-        task: "Mine 2 copper ore (orange-flecked rocks in the quarry)", goal: { kind: "gather", skill: "mining", resource: "copper", count: 2 },
-        hint: "Click a copper rock (grey with orange flecks) in the quarry (up the north road, past the Emberhall) with the pickaxe on your belt.",
+        task: "Mine 2 copper ore (the orange-flecked practice rocks)", goal: { kind: "gather", skill: "mining", resource: "copper", count: 2 },
+        hint: "Click a copper rock (grey with orange flecks) by Greta in the training ground, with the pickaxe on your belt.",
         ensure: [WORN_PICK], needsTool: "pickaxe", protect: ["pickaxe_"],
       },
       {
         task: `Show ${GRETA} your copper ore`, goal: { kind: "talk" },
-        need: { prefix: "copper_ore", line: "Where's your copper? Mine some in the quarry and bring it here." },
+        need: { prefix: "copper_ore", line: "Where's your copper? Mine some from the practice rocks and bring it here." },
         lines: [
           "Good copper! Tools are made of metal, and the first metal is bronze: 1 copper ore and 1 tin ore make a bronze bar.",
           "Now get 2 tin ore to go with it. Tin rocks are the pale, silvery ones right next to the copper. Or if you're in a hurry, buy them from my Buy tab.",
@@ -481,7 +456,7 @@ const LESSONS: Chapter[] = [
       },
       {
         task: "Get 2 tin ore to go with your copper (mine it, or buy it from Greta)", goal: { kind: "have", items: { copper_ore: 2, tin_ore: 2 } },
-        hint: "Mine the pale, silvery tin rocks in the quarry, or click Greta, open the Buy tab, and buy tin ore. You need 2 copper ore too.",
+        hint: "Mine the pale, silvery tin rocks by Greta, or click her, open the Buy tab, and buy tin ore. You need 2 copper ore too.",
         protect: ["copper_ore", "tin_ore"],
       },
       {
@@ -498,10 +473,10 @@ const LESSONS: Chapter[] = [
 
   // ---------------- Smith Brann: Hammer and fire ----------------
   {
-    id: "brann", title: "Hammer and fire", giver: "brann", name: BRANN, where: "in the smithy on Trainer Row", after: ["greta"],
+    id: "brann", title: "Hammer and fire", giver: "brann", name: BRANN, where: "at the furnace and anvil in the Emberhall Training Ground", after: ["greta"],
     steps: [
       {
-        task: `Talk to ${BRANN} at the smithy`, goal: { kind: "talk" }, unlocks: ["smithing", "smelting"],
+        task: `Talk to ${BRANN} by the furnace in the training ground`, goal: { kind: "talk" }, unlocks: ["smithing", "smelting"],
         lines: [
           "Mind the sparks! I'm Brann. I'll teach you Smithing at the anvil and Smelting at the furnace. Both are part of Dexterity.",
           "A tool is a head and a handle: 1 metal bar for the head, and 1 log for the handle. A hammer on your belt helps you smith, the way a pot helps you cook.",
@@ -553,10 +528,10 @@ const LESSONS: Chapter[] = [
 
   // ---------------- Woodworker Rook: Handy work ----------------
   {
-    id: "rook", title: "Handy work", giver: "rook", name: ROOK, where: "in the workshop just west of the square", after: ["holt"],
+    id: "rook", title: "Handy work", giver: "rook", name: ROOK, where: "at the workbench in the Emberhall Training Ground", after: ["holt"],
     steps: [
       {
-        task: `Talk to ${ROOK} at the workshop`, goal: { kind: "talk" }, unlocks: ["handicraft"],
+        task: `Talk to ${ROOK} at the workbench in the training ground`, goal: { kind: "talk" }, unlocks: ["handicraft"],
         lines: [
           "Hello there! I'm Rook. I make the little things that make life easier. Handicraft is part of Dexterity.",
           "For now that's fishing bait: worms, food scraps and feathers turn into bait that makes fish bite sooner. Worms turn up while you chop and mine, and cooking leaves scraps.",
@@ -583,12 +558,12 @@ const LESSONS: Chapter[] = [
 
   // ---------------- Huntmaster Kael: Standing your ground ----------------
   {
-    id: "kael", title: "Standing your ground", giver: "kael", name: KAEL, where: "in the lodge by the gate, south of the road",
+    id: "kael", title: "Standing your ground", giver: "kael", name: KAEL, where: "by the pens in the Emberhall Training Ground",
     steps: [
       {
-        task: `Talk to ${KAEL} at the lodge by the gate`, goal: { kind: "talk" }, unlocks: ["melee", "defense"],
+        task: `Talk to ${KAEL} by the pens in the training ground`, goal: { kind: "talk" }, unlocks: ["melee", "defense"],
         lines: [
-          "So you want to fight? I'm Kael. South of here, past the gate, is the Dark Forest. Wolves, goblins, giant spiders and worse, and they attack anyone who wanders in.",
+          "So you want to fight? I'm Kael. Out past the city walls is the Dark Forest. Wolves, goblins, giant spiders and worse, and they attack anyone who wanders in. The gates are shut for now, so we'll train right here in the pens.",
           "See the ❤ bar at the top left? That's your health. Fighting skills are Strength, and Strength raises your max health. If it runs out, you'll wake up at the Heart Shrine in the Emberhall, a bit shaken but with all your things.",
           "Let's start small. With nothing in your hand you fight with your fists: it works, but only just. So here's a bronze dagger. Weapons and armor go in your gear strip, under the tool belt. Click the dagger in your bag and press \"Equip\".",
         ],
@@ -600,8 +575,8 @@ const LESSONS: Chapter[] = [
         ensure: [DAGGER], protect: ["dagger_"],
       },
       {
-        task: "Defeat 3 chickens (in the coop west of the square)", goal: { kind: "kill", monster: "chicken", count: 3 },
-        hint: "The chickens peck about in the fenced coop west of the square, by the lake. Click one to attack it. They never fight back.",
+        task: "Defeat 3 chickens (in the coop beside Kael)", goal: { kind: "kill", monster: "chicken", count: 3 },
+        hint: "The chickens peck about in the fenced coop right next to me. Click one to attack it. They never fight back.",
         ensure: [DAGGER], protect: ["dagger_"], fightWith: "weapon",
       },
       {
@@ -618,8 +593,8 @@ const LESSONS: Chapter[] = [
         ensure: [{ item: "helmet_bronze" }, { item: "shield_bronze" }], protect: ["helmet_", "shield_"],
       },
       {
-        task: "Defeat 2 rats (around the quarry, up the north road)", goal: { kind: "kill", monster: "rat", count: 2 },
-        hint: "The rats scurry around the quarry rocks, up the north road past the Emberhall. They bite back, so watch your ❤ health.",
+        task: "Defeat 2 rats (in the rat pit, below the coop)", goal: { kind: "kill", monster: "rat", count: 2 },
+        hint: "The rats scurry about in the rat pit, just below the chicken coop. They bite back, so watch your ❤ health.",
         ensure: [DAGGER], protect: ["dagger_", "helmet_", "shield_"], fightWith: "weapon",
       },
       {
@@ -656,21 +631,21 @@ const LESSONS: Chapter[] = [
       {
         task: `Go back to ${KAEL}`, goal: { kind: "talk" }, opensGate: true,
         lines: [
-          "Good shooting! I think you're ready for the forest.",
-          "I've opened the gate for you. It's just south of my lodge, past the warning sign. The wolves near the gate are the easiest. Goblins live to the west, giant spiders to the east, and Ashbound raiders deep in the south. Don't go near those yet!",
-          "Take these bronze platelegs and 3 more potions. Hold the weapon you like best, defeat a wolf, and come back to me. If it goes badly, walk back out through the gate: they won't follow you past the fence.",
+          "Good shooting! One last test before you're ready for the forest.",
+          "Take these bronze platelegs and 3 more potions. Hold the weapon you like best and clear 3 rats out of the pit. Fight them like they're wolves, and drink a potion if it goes badly.",
+          "When the city gates open, I'll let you through the Dark Forest's gate too.",
         ],
         give: [{ item: "platelegs_bronze" }, POTION, POTION, POTION],
       },
       {
-        task: "Defeat a wolf in the Dark Forest (through the gate)", goal: { kind: "kill", monster: "wolf", count: 1 },
-        hint: "The gate is just south of my lodge, past the warning sign. The wolves are just inside. Drink a potion if your health gets low!",
+        task: "Defeat 3 rats in the rat pit with your best weapon", goal: { kind: "kill", monster: "rat", count: 3 },
+        hint: "The rat pit is just below the chicken coop. Hold the weapon you like best, and drink a potion if your health gets low!",
         fightWith: "weapon",
       },
       {
         task: `Go back to ${KAEL} for your reward`, goal: { kind: "talk" }, unlocks: ["hunting"],
         lines: [
-          "You came back! And in one piece, too. You've the makings of a hunter, so I'll teach you Hunting. It's part of Endurance.",
+          "Not a rat left standing! You've the makings of a hunter, so I'll teach you Hunting. It's part of Endurance.",
           "Every monster you defeat now trains Hunting, even if a friend helped: you each get a share, by how much of its health you took. The better a hunter you are, the more often monsters drop things.",
           "Here's a bronze platebody and bronze boots. With those you've a full bronze set: helmet, platebody, platelegs, boots and shield. And some coins.",
           "The forest gets harder the deeper you go, so train up, make better gear, and keep potions handy.",
@@ -683,10 +658,10 @@ const LESSONS: Chapter[] = [
 
   // ---------------- Herbalist Wren: What the ground gives ----------------
   {
-    id: "wren", title: "What the ground gives", giver: "wren", name: WREN, where: "in the little hut by the lake, east of the Mages' Guild",
+    id: "wren", title: "What the ground gives", giver: "wren", name: WREN, where: "by the dig patches in the Emberhall Training Ground",
     steps: [
       {
-        task: `Talk to ${WREN} in the hut by the lake`, goal: { kind: "talk" }, unlocks: ["foraging"],
+        task: `Talk to ${WREN} in the training ground`, goal: { kind: "talk" }, unlocks: ["foraging"],
         lines: [
           "Oh! Mind the drying herbs. I'm Wren. Everyone else round here chops and mines and fishes, but the best things grow under your feet.",
           "See the little patches of turned earth that glint in the grass? Those are dig patches. Dig one with a shovel and you'll turn up roots, worms and mushrooms, and herbs once you know what to look for. That's Foraging, part of Endurance.",
@@ -701,7 +676,7 @@ const LESSONS: Chapter[] = [
       },
       {
         task: "Dig up 3 things from glinting dig patches", goal: { kind: "gather", skill: "foraging", count: 3, withTool: true },
-        hint: "There's a dig patch just outside my door, and more in the meadows round town and up in the hills. Click one that glints. Once it's dug out, it glints again after a while.",
+        hint: "The dig patches are all round me in the training ground. Click one that glints. Once it's dug out, it glints again after a while.",
         ensure: [SHOVEL], protect: ["shovel_"], needsTool: "shovel",
       },
       {
@@ -718,12 +693,12 @@ const LESSONS: Chapter[] = [
 
   // ---------------- Archmage Rowan: Sparks and spells ----------------
   {
-    id: "ysolde", title: "Sparks and spells", giver: "archmage", name: YSOLDE, where: "at the Mages' Guild, south-west of town", after: ["kael"],
+    id: "ysolde", title: "Sparks and spells", giver: "archmage", name: YSOLDE, where: "by the enchanting altar in the Emberhall Training Ground", after: ["kael"],
     steps: [
       {
-        task: `Talk to ${YSOLDE} at the Mages' Guild`, goal: { kind: "talk" }, unlocks: ["magic"],
+        task: `Talk to ${YSOLDE} in the training ground`, goal: { kind: "talk" }, unlocks: ["magic"],
         lines: [
-          "Welcome to the Mages' Guild. I'll teach you Spellcasting. It's part of Wisdom, which raises your max mana.",
+          "Welcome, young spark. The Mages' Guild sends me up here to teach the Emberborn. I'll teach you Spellcasting. It's part of Wisdom, which raises your max mana.",
           "Spells need a staff in your hand, and they use mana, the blue 🔮 bar under your stamina. Mana comes back on its own, 1 every 6 seconds.",
           "Here's a bronze staff. Your spells sit on the spell bar under your gear. Firebolt flies from a staff: hold this one and go defeat 2 chickens with it.",
         ],
@@ -758,7 +733,7 @@ const LESSONS: Chapter[] = [
         give: [{ item: "soulgem_5_25" }],
       },
       {
-        task: "Enchant something at the altar (click the altar in the guild)", goal: { kind: "enchant" },
+        task: "Enchant something at the altar (beside Rowan in the training ground)", goal: { kind: "enchant" },
         hint: "Put the item in your bag, click the altar, pick it and the refined emberstone, then Enchant.",
         ensure: [{ item: "soulgem_5_25" }],
       },
@@ -775,10 +750,10 @@ const LESSONS: Chapter[] = [
 
   // ---------------- Alchemist Moss: A drop of something ----------------
   {
-    id: "moss", title: "A drop of something", giver: "moss", name: MOSS, where: "at the Mages' Guild, south-west of town", after: ["wren"],
+    id: "moss", title: "A drop of something", giver: "moss", name: MOSS, where: "by the alchemy table in the Emberhall Training Ground", after: ["wren"],
     steps: [
       {
-        task: `Talk to ${MOSS} at the Mages' Guild`, goal: { kind: "talk" }, unlocks: ["alchemy"],
+        task: `Talk to ${MOSS} in the training ground`, goal: { kind: "talk" }, unlocks: ["alchemy"],
         lines: [
           "Careful, that one bubbles. I'm Moss. Rowan lets me keep my table in the corner of the guild, as long as nothing explodes.",
           "Alchemy is part of Wisdom. Two ingredients make a potion: a red cap mushroom and some slime goo make a health potion. A third, like sage, adds something extra. Every potion needs an empty vial, and I sell those.",
@@ -811,7 +786,7 @@ const LESSONS: Chapter[] = [
 
   // ---------------- Captain Bryn: Odd jobs ----------------
   {
-    id: "bryn", title: "Odd jobs", giver: "bryn", name: BRYN, where: "by the bounty board in the square", after: ["tam"],
+    id: "bryn", title: "Odd jobs", giver: "bryn", name: BRYN, where: "by the bounty board in Market Square", after: ["tam"],
     steps: [
       {
         task: `Talk to ${BRYN} by the bounty board`, goal: { kind: "talk" }, opensBoard: true, unlocks: ["renown"],
@@ -842,12 +817,12 @@ const LESSONS: Chapter[] = [
 
   // ---------------- Farmer Odo: Something to grow (shared/farming.ts) ----------------
   {
-    id: "odo", title: "Something to grow", giver: "odo", name: ODO, where: "at the farm: follow the road east, over the river bridge",
+    id: "odo", title: "Something to grow", giver: "odo", name: ODO, where: "by his plots in the Emberhall Training Ground",
     steps: [
       {
-        task: `Talk to ${ODO} at the farm`, goal: { kind: "talk" }, unlocks: ["farming"],
+        task: `Talk to ${ODO} in the training ground`, goal: { kind: "talk" }, unlocks: ["farming"],
         lines: [
-          "Visitors! Not many make it out this far. I'm Odo. I grow things, and I'll teach you to grow them too. That's Farming, part of Endurance.",
+          "Hello there! I'm Odo, down from the allotments to teach. I grow things, and I'll teach you to grow them too. That's Farming, part of Endurance.",
           "See those fallow lots? Each one can be somebody's plot. A plot starts small, 2 by 2, and I'll let it grow to 6 by 6 if you pay me for the land.",
           "Here are 4 seed potatoes. I'll give you your first plot for free: open my shop and press Get a plot.",
         ],
@@ -880,7 +855,7 @@ const LESSONS: Chapter[] = [
 
   // ---------------- Group quest: Kael's Wolf Hunt (needs Hunting 5; best with a party) ----------------
   {
-    id: "kael_hunt", title: "The Wolf Hunt", giver: "kael", name: KAEL, where: "in the lodge by the gate",
+    id: "kael_hunt", title: "The Wolf Hunt", giver: "kael", name: KAEL, where: "in his lodge in the Lower Town",
     side: true, requires: { skill: "hunting", level: 5 },
     steps: [
       {
@@ -916,7 +891,7 @@ const LESSONS: Chapter[] = [
 
   // ---------------- Side quest: Captain Bryn's Ashbound raider trouble (needs Renown 10) ----------------
   {
-    id: "bryn_bandits", title: "Highway robbery", giver: "bryn", name: BRYN, where: "by the bounty board in the square",
+    id: "bryn_bandits", title: "Highway robbery", giver: "bryn", name: BRYN, where: "by the bounty board in Market Square",
     side: true, requires: { skill: "renown", level: 10 },
     steps: [
       {
@@ -1009,12 +984,17 @@ export function chapterOpen(q: QuestProgress, id: ChapterId): boolean {
 export function opensAfter(q: QuestProgress, id: ChapterId): string {
   const c = chapterById(id);
   if (!c.act) {
-    if (id === "maren") return "Opens after The Old Sweeper";
+    if (id === "maren") return "Opens after The Training Ground";
     if (!marenDone(q)) return `Opens after ${GUIDE_NAME}'s lessons`;
     const first = (c.after ?? []).filter((a) => !chapterDone(q, a)).map((a) => `${chapterById(a).name}'s lesson`);
     return first.length ? `Opens after ${first.join(" and ")}` : "";
   }
-  const missing = (c.after ?? []).filter((a) => !chapterDone(q, a)).map((a) => chapterById(a).title);
+  const left = (c.after ?? []).filter((a) => !chapterDone(q, a));
+  const story = left.filter((a) => chapterById(a).act), lessons = left.length - story.length;
+  const missing = story.map((a) => chapterById(a).title);
+  // A long list of trainer lessons (the Oath needs every one) reads better as a count.
+  if (lessons > 2) missing.push(`${lessons} more trainer lessons in the Training Ground`);
+  else missing.push(...left.filter((a) => !chapterById(a).act).map((a) => `${chapterById(a).name}'s lesson`));
   const need = (c.lessons ?? 0) - lessonsDone(q);
   if (need > 0) missing.push(`${need} more trainer lesson${need === 1 ? "" : "s"}`);
   return missing.length ? `Opens after ${missing.join(", ")}` : "";
@@ -1198,8 +1178,14 @@ export function teacherOf(skill: SkillId): Chapter | null {
  * open to them like anyone.
  * Rev 6 (version 0.14): a step added to Awakening after Celene's first talk
  * (putting on the robe). Anyone past her first talk moves one step along.
+ * Rev 7 (version 0.17, Emberhold): Maren's chapter is shorter (23 steps to 19):
+ * the "sell a fish to Tam" step and the Fishing 3 / Cooking 3 tail are gone,
+ * and one last talk sends you round the Training Ground's trainers.
  */
-export const QUEST_REV = 6;
+export const QUEST_REV = 7;
+/** Maren's old step (rev 6 and before) to her new step (rev 7). */
+const MAREN_REV7 = (old: number) => (old <= 16 ? old : old === 17 ? 16 : old === 18 ? 17 : old <= 22 ? 18 : 19);
+const OLD_MAREN_STEPS = 23;
 const PROLOGUE_SKIP: ChapterId[] = ["awakening", "hall", "lanterns", "sweeper"];
 export function migrateQuest(saved: unknown, rev: number | undefined): QuestProgress {
   const q = migrateOld(saved, rev);
@@ -1211,6 +1197,10 @@ export function migrateQuest(saved: unknown, rev: number | undefined): QuestProg
     }
   }
   if ((rev ?? 1) < 6 && q.ch.awakening && q.ch.awakening.step >= 1) q.ch.awakening.step = Math.min(q.ch.awakening.step + 1, chapterById("awakening").steps.length);
+  if ((rev ?? 1) < 7 && q.ch.maren) {
+    const old = q.ch.maren.step, now = Math.min(MAREN_REV7(old), chapterById("maren").steps.length);
+    if (now !== old) q.ch.maren = { ...q.ch.maren, step: now, count: 0 };
+  }
   return q;
 }
 /** Rev 4 added two steps to Maren's chapter after "Tell Maren your rod broke" (the trip to the Repairer). */
@@ -1231,7 +1221,8 @@ function migrateOld(saved: unknown, rev: number | undefined): QuestProgress {
     for (const id of CHAPTER_IDS) {
       const c = s.ch?.[id];
       if (c && Number.isInteger(c.step) && c.step >= 0) {
-        q.ch[id] = { step: Math.min(c.step, chapterById(id).steps.length), count: Number.isInteger(c.count) && c.count >= 0 ? c.count : 0 };
+        const len = id === "maren" && (rev ?? 1) < 7 ? OLD_MAREN_STEPS : chapterById(id).steps.length;
+        q.ch[id] = { step: Math.min(c.step, len), count: Number.isInteger(c.count) && c.count >= 0 ? c.count : 0 };
         if (Array.isArray(c.got)) q.ch[id]!.got = c.got.filter((g) => typeof g === "string").slice(0, 20);
       }
     }
@@ -1239,7 +1230,7 @@ function migrateOld(saved: unknown, rev: number | undefined): QuestProgress {
     if (Array.isArray(s.taught)) q.taught = SKILL_IDS.filter((id) => s.taught!.includes(id));
     if (s.gate) q.gate = true;
     if ((rev ?? 1) >= 5 ? !Object.keys(q.ch).length : !q.ch.maren) return newQuestProgress();
-    if ((rev ?? 1) < 4 && q.ch.maren && q.ch.maren.step >= REPAIR_LESSON_AT) q.ch.maren.step = Math.min(q.ch.maren.step + 2, chapterById("maren").steps.length);
+    if ((rev ?? 1) < 4 && q.ch.maren && q.ch.maren.step >= REPAIR_LESSON_AT) q.ch.maren.step = Math.min(q.ch.maren.step + 2, OLD_MAREN_STEPS);
     return q;
   }
   let step = Number.isInteger(s.step) && s.step! >= 0 ? s.step! : 0;
@@ -1249,7 +1240,7 @@ function migrateOld(saved: unknown, rev: number | undefined): QuestProgress {
   const taught = done ? [...SKILL_IDS] : SKILL_IDS.filter((id) => OLD_UNLOCKS.some(([at, ids]) => at < step && ids.includes(id)));
   if (step < OLD_FIRST_QUEST) return { active: "maren", ch: { maren: { step: step >= REPAIR_LESSON_AT ? step + 2 : step, count } }, taught };
   return {
-    active: null, ch: { maren: { step: chapterById("maren").steps.length, count: 0 } },
+    active: null, ch: { maren: { step: OLD_MAREN_STEPS, count: 0 } },
     taught, ...(done || step > OLD_GATE_STEP ? { gate: true } : {}),
   };
 }
