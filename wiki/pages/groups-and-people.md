@@ -7,21 +7,22 @@ summary: Every group and character in the story, including ones not in the game 
 
 | Group | What everyone thinks | 🔒 The truth |
 |---|---|---|
+| [[The Ember Circle]] | The great mages of Aldmera, long passed into legend. All but Wick were heroes. | Vale caused the Emberfall. Most of the rest are still alive as [[The Undying]]. |
 | [[The Emberguard]] | Noble protectors of the ember shrines. | Most are honest. The leaders are [[The Undying]]. |
-| [[Emberborn]] (the players) | Heroes the shrines make from ember. | Made of stolen ember, and farmed for it. |
+| [[Emberborn]] (the players) | Heroes the shrines make from ember. | Made to protect the land, and farmed for their ember. |
 | [[The Rooted]] | Ordinary townsfolk. | Exactly that. |
-| [[The Ashbound]] | Mad bandits who smash shrines. | They know the truth, and are shutting the siphon down. |
+| [[The Ashbound]] | Mad bandits who smash shrines, led by Sable. | Wick's resistance. They know the truth, and are fighting the siphon. |
 | [[The Mages' Guild]] | Scholars of magic and emberstone. | Honest, but their emberstone feeds the Undying. |
 | [[The Wardens]] | Kael's rangers. | Honest. |
 | [[The Blight]] | Sick, angry animals. | Living things the ember has drained out of. |
 
 ## The Emberguard's people
 
-[[Keeper Aldric]], [[Sister Celene]], [[Enchanter Vale]], [[Brother Oren]], [[Sister Lisette]], [[Brother Tomas]], [[Sister Wynne]], and the four [[Emberwardens]].
+[[Keeper Aldric]], [[Sister Celene]], [[Enchanter Vale]], [[Brother Oren]], [[Sister Lisette]], [[Brother Tomas]], [[Sister Wynne]], and the six [[Emberwardens]].
 
 ## The Ashbound's people
 
-[[Sable]], [[Rhys]] (later), [[Tamsin]].
+[[Sable]], 🔒 [[Wick]] (in hiding), [[Rhys]] (later), [[Tamsin]].
 
 ## Emberhold's townsfolk
 
@@ -29,6 +30,6 @@ summary: Every group and character in the story, including ones not in the game 
 
 ## The past
 
-[[Archmage Vale]], [[King Aldemar]], [[The Extinguished]], [[Orla the Kind]].
+[[King Aldemar XVIII]], [[Archmage Vale]], [[Wick]], [[The Ember Circle]], [[The Tenders]], [[The Extinguished]], [[Orla the Kind]].
 
 See also [[People in the game]] for everyone you can talk to today.

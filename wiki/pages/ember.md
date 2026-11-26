@@ -4,7 +4,7 @@ icon: ✨
 aliases: Ember, Mana
 summary: The land's warmth, sent up by the Emberheart. Mana is just ember you can use.
 ---
-**The ember** is the land's own warmth. It comes from [[The Emberheart]] and is in everything that grows.
+**The ember** is the land's own warmth. It rises from [[The Emberheart]], deep under the land, and is in everything that grows.
 
 ## Where it shows
 
@@ -19,4 +19,4 @@ Where the ember runs close to the surface, you can see it.
 
 The land gives a little ember to everything, and takes it back when things die and rot. It's a circle. Take more than the land gives back, and that spot goes cold. Where it goes cold, things turn grey, sick and dark. That is [[The Withering]], [[The Blight]], and the spreading Dark Forest.
 
-The old folk who lived by the rule were called [[The Hearthwise]]. Their saying is still painted over a few old doorways: *"Take only what the land gives back."*
+The old country folk of [[Aldmera]] who lived by the rule were called [[The Tenders]]. Their saying is still painted over a few old doorways: *"Take only what the land gives back."*

@@ -2,25 +2,38 @@ title: History
 category: History
 icon: ⏳
 aliases: Timeline
-summary: Five hundred years, oldest first: what really happened, and what people believe today.
+summary: Eight hundred years, oldest first: what really happened, and what people believe today.
 ---
-The game takes place in **year 500 After the Fall**. Oldest first. For the official story of the Fall next to the true one, see [[The Emberfall (disaster)]].
+The game takes place in **year 800 After the Fall**. Oldest first. For the official story of the Fall next to the true one, see [[The Emberfall (disaster)]].
 
 | Year | What really happened | What people believe today |
 |---|---|---|
-| Before 0 | The [[Old Kingdom]]. Green and rich, ruled from [[Brightcrown]] in the west. [[The Hearthwise]] teach "take only what the land gives back". | "A golden age." |
-| 0 | [[The Emberfall (disaster)|The Emberfall]]. [[The Ember Circle]] breaks open the earth under [[Heartvale]] to drink [[The Emberheart]]. Fire bursts up and embers rain down for a year. | "The land's fire burst in anger. No one was to blame." |
-| 1 to 40 | The [[Sundering War]]. Lords fight over the glowing shards. [[King Aldemar]]'s [[Ember Crown]] destroys Brightcrown and makes the western crater. The kingdom falls and the west burns into the Barrens. | "Nobody remembers how the war began." |
-| 40 | The first [[The shrines|shrines]]. The Circle builds the shrines and the first [[Emberborn]] wake, [[Old Maren]] among them. They win the war. | "Archmage Vale built the shrines and saved us." |
-| 60 | 🔒 Vale fakes his death. The Circle becomes [[The Emberguard]], and its leaders [[The Undying]]. | "Vale died soon after the war. No one knows where he's buried." |
-| 60 to 200 | The shrines should have closed. Instead the Emberguard build more, and [[Emberhold]] grows up around their temple, [[The Emberhall]]. | "The Emberguard protect us." |
-| about 140 | 🔒 [[Sable]], the brightest champion, secretly goes down to [[The Emberheart]] and touches it. At her Ceremony the thread can't drain that piece of it, and a shrine raises her again as a new Emberborn with no memory. | "Sable gave her ember back." Her statue goes up among [[The Extinguished]]. |
-| about 200 | [[The Mages' Guild]]'s records about the Emberheart stop. The Emberguard took them. | Scholars find it odd. |
-| 200 to 500 | The Emberguard raise hundreds of Emberborn, skim from every death, and drain a champion every few decades in a [[Radiance Ceremony]]. The Emberheart weakens. | "The Extinguished gave their ember back so new heroes could wake." |
-| about 430 | 🔒 Maren learns the truth and cuts her own thread. Without the siphon feeding her, she starts to age, and slowly to turn to ash. | "Harmless old Maren, she's been here forever." |
-| 460 | [[Orla the Kind]] rises nine times through the Grey Fever, and is drained at her Ceremony the next year. | "Orla was a saint." |
-| about 470 | 🔒 Sable remembers enough to understand the siphon, and founds [[The Ashbound]]. | "Bandits in the woods." |
-| about 495 | 🔒 The Emberguard learn the Ashbound's leader is Sable. They pull down her statue overnight and scratch her name off the plinth. | "The Heart Shrine refused Sable's flawed spark. Now she and the Ashbound are poisoning the land." |
-| 500 | Now. The Dark Forest spreads toward Emberhold. [[Frostfell]]'s ice creeps south. You wake at [[The Heart Shrine]]. | "The Blight is just bad luck, and the Ashbound make it worse." |
+| Before 0 | [[Aldmera]], the kingdom of the [[Aldmere]], covers the whole land, ruled from [[Whitestone]]. Its roads, towers and bridges stand everywhere. Country folk called [[The Tenders]] live by one rule: "take only what the land gives back." | "A golden age." |
+| The last years before 0 | [[King Aldemar XVIII]] leads [[The Ember Circle]] in a great working to harness [[The Emberheart]] for all Aldmera. [[Archmage Vale]] and [[Wick]] are his two highest. | "The Circle was the pride of the kingdom." |
+| 0 | [[The Emberfall (disaster)|The Emberfall]]. 🔒 As the work concludes, Vale kills the king and twists the working. It breaks loose, embers rain down for a year, and Aldmera falls. Every member of the Circle is filled with power and stops ageing, Vale most of all. Only Vale knows what he did. | "Wick murdered the king and broke the working." |
+| 0 to 10 | Each member of the Circle raises a great shrine in their own region to pin the torrent down (see [[The shrines]]). | "The great mages saved what was left." |
+| About 30 | The shrines raise the first [[Emberborn]] from the wild ember, protectors to stabilize and guard the ruined land. | Same. |
+| About 50 | The Circle founds [[The Emberguard]] to keep the shrines and train the Emberborn. | Same. |
+| 0 to 200 | [[The Rebuilding]]. It takes two centuries to take back control of the land. Cities grow up around the great shrines, [[Emberhold]] around the Heart Shrine. | "The age of heroes." |
+| About 200 | The first Emberborn begin to fade ([[The Fading]]). Vale creates the [[Radiance Ceremony]] so a weary Emberborn can retire. 🔒 The ember goes to Vale. Halric the Dawnbringer is the first of [[The Extinguished]]. | "One flame goes out so a hundred can be lit." |
+| 200 to 400 | Ceremonies become normal and honoured. 🔒 Vale grows stronger. The rest of the Circle slowly grows greedy on the power their shrines pull in. Small shrines spread along every road, and the land between the cities starts to wither. | "The Emberguard keep us safe." |
+| About 400 | 🔒 Wick grows suspicious, and finds out what the Ceremony really does. | |
+| 400 to 500 | The [[Sundering War]], the Circle against itself. 🔒 Vale's side (Crowe, Flint, Merrow, Dunn) wins. Wick's allies, Ivy and Reed, are killed. Impostors chosen from the corrupt Emberguard and Emberborn take their names and shrines, and nobody ever knows. The victors take Wick's shrine, and [[Frostfell]] freezes. | "Wick turned half the Circle against the rest and tried to tear the shrines down." |
+| About 500 | 🔒 Vale fakes his death and rewrites history, making Wick the villain of the Emberfall too. The Undying hide in plain sight as the [[Emberwardens]]. The Emberguard take [[The Mages' Guild]]'s records about the Emberheart. | "Vale died winning the war. The Emberwardens carry the old Circle names as titles." |
+| 500 to 800 | 🔒 Wick hides, cut off from the shrines: still immortal, but far weaker than the Undying. He spends three centuries researching how to heal the land. The Withering keeps spreading. A Ceremony every few decades. | "The Long Watch." Wick is a monster in children's stories. |
+| About 650 | Tilda Ashwalker walks into the Withering in [[The Ashen Barrens]] and leads two hundred people home. She learns the truth before her Ceremony. | "Tilda was a hero." |
+| 760 | [[Orla the Kind]] rises nine times through the Grey Fever, and is honoured at her Ceremony the next year. | "Orla was a saint." |
+| About 780 | [[Sable]], the Emberguard's brightest champion, is chosen for her Ceremony. 🔒 Wick reaches her first, and she vanishes the night before. Together they found [[The Ashbound]]. | "Sable fled her honour and went mad." |
+| 780 to 800 | The Ashbound grow from a handful to a few camps. The Emberguard call them bandits, and lately blame them for the Withering. | "The Ashbound are poisoning the land." |
+| 800 | Now. The Dark Forest spreads toward Emberhold. Frostfell's ice creeps south. You wake at [[The Heart Shrine]]. | "The Withering is bad luck, and the Ashbound make it worse." |
 
-🔒 rows are secrets. Players piece them together through quests, books and Memory Echoes.
+🔒 marks secrets. Players piece them together through quests, books and Memory Echoes.
+
+## What the game still says
+
+This timeline was settled after the latest game update. Until Mike's next update, the game's own text still follows the older story:
+
+- The books and quest text say the game is set **500 years** after the Fall, and talk about the "Old Kingdom" and a war over shards.
+- The empty plinth in the Emberhall shows the letter **S**. In the new story it's Wick's plinth, so it will become a **W**.
+- [[Old Maren]] is the fishing teacher. In the new story she's a kindly old woman who helps the Emberborn, and not an Emberborn herself.
+- There are no floating embers in the Emberhall yet.

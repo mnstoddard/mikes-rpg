@@ -1,13 +1,13 @@
 title: Frostfell
 category: Places
 icon: ❄️
-summary: Frozen tundra and ice, with the oldest shrine frozen solid.
+summary: Frozen tundra, with Wick's great shrine frozen solid.
 infobox.Levels: 55 to 70
 ---
-**Frostfell** is frozen tundra in the far north, with the oldest shrine frozen solid.
+**Frostfell** is frozen tundra in the far north. Its great shrine, raised by [[Wick]] after the Emberfall, has been frozen solid since the [[Sundering War]], and it has no city around it any more, only trappers and ruins under the snow.
 
-It's the farthest place from [[The Emberheart]], so it's the first to go cold as the fire weakens. Its ice is spreading south.
+The Emberguard teach that Wick's curse froze it when he fled. Its ice is spreading south.
 
 ::: secret
-The frozen shrine's plaque is signed by the whole [[The Ember Circle|Ember Circle]], Vale's name first, and dated year 40.
+The victors of the Sundering War took Wick's shrine and cut him off from it, and with no keeper, the region froze. The frozen shrine's plaque still has all nine names of [[The Ember Circle]] carved on it, Wick's included and unscratched: the one place the Undying never got to.
 :::

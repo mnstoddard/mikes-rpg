@@ -1,11 +1,13 @@
 title: Greyspine Peaks
 category: Places
 icon: 🏔️
-summary: Mountains, quarry, the Crystal Cave and goblin tunnels.
+summary: Volcanic mountains: quarry, the Crystal Cave and goblin tunnels.
 aliases: Greyspine
 infobox.Levels: 25 to 40
 ---
-**Greyspine Peaks** are the mountains north of [[Heartvale]]: the quarry, [[The crystal cave|the Crystal Cave]] and goblin tunnels. Warden Flint runs its great shrine ([[Emberwardens]]). Goblins there sing an old [[The Hearthwise|Hearthwise]] song to keep the grey sickness away.
+**Greyspine Peaks** are the volcanic mountains north of [[Heartvale]]: the quarry, [[The crystal cave|the Crystal Cave]] and goblin tunnels. Warden Flint keeps its great shrine ([[Emberwardens]]). Goblins there sing an old [[The Tenders|Tender]] song to keep the grey sickness away.
+
+Far from the shrine, the mountains are waking up: old vents smoke, and every few years one erupts.
 
 Emberstone veins run like rivers toward the shrines. The snow line drops every year.
 

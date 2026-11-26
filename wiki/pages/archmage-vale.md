@@ -2,13 +2,18 @@ title: Archmage Vale
 category: People
 icon: 🧙
 aliases: Vale (the Archmage), Vael
-summary: The great mage who built the first shrines. He died soon after the war, or so everyone says.
-infobox.Known_for: Building the first shrines
-infobox.Died: Year 60, people say
+summary: The great mage who saved the land after the Emberfall, and died defeating Wick. Or so everyone says.
+infobox.Known_for: Saving the land after the Emberfall; defeating Wick
+infobox.Great_shrine: [[The Heart Shrine]]
+infobox.Died: About year 500, people say
 infobox.Buried: No one knows where
 ---
-**Archmage Vale** led [[The Ember Circle]] and, the story goes, built the first [[The shrines|shrines]] in year 40, ending the [[Sundering War]]. Everyone believes he died soon after the war. No one knows where he's buried. The gentle [[Enchanter Vale]] in the Emberhall is said to be named after him.
+**Archmage Vale** was one of the two highest members of [[The Ember Circle]], beside [[Wick]], under [[King Aldemar XVIII]]. Every child is taught that he held the land together after Wick's betrayal caused [[The Emberfall (disaster)|the Emberfall]], raised [[The Heart Shrine]], led [[The Rebuilding]], and created the [[Radiance Ceremony]] so weary heroes could rest with honour. He died at the end of the [[Sundering War]], defeating Wick. No one knows where he's buried. The gentle [[Enchanter Vale]] in the Emberhall is said to be named after him.
 
 ::: secret
-Vale never died. He faked his death in year 60 and has lived on the siphon ever since. **He is [[Enchanter Vale]]**, over 500 years old, hiding in plain sight, and also the hooded High Keeper of the Emberguard. Half of the [[Ember Crown]] is set in his staff. He's the final enemy for Ashbound players, and the one who offers you a place among [[The Undying]] at your Joining: *"Join us, and you'll never fall again."*
+Vale is the one who killed the king. As the Circle's working concluded, he struck Aldemar down and twisted the working so its power poured into the Circle, and most of all into himself. The rest of the Circle never knew. He took the [[Ember Crown]] from the king's body; half of it is set in his staff.
+
+He's the most powerful being in the land, and he wants more. Around year 200 he created the Radiance Ceremony to siphon the ember of the brightest Emberborn into himself. When Wick found out, Vale won the war that followed, framed Wick for the Emberfall as well, and faked his own death around year 500.
+
+**He is [[Enchanter Vale]]**, over 800 years old, hiding in plain sight, and also the hooded High Keeper of the Emberguard. He's the final enemy for Ashbound players, and the one who offers you a place among [[The Undying]] at your Joining: *"Join us, and you'll never fall again."*
 :::

@@ -1,11 +1,17 @@
 title: Radiance Ceremony
 category: Lore
 icon: 🌞
-aliases: Radiance, Radiance Ceremonies
-summary: The great honour: the Emberguard's champion "goes into the light".
+aliases: Radiance, Radiance Ceremonies, The Ceremony, Ceremony
+summary: The great honour: a weary champion lays their flame down so new heroes can wake.
+infobox.Since: About year 200
+infobox.Created_by: [[Archmage Vale]]
 ---
-A **Radiance Ceremony** is the Emberguard's highest honour. Every few decades their greatest champion is chosen, and at the Ceremony they blaze up one last time and go out, giving their ember back to the Heart Shrine so new heroes can wake. From then on they are one of the Extinguished, and their statue stands in [[The Emberhall]] (see [[The Extinguished]]).
+A **Radiance Ceremony** is the Emberguard's highest honour. [[Archmage Vale]] created it around year 200, when the first [[Emberborn]] began to fade ([[The Fading]]). Every few decades a great champion who has carried the flame long enough is invited to lay it down. At the Ceremony they blaze up one last time and go out, and their ember, the Emberguard say, raises several new heroes: *one flame lights many*. From then on they are one of [[The Extinguished]], and their statue stands in [[The Emberhall]].
+
+Most champions ask for it themselves. Refusing is allowed, but shameful.
 
 ::: secret
-The champion is drained. Their whole spark is poured into [[The Undying]], which feeds them for years. A few sparks are still trapped in old refined emberstones. Only [[Sable]] ever came back: she had touched the Emberheart, and the thread couldn't drain that part of her.
+The champion's ember goes to Vale. The Ceremony is how he became, and stays, the most powerful being in the land. [[Wick]] found this out around year 400, and it started the [[Sundering War]].
+
+The Emberguard decide who's ready, and quietly speed up the brightest champions' Fading so they ask sooner. A few sparks never fully drain: they're the embers drifting in the Emberhall, and some are trapped in old refined emberstones.
 :::
