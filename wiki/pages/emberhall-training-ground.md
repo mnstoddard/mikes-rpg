@@ -19,13 +19,13 @@ It was added in version 0.17 to make the Prologue shorter and take every player 
 - A workbench, spinning wheel and tanning rack: [[Woodworker Rook]] (Handicraft).
 - Dig patches: [[Herbalist Wren]] (Foraging).
 - An alchemy table: [[Alchemist Moss]] (Alchemy).
-- An enchanting altar: [[Archmage Vale|Archmage Ysolde]] (Magic).
+- An enchanting altar: [[Archmage Rowan]] (Magic and Enchanting).
 - A chicken coop and a rat pit: [[Huntmaster Kael]] (fighting and Hunting).
 - Two farm plots: [[Farmer Odo]] (Farming).
 
 ## In the Prologue
 
-After "Light the Way", Keeper Aldric sends you here ("The Training Ground" chapter). Old Maren's lessons come first; then the other trainers open up, one skill leading to the next (Brann after Greta, Rook after Holt, Moss after Wren, Ysolde after Kael). The Oath of the Flame opens once you've learned from every trainer.
+After "Light the Way", Keeper Aldric sends you here ("The Training Ground" chapter). Old Maren's lessons come first; then the other trainers open up, one skill leading to the next (Brann after Greta, Rook after Holt, Moss after Wren, Rowan after Kael). The Oath of the Flame opens once you've learned from every trainer.
 
 ## Later: skill challenges (planned)
 
