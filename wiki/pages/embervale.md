@@ -36,6 +36,7 @@ Each region has a great shrine with a city around it, and its own way of witheri
 | [[Blackfen]] | 50 to 65 | Swamp | Reed | Black water and fog |
 | [[Frostfell]] | 55 to 70 | Tundra | Wick's, now frozen | Ice creeping south |
 | [[The Deeps]] | various | Caves, used as dungeons | none | |
-| [[The Hollow Heart]] | 70+ | The endgame, deep under Heartvale | none | It's the source |
+| [[The Hollow Heart]] | 65 to 75 | The main story's final area, deep under Heartvale | none | It's the source |
+| [[The Sundered Crown]] | 75+ | The endgame: the ruins of [[Whitestone]], the old capital, in the far west | none | Glass, ash and broken stone |
 
 Only Heartvale (with Emberhold and the edge of the Thornwood) is in the game so far.

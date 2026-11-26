@@ -15,7 +15,7 @@ You start as a [[Hopefuls|Hopeful]], not a member. [[The Emberguard]]'s trials t
 | Your Joining: the choice | The Emberhall stair, or the Ashbound camp | [[Archmage Vale|Vale]] offers you a place among [[The Undying]]: *"Join us, and you'll never fall again."* [[Sable]] offers you nothing but the truth: *"Better ash than a thief."* You choose. | |
 | Act 4A: Breaking the Thread (Ashbound) | Everywhere, [[Frostfell]], [[The Hollow Heart]], 60 to 75 | Gather five pieces and cut your own thread, like Sable did. Break the Undying's hold on the great shrines one by one, unmask Vale, and fight him at the Emberheart. | Every shrine you break makes the land warmer, and brings your own end a little closer. |
 | Act 4B: Ascension (Emberguard) | Everywhere, Frostfell, the Hollow Heart, 60 to 75 | Go down the stair and become a true member. Harvest sparks, hunt the Ashbound, drive off Sable's raid on the Emberheart, and have your thread turned so it feeds you. You become Undying. | Vale admits the Emberheart is dying, and doesn't care. |
-| Endgame | [[The Hollow Heart]] and [[The Sundered Crown]], 70+ | The Emberguard hunt for the other half of the [[Ember Crown]] where the king fell. The Ashbound search [[Whitestone]]'s ruins for the [[Ember Seed]]. | Who really killed the king, and the one hope that Emberborn could live without stealing. |
+| Endgame | [[The Sundered Crown]], 75+ | After the story, both sides search the ruins of [[Whitestone]], the old capital: the Emberguard for the other half of the [[Ember Crown]], the Ashbound for the [[Ember Seed]]. | Who really killed the king, and the one hope that Emberborn could live without stealing. |
 
 The Prologue and Act 1 are in the game: see [[Quests]] for every built quest, step by step.
 
