@@ -19,6 +19,7 @@ Mike picked every sound in the Sound Gallery. To swap one, change its name in `P
 
 | File | Where it plays | Source | License |
 | --- | --- | --- | --- |
+| `client3d/src/game/music/realm-of-exploration.mp3` | Everywhere that has no song of its own (Heartvale, houses, caves) | "Realm of Exploration", the song Mike chose. Made into a seamless loop: the last bar is crossfaded into the first | From Mike. Before the Steam release, write down who made it and its license here |
 | `client3d/src/game/music/gregorian-chant.mp3` | Inside the Emberhall | "Gregorian Chant" by Kevin MacLeod (incompetech.com) | CC BY 4.0 |
 
 CC BY means the game **must** credit him wherever the game is shown. The game does this in
@@ -29,4 +30,4 @@ CC BY means the game **must** credit him wherever the game is shown. The game do
 > http://creativecommons.org/licenses/by/4.0/
 
 To add a song for another place, drop the mp3 in `client3d/src/game/music/`, add it to `SONGS` in
-`client3d/src/game/music.ts`, and credit it here and in Settings if its license asks for that.
+`client3d/src/game/music.ts` (places not in `SONGS` play `WORLD_SONG`), and credit it here and in Settings if its license asks for that.

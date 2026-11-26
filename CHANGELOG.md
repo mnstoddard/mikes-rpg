@@ -6,6 +6,12 @@ in `shared/version.ts` (the game reads it from there), so update both together.
 Each update adds 0.1 to the number. Version 1.0 is saved for the finished game on Steam
 (see docs/VERSION-1.0-PLAN.md).
 
+## 0.15 · 26 November 2026 · Music for the whole world
+
+- Music everywhere: Mike's song "Realm of Exploration" now plays softly anywhere that doesn't have its own music (out in Heartvale, in the houses, shops and caves). The Emberhall keeps its chant.
+- The song repeats forever without a break: its last bar blends into its first, so you can't hear where it starts again.
+- Walking into the Emberhall fades the world music out and the chant in, and walking out fades them back. ⚙️ Settings > 🎵 Music turns all music on or off and sets the volume.
+
 ## 0.14 · 26 November 2026 · The Emberhall comes alive
 
 - A new opening: your character is formed lying on the floor by the Heart Shrine. Sister Celene hurries over, helps you up and starts talking (a Skip button skips the scene).
