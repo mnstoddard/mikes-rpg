@@ -13,12 +13,12 @@ They pass messages hidden inside the bases of [[Woodworker Rook]]'s shrine totem
 
 ## What the Emberguard say
 
-For most of their twenty-odd years, the Ashbound were just "bandits in the woods". A few years ago that changed. The Emberguard now teach that the Ashbound are led by [[Sable]], the champion who fled her Ceremony in shame, and that they're the ones killing the land: poisoning the ground round the shrines, spreading the Withering out of the west and the grey sickness through the trees. Every dead field gets blamed on them.
+For most of their twenty-odd years, the Ashbound were just "bandits in the woods". A few years ago that changed. The Emberguard now teach that the Ashbound are led by [[Sable]], the champion whose flawed spark the Heart Shrine refused, and that they're the ones killing the land: poisoning the ground round the shrines, spreading the Withering out of the west and the grey sickness through the trees. Every dead field gets blamed on them.
 
 ::: secret
 ## How they were founded
 
-Around year 470, [[Sable]] finally remembered enough to understand what she'd felt for three hundred years: the shrines pulling ember out of [[The Emberheart]], and the Ceremonies feeding [[The Undying]]. She gathered the few who'd believe her and founded the Ashbound. The Emberguard didn't learn who their leader was until about year 495.
+Around year 470, [[Sable]], brought back as a new Emberborn after her Ceremony, finally remembered enough to understand what she'd felt for three hundred years: the shrines pulling ember out of [[The Emberheart]], and the Ceremonies feeding [[The Undying]]. She gathered the few who'd believe her and founded the Ashbound. The Emberguard didn't learn who their leader was until about year 495.
 
 The Withering began centuries before the Ashbound existed. Blaming them is the Emberguard's cover-up for what the shrines are doing.
 :::
