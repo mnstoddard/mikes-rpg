@@ -28,7 +28,7 @@ These are planned, not built. (Built quests are on [[Quests]].) None are needed 
 | Lanterns for the Dead | [[Sister Wynne]] | Leave a lit lantern at each statue of the Extinguished. Orla's keeps going out. | Walking, night | Orla's spark isn't resting. |
 | The Night Key | [[Brother Tomas]] | Wait in the dark hall to see who goes into the ledger room. | Sneaking (night) | You glimpse Enchanter Vale with the ledger. |
 | Ask the Totem | [[Woodworker Rook]] | Carve a small totem; learn to hide a note in the base. | Handicraft | How the Ashbound send messages. |
-| The Scratched Name | [[Brother Oren]] | Clean the empty plinth. One letter is left: S. | Talking, Handicraft | The plinth was Sable's. |
+| The Scratched Name | [[Brother Oren]] | Clean the empty plinth. One letter is left: S. | Talking, Handicraft | The plinth was Sable's, and her statue stood for 300 years. |
 | Tam's Missing Cart | [[Shopkeeper Tam]] | Find Tam's lost cart on the Westroad. The crates are full of ash. | Exploring, Hunting | Tam deals with the Ashbound. |
 | Mending Costs | [[Repairer Oswin]] | Repair an old lantern with Maren's note inside. | Repair, Handicraft | Maren did something to herself long ago. |
 | A Grey Fox | [[Huntmaster Kael]] | Track a Blighted fox to its den, right under a shrine. | Hunting, Combat | The Blight starts at the shrines. |

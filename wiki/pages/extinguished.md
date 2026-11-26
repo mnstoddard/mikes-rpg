@@ -36,7 +36,7 @@ The Extinguished didn't give their ember back to anyone. They were drained to fe
 - **It wasn't a choice.** The invitation can't be refused. On the day, the champion is given a calming draught brewed for the Emberhall and led down the stair under the Heart Shrine. Few understood what was happening until it was too late.
 - **It isn't gentle.** The thread pulls everything out at once. Most are gone in moments. A few fought back, and the Ceremony calendar marks them *"spark flawed"*.
 - **Some of them aren't gone.** A few sparks are still trapped in old refined emberstones. The ghosts in [[The Graveyard]] are drained Emberborn still tied to the old shrine.
-- **One survived.** [[Sable]], the brightest of them all, was drained in year 460 and lived. Hers is the empty plinth. She founded [[The Ashbound]].
+- **One never went.** [[Sable]] fled down to the Emberheart the night before her Ceremony, around year 140. The Emberguard counted her among the Extinguished anyway and gave her a statue, until they found out she leads [[The Ashbound]]. Hers is the empty plinth (see [[Sable]]).
 - **Tilda knew.** Tilda Ashwalker found out the truth before her Ceremony. Her last cairn in the Barrens says *"Don't go down the stair."*
 
 Why it matters: every Hopeful is being raised to become one of the Extinguished. The more a player levels up, the brighter they burn, and the closer they are to their own invitation. That's the question at the Joining (see [[Main story]]).
@@ -50,4 +50,4 @@ Why it matters: every Hopeful is being raised to become one of the Extinguished.
 | Ida of the Saltmere | Rowed the Saltmere coast lighting dark shrines. The fisherfolk still leave shells at her feet. | Her family was told she "went into the Emberheart", and never got a body. |
 | Tilda Ashwalker | Walked into the Withering and led two hundred people home. | Learned the truth and left warnings in stone piles across the Barrens. Drained anyway. |
 | [[Orla the Kind]] | Nursed the sick through the Grey Fever, rising nine times. Honoured in year 461. | Each rising skimmed her a little; by the end she was "almost see-through". |
-| (the empty plinth) | One letter is left under the dust: S. | [[Sable]], the only one who survived. |
+| (the empty plinth) | Pulled down about year 495. One letter is left under the dust: S. The Emberguard now say she was a coward who fled her Ceremony. | [[Sable]]. She never had a Ceremony: she went down to the Emberheart herself. Her statue stood for over 300 years before they found out who leads the Ashbound. |
