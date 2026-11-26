@@ -17,7 +17,7 @@ The game takes place in **year 500 After the Fall**. Oldest first. For the offic
 | about 200 | [[The Mages' Guild]]'s records about the Emberheart stop. The Emberguard took them. | Scholars find it odd. |
 | 200 to 500 | The Emberguard raise hundreds of Emberborn, skim from every death, and drain a champion every few decades in a [[Radiance Ceremony]]. The Emberheart weakens. | "The Extinguished gave their ember back so new heroes could wake." |
 | about 430 | 🔒 Maren learns the truth and cuts her own thread. Without the siphon feeding her, she starts to age, and slowly to turn to ash. | "Harmless old Maren, she's been here forever." |
-| 460 | [[Sable]], the brightest champion, is drained at her Ceremony and survives. She founds [[The Ashbound]]. [[Orla the Kind]] dies of the Grey Fever after rising nine times. | "Sable went mad. Orla was a saint." |
+| 460 | [[Sable]], the brightest champion, is drained at her Ceremony and survives. She founds [[The Ashbound]]. [[Orla the Kind]] rises nine times through the Grey Fever, and is drained at her Ceremony the next year. | "Sable went mad. Orla was a saint." |
 | 500 | Now. The Dark Forest spreads toward Emberhold. [[Frostfell]]'s ice creeps south. You wake at [[The Heart Shrine]]. | "The Blight is just bad luck, and the Ashbound make it worse." |
 
 🔒 rows are secrets. Players piece them together through quests, books and Memory Echoes.
