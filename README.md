@@ -40,6 +40,17 @@ username, and the password is the `ADMIN_PASSWORD` set in the Render dashboard
 `/admin/api/reports?status=new`. Other clients (like the 3D game) send reports the
 same way: see the top of `server/src/reports.ts`.
 
+## 🔑 Login log (admin only)
+
+The server writes down every login: who, when, whether it was a brand-new account or
+a wrong password, what kind of device (e.g. "Chrome on Windows"), and when they left
+(so you can see how long they played). Open `/admin/logins` on the game's address
+(the same `ADMIN_PASSWORD` as the reports page; there's a link at the top of each page).
+**Every login** lists them newest first; **By player** shows each player's last login,
+number of logins and total time played. Anyone playing right now is listed at the top.
+Lines older than a year are cleared out when the server starts. The JSON version is at
+`/admin/api/logins`. See `server/src/logins.ts`.
+
 ## The tutorial: Old Maren
 
 Every new character starts with empty hands next to **Old Maren**, a retired

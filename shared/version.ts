@@ -13,6 +13,15 @@ export interface GameUpdate { version: string; date: string; title: string; chan
 
 export const UPDATES: GameUpdate[] = [
   {
+    version: "0.16",
+    date: "2026-11-26",
+    title: "A login log for the admin",
+    changes: [
+      { text: "The server now keeps a login log: who logged in and when, new accounts, wrong passwords, what kind of device they used, and when they logged out (so you can see how long they played)." },
+      { text: "Only the admin can see it, at /admin/logins on the game's address (the same password as the bug report page). It shows who's playing right now, every login newest first, and a By player view with each player's last login, number of logins and total time played." },
+    ],
+  },
+  {
     version: "0.15",
     date: "2026-11-26",
     title: "Music for the whole world",

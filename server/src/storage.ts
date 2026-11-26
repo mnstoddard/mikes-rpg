@@ -105,6 +105,20 @@ export interface Report {
 }
 export type NewReport = Omit<Report, "id" | "createdAt" | "status" | "hasScreenshot">;
 
+/** One line of the login log: someone logged in (or tried to), and when they left. */
+export interface LoginEntry {
+  id: number;
+  username: string; // as typed at login (for a wrong password, whatever they typed)
+  /** "login", "new" (made a new account and logged in) or "failed" (wrong password). */
+  outcome: string;
+  device: string; // e.g. "Chrome on Windows"
+  at: string; // ISO time they logged in (or tried to)
+  endedAt: string | null; // ISO time they logged out; null while they're still playing
+  /** How it ended: "logged out", or "server restarted" (the game restarted while they were on, so the exact time is unknown). */
+  ended: string | null;
+}
+export type NewLogin = Pick<LoginEntry, "username" | "outcome" | "device">;
+
 interface Store {
   init(): Promise<void>;
   get(username: string): Promise<Account | null>;
@@ -127,11 +141,29 @@ interface Store {
   setReportStatus(id: number, status: string): Promise<boolean>;
   /** Throw a report away for good (and its screenshot). */
   deleteReport(id: number): Promise<boolean>;
+  /** The login log (for the admin): add a line, returning its id. */
+  addLogin(entry: NewLogin): Promise<number>;
+  /** Fill in when a login's session ended. */
+  endLogin(id: number, how: string): Promise<void>;
+  /** Newest first. */
+  listLogins(opts: { limit: number }): Promise<LoginEntry[]>;
   close(): Promise<void>;
 }
 
 // Usernames are matched case-insensitively ("mike" and "Mike" are the same account).
 export const usernameKey = (username: string) => username.trim().toLowerCase();
+
+/** Login log lines older than this are thrown away when the server starts. */
+const LOGIN_KEEP_DAYS = 365;
+/** The local file version keeps at most this many lines. */
+const LOGIN_KEEP_LINES = 5000;
+
+function loginFromRow(r: any): LoginEntry {
+  return {
+    id: r.id, username: r.username, outcome: r.outcome, device: r.device ?? "",
+    at: new Date(r.at).toISOString(), endedAt: r.ended_at ? new Date(r.ended_at).toISOString() : null, ended: r.ended ?? null,
+  };
+}
 
 function reportFromRow(r: any): Report {
   return {
@@ -175,6 +207,31 @@ class PostgresStore implements Store {
         screenshot      BYTEA,
         screenshot_type TEXT
       )`);
+    await this.pool.query(`
+      CREATE TABLE IF NOT EXISTS logins (
+        id       SERIAL PRIMARY KEY,
+        username TEXT NOT NULL,
+        outcome  TEXT NOT NULL,
+        device   TEXT NOT NULL DEFAULT '',
+        at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+        ended_at TIMESTAMPTZ,
+        ended    TEXT
+      )`);
+    // Anyone still "on" from before this start was cut off by a restart or redeploy.
+    await this.pool.query("UPDATE logins SET ended = 'server restarted' WHERE ended IS NULL AND outcome <> 'failed'");
+    await this.pool.query(`DELETE FROM logins WHERE at < now() - interval '${LOGIN_KEEP_DAYS} days'`);
+  }
+  async addLogin(e: NewLogin) {
+    const { rows } = await this.pool.query(
+      "INSERT INTO logins (username, outcome, device) VALUES ($1, $2, $3) RETURNING id", [e.username, e.outcome, e.device]);
+    return rows[0].id as number;
+  }
+  async endLogin(id: number, how: string) {
+    await this.pool.query("UPDATE logins SET ended_at = now(), ended = $2 WHERE id = $1 AND ended IS NULL", [id, how]);
+  }
+  async listLogins(opts: { limit: number }) {
+    const { rows } = await this.pool.query("SELECT * FROM logins ORDER BY id DESC LIMIT $1", [opts.limit]);
+    return rows.map(loginFromRow);
   }
   async addReport(r: NewReport, shot: { type: string; data: Buffer } | null) {
     const { rows } = await this.pool.query(
@@ -272,6 +329,41 @@ class FileStore implements Store {
       if (err.code !== "ENOENT") throw err;
     }
     await this.loadReports();
+    try {
+      this.logins = JSON.parse(await fs.readFile(this.loginFile, "utf8"));
+    } catch (err: any) {
+      if (err.code !== "ENOENT") throw err;
+    }
+    for (const e of this.logins) if (!e.ended && e.outcome !== "failed") e.ended = "server restarted";
+  }
+  // The login log goes in server/data/logins.json.
+  private get loginFile() { return path.join(path.dirname(this.file), "logins.json"); }
+  private logins: LoginEntry[] = [];
+  private loginWriting: Promise<void> = Promise.resolve();
+  private flushLogins() {
+    if (this.logins.length > LOGIN_KEEP_LINES) this.logins.splice(0, this.logins.length - LOGIN_KEEP_LINES);
+    this.loginWriting = this.loginWriting.catch(() => {}).then(async () => {
+      await fs.mkdir(path.dirname(this.loginFile), { recursive: true });
+      await fs.writeFile(`${this.loginFile}.tmp`, JSON.stringify(this.logins, null, 2));
+      await fs.rename(`${this.loginFile}.tmp`, this.loginFile);
+    });
+    return this.loginWriting;
+  }
+  async addLogin(e: NewLogin) {
+    const id = (this.logins.at(-1)?.id ?? 0) + 1;
+    this.logins.push({ ...e, id, at: new Date().toISOString(), endedAt: null, ended: null });
+    await this.flushLogins();
+    return id;
+  }
+  async endLogin(id: number, how: string) {
+    const e = this.logins.find((x) => x.id === id);
+    if (!e || e.ended) return;
+    e.endedAt = new Date().toISOString();
+    e.ended = how;
+    await this.flushLogins();
+  }
+  async listLogins(opts: { limit: number }) {
+    return this.logins.slice(-opts.limit).reverse();
   }
   // Reports go in server/data/reports/: reports.json, plus 12.jpg etc. for screenshots.
   private get reportDir() { return path.join(path.dirname(this.file), "reports"); }
@@ -371,7 +463,7 @@ class FileStore implements Store {
     acct.passwordHash = passwordHash;
     await this.flush();
   }
-  async close() { await this.writing; await this.worldWriting; await this.reportWriting; }
+  async close() { await this.writing; await this.worldWriting; await this.reportWriting; await this.loginWriting; }
   private flush() {
     // Write one at a time, to a temp file first, so a crash can't leave half a file.
     this.writing = this.writing.catch(() => {}).then(async () => {

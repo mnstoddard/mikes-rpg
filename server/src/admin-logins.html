@@ -1,0 +1,176 @@
+<!doctype html>
+<!-- The login log (served at /admin/logins, behind ADMIN_PASSWORD). Plain HTML + JS, no build step. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Emberfall login log</title>
+<style>
+  :root { --bg: #1b1610; --panel: #2a2218; --line: #6b5a3e; --text: #f2e6c9; --dim: #b8a888; --gold: #ffd84a; --bad: #8a3b2c; --new: #2e5a6b; --ok: #3d6b34; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, sans-serif; }
+  button, input { font: inherit; color: inherit; }
+  button { background: #5a4a2f; color: #fff; border: 1px solid var(--line); border-radius: 4px; padding: 6px 12px; cursor: pointer; }
+  button:hover { filter: brightness(1.15); }
+  a { color: var(--gold); }
+  header { position: sticky; top: 0; z-index: 5; background: var(--panel); border-bottom: 2px solid var(--line); padding: 10px 16px; }
+  .bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; max-width: 1100px; margin: 0 auto; }
+  .bar2 { margin-top: 8px; }
+  h1 { margin: 0 auto 0 0; font-size: 19px; color: var(--gold); font-weight: 600; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; background: transparent; padding: 5px 11px; }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button.on { background: var(--line); color: #fff; }
+  .seg .n { opacity: .75; font-size: 12px; margin-left: 4px; }
+  #q { background: #120e09; border: 1px solid var(--line); border-radius: 5px; padding: 5px 10px; width: 200px; }
+  main { max-width: 1100px; margin: 0 auto; padding: 14px 16px 40px; }
+  #now { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 9px 12px; margin-bottom: 14px; }
+  #now b { color: var(--gold); font-weight: 600; }
+  .chip { display: inline-block; background: var(--ok); color: #fff; border-radius: 10px; padding: 0 9px; margin: 2px 4px 2px 0; font-size: 13px; cursor: pointer; }
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid #3d3324; vertical-align: top; }
+  th { font-size: 12px; color: var(--dim); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; background: #231c13; }
+  tr:last-child td { border-bottom: 0; }
+  td.name { font-weight: 600; color: #fff; cursor: pointer; }
+  td.name:hover { color: var(--gold); }
+  .dim { color: var(--dim); font-size: 13px; }
+  .tag { font-size: 12px; padding: 1px 8px; border-radius: 10px; background: #5a4a2f; color: #fff; white-space: nowrap; }
+  .tag.new { background: var(--new); }
+  .tag.failed { background: var(--bad); }
+  .tag.on { background: var(--ok); }
+  .empty { text-align: center; color: #9a8a6a; padding: 50px 20px; }
+  @media (max-width: 700px) {
+    #q { width: 100%; }
+    thead { display: none; }
+    table, tbody, tr, td { display: block; width: 100%; }
+    tr { border-bottom: 1px solid var(--line); padding: 6px 0; }
+    td { border: 0; padding: 2px 10px; }
+    td:empty { display: none; }
+    td[data-l]::before { content: attr(data-l) ": "; color: var(--dim); font-size: 13px; }
+  }
+</style></head><body>
+<header>
+  <div class="bar">
+    <h1>🔑 Emberfall login log</h1>
+    <a href="/admin/reports">🐞 Reports</a>
+    <input id="q" type="search" placeholder="Search a player…" aria-label="Search a player">
+    <button id="reload" title="Check for new logins">↻ Reload</button>
+  </div>
+  <div class="bar bar2">
+    <div class="seg" id="viewSeg" role="group" aria-label="View">
+      <button data-v="log">Every login</button><button data-v="players">By player</button>
+    </div>
+    <div class="seg" id="kindSeg" role="group" aria-label="Show">
+      <button data-v="">All</button><button data-v="login">Logins</button><button data-v="new">New accounts</button><button data-v="failed">Wrong passwords</button>
+    </div>
+  </div>
+</header>
+<main>
+  <div id="now">Loading…</div>
+  <div id="out"></div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+let rows = [];
+const state = { view: "log", kind: "", q: "" };
+try { Object.assign(state, JSON.parse(localStorage.getItem("loginLogView") || "{}")); } catch {}
+
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const when = (iso) => new Date(iso).toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+function ago(iso) {
+  const s = (Date.now() - new Date(iso)) / 1000;
+  if (s < 60) return "just now";
+  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
+  return `${Math.floor(s / 86400)} days ago`;
+}
+function length(ms) {
+  const m = Math.round(ms / 60000);
+  if (m < 1) return "under a minute";
+  if (m < 60) return `${m} min`;
+  return `${Math.floor(m / 60)} h ${m % 60} min`;
+}
+const playing = (r) => r.outcome !== "failed" && !r.ended;
+const played = (r) => r.endedAt ? new Date(r.endedAt) - new Date(r.at) : playing(r) ? Date.now() - new Date(r.at) : 0;
+const TAG = { login: ["", "Logged in"], new: ["new", "New account"], failed: ["failed", "Wrong password"] };
+
+function renderNow() {
+  const on = rows.filter(playing);
+  const today = new Set(rows.filter((r) => r.outcome !== "failed" && Date.now() - new Date(r.at) < 86400000).map((r) => r.username.toLowerCase()));
+  $("now").innerHTML = (on.length
+    ? `<b>Playing now (${on.length}):</b> ` + on.map((r) => `<span class="chip" data-name="${esc(r.username)}">🟢 ${esc(r.username)}</span>`).join("")
+    : `<b>Nobody is playing right now.</b>`) +
+    ` <span class="dim">· ${today.size} player${today.size === 1 ? "" : "s"} in the last 24 hours</span>`;
+}
+
+function renderLog(list) {
+  if (!list.length) return `<div class="empty">No logins to show${state.q ? ` for “${esc(state.q)}”` : ""}.</div>`;
+  return `<table><thead><tr><th>Player</th><th>What</th><th>When</th><th>Left</th><th>Time on</th><th>Device</th></tr></thead><tbody>` +
+    list.map((r) => {
+      const [cls, label] = TAG[r.outcome] || ["", r.outcome];
+      const left = r.outcome === "failed" ? "" : playing(r) ? `<span class="tag on">Playing now</span>`
+        : r.endedAt ? `${when(r.endedAt)}` : `<span class="dim">unknown (the server restarted)</span>`;
+      const time = r.outcome === "failed" || (!r.endedAt && !playing(r)) ? "" : length(played(r));
+      return `<tr><td class="name" data-l="Player" data-name="${esc(r.username)}">${esc(r.username)}</td>` +
+        `<td data-l="What"><span class="tag ${cls}">${esc(label)}</span></td>` +
+        `<td data-l="When">${when(r.at)} <span class="dim">· ${ago(r.at)}</span></td>` +
+        `<td data-l="Left">${left}</td><td data-l="Time on">${time}</td><td data-l="Device" class="dim">${esc(r.device)}</td></tr>`;
+    }).join("") + `</tbody></table>`;
+}
+
+function renderPlayers(list) {
+  const by = new Map();
+  for (const r of list) {
+    const k = r.username.toLowerCase();
+    const p = by.get(k) || { name: r.username, last: null, logins: 0, failed: 0, time: 0, on: false, first: r.at };
+    if (r.outcome === "failed") p.failed++;
+    else { p.logins++; p.time += played(r); if (!p.last) p.last = r; p.on ||= playing(r); }
+    p.first = r.at; // the list is newest first, so this ends on the oldest
+    by.set(k, p);
+  }
+  const ps = [...by.values()];
+  if (!ps.length) return `<div class="empty">No players to show.</div>`;
+  return `<table><thead><tr><th>Player</th><th>Last login</th><th>Logins</th><th>Total time on</th><th>Wrong passwords</th><th>First seen</th></tr></thead><tbody>` +
+    ps.map((p) => `<tr><td class="name" data-l="Player" data-name="${esc(p.name)}">${p.on ? "🟢 " : ""}${esc(p.name)}</td>` +
+      `<td data-l="Last login">${p.last ? `${when(p.last.at)} <span class="dim">· ${ago(p.last.at)}</span>` : `<span class="dim">never</span>`}</td>` +
+      `<td data-l="Logins">${p.logins}</td><td data-l="Total time on">${p.logins ? length(p.time) : ""}</td>` +
+      `<td data-l="Wrong passwords">${p.failed || ""}</td><td data-l="First seen" class="dim">${when(p.first)}</td></tr>`).join("") +
+    `</tbody></table>`;
+}
+
+function render() {
+  try { localStorage.setItem("loginLogView", JSON.stringify({ view: state.view, kind: state.kind })); } catch {}
+  for (const b of document.querySelectorAll("#viewSeg button")) b.classList.toggle("on", b.dataset.v === state.view);
+  for (const b of document.querySelectorAll("#kindSeg button")) {
+    b.classList.toggle("on", b.dataset.v === state.kind);
+    const n = rows.filter((r) => !b.dataset.v || r.outcome === b.dataset.v).length;
+    b.innerHTML = `${b.dataset.label || (b.dataset.label = b.textContent)}<span class="n">${n}</span>`;
+  }
+  $("kindSeg").style.display = state.view === "log" ? "" : "none";
+  const q = state.q.trim().toLowerCase();
+  const matching = rows.filter((r) => !q || r.username.toLowerCase().includes(q));
+  renderNow();
+  $("out").innerHTML = state.view === "players" ? renderPlayers(matching)
+    : renderLog(matching.filter((r) => !state.kind || r.outcome === state.kind));
+}
+
+async function load() {
+  try {
+    const res = await fetch("/admin/api/logins?limit=5000", { cache: "no-store" });
+    if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+    rows = await res.json();
+    render();
+  } catch (err) {
+    $("now").textContent = "Couldn't load the login log: " + err.message;
+  }
+}
+
+$("viewSeg").onclick = (e) => { const v = e.target.closest("button")?.dataset.v; if (v) { state.view = v; render(); } };
+$("kindSeg").onclick = (e) => { const b = e.target.closest("button"); if (b) { state.kind = b.dataset.v; render(); } };
+$("q").oninput = () => { state.q = $("q").value; render(); };
+$("reload").onclick = load;
+document.body.addEventListener("click", (e) => {
+  const n = e.target.closest("[data-name]")?.dataset.name;
+  if (n) { state.q = n; $("q").value = n; render(); }
+});
+load();
+setInterval(load, 60000); // keep "playing now" fresh
+</script>
+</body></html>

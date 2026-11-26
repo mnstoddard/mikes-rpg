@@ -7,6 +7,7 @@ import { WebSocketTransport } from "@colyseus/ws-transport";
 import { WorldRoom } from "./WorldRoom";
 import { store, storageName } from "./storage";
 import { reportsRouter } from "./reports";
+import { loginsRouter } from "./logins";
 
 const PORT = Number(process.env.PORT ?? 2567);
 
@@ -14,6 +15,8 @@ const app = express();
 app.set("trust proxy", 1); // Render sits in front: use the player's real address (for the report rate limit)
 // Bug reports from inside the game, and the password-protected page to review them.
 app.use(reportsRouter);
+// The login log (who logged in, and when), for the admin only.
+app.use(loginsRouter);
 // When the client has been built (npm run build), serve it from the same port.
 // Which game to show: the 3D game (client3d) is the main game. The older 2D
 // game is still built and can be shown instead by setting CLIENT=2d.

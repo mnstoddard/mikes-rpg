@@ -104,7 +104,7 @@ reportsRouter.post("/api/reports", express.json({ limit: "7mb" }), async (req, r
 
 // ---- Reviewing reports (password protected) ----
 
-function adminOnly(req: Request, res: Response, next: NextFunction) {
+export function adminOnly(req: Request, res: Response, next: NextFunction) {
   const password = process.env.ADMIN_PASSWORD;
   if (!password) {
     res.status(503).type("text").send("Reports can't be viewed yet: set ADMIN_PASSWORD in the server's environment (Render dashboard, Environment tab), then reload.");
