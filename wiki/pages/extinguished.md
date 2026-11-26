@@ -37,7 +37,7 @@ The Extinguished chose the Ceremony, believed in it, and went in peace. That's w
 - **The floating embers aren't tributes.** They're scraps of sparks the Ceremony couldn't fully drain, still drifting in the hall. Some sparks are trapped in old refined emberstones too, and the ghosts in [[The Graveyard]] are the oldest of them.
 - **Tilda knew.** Tilda Ashwalker found out the truth before her Ceremony. She went anyway, because she believed nobody would listen, but her last cairn in the Barrens says *"Don't go down the stair."*
 
-Why it matters: every Hopeful is being raised to become one of the Extinguished. The more a player levels up, the brighter they burn, and the closer they are to their own invitation. That's the question at the Joining (see [[Main story]]).
+Why it matters: every Hopeful is being raised to become one of the Extinguished. The more a player levels up, the brighter they burn, and the closer they are to their own invitation. That's what the player realises at their Joining (see [[Main story]]).
 :::
 
 ## The statues

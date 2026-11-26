@@ -3,6 +3,7 @@ category: Places
 icon: 🌾
 summary: Grassland at the heart of the land: farms, rivers, and the capital Emberhold.
 infobox.Levels: 1 to 20
+infobox.Home_of: The starter tier of every gathering skill, and the best farming (see [[Resources by region]])
 ---
 **Heartvale** is a round valley of open grassland, farms and rivers, and the first region players see. Its great shrine is [[The Heart Shrine]], in the Emberhall. [[Emberhold]] sits on its edge; [[The Thornwood]] lies to the south behind a fenced gate, [[Greyspine Peaks]] to the north.
 

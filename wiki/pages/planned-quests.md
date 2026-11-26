@@ -15,8 +15,8 @@ These are planned, not built. (Built quests are on [[Quests]].) None are needed 
 | 2D.8 | Whitestone's Coin | [[Archmage Rowan]] | Dig up Aldmeran coins in the Barrens. | The first hint of the Ember Seed and the Ember Crown. |
 | 2D.9 | The Circle's Mark | Archmage Rowan | Copy a ring-of-fire mark from a ruined mage tower. | It's carved over the Emberhall's front door. |
 | 3.16 | The Torn Page | Sister Lisette | Find who cut a page from the oldest book in the library. | An account of the working written before the Sundering War. It names all nine of the Circle, and never blames Wick. |
-| 4A.19 / 4B.19 | The Living Fire | [[Sable]] or Vale | 🎬 Put your hand in the Emberheart and feel how much it has lost. | The land is going cold, and how fast. |
-| E.1 | The Ember Seed | [[Sable]] or Vale | Follow the coins' clues into the Crown Vault under Whitestone. | Both sides want the Seed. |
+| 4.19 | The Living Fire | [[Wick]] | 🎬 Put your hand in the Emberheart and feel how much it has lost. | The land is going cold, and how fast. |
+| E.1 | The Ember Seed | Wick | Follow the coins' clues into the Crown Vault under Whitestone. | The Seed is real, and half-made. |
 
 ## Emberhold and Heartvale (levels 1 to 20)
 
@@ -33,7 +33,7 @@ These are planned, not built. (Built quests are on [[Quests]].) None are needed 
 | Mending Costs | [[Repairer Oswin]] | Repair an old lantern with Maren's note inside. | Repair, Handicraft | Waiting on Maren's new story. |
 | A Grey Fox | [[Huntmaster Kael]] | Track a Blighted fox to its den, right under a shrine. | Hunting, Combat | The Blight starts at the shrines. |
 
-## The Thornwood (levels 15 to 30)
+## The Thornwood (levels 20 to 60)
 
 | Quest | Giver | What you do | Skills | What it reveals |
 |---|---|---|---|---|
@@ -43,7 +43,7 @@ These are planned, not built. (Built quests are on [[Quests]].) None are needed 
 | The Spider's Hoard | Huntmaster Kael | Take back the glowing stones the Thornmother's young stole. | Combat, Mining | Blighted creatures are starving for ember. |
 | Rhys's Lucky Stone | [[Rhys]] | Find the stone Rhys woke up holding. | Exploring | Every Emberborn's pebble is their thread's anchor. |
 
-## Greyspine Peaks (levels 25 to 40)
+## Greyspine Peaks (levels 20 to 60)
 
 | Quest | Giver | What you do | Skills | What it reveals |
 |---|---|---|---|---|
@@ -52,7 +52,7 @@ These are planned, not built. (Built quests are on [[Quests]].) None are needed 
 | Flint's Books | Warden Flint | Do Flint's accounts. | Trading | Far more ember goes to the Emberhall than it could ever use. |
 | The Cold Climber | A frozen body | Find a frozen climber's journal. | Exploring, Alchemy | The land is going cold from the edges in. |
 
-## Saltmere Coast (levels 35 to 50)
+## Saltmere Coast (levels 20 to 60)
 
 | Quest | Giver | What you do | Skills | What it reveals |
 |---|---|---|---|---|
@@ -61,7 +61,7 @@ These are planned, not built. (Built quests are on [[Quests]].) None are needed 
 | The Lighthouse Keeper | An old lighthouse keeper | Fix the lens, cut from an Emberfall shard. | Smithing, Handicraft | Shards can make light without draining anything. |
 | Merrow's Leftovers | [[Alchemist Moss]] | Taste-test the leftovers from Merrow's feast. | Cooking, Alchemy | The Emberwardens collect anything with ember in it. |
 
-## The Ashen Barrens (levels 45 to 60)
+## The Ashen Barrens (levels 20 to 60)
 
 | Quest | Giver | What you do | Skills | What it reveals |
 |---|---|---|---|---|
@@ -70,7 +70,7 @@ These are planned, not built. (Built quests are on [[Quests]].) None are needed 
 | Ashbound Hearth | Sable | Build a hearth that burns without a shrine. | Woodcutting, Handicraft | The Ashbound live the Tender way. |
 | Tilda's Cairns | A Barrens nomad | Follow Tilda Ashwalker's stone piles. | Exploring, Hunting | Her last cairn says "Don't go down the stair." |
 
-## Frostfell and the endgame (levels 55+)
+## Frostfell and the endgame (levels 60+)
 
 | Quest | Giver | What you do | Skills | What it reveals |
 |---|---|---|---|---|

@@ -31,11 +31,16 @@ The Withering began centuries before the Ashbound existed. Blaming them is the E
 [[Emberborn]] only exist because the shrines hold them together. If every shrine goes dark, every Emberborn crumbles to ash, the Ashbound's own fighters included. The Ashbound know this, and they fight the shrines anyway, so the land can live. They are bound for ash, and they chose it. Their saying is *"Better ash than a thief."*
 
 ::: secret
+Wick has found something better than breaking the shrines: a way to **turn** a great shrine so it gives ember back to the land instead of taking it. But only someone who can get past an Emberwarden can try it. That's what the player does in Act 4 (see [[Main story]]).
+:::
+
+::: secret
 They're the good guys: Emberborn and [[The Rooted]] who know the truth about [[The shrines]] and the Ceremony, trying to cut the Undying off from the land. Their hope is Wick's research, and the [[Ember Seed]]. They live the [[The Tenders|Tender]] way, with hearths that burn without a shrine.
 :::
 
 ## People
 
 - [[Sable]], their leader.
-- [[Rhys]], later.
+- [[Rhys]], after his Joining.
+- The player, from the end of Act 3.
 - [[Tamsin]], their best scout.

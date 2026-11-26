@@ -16,5 +16,5 @@ Members:
 
 Only Vale knows he killed [[King Aldemar XVIII]]. The others believe the Emberfall was an accident, and that the land would fall apart without them. They tell themselves the shrines are the only thing holding the torrent back.
 
-Emberguard players who choose to join become Undying at the end of Act 4B.
+In Act 4, players hunt down all six Emberwardens and then Vale.
 :::

@@ -7,5 +7,5 @@ summary: The bit of ember a shrine keeps each time an Emberborn falls and comes 
 **The Tithe** (also called Ember Debt) is what an [[Emberborn]] pays each time they fall and come back. The Emberguard teach that it's a small, fair price for being made again, and [[Alchemist Moss]] brews "Tithe tonics" for [[The Emberhall]] to clear it.
 
 ::: secret
-The Tithe is the shrine skimming a little ember off you, sending it on to [[The Undying]]. Ashbound players who cut their thread stop paying it.
+The Tithe is the shrine skimming a little ember off you, sending it on to [[The Undying]]. Players stop paying it in Act 4, when Wick cuts their thread.
 :::
