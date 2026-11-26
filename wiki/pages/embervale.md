@@ -21,6 +21,8 @@ Players are Emberborn. They start as [[Hopefuls]], trying to prove themselves wo
 
 ## The regions
 
+See the [[World map]] for where they are, and how people travel between them.
+
 Each region has a great shrine with a city around it, and its own way of withering as the land far from the shrine goes cold (see [[The Withering]]). The six outer regions all open after Act 1 and can be done in any order: each is safe around its city and harder further out (see [[Main story]]).
 
 | Region | Levels | Land | Great shrine | How it withers |

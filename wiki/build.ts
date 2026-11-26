@@ -749,6 +749,9 @@ function md(src: string): string {
       if (!MAPS[m[1]]) throw new Error(`No map called ${m[1]}`);
       out.push(`<figure class="map" data-area="${m[1]}"></figure>`); i++; continue;
     }
+    if ((m = l.match(/^\{\{art:([\w-]+)\}\}$/))) {
+      out.push(`<figure class="art">${readFileSync(path.join(HERE, "art", `${m[1]}.svg`), "utf8")}</figure>`); i++; continue;
+    }
     if ((m = l.match(/^(#{2,4})\s+(.*)$/))) {
       const level = m[1].length;
       const id = slugify(m[2].replace(/\[\[([^\]|]+)\|?([^\]]*)\]\]/g, (_x, a, b) => b || a));
