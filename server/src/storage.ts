@@ -286,6 +286,46 @@ class PostgresStore implements Store {
         info     JSONB NOT NULL DEFAULT '{}'::jsonb
       )`);
     await this.pool.query(`DELETE FROM crashes WHERE at < now() - interval '${CRASH_KEEP_DAYS} days'`);
+    if (SERVER_NAME === "live") await this.freshStart();
+  }
+
+  /**
+   * Version 0.22 goes live with a fresh start (Mike's note: "Erase all characters... Players. Want to start fresh."):
+   * once, the first time the live server starts with this code, every account and character, the test servers'
+   * copies, and all world data (farms) are copied into backup tables, then erased. Bug reports, the login log and
+   * crash reports are kept. To undo it: INSERT INTO accounts SELECT * FROM accounts_backup_0_22 (and the same for
+   * world and test_saves). Runs only on live, so a test server sharing the database can't do it first.
+   */
+  private async freshStart() {
+    const MARK = "fresh_start_0_22";
+    const db = await this.pool.connect();
+    try {
+      await db.query("BEGIN");
+      await db.query("LOCK TABLE world IN EXCLUSIVE MODE");
+      const { rows } = await db.query("SELECT 1 FROM world WHERE key = $1", [MARK]);
+      if (rows.length) { await db.query("ROLLBACK"); return; }
+      const { rows: n } = await db.query("SELECT count(*)::int AS n FROM accounts");
+      await db.query("CREATE TABLE IF NOT EXISTS accounts_backup_0_22 AS TABLE accounts WITH NO DATA");
+      await db.query("INSERT INTO accounts_backup_0_22 SELECT * FROM accounts");
+      await db.query("CREATE TABLE IF NOT EXISTS world_backup_0_22 AS TABLE world WITH NO DATA");
+      await db.query("INSERT INTO world_backup_0_22 SELECT * FROM world");
+      const { rows: t } = await db.query("SELECT to_regclass('test_saves') AS t");
+      if (t[0]?.t) {
+        await db.query("CREATE TABLE IF NOT EXISTS test_saves_backup_0_22 AS TABLE test_saves WITH NO DATA");
+        await db.query("INSERT INTO test_saves_backup_0_22 SELECT * FROM test_saves");
+        await db.query("DELETE FROM test_saves");
+      }
+      await db.query("DELETE FROM accounts");
+      await db.query("DELETE FROM world");
+      await db.query("INSERT INTO world (key, data) VALUES ($1, $2)", [MARK, JSON.stringify({ at: new Date().toISOString(), accounts: n[0].n })]);
+      await db.query("COMMIT");
+      console.log(`Fresh start for 0.22: backed up and erased ${n[0].n} accounts (backup tables *_backup_0_22).`);
+    } catch (e) {
+      await db.query("ROLLBACK").catch(() => {});
+      console.error("Fresh start failed (nothing erased):", (e as Error).message);
+    } finally {
+      db.release();
+    }
   }
   async addCrash(c: NewCrash) {
     const { rows } = await this.pool.query(

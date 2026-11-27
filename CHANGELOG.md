@@ -8,6 +8,7 @@ Each update adds 0.1 to the number. Version 1.0 is saved for the finished game o
 
 ## 0.22 · 27 November 2026 · Ember Hill, your room in the tower, and the first lessons reworked
 
+- Everyone starts fresh: with 0.22 going live, every account and character (and everyone's farm plots) was erased, so all players begin again with the new opening and lessons. A copy was saved first, in case anything needs bringing back. Bug reports are kept.
 - Fixed: the cobblestones and the city walls vanishing for good after you left the Emberhall. When a phone or iPad runs short of memory it throws away the game's pictures on the graphics chip; the game now notices and builds them again.
 - The cobblestones are simpler: one flat painted stone pattern instead of thousands of separate stones, much lighter for an iPad.
 - The Emberhall now stands on Ember Hill: a raised stone terrace with battlements, and a wide white stairway down to the plaza. The six Light the Way lanterns stand on the stairway's side walls, three each side.
