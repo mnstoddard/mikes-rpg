@@ -13,6 +13,15 @@ export interface GameUpdate { version: string; date: string; title: string; chan
 
 export const UPDATES: GameUpdate[] = [
   {
+    version: "0.18",
+    date: "2026-11-27",
+    title: "Walls out of the way",
+    changes: [
+      { text: "Walking along a wall inside no longer pulls the camera in close. Walls between the camera and you now dip down to a low stub (with a soft speckled edge) so you can see yourself and the room, and pop back up once you've passed.", reports: [35] },
+      { text: "The yellow guide arrow is drawn on top of everything, so a wall can't hide it any more.", reports: [36] },
+    ],
+  },
+  {
     version: "0.17",
     date: "2026-11-27",
     title: "Automatic crash reports",

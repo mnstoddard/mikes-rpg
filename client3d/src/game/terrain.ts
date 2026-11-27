@@ -9,6 +9,7 @@
 // from the environment library, trees and rocks from their libraries, and the
 // many copies are drawn as instances (see instancer.ts).
 import * as THREE from "three";
+import { withWallCut } from "./wallcut";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { AREAS, AreaDef, DOORS, MAP, MAP_NODES, OUTDOORS, Tile, areaAt, charAt } from "../../../shared/map";
 import { treeKey, type ResourceId } from "../../../shared/foraging";
@@ -94,6 +95,8 @@ function groundAt(x: number, y: number, area: AreaDef): Ground | null {
 // ---------------------------------------------------------------- shared materials
 
 const vcol = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, flatShading: true });
+/** Inside walls: the same, but cut away where they'd hide you from the camera (wallcut.ts). */
+const vcolCut = withWallCut(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, flatShading: true }));
 
 /** Water: one shiny surface with small moving waves. */
 export function makeWaterMaterial(): { material: THREE.MeshStandardMaterial; tick: (t: number) => void } {
@@ -181,13 +184,12 @@ export class Terrain {
 
   /**
    * How tall whatever stands on this tile is, in metres (0 for open ground):
-   * buildings outside, walls inside. The camera stays out of them.
+   * buildings outside. The camera stays out of them. Inside walls count as 0:
+   * they're cut away instead (wallcut.ts), so the camera doesn't zoom in.
    */
   blockHeight(x: number, y: number): number {
     if (areaAt(x, y) !== this.area) return 0;
-    const t = MAP[y]?.[x];
-    if (this.area.kind === "outdoor") return buildingHeight(x, y);
-    return t === "wall" || t === "house" || t === "marblewall" || t === "lockeddoor" ? 2.2 : 0;
+    return this.area.kind === "outdoor" ? buildingHeight(x, y) : 0;
   }
 
   constructor() {
@@ -511,7 +513,7 @@ export class Terrain {
       blocks.forEach((g) => g.dispose());
       if (merged) {
         merged.computeVertexNormals();
-        const m = new THREE.Mesh(merged, vcol);
+        const m = new THREE.Mesh(merged, a.kind === "outdoor" ? vcol : vcolCut);
         m.castShadow = true;
         m.receiveShadow = true;
         c.group.add(m);
@@ -643,7 +645,7 @@ export class Terrain {
     object.add(piece.object);
     // The wall either side of the door (the doorway is wider than the door), and a strip over it.
     const col = marble ? 0xf2efe8 : a.id === "guild" ? 0x6a4a9a : 0x9c6a42;
-    const wallMat = new THREE.MeshStandardMaterial({ color: col, roughness: 0.9 });
+    const wallMat = withWallCut(new THREE.MeshStandardMaterial({ color: col, roughness: 0.9 }));
     const geos: THREE.BufferGeometry[] = [];
     const side = (TILE - 1.32) / 2;
     for (const sx of [-1, 1]) {
