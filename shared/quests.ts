@@ -85,7 +85,7 @@ export type Goal =
   /** Talk to (or use) each of these people or things, in any order. */
   | { kind: "visit"; npcs: NpcId[]; names: string }
   /** Walk to each of these places (shared/world.ts PLACES keys), in any order. */
-  | { kind: "reach"; spots: string[]; names: string }
+  | { kind: "reach"; spots: string[]; names: string; /** Only counts if you get there running (the running lesson). */ run?: boolean }
   /** Spend a Mastery point in any skill's tree (done once any upgrade has a rank). */
   | { kind: "spendPoint" };
 
@@ -130,7 +130,7 @@ export interface QuestStep {
   rank?: 1 | 2;
   /** Talk steps: Kael's old Warden weapon, picked for how you fight. */
   warden?: boolean;
-  /** Visit steps: who's talking in visitLines, if it's always the same person (Brother Oren's tour). */
+  /** Visit steps: who's talking in visitLines, if it's always the same person (Keeper Oren's tour). */
   speaker?: string;
   /** Visit steps: what each person says (or what you see) when you visit them. */
   visitLines?: Partial<Record<NpcId, string[]>>;
@@ -340,7 +340,7 @@ const LESSONS: Chapter[] = [
           "There, you've got the hang of living off the land: fish, cook, eat. Every skill belongs to a Discipline. Fishing is part of Endurance, which raises your max stamina, and Cooking is Dexterity, which lets you carry more and walk faster.",
           "Now meet the others. Every trainer in Emberhold teaches right here in the training ground: Forester Holt by the trees, Miner Greta by the rocks, Smith Brann at the furnace, Woodworker Rook at the workbench, Herbalist Wren by the dig patches, Alchemist Moss and Archmage Rowan by the alchemy table and the altar, Huntmaster Kael by the pens and Farmer Odo by his plots.",
           "Shopkeeper Tam keeps the General Store, at the top of Market Square, just down the hill road. Captain Bryn stands by the bounty board in the square.",
-          "Anyone with a ❗ over their head has a lesson for you, and each one ends with a reward. Learn them all, and Keeper Aldric will want a word. Your 📜 Quests tab keeps track.",
+          "Anyone with a ❗ over their head has a lesson for you, and each one ends with a reward. Learn them all, and High Keeper Aldric will want a word. Your 📜 Quests tab keeps track.",
         ],
         coins: 50,
       },
@@ -1110,6 +1110,8 @@ export interface QuestView {
   chapters: ChapterView[];
   /** Places the current step sends you (for the map): where, and what. */
   spots?: { x: number; y: number; label: string }[];
+  /** The running lesson: the 🏃 button glows until you're running. */
+  runLesson?: boolean;
   /** True when the step is "go to these places": the game marks each one on the ground. */
   reach?: boolean;
   /** Lanterns you've lit (story stations drawn lit). */
@@ -1131,7 +1133,7 @@ export function litLanterns(q: QuestProgress): NpcId[] {
     if (prog.step > at) out.push(...all);
     else if (prog.step === at) out.push(...all.filter((n) => prog.got?.includes(n)));
   }
-  // Sister Lisette's Four Books: the lectern you're on glows.
+  // Keeper Lisette's Four Books: the lectern you're on glows.
   const fb = q.ch.four_books, book = fb && chapterById("four_books").steps[fb.step]?.goal;
   if (book?.kind === "visit" && book.npcs[0].startsWith("book_")) out.push(book.npcs[0]);
   // The shrines you've lit.
@@ -1198,8 +1200,10 @@ export function teacherOf(skill: SkillId): Chapter | null {
  * and one last talk sends you round the Training Ground's trainers.
  * Rev 8 (version 0.20): Awakening gained Celene's walking lesson after the robe. Anyone
  * past the robe step moves one step along.
+ * Rev 9 (version 0.21): Awakening gained her running lesson after the walking one (step 3).
+ * Anyone past the walking lesson moves one step along.
  */
-export const QUEST_REV = 8;
+export const QUEST_REV = 9;
 /** Maren's old step (rev 6 and before) to her new step (rev 7). */
 const MAREN_REV7 = (old: number) => (old <= 16 ? old : old === 17 ? 16 : old === 18 ? 17 : old <= 22 ? 18 : 19);
 const OLD_MAREN_STEPS = 23;
@@ -1215,6 +1219,7 @@ export function migrateQuest(saved: unknown, rev: number | undefined): QuestProg
   }
   if ((rev ?? 1) < 6 && q.ch.awakening && q.ch.awakening.step >= 1) q.ch.awakening.step = Math.min(q.ch.awakening.step + 1, chapterById("awakening").steps.length);
   if ((rev ?? 1) < 8 && q.ch.awakening && q.ch.awakening.step >= 2) q.ch.awakening.step = Math.min(q.ch.awakening.step + 1, chapterById("awakening").steps.length);
+  if ((rev ?? 1) < 9 && q.ch.awakening && q.ch.awakening.step >= 3) q.ch.awakening.step = Math.min(q.ch.awakening.step + 1, chapterById("awakening").steps.length);
   if ((rev ?? 1) < 7 && q.ch.maren) {
     const old = q.ch.maren.step, now = Math.min(MAREN_REV7(old), chapterById("maren").steps.length);
     if (now !== old) q.ch.maren = { ...q.ch.maren, step: now, count: 0 };

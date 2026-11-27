@@ -125,7 +125,7 @@ export class Person {
   /**
    * Getting up off the floor (the opening scene): 0 = lying on their back (head to the north),
    * 1 = sitting up, 2 = down on one knee, 3 = standing (the normal animations). Anything in
-   * between blends smoothly. Sister Celene kneels beside a new hero at 2.
+   * between blends smoothly. Keeper Celene kneels beside a new hero at 2.
    */
   stage = 3;
   /** 0..1: reaching out a hand (Celene helping a new hero up). */
@@ -854,7 +854,7 @@ export function makeStation(npc: NpcDef): StationView {
     parts.push({ update: (dt, t) => flame.update(dt, t), dispose: () => flame.dispose() });
     tag.obj.position.y = 4.2;
   } else if (npc.id.startsWith("book_")) {
-    // Sister Lisette's Four Books (version 0.21): a lectern with a heavy book open on it. The one you're on glows.
+    // Keeper Lisette's Four Books (version 0.21): a lectern with a heavy book open on it. The one you're on glows.
     const wood = new THREE.MeshStandardMaterial({ color: 0x6a4424, roughness: 0.8 });
     const cover = new THREE.MeshStandardMaterial({ color: npc.color, roughness: 0.7 });
     const paper = new THREE.MeshStandardMaterial({ color: 0xf2e6c8, roughness: 0.9, emissive: 0xffc060, emissiveIntensity: 0 });

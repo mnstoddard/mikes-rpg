@@ -77,8 +77,8 @@ const CULL_M = 60;
 /** At most this many lamps light the scene at once (the nearest ones), so it stays fast. */
 const MAX_LAMPS = 6;
 
-/** When Sister Celene starts talking in the opening scene (seconds), once you're on your feet. */
-/** The opening scene (version 0.21): when Sister Celene starts talking, in seconds. */
+/** When Keeper Celene starts talking in the opening scene (seconds), once you're on your feet. */
+/** The opening scene (version 0.21): when Keeper Celene starts talking, in seconds. */
 const INTRO_TALK = 12.2;
 
 export class World3D {
@@ -150,7 +150,7 @@ export class World3D {
   private folk: Townsfolk;
   /**
    * The opening scene for a new character (Mike's note #1): they're formed lying by
-   * the Heart Shrine, Sister Celene walks over and helps them up, then she talks.
+   * the Heart Shrine, Keeper Celene walks over and helps them up, then she talks.
    */
   private intro: { t: number; wait?: number; name: string; lines: string[]; talked: boolean; cam: { yaw: number; pitch: number; dist: number }; skip?: HTMLButtonElement; sparks?: THREE.Points } | null = null;
 
@@ -1011,7 +1011,7 @@ export class World3D {
     // 4.2 s: as the embers fade, a body of light forms in the ring, then slowly turns from glowing gold into you.
     me.setFaded(ramp(4.2, 5.6));
     me.setGlow(1 - ease(ramp(6.0, 8.6)));
-    // 7.6 s: Sister Celene walks up close, reaches out her hand, and helps you up.
+    // 7.6 s: Keeper Celene walks up close, reaches out her hand, and helps you up.
     if (celene) {
       if (passed(7.6)) celene.walkTo(home.x + 1, home.y - 1, 700);
       if (passed(8.3)) celene.walkTo(wake.x - 1, wake.y, 700);

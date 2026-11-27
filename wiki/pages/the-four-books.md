@@ -2,9 +2,9 @@ title: The Four Books
 category: Quests
 icon: 📚
 aliases: Lisette's Four Books
-summary: Sister Lisette's first side quest: read four books in the library, in order, to learn how Embervale came to be.
+summary: Keeper Lisette's first side quest: read four books in the library, in order, to learn how Embervale came to be.
 infobox.Part_of: Side quest
-infobox.Given_by: [[Sister Lisette]]
+infobox.Given_by: [[Keeper Lisette]]
 infobox.Where: The library in [[The Emberhall]]
 infobox.Needed_for: [[The Hall of Embers]]
 ---
@@ -12,12 +12,12 @@ infobox.Needed_for: [[The Hall of Embers]]
 Leave notes on any book with ✏️ Suggest a change.
 :::
 
-**The Four Books** is the game's first side quest, given by [[Sister Lisette]] during [[The Hall of Embers]]. It teaches how side quests work, and tells the history every Initiate is taught. Finishing it ticks Lisette off the main quest's checklist.
+**The Four Books** is the game's first side quest, given by [[Keeper Lisette]] during [[The Hall of Embers]]. It teaches how side quests work, and tells the history every Initiate is taught. Finishing it ticks Lisette off the main quest's checklist.
 
 ## How it works
 
 - Four books sit on lecterns along the library's east wall. **Only the next one glows** (and has a ❗), and only that one can be read.
-- Clicking a later book first does nothing but a nudge: *(The book won't come off the shelf. Sister Lisette calls over: "The glowing one first, dear. History only makes sense in order.")*
+- Clicking a later book first does nothing but a nudge: *(The book won't come off the shelf. Keeper Lisette calls over: "The glowing one first, dear. History only makes sense in order.")*
 - Clicking the glowing one opens it; reading it ticks it off. Books you've read can be read again any time.
 - The quest log shows the books one at a time, because the order matters.
 
@@ -73,9 +73,9 @@ Leave notes on any book with ✏️ Suggest a change.
 >
 > Each land has its great shrine and its city, and each has its own troubles. When you have proven yourself here, the roads to all six will open to you.
 
-### Step 5: Go back to Sister Lisette
+### Step 5: Go back to Keeper Lisette
 
-**Sister Lisette:**
+**Keeper Lisette:**
 
 > All four? Now you know more history than half the city. Most Initiates skip straight to the swords.
 >

@@ -197,7 +197,7 @@ export const ITEM_LIST: ItemType[] = [
   gemType("amulet", "Amulets", "A chain with a round pendant and an optional gem.", [{ label: "Metal", options: JEWEL_METAL_LIST.map(cap) }, { label: "Gem", options: ["None", ...GEM_NAMES] }], (c) => `amulet_${JEWEL_METAL_LIST[c[0] ?? 0]}${c[1] ? `_${GEM_LIST[c[1] - 1]}_24` : ""}`),
 
   // Quest items
-  quest("lantern", "Keeper Aldric's gift. It glows and flickers, and lights up the night around you."),
+  quest("lantern", "High Keeper Aldric's gift. It glows and flickers, and lights up the night around you."),
   quest("blessing_scroll", "A rolled scroll with a gold ribbon and seal. Read it for an Emberguard blessing."),
   quest("shrine_totem", "Carved from oak by Woodworker Rook, with the Emberguard flame on top."),
   quest("rooks_note", "A neat folded letter sealed with red wax. It fell out of Rook's totem."),

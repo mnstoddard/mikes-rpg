@@ -959,7 +959,7 @@ function insides(): Inside[] {
     c.fill(2, 20, 4, 20, "b"); c.fill(6, 20, 8, 20, "b");
     c.set(3, 23, "n"); c.set(5, 23, "n"); c.set(7, 23, "n");
     c.fill(1, 25, 9, 25, "b");
-    // ---- East: the infirmary. A hall (Sister Wynne's) with four bedrooms off it, one bed each.
+    // ---- East: the infirmary. A hall (Keeper Wynne's) with four bedrooms off it, one bed each.
     c.fill(26, 1, 26, 25, "A");
     c.set(26, 13, "d"); // infirmary door
     c.fill(29, 1, 29, 25, "A");
@@ -975,7 +975,7 @@ function insides(): Inside[] {
     c.fill(16, 3, 20, 7, "o");
     for (const [x, y] of [[14, 4], [22, 4], [14, 23], [22, 23]] as const) c.set(x, y, "F"); // braziers
     for (const [x, y] of [[13, 12], [23, 12], [13, 19], [23, 19]] as const) c.set(x, y, "A"); // pillars
-    // The Ember Circle: statues along both walls (Brother Oren's tour), and Wick's empty plinth.
+    // The Ember Circle: statues along both walls (Keeper Oren's tour), and Wick's empty plinth.
     // The Ember Circle (Mike's note, version 0.20): Vale behind the Heart Shrine, King Aldemar and the six who raised the other
     // great shrines along the walls, and Wick's empty plinth by the doors. "S" keeps the tile solid; the client draws each statue.
     for (const [x, y] of [[18, 1], [11, 4], [11, 10], [11, 15], [11, 23], [25, 4], [25, 10], [25, 16]] as const) c.set(x, y, "S");
@@ -988,14 +988,16 @@ function insides(): Inside[] {
         heartShrine: { x: 18, y: 5 }, wake: { x: 18, y: 8 }, aldric: { x: 21, y: 9 }, celene: { x: 15, y: 9 },
         oren: { x: 13, y: 14 }, plinth: { x: 25, y: 21 },
         lisette: { x: 7, y: 8 }, tomas: { x: 13, y: 21 }, vale: { x: 23, y: 7 },
-        // Sister Lisette's Four Books (version 0.21): four lecterns along the library's east wall, read in order.
+        // Keeper Lisette's Four Books (version 0.21): four lecterns along the library's east wall, read in order.
         book_1: { x: 9, y: 3 }, book_2: { x: 9, y: 5 }, book_3: { x: 9, y: 9 }, book_4: { x: 9, y: 11 },
-        // In front of the grille, where Sister Lisette stops you.
+        // In front of the grille, where Keeper Lisette stops you.
         grille: { x: 5, y: 13 },
         wynne: { x: 28, y: 10 },
-        // Sister Celene's walking lesson: two glowing marks down the hall.
+        // Keeper Celene's walking lesson: two glowing marks down the hall.
         walkLeft: { x: 13, y: 18 }, walkRight: { x: 23, y: 18 },
-        // The statues of the Ember Circle (Brother Oren's tour).
+        // Her running lesson (version 0.21): a mark down by the great doors.
+        runMark: { x: 15, y: 24 },
+        // The statues of the Ember Circle (Keeper Oren's tour).
         circle_vale: { x: 18, y: 1 }, circle_aldemar: { x: 11, y: 4 }, circle_crowe: { x: 11, y: 10 }, circle_flint: { x: 11, y: 15 },
         circle_ivy: { x: 11, y: 23 }, circle_merrow: { x: 25, y: 4 }, circle_dunn: { x: 25, y: 10 }, circle_reed: { x: 25, y: 16 },
       },
@@ -1188,6 +1190,7 @@ function assemble() {
   places.wake = places["lighthall.wake"];
   places["spot.hallLeft"] = places["lighthall.walkLeft"];
   places["spot.hallRight"] = places["lighthall.walkRight"];
+  places["spot.hallRun"] = places["lighthall.runMark"];
   return grid;
 }
 

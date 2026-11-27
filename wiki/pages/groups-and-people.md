@@ -18,7 +18,7 @@ summary: Every group and character in the story, including ones not in the game 
 
 ## The Emberguard's people
 
-[[Keeper Aldric]], [[Sister Celene]], [[Enchanter Vale]], [[Brother Oren]], [[Sister Lisette]], [[Brother Tomas]], [[Sister Wynne]], and the six [[Emberwardens]].
+[[High Keeper Aldric]], [[Keeper Celene]], [[Enchanter Vale]], [[Keeper Oren]], [[Keeper Lisette]], [[Keeper Tomas]], [[Keeper Wynne]], and the six [[Emberwardens]].
 
 ## The Ashbound's people
 

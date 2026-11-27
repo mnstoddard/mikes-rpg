@@ -25,15 +25,15 @@ Their order's rule (from a book in the Emberhall library):
 
 ## People
 
-- [[Keeper Aldric]] welcomes every new Emberborn and decides who's ready for the trials.
-- [[Sister Celene]], the shrine healer.
+- [[High Keeper Aldric]] welcomes every new Emberborn and decides who's ready for the trials.
+- [[Keeper Celene]], the shrine healer.
 - [[Enchanter Vale]], the gentle enchanter.
-- [[Brother Oren]], [[Sister Lisette]], [[Brother Tomas]] and [[Sister Wynne]], the Emberhall's staff.
+- [[Keeper Oren]], [[Keeper Lisette]], [[Keeper Tomas]] and [[Keeper Wynne]], the Emberhall's staff.
 - The six [[Emberwardens]], each keeping a region's great shrine.
 
 ::: secret
 The Emberguard's leaders are what's left of [[The Ember Circle]]. They never passed into legend: they became [[The Undying]], living on ember the shrines pull from the land and from every Emberborn. [[Archmage Vale]], who caused the Emberfall, leads them as the hooded High Keeper. After the [[Sundering War]] they rewrote the history books and took [[The Mages' Guild]]'s old records, until everyone believed Wick was the villain.
 
-**Every Keeper is in on it.** Keepers officiate the [[Radiance Ceremony]], so they all know what it does, and they're paid for their silence with a share of the drain and a life without ageing. [[Keeper Aldric]] is one of them. The brothers and sisters below them, like Oren, Lisette, Tomas and Wynne, are honest and know nothing.
+**Every Keeper is in on it.** Keepers officiate the [[Radiance Ceremony]], so they all know what it does, and they're paid for their silence with a share of the drain and a life without ageing. [[High Keeper Aldric]] is one of them. The brothers and sisters below them, like Oren, Lisette, Tomas and Wynne, are honest and know nothing.
 :::
 

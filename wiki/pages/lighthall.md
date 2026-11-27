@@ -7,10 +7,10 @@ infobox.Owner: [[The Emberguard]]
 ---
 **The Emberhall** is [[The Emberguard]]'s great white temple in [[Emberhold]], and where every new [[Emberborn]] wakes, on the steps of [[The Heart Shrine]]. The great hall in the middle holds the Heart Shrine's flame, four burning braziers and a long red carpet to the front door. Carved white statues of [[The Ember Circle]] line its walls: [[King Aldemar XVIII]], [[Archmage Vale]], Crowe, Flint, Ivy, Merrow, Dunn and Reed, each on a plinth you can click to read, with [[Wick]]'s empty plinth near the doors. The statues of [[The Extinguished]] stand outside in the Emberhall's garden. Small embers drift up through the hall's air, one for every hero honoured with a [[Radiance Ceremony]], like the embers on the game's title screen. Doors lead off it to the other rooms:
 
-- **The library** (west, north side): shelves of books, [[Sister Lisette]] and Scholar Quill. At the back, an iron grille looks through into the restricted section.
-- **The restricted section** (west, south side; since version 0.21): what used to be the stores and the ledger room, now one big locked area for the Keepers only. Its door off the great hall is barred, so the only way in is the grille at the back of the library, and Sister Lisette always has an excuse ready (see [[The Restricted Section]]).
-- **The great hall** also gets [[Brother Tomas]], with his ring of keys, and [[Enchanter Vale]]'s corner east of the Heart Shrine, which moved out of the old stores (version 0.21).
-- **The infirmary** (east): [[Sister Wynne]] and Healer Rosa, with a corridor and four bedrooms, one for each patient.
+- **The library** (west, north side): shelves of books, [[Keeper Lisette]] and Scholar Quill. At the back, an iron grille looks through into the restricted section.
+- **The restricted section** (west, south side; since version 0.21): what used to be the stores and the ledger room, now one big locked area for the Keepers only. Its door off the great hall is barred, so the only way in is the grille at the back of the library, and Keeper Lisette always has an excuse ready (see [[The Restricted Section]]).
+- **The great hall** also gets [[Keeper Tomas]], with his ring of keys, and [[Enchanter Vale]]'s corner east of the Heart Shrine, which moved out of the old stores (version 0.21).
+- **The infirmary** (east): [[Keeper Wynne]] and Healer Rosa, with a corridor and four bedrooms, one for each patient.
 
 Acolytes Bram and Mira sweep the floor and keep the braziers lit, and Pilgrim Ennis comes to pray at the shrine (see [[Townsfolk]]). Kevin MacLeod's "Gregorian Chant" plays softly inside.
 

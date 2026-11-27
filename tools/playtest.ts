@@ -24,7 +24,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export class Bot {
   room!: Room;
   quest: QuestView | null = null;
-  /** What Sister Celene said in the opening scene (new characters). */
+  /** What Keeper Celene said in the opening scene (new characters). */
   intro: string[] | null = null;
   log: string[] = [];
   started = Date.now();
@@ -271,7 +271,7 @@ async function prologue(name: string) {
   if (b.quest!.checklist?.length !== 3) throw new Error("meeting the three should show a checklist");
   for (const id of ["tomas", "wynne"]) await b.talk(id);
   step("met Tomas and Wynne");
-  // Sister Lisette: her side quest, The Four Books, read in order. Her tick waits for it.
+  // Keeper Lisette: her side quest, The Four Books, read in order. Her tick waits for it.
   await b.talk("lisette");
   if (!/glowing lectern/.test(b.task)) throw new Error(`expected The Four Books, got: ${b.task}`);
   if (b.quest!.checklist) throw new Error("one book at a time: no checklist");
@@ -282,7 +282,7 @@ async function prologue(name: string) {
   for (let n = 1; n <= 4; n++) await b.talk(`book_${n}`);
   if (!/Lisette/.test(b.task)) throw new Error(`expected to go back to Lisette, got: ${b.task}`);
   await b.talk("lisette");
-  await b.until(() => /Go back to Keeper Aldric/.test(b.task), 5000, "Lisette's tick to finish the three"); step("The Four Books (side quest), Lisette ticked");
+  await b.until(() => /Go back to High Keeper Aldric/.test(b.task), 5000, "Lisette's tick to finish the three"); step("The Four Books (side quest), Lisette ticked");
   await b.talkUntilNew("aldric"); step("Hall done, Light the Way started");
   for (let n = 1; n <= 6; n++) await b.talk(`lantern_${n}`);
   step("lanterns lit");

@@ -2783,35 +2783,64 @@ export function renderQuest(q: QuestView, flash = false) {
   const wasLocked = !!lastQuest?.robeLock?.length;
   lastQuest = q;
   document.body.classList.toggle("robe-lock", !!q.robeLock?.length);
+  document.body.classList.toggle("run-lesson", !!q.runLesson);
   renderTracker(flash);
   if (wasLocked || q.robeLock?.length) renderInventory(); // the robe pieces glow (or stop glowing)
 }
 
-// ---- The robe step at the very start (version 0.21, Mike's note): only the glowing 🎒 bag works ----
-// Then the robe piece glows, then its Equip button. Every other click, key, or touch does nothing but wobble the bag.
+// ---- The robe step at the very start (version 0.21, Mike's notes): one click at a time ----
+// The screen goes dim except for a spotlight on the one thing to click: the dialog's Next button while Celene
+// talks, then the 🎒 bag, then the robe piece, then its Equip button. Nothing else works (no walking, no camera,
+// no other panels) until that click. The server refuses walking too.
 
 /** Still to put on (item id prefixes), while the very first quest's robe step is on. */
 const robeLeft = () => lastQuest?.robeLock ?? [];
 const isRobePiece = (id: string) => robeLeft().some((pre) => id.startsWith(pre));
-const ROBE_ALLOWED = "#bag-tab, #inventory, #info, #dialog, #intro-skip, #creator";
+/** The one thing that can be clicked right now, or null (no lesson on, or the opening scene is playing). */
+function lessonTarget(): HTMLElement | null {
+  if (!robeLeft().length || document.body.classList.contains("intro-on") || document.getElementById("creator")) return null;
+  const vis = (q: string) => { const e = document.querySelector<HTMLElement>(q); return e && e.offsetParent ? e : null; };
+  if (document.body.classList.contains("dialog-open")) return vis("#dialog-next");
+  if (document.body.classList.contains("info-open")) return vis("#info-buttons .robe-glow") ?? vis("#info-buttons button:last-child");
+  if (document.body.dataset.panel === "inventory") return vis("#slots .slot.robe-glow") ?? vis("#bag-tab");
+  return vis("#bag-tab");
+}
 function robeBlock(e: Event) {
   if (!robeLeft().length) return;
   const t = e.target as Element | null;
-  if (t?.closest?.(ROBE_ALLOWED)) return;
+  if (t?.closest?.("#intro-skip, #creator")) return;
+  const target = lessonTarget();
+  if (target && t && target.contains(t)) return;
   e.preventDefault();
   e.stopImmediatePropagation();
-  if (e.type === "pointerdown" || e.type === "keydown") {
-    const bagTab = document.getElementById("bag-tab")!;
-    bagTab.classList.remove("wobble");
-    void bagTab.offsetWidth;
-    bagTab.classList.add("wobble");
+  if (target && (e.type === "pointerdown" || e.type === "keydown")) {
+    target.classList.remove("wobble");
+    void target.offsetWidth;
+    target.classList.add("wobble");
   }
 }
-for (const type of ["pointerdown", "pointerup", "click", "dblclick", "wheel", "touchstart", "contextmenu"]) window.addEventListener(type, robeBlock, { capture: true, passive: false });
-window.addEventListener("keydown", (e) => {
-  // Keys still turn the dialog's pages; walking and turning the camera wait.
-  if (robeLeft().length && /^(w|a|s|d|q|e|arrow\w+)$/i.test(e.key)) robeBlock(e);
+for (const type of ["pointerdown", "pointerup", "pointermove", "click", "dblclick", "wheel", "touchstart", "touchmove", "contextmenu"]) window.addEventListener(type, robeBlock, { capture: true, passive: false });
+for (const type of ["keydown", "keyup"]) window.addEventListener(type, (e) => {
+  const k = e as KeyboardEvent;
+  if (!robeLeft().length || (k.target as Element | null)?.closest?.("input, textarea, #creator")) return;
+  // Enter and Space still turn the dialog's pages; every other key waits (and letting go of a key is always fine).
+  if (type === "keyup" || (document.body.classList.contains("dialog-open") && (k.key === "Enter" || k.key === " "))) return;
+  robeBlock(e);
 }, { capture: true });
+// The dim screen with its spotlight, following the target as panels open and close.
+const spot = document.createElement("div");
+spot.id = "lesson-spot";
+document.body.appendChild(spot);
+(function followSpot() {
+  const t = lessonTarget();
+  document.body.classList.toggle("lesson-dim", !!t);
+  if (t) {
+    const r = t.getBoundingClientRect();
+    spot.style.left = `${r.left - 6}px`; spot.style.top = `${r.top - 6}px`;
+    spot.style.width = `${r.width + 12}px`; spot.style.height = `${r.height + 12}px`;
+  }
+  requestAnimationFrame(followSpot);
+})();
 
 function bar(fraction: number) {
   const b = el("q-bar");

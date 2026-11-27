@@ -173,11 +173,11 @@ export const NPCS: NpcDef[] = [
     greeting: "The Heart Shrine's flame burns tall and gold. Its warmth feels like being remembered.",
   },
   {
-    id: "aldric", name: "Keeper Aldric", kind: "person", ...at("lighthall.aldric"), color: 0xf4e3b0, badge: "🕯️",
+    id: "aldric", name: "High Keeper Aldric", kind: "person", ...at("lighthall.aldric"), color: 0xf4e3b0, badge: "🕯️",
     greeting: "Welcome, friend! The Emberheart made you for a reason. Everything here is yours to learn.",
   },
   {
-    id: "celene", name: "Sister Celene", kind: "person", ...at("lighthall.celene"), color: 0xfdfdfd, badge: "🤍",
+    id: "celene", name: "Keeper Celene", kind: "person", ...at("lighthall.celene"), color: 0xfdfdfd, badge: "🤍",
     greeting: "Bless you. If you're hurt or lost, the shrine always brings you home.",
   },
   {
@@ -185,26 +185,26 @@ export const NPCS: NpcDef[] = [
     greeting: "Hm? Oh, a new spark. How bright you are. Come back when you know a little magic.",
   },
   {
-    id: "oren", name: "Brother Oren", kind: "person", ...at("lighthall.oren"), color: 0xeadcb5, badge: "🏛️",
+    id: "oren", name: "Keeper Oren", kind: "person", ...at("lighthall.oren"), color: 0xeadcb5, badge: "🏛️",
     greeting: "These are the Ember Circle, who raised the shrines. The Extinguished, our greatest heroes, stand out in the garden. Perhaps one day, you.",
   },
   {
-    id: "lisette", name: "Sister Lisette", kind: "person", ...at("lighthall.lisette"), color: 0xeadcb5, badge: "📚",
+    id: "lisette", name: "Keeper Lisette", kind: "person", ...at("lighthall.lisette"), color: 0xeadcb5, badge: "📚",
     greeting: "The library is open to every Emberborn. Mind the dust: the oldest books are older than the town.",
   },
   {
-    id: "tomas", name: "Brother Tomas", kind: "person", ...at("lighthall.tomas"), color: 0xeadcb5, badge: "🗝️",
+    id: "tomas", name: "Keeper Tomas", kind: "person", ...at("lighthall.tomas"), color: 0xeadcb5, badge: "🗝️",
     greeting: "Build your flame, Initiate. Every lesson, every day. A dim Emberborn is a wasted one.",
   },
   {
-    id: "wynne", name: "Sister Wynne", kind: "person", ...at("lighthall.wynne"), color: 0xeadcb5, badge: "🛏️",
+    id: "wynne", name: "Keeper Wynne", kind: "person", ...at("lighthall.wynne"), color: 0xeadcb5, badge: "🛏️",
     greeting: "The infirmary is here whenever you need it. Every patient gets a room of their own, and the Emberhall's doors never close to an Emberborn.",
   },
   {
     id: "plinth", name: "Empty plinth", kind: "station", ...at("lighthall.plinth"), color: 0xbdb6a0,
     greeting: "A plinth with no statue, among the Ember Circle. Someone has scratched the name off the stone, letter by letter. The first letter might have been a W.",
   },
-  // Sister Lisette's Four Books (version 0.21, shared/story.ts): four lecterns in the library, read in order.
+  // Keeper Lisette's Four Books (version 0.21, shared/story.ts): four lecterns in the library, read in order.
   {
     id: "book_1", name: "Aldmera, the Old Kingdom", kind: "station", ...at("lighthall.book_1"), color: 0x8a5a2e,
     greeting: "A heavy history book on a lectern: Aldmera, the Old Kingdom.",
@@ -238,7 +238,7 @@ export const NPCS: NpcDef[] = [
     id: "extinguished_4", name: "Orla the Kind", kind: "station", ...at("extinguished_4"), color: 0xf3efe4,
     greeting: "ORLA THE KIND, ONE OF THE EXTINGUISHED. A healer through the Grey Fever. The stone of her hands is worn smooth where people touch them.",
   },
-  // The statues of the Ember Circle, in the great hall (Brother Oren's tour, in shared/story.ts). Their plaques tell the
+  // The statues of the Ember Circle, in the great hall (Keeper Oren's tour, in shared/story.ts). Their plaques tell the
   // official story (see the wiki's Emberfall page): Wick is the traitor, Vale the saviour.
   {
     id: "circle_vale", name: "Archmage Vale", kind: "station", ...at("lighthall.circle_vale"), color: 0xf3efe4,

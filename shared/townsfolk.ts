@@ -73,12 +73,12 @@ export const TOWNSFOLK: TownsfolkDef[] = [
   {
     id: "bram", name: "Acolyte Bram", badge: "🧹", about: "A young Emberguard acolyte who sweeps the great hall of the Emberhall.",
     area: "lighthall", route: [{ x: 16, y: 22 }, { x: 16, y: 11 }, { x: 20, y: 11 }, { x: 20, y: 22 }], speed: 0.9, pause: 3,
-    lines: ["Ash, ash, always ash. That flame never stops dropping it.", "Mind your feet, I've just swept there.", "One day I'll be a proper Brother, like Oren."],
+    lines: ["Ash, ash, always ash. That flame never stops dropping it.", "Mind your feet, I've just swept there.", "One day I'll be a proper Keeper, like Oren."],
   },
   {
     id: "mira", name: "Acolyte Mira", badge: "🕯️", about: "Tends the braziers in the great hall, so they never go out.",
     area: "lighthall", route: [{ x: 15, y: 5 }, { x: 15, y: 22 }, { x: 21, y: 22 }, { x: 21, y: 5 }], speed: 1.0, pause: 5,
-    lines: ["Every brazier is lit from the Heart Shrine's flame. Never from a tinderbox. That's the rule.", "If a brazier goes out, Keeper Aldric gets very quiet. I don't like it when he's quiet."],
+    lines: ["Every brazier is lit from the Heart Shrine's flame. Never from a tinderbox. That's the rule.", "If a brazier goes out, High Keeper Aldric gets very quiet. I don't like it when he's quiet."],
   },
   {
     id: "ennis", name: "Pilgrim Ennis", badge: "🙏", about: "Came all the way from the Saltmere coast to see the Heart Shrine.",
@@ -91,7 +91,7 @@ export const TOWNSFOLK: TownsfolkDef[] = [
     lines: ["Shh. Library.", "Have you read the one about the Emberfall? Someone's written in the back of it. Shocking."],
   },
   {
-    id: "rosa", name: "Healer Rosa", badge: "🩹", about: "Helps Sister Wynne in the infirmary, going from room to room.",
+    id: "rosa", name: "Healer Rosa", badge: "🩹", about: "Helps Keeper Wynne in the infirmary, going from room to room.",
     area: "lighthall", route: [{ x: 27, y: 2 }, { x: 28, y: 9 }, { x: 27, y: 16 }, { x: 28, y: 24 }], speed: 1.1, pause: 5,
     lines: ["Each patient gets their own room now. So much quieter than the old dormitory!", "Don't run in the infirmary, please."],
   },

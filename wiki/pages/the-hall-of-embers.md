@@ -1,7 +1,7 @@
 title: The Hall of Embers
 category: Quests
 icon: 📜
-summary: Keeper Aldric shows you the Emberhall. Brother Oren tells how the king saved the land, and three Emberguard each teach you how something works.
+summary: High Keeper Aldric shows you the Emberhall. Keeper Oren tells how the king saved the land, and three Emberguard each teach you how something works.
 ---
 :::note Built in version 0.21
 This is how the quest plays since version 0.21 (on the dev test server first). The exact lines are under "In the game" below. Leave notes with ✏️ Suggest a change.
@@ -9,34 +9,34 @@ This is how the quest plays since version 0.21 (on the dev test server first). T
 
 ## How it plays
 
-Two things change. Brother Oren now tells the new official story: the land's fire woke, and **King Aldemar gave his life to hold it back** while the Circle built the shrines (see [[The Emberfall (disaster)]]). And the three Emberguard you meet each **teach you something about the game**:
+Two things change. Keeper Oren now tells the new official story: the land's fire woke, and **King Aldemar gave his life to hold it back** while the Circle built the shrines (see [[The Emberfall (disaster)]]). And the three Emberguard you meet each **teach you something about the game**:
 
-- **Sister Lisette** teaches quests, and gives you your first side quest.
-- **Brother Tomas** teaches skills, levels and the Emberguard's ranks.
-- **Sister Wynne** teaches what happens when you fall.
+- **Keeper Lisette** teaches quests, and gives you your first side quest.
+- **Keeper Tomas** teaches skills, levels and the Emberguard's ranks.
+- **Keeper Wynne** teaches what happens when you fall.
 
-### Step 1: Talk to Keeper Aldric
+### Step 1: Talk to High Keeper Aldric
 
-**Keeper Aldric:**
+**High Keeper Aldric:**
 
 > Now, let me tell you about our home. The Emberhall is the Emberguard's temple, built round the Heart Shrine: the brightest flame in all Embervale.
 >
-> The statues along these walls are the Ember Circle, the mages who raised the shrines after the Emberfall. Brother Oren keeps them, and he's waiting to show you round. He's just down the hall on the left.
+> The statues along these walls are the Ember Circle, the mages who raised the shrines after the Emberfall. Keeper Oren keeps them, and he's waiting to show you round. He's just down the hall on the left.
 >
 > Then meet three of my brothers and sisters. Each of them will teach you something you'll need. Come back to me when you've met them all.
 
-### Step 2: Take Brother Oren's tour
+### Step 2: Take Keeper Oren's tour
 
 Checklist, any order (Oren first, since he walks you round):
 
-- ☐ Brother Oren
+- ☐ Keeper Oren
 - ☐ King Aldemar's statue
 - ☐ Archmage Vale's statue
 - ☐ The empty plinth
 
-**Brother Oren:**
+**Keeper Oren:**
 
-> Welcome, welcome! I'm Brother Oren. I keep the statues in this hall: the Ember Circle, the greatest mages Aldmera ever had, and the king who led them. Every Emberborn who wakes here owes them everything.
+> Welcome, welcome! I'm Keeper Oren. I keep the statues in this hall: the Ember Circle, the greatest mages Aldmera ever had, and the king who led them. Every Emberborn who wakes here owes them everything.
 >
 > Come, I'll walk you round. Start with the king, by the shrine on this side. Click each statue with a ❗ and I'll tell you about it.
 
@@ -56,7 +56,7 @@ Checklist, any order (Oren first, since he walks you round):
 
 **The empty plinth:**
 
-> (Brother Oren slows down at the empty plinth. Someone has scratched the name off the stone, very carefully, letter by letter. Under the dust you can just make out the first letter: a W.)
+> (Keeper Oren slows down at the empty plinth. Someone has scratched the name off the stone, very carefully, letter by letter. Under the dust you can just make out the first letter: a W.)
 >
 > Wick. He stood beside the king, and helped raise the shrines. Then, four hundred years later, he turned half the Circle against the rest and tried to tear the shrines down. Everything the king died for, he'd have thrown away. That was the Sundering War. Vale won it, and gave his life doing so.
 >
@@ -66,13 +66,13 @@ Checklist, any order (Oren first, since he walks you round):
 
 The quest log shows a checklist, ticked as you go. The order doesn't matter.
 
-- ☐ Sister Lisette, in the library: read her four books (her side quest, [[The Four Books]])
-- ☐ Brother Tomas, in the great hall
-- ☐ Sister Wynne, in the infirmary
+- ☐ Keeper Lisette, in the library: read her four books (her side quest, [[The Four Books]])
+- ☐ Keeper Tomas, in the great hall
+- ☐ Keeper Wynne, in the infirmary
 
 Lisette's tick only appears once you've finished her side quest, so the main quest waits for it. That's how the game first shows you that side quests matter.
 
-#### Sister Lisette (teaches quests)
+#### Keeper Lisette (teaches quests)
 
 > Welcome to the library! Every Emberborn's deeds are written down here, so the Emberheart remembers them even if you don't. Let me show you how yours are kept.
 >
@@ -86,11 +86,11 @@ Lisette's tick only appears once you've finished her side quest, so the main que
 
 **You get:** the side quest [[The Four Books]].
 
-#### Brother Tomas (teaches skills, levels and ranks)
+#### Keeper Tomas (teaches skills, levels and ranks)
 
 Tomas is a true believer: strict, proud of the Emberguard, and fond of the word "flame".
 
-> Brother Tomas. I keep the keys: every key in this hall is on this ring. That barred door over there? The restricted section. Keepers only. Very dull.
+> Keeper Tomas. I keep the keys: every key in this hall is on this ring. That barred door over there? The restricted section. Keepers only. Very dull.
 >
 > Now listen closely, Initiate, because this is the most important thing anyone will tell you today.
 >
@@ -102,15 +102,15 @@ Tomas is a true believer: strict, proud of the Emberguard, and fond of the word 
 >
 > And the greatest honour there is, the one we all live for: a **Radiance Ceremony**, where the very brightest give their flame back to the Heart Shrine, to light a hundred more. That's what you're for. Build your flame. Never let it dim.
 >
-> Once you've met everyone, Keeper Aldric will send you to the trainers in the Training Ground, and they'll start you on your first skills. Don't waste a single lesson.
+> Once you've met everyone, High Keeper Aldric will send you to the trainers in the Training Ground, and they'll start you on your first skills. Don't waste a single lesson.
 
-#### Sister Wynne (teaches falling)
+#### Keeper Wynne (teaches falling)
 
 As in the game today: when your health runs out, the nearest shrine remakes you; you wake weak and dizzy, and the Emberguard nurse you back. After the Oath, every fall leaves a Tithe mark (see [[The Tithe]]).
 
-### Step 4: Go back to Keeper Aldric
+### Step 4: Go back to High Keeper Aldric
 
-**Keeper Aldric:**
+**High Keeper Aldric:**
 
 > You've met everyone? Good, good. And you found the empty plinth, I see. Every family has its black sheep, friend.
 >

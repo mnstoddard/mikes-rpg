@@ -1,7 +1,7 @@
 title: Awakening
 category: Quests
 icon: 📜
-summary: The very first quest. You wake at the Heart Shrine, Sister Celene helps you up, and you dress yourself one piece at a time.
+summary: The very first quest. You wake at the Heart Shrine, Keeper Celene helps you up, and you dress yourself one piece at a time.
 ---
 :::note Built in version 0.21
 This is how the quest plays since version 0.21 (on the dev test server first). The exact lines are under "In the game" below. Leave notes with ✏️ Suggest a change.
@@ -11,11 +11,11 @@ This is how the quest plays since version 0.21 (on the dev test server first). T
 
 The first quest teaches one thing at a time. While you get dressed, **nothing on the screen works except the 🎒 bag button**, and it glows. You can't walk, turn the camera, talk to anyone or open any other panel until both robe pieces are on.
 
-### Step 1: Talk to Sister Celene, beside the Heart Shrine
+### Step 1: Talk to Keeper Celene, beside the Heart Shrine
 
 The opening scene starts on a wide view of the Heart Shrine. A burst of embers flies out of its flame, circles the steps where you'll lie, and fades, and a body of glowing light forms in the ring. Slowly the glow fades into your own character, lying on the shrine steps. Then Celene walks over, reaches out her hand and helps you stand. (There's a Skip button.)
 
-**Sister Celene:**
+**Keeper Celene:**
 
 > Easy, easy. Take my hand. Up you come. There you are.
 >
@@ -39,7 +39,7 @@ The quest log shows a checklist, ticked as you go (the order doesn't matter, so 
 - ☐ Robe top
 - ☐ Robe skirt
 
-**Sister Celene, when both are on:**
+**Keeper Celene, when both are on:**
 
 > There! It suits you. Now you look like one of the Emberborn.
 >
@@ -56,13 +56,13 @@ As in the game today: click or tap the floor, use W A S D, or the round pad on a
 - ☐ Left mark
 - ☐ Right mark
 
-**Sister Celene:**
+**Keeper Celene:**
 
-> Look at you, walking like you've done it all your life! Come and meet Keeper Aldric, beside the Heart Shrine. He'll want to welcome you himself.
+> Look at you, walking like you've done it all your life! Come and meet High Keeper Aldric, beside the Heart Shrine. He'll want to welcome you himself.
 
-### Step 4: Talk to Keeper Aldric
+### Step 4: Talk to High Keeper Aldric
 
-**Keeper Aldric:**
+**High Keeper Aldric:**
 
 > Welcome, friend! Welcome to the Emberhall, and to Emberhold.
 >

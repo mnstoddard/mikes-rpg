@@ -41,10 +41,10 @@ The lesson people take from it: the king died so the shrines could be built, the
 ### Where players hear it
 
 - The in-game books in [[Books in the game]].
-- *A Child's Book of the Emberborn*, which [[Sister Lisette]] reads to the town children (see [[Planned quests]]).
-- [[Brother Oren]]'s tour of the statues of [[The Extinguished]], which ends at Wick's empty plinth.
+- *A Child's Book of the Emberborn*, which [[Keeper Lisette]] reads to the town children (see [[Planned quests]]).
+- [[Keeper Oren]]'s tour of the statues of [[The Extinguished]], which ends at Wick's empty plinth.
 - The Emberguard's welcome talk when you start as an [[Initiates|Initiate]].
-- The four books Sister Lisette has you read in the library (see [[The Four Books]]).
+- The four books Keeper Lisette has you read in the library (see [[The Four Books]]).
 
 ::: secret
 ## The true story

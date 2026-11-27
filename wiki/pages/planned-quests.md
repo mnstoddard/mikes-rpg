@@ -10,11 +10,11 @@ These are planned, not built. (Built quests are on [[Quests]].) None are needed 
 
 | # | Quest | Giver | What you do | What it reveals |
 |---|---|---|---|---|
-| 1.13 | A Story for Children | [[Sister Lisette]] | Read "A Child's Book of the Emberborn" aloud to the town children. | The official Emberfall story: Wick the Betrayer. |
+| 1.13 | A Story for Children | [[Keeper Lisette]] | Read "A Child's Book of the Emberborn" aloud to the town children. | The official Emberfall story: Wick the Betrayer. |
 | 2B.8 | The Old Shaft | [[Miner Greta]] | Find a huge scorched shaft deep in the Crystal Cave. | 🧩 Echo: the Circle in a ring around a pit of fire, and one of them stepping toward the king. |
 | 2D.8 | Whitestone's Coin | [[Archmage Rowan]] | Dig up Aldmeran coins in the Barrens. | The first hint of the Ember Seed and the Ember Crown. |
 | 2D.9 | The Circle's Mark | Archmage Rowan | Copy a ring-of-fire mark from a ruined mage tower. | It's carved over the Emberhall's front door. |
-| 3.16 | The Torn Page | Sister Lisette | Find who cut a page from the oldest book in the library. | An account of the working written before the Sundering War. It names all nine of the Circle, and never blames Wick. |
+| 3.16 | The Torn Page | Keeper Lisette | Find who cut a page from the oldest book in the library. | An account of the working written before the Sundering War. It names all nine of the Circle, and never blames Wick. |
 | 3.17 | The Restricted Section | (none: you decide to) | Sneak into the library's locked restricted section at night and read what the Keepers hide. | The working, the Oath's real words, and the Ceremony's true records. See [[The Restricted Section]]. |
 | 4.19 | The Living Fire | [[Wick]] | 🎬 Put your hand in the Emberheart and feel how much it has lost. | The land is going cold, and how fast. |
 | E.1 | The Ember Seed | Wick | Follow the coins' clues into the Crown Vault under Whitestone. | The Seed is real, and half-made. |
@@ -38,10 +38,10 @@ After the Oath, each trainer from the [[Emberhall Training Ground]] can be found
 | The Warm Well | [[Captain Bryn]] | Fish a glowing minnow out of the square's well. | Fishing | The well is heated from below. |
 | Brann's Coal | [[Smith Brann]] | Bring fuel from three kinds of wood for his 800-year-old coal. | Woodcutting, Smithing | The coal is an Emberfall shard. |
 | Odo's Old Seed | [[Farmer Odo]] | Plant one seed from Odo's jar. It glows at dusk. | Farming | Before the shrines, the whole land grew like this. |
-| Lanterns for the Dead | [[Sister Wynne]] | Leave a lit lantern at each statue of the Extinguished. Orla's keeps going out. | Walking, night | Orla's spark isn't resting. |
-| The Night Key | [[Brother Tomas]] | Wait in the dark hall to see who goes into the restricted section. | Sneaking (night) | You glimpse Enchanter Vale with the ledger. |
+| Lanterns for the Dead | [[Keeper Wynne]] | Leave a lit lantern at each statue of the Extinguished. Orla's keeps going out. | Walking, night | Orla's spark isn't resting. |
+| The Night Key | [[Keeper Tomas]] | Wait in the dark hall to see who goes into the restricted section. | Sneaking (night) | You glimpse Enchanter Vale with the ledger. |
 | Ask the Totem | [[Woodworker Rook]] | Carve a small totem; learn to hide a note in the base. | Handicraft | How the Ashbound send messages. |
-| The Scratched Name | [[Brother Oren]] | Clean the empty plinth. One letter is left: W. | Talking, Handicraft | The plinth was Wick's, and Oren's story of him has holes in it. |
+| The Scratched Name | [[Keeper Oren]] | Clean the empty plinth. One letter is left: W. | Talking, Handicraft | The plinth was Wick's, and Oren's story of him has holes in it. |
 | Tam's Missing Cart | [[Shopkeeper Tam]] | Find Tam's lost cart on the Westroad. The crates are full of ash. | Exploring, Hunting | Tam deals with the Ashbound. |
 | Mending Costs | [[Repairer Oswin]] | Repair an old lantern with Maren's note inside. | Repair, Handicraft | Waiting on Maren's new story. |
 | A Grey Fox | [[Huntmaster Kael]] | Track a Blighted fox from the edge of the valley, where its den went cold, to the shrine it keeps circling for warmth. | Hunting, Combat | The Blight starts where the warmth runs out. |
@@ -88,6 +88,6 @@ After the Oath, each trainer from the [[Emberhall Training Ground]] can be found
 | Quest | Giver | What you do | Skills | What it reveals |
 |---|---|---|---|---|
 | The Frozen Shrine | An old trapper | Thaw Wick's frozen shrine enough to read its plaque. | Spellcasting, surviving | All nine of the Circle's names, Wick's unscratched. |
-| Orla's Rest | Sister Wynne | Free Orla's spark from an old gem. | Spellcasting, Enchanting | Drained sparks can be set free. |
+| Orla's Rest | Keeper Wynne | Free Orla's spark from an old gem. | Spellcasting, Enchanting | Drained sparks can be set free. |
 | The Seed Coin | Shopkeeper Tam | Buy a strange warm coin. | Trading | It points to the Crown Vault, and the Ember Seed. |
-| The First One | Sister Lisette | Find where Halric the Dawnbringer first woke. | Walking, Exploring | 🧩 Echo: Vale was there, young, smiling, already old inside. |
+| The First One | Keeper Lisette | Find where Halric the Dawnbringer first woke. | Walking, Exploring | 🧩 Echo: Vale was there, young, smiling, already old inside. |

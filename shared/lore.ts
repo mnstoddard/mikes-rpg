@@ -28,7 +28,7 @@ const LIGHTHALL: Book[] = [
     ],
   },
   {
-    title: "On the Shrines, by Keeper Aldric",
+    title: "On the Shrines, by High Keeper Aldric",
     pages: [
       "A shrine is a door the ember comes through. It finds a spark in the Emberheart, deep under Heartvale, and gives it a body.",
       "When an Emberborn falls, the shrine nearest them gathers up what's left of the spark and makes them again. We do not fully understand it. We tend it, as a gardener tends what he did not plant.",

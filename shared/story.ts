@@ -54,7 +54,7 @@ export const STORY_ITEMS: Record<StoryItemId, StoryItemDef> = {
   blessing_scroll: { name: "Blessing scrolls", single: "blessing scroll", icon: "📜", tint: "sepia(1) saturate(3) brightness(1.1)", sellPrice: 0, use: "Read", droppable: true,
     description: `Read it for an Emberguard blessing: +${BLESS_POWER}% XP for ${BLESS_MINUTES} minutes.` },
   lantern: { name: "Your lantern", single: "lantern", icon: "🏮", sellPrice: 0,
-    description: "Keeper Aldric's gift. While it's in your bag, nights are less dark for you." },
+    description: "High Keeper Aldric's gift. While it's in your bag, nights are less dark for you." },
   shrine_totem: { name: "Shrine totems", single: "shrine totem", icon: "🗿", tint: "sepia(1) saturate(1.5) brightness(.9)", sellPrice: 0,
     description: "Carved from oak by Woodworker Rook, for an Emberguard shrine. Something rattles inside." },
   rooks_note: { name: "Folded note", single: "folded note", icon: "✉️", sellPrice: 0, use: "Read",
@@ -73,7 +73,7 @@ export const isStoryItem = (item: string | null | undefined): item is StoryItemI
 
 export const SPOT_NAMES: Record<string, string> = {
   "spot.fieldNorth": "Odo's north field", "spot.fieldMid": "Odo's middle field", "spot.fieldSouth": "Odo's south field",
-  "spot.hallLeft": "the first glowing mark", "spot.hallRight": "the second glowing mark",
+  "spot.hallLeft": "the first glowing mark", "spot.hallRight": "the second glowing mark", "spot.hallRun": "the mark by the great doors",
   "spot.nearLighthall": "the Emberhall's garden", "spot.nearWestShrine": "the trees by the Westroad shrine", "spot.nearGate": "the trees outside the River Gate",
   "spot.farLake": "the grey dust west of the pasture", "spot.farPeaks": "the north-east foothills", "spot.farCoast": "the woods by the north coast",
   "spot.thornEdge": "the new shrine's site at the valley's edge",
@@ -81,11 +81,11 @@ export const SPOT_NAMES: Record<string, string> = {
 
 // ---- The chapters ----
 
-const ALDRIC = "Keeper Aldric";
-const CELENE = "Sister Celene";
+const ALDRIC = "High Keeper Aldric";
+const CELENE = "Keeper Celene";
 const LIGHTHALL = "in the Emberhall, the great white temple on Ember Hill, in the middle of Emberhold";
 
-/** Sister Lisette's Four Books (version 0.21): the history every Initiate is taught, read in order. The official story. */
+/** Keeper Lisette's Four Books (version 0.21): the history every Initiate is taught, read in order. The official story. */
 export const FOUR_BOOKS: { title: string; pages: string[] }[] = [
   {
     title: "Aldmera, the Old Kingdom",
@@ -130,13 +130,13 @@ export const FOUR_BOOKS: { title: string; pages: string[] }[] = [
   },
 ];
 
-/** Sister Lisette, when you walk up to the restricted section's grille (version 0.21): a different excuse each time. */
+/** Keeper Lisette, when you walk up to the restricted section's grille (version 0.21): a different excuse each time. */
 export const LISETTE_EXCUSES = [
   "Oh, not in there, dear! The roof's leaking again. The old books are drying out, and the Keepers don't want a single page touched until they're dry.",
   "Ah! Mind the gate. Woodworm. A whole shelf of it. We're smoking them out, and you'd cough for a week.",
   "That's the Keepers' reading room. They're copying out the old records, and it all has to stay in order. Very dull, honestly.",
-  "The stair's broken. Brother Tomas has been meaning to fix it for, oh, a year now.",
-  "Not today. Maybe when you're a Flame. Or a Blaze. Keeper Aldric decides these things, not me.",
+  "The stair's broken. Keeper Tomas has been meaning to fix it for, oh, a year now.",
+  "Not today. Maybe when you're a Flame. Or a Blaze. High Keeper Aldric decides these things, not me.",
 ];
 
 /** Prologue chapters before Old Maren's lessons. */
@@ -149,8 +149,8 @@ export const PROLOGUE_START: Chapter[] = [
         task: `Talk to ${CELENE}, beside the Heart Shrine`, goal: { kind: "talk" },
         lines: [
           "Easy, easy. Take my hand. Up you come. There you are.",
-          "You've just woken on the steps of the Heart Shrine. Its flame flared up, the embers gathered, and there you were. That's how all of you come to us: made by the Emberheart itself.",
-          "Do you remember your name? Anything at all? No? Don't be frightened. None of you ever do.",
+          "You've just woken on the steps of the Heart Shrine. Its flame flared up, the embers gathered, and there you were. That's how all of us come here, every one: made by the Emberheart itself. I woke on these same steps, long ago.",
+          "Do you remember your name? Anything at all? No? Don't be frightened. None of us ever do.",
           "Now, you can't go about in nothing but your underthings. I've put a robe top and a robe skirt in your bag. See it glowing, down in the corner? Open it.",
         ],
         give: [{ item: "platebody_cloth" }, { item: "platelegs_cloth" }],
@@ -162,7 +162,7 @@ export const PROLOGUE_START: Chapter[] = [
         ensure: [{ item: "platebody_cloth" }, { item: "platelegs_cloth" }],
         doneSpeaker: CELENE,
         doneLines: [
-          "There! It suits you. Now you look like one of the Emberborn.",
+          "There! It suits you. Now you look like one of us.",
           "Everything you carry lives in that bag, and everything you wear shows on you. You'll be in and out of it all day.",
           "Let's see you walk; your legs will feel new for a while. See the two glowing marks on the floor, down the hall? Walk to each of them.",
           "On a computer, click the floor where you want to go, or walk with the W A S D keys. W walks the way the camera faces; Q and E turn the camera.",
@@ -179,8 +179,21 @@ export const PROLOGUE_START: Chapter[] = [
         },
         doneSpeaker: CELENE,
         doneLines: [
-          "Look at you, walking like you've done it all your life!",
-          "Come and meet Keeper Aldric, beside the Heart Shrine. He'll want to welcome you himself.",
+          "Look at you, walking like you've done it all your life! Now let's see you run.",
+          "Press the glowing 🏃 run button on the right of the screen to run, and press it again to walk. On a computer you can also hold Shift while you move.",
+          "Running is quicker, but it takes your breath: that's the yellow stamina bar at the top left. Run out and you slow to a walk until you've caught your breath.",
+          "Run to the glowing mark down by the great doors.",
+        ],
+      },
+      {
+        // The running lesson (version 0.21, Mike's note): the mark only counts if you arrive running.
+        task: "Run to the glowing mark by the great doors (press 🏃, or hold Shift)", goal: { kind: "reach", spots: ["spot.hallRun"], names: "mark", run: true },
+        hint: "Press the 🏃 run button on the right of the screen (or hold Shift on a keyboard), then run to the glowing mark by the great doors.",
+        spotLines: { "spot.hallRun": "Now that's running!" },
+        doneSpeaker: CELENE,
+        doneLines: [
+          "Quick as a spark! Remember: running for the long roads, walking to get your breath back.",
+          "Come and meet High Keeper Aldric, beside the Heart Shrine. He'll want to welcome you himself.",
         ],
       },
       {
@@ -201,19 +214,19 @@ export const PROLOGUE_START: Chapter[] = [
         task: `Talk to ${ALDRIC}`, goal: { kind: "talk" },
         lines: [
           "Now, let me tell you about our home. The Emberhall is the Emberguard's temple, built round the Heart Shrine: the brightest flame in all Embervale.",
-          "The statues along these walls are the Ember Circle, the mages who raised the shrines after the Emberfall. Brother Oren keeps them, and he's waiting to show you round. He's just down the hall on the left.",
-          "Then meet three of my brothers and sisters. Each of them will teach you something you'll need. Sister Lisette keeps the library, through the door on the west side, Brother Tomas is in the great hall, and Sister Wynne keeps the infirmary, through the east door. Come back to me when you've met them all.",
+          "The statues along these walls are the Ember Circle, the mages who raised the shrines after the Emberfall. Keeper Oren keeps them, and he's waiting to show you round. He's just down the hall on the left.",
+          "Then meet three of my fellow Keepers. Each of them will teach you something you'll need. Keeper Lisette keeps the library, through the door on the west side, Keeper Tomas is in the great hall, and Keeper Wynne keeps the infirmary, through the east door. Come back to me when you've met them all.",
         ],
       },
       {
-        // Brother Oren's tour of the great hall: the statues of the Ember Circle (version 0.20, Mike's note), told the way the
+        // Keeper Oren's tour of the great hall: the statues of the Ember Circle (version 0.20, Mike's note), told the way the
         // Emberguard teach it (the official story on the wiki's Emberfall page), and the embers drifting overhead.
-        task: "Take Brother Oren's tour: the king, Archmage Vale and the empty plinth", goal: { kind: "visit", npcs: ["oren", "circle_aldemar", "circle_vale", "plinth"], names: "stops on Oren's tour" },
-        hint: "Brother Oren is by the statues on the west side of the great hall. Talk to him, then click King Aldemar's statue (west wall, by the shrine), Archmage Vale's statue (behind the Heart Shrine) and the empty plinth near the doors (east side). Each has a ❗.",
-        speaker: "Brother Oren",
+        task: "Take Keeper Oren's tour: the king, Archmage Vale and the empty plinth", goal: { kind: "visit", npcs: ["oren", "circle_aldemar", "circle_vale", "plinth"], names: "stops on Oren's tour" },
+        hint: "Keeper Oren is by the statues on the west side of the great hall. Talk to him, then click King Aldemar's statue (west wall, by the shrine), Archmage Vale's statue (behind the Heart Shrine) and the empty plinth near the doors (east side). Each has a ❗.",
+        speaker: "Keeper Oren",
         visitLines: {
           oren: [
-            "Welcome, welcome! I'm Brother Oren. I keep the statues in this hall: the Ember Circle, the greatest mages Aldmera ever had, and the king who led them. Every Emberborn who wakes here owes them everything.",
+            "Welcome, welcome! I'm Keeper Oren. I keep the statues in this hall: the Ember Circle, the greatest mages Aldmera ever had, and the king who led them. Every Emberborn who wakes here owes them everything.",
             "Come, I'll walk you round. Start with the king, by the shrine on this side. Click each statue with a ❗ and I'll tell you about it. The others along the walls have plaques you can read any time.",
           ],
           circle_aldemar: [
@@ -226,7 +239,7 @@ export const PROLOGUE_START: Chapter[] = [
             "Look up, too. See the little embers drifting through the hall? Each one is for one of the Extinguished: the greatest Emberborn, honoured with a Radiance Ceremony. One flame goes out so many can be lit.",
           ],
           plinth: [
-            "(Brother Oren slows down at the empty plinth. Someone has scratched the name off the stone, very carefully, letter by letter. Under the dust you can just make out the first letter: a W.)",
+            "(Keeper Oren slows down at the empty plinth. Someone has scratched the name off the stone, very carefully, letter by letter. Under the dust you can just make out the first letter: a W.)",
             "Wick. He stood beside the king, and helped raise the shrines. Then, four hundred years later, he turned half the Circle against the rest and tried to tear the shrines down. Everything the king died for, he'd have thrown away. That was the Sundering War. Vale won it, and gave his life doing so.",
             "The city pulled Wick's statue down after the war. He fled into the dark and was never seen again. But that's enough gloom for your first day! Go and meet the others.",
           ],
@@ -236,17 +249,17 @@ export const PROLOGUE_START: Chapter[] = [
         // Each of the three teaches part of the game (version 0.21). Lisette's tick waits for her side quest, The Four Books
         // (server: storyClick sends you to her quest, and finishing it ticks her off here).
         task: "Meet three Emberguard: Lisette, Tomas and Wynne", goal: { kind: "visit", npcs: ["lisette", "tomas", "wynne"], names: "Emberguard" },
-        hint: "Sister Lisette is in the library (through the north-west door), Brother Tomas is in the great hall, by the barred door on the west side, and Sister Wynne is in the infirmary (the east door).",
-        checkLabels: { lisette: "Sister Lisette, in the library: read her four books", tomas: "Brother Tomas, in the great hall", wynne: "Sister Wynne, in the infirmary" },
+        hint: "Keeper Lisette is in the library (through the north-west door), Keeper Tomas is in the great hall, by the barred door on the west side, and Keeper Wynne is in the infirmary (the east door).",
+        checkLabels: { lisette: "Keeper Lisette, in the library: read her four books", tomas: "Keeper Tomas, in the great hall", wynne: "Keeper Wynne, in the infirmary" },
         visitLines: {
           lisette: ["All four books read, and the quest log ticked. You'll do well here. Go on, the others are waiting."],
-          tomas: ["Brother Tomas. I keep the keys: every key in this hall is on this ring. That barred door over there? The restricted section. Keepers only. Very dull.",
+          tomas: ["Keeper Tomas. I keep the keys: every key in this hall is on this ring. That barred door over there? The restricted section. Keepers only. Very dull.",
             "Now listen closely, Initiate, because this is the most important thing anyone will tell you today.",
             "Everything you do out there is a skill: chopping wood, mining, smithing, cooking, fighting, casting. Do a thing and you get better at it. Every skill has its own level. Open your 📊 skills and you'll see them all at 1. Add them together and you have your total level.",
             "That total is your flame. The brighter your flame, the more the Emberhall can trust you with, and the more good you can do. A dim Emberborn is a wasted one.",
-            "The Emberguard has its ranks, and every one is earned. You start as an Initiate. Swear the Oath of the Flame, and you become an Ember. Prove yourself in Heartvale, and you're a Flame. Out in the six lands, a Blaze. And the brightest of all are Radiant. Above them sit the Keepers, and the High Keeper above us all.",
+            "The Emberguard has its ranks, and every one is earned. You start as an Initiate. Swear the Oath of the Flame, and you become an Ember. Prove yourself in Heartvale, and you're a Flame. Out in the six lands, a Blaze. And the brightest of all are Radiant. Above them all sit we Keepers, who keep this hall and its flame, and High Keeper Aldric above us.",
             "And the greatest honour there is, the one we all live for: a Radiance Ceremony, where the very brightest give their flame back to the Heart Shrine, to light a hundred more. That's what you're for. Build your flame. Never let it dim.",
-            "Once you've met everyone, Keeper Aldric will send you to the trainers in the Training Ground, and they'll start you on your first skills. Don't waste a single lesson."],
+            "Once you've met everyone, High Keeper Aldric will send you to the trainers in the Training Ground, and they'll start you on your first skills. Don't waste a single lesson."],
           wynne: ["Welcome to the infirmary. Every patient gets a room of their own here, with a proper bed and a door that shuts. The Emberhall's doors never close to an Emberborn.",
             "Let me tell you what happens when you fall out there, so it doesn't frighten you. When your health runs out, the shrine's embers gather you up and make you again, on the shrine's steps.",
             "You'll wake up weak and dizzy, and we'll bring you in here and nurse you back onto your feet. Nobody is left alone on the cold stone.",
@@ -264,13 +277,13 @@ export const PROLOGUE_START: Chapter[] = [
     ],
   },
   {
-    // Sister Lisette's side quest (version 0.21): the game's first side quest, and how it teaches side quests. Opens when
+    // Keeper Lisette's side quest (version 0.21): the game's first side quest, and how it teaches side quests. Opens when
     // The Hall of Embers sends you to meet her; finishing it ticks her off that quest's checklist (server: advance()).
-    id: "four_books", act: "prologue", side: true, title: "The Four Books", giver: "lisette", name: "Sister Lisette", where: "in the Emberhall library, through the north-west door of the great hall",
+    id: "four_books", act: "prologue", side: true, title: "The Four Books", giver: "lisette", name: "Keeper Lisette", where: "in the Emberhall library, through the north-west door of the great hall",
     after: ["awakening"], afterStep: ["hall", 2],
     steps: [
       {
-        task: "Talk to Sister Lisette, in the library", goal: { kind: "talk" },
+        task: "Talk to Keeper Lisette, in the library", goal: { kind: "talk" },
         lines: [
           "Welcome to the library! Every Emberborn's deeds are written down here, so the Emberheart remembers them even if you don't. Let me show you how yours are kept.",
           "Open your 📜 quest log. Everything anyone has asked of you is in there.",
@@ -286,7 +299,7 @@ export const PROLOGUE_START: Chapter[] = [
         visitLines: { [`book_${n + 1}`]: b.pages },
       })),
       {
-        task: "Go back to Sister Lisette", goal: { kind: "talk" },
+        task: "Go back to Keeper Lisette", goal: { kind: "talk" },
         lines: [
           "All four? Now you know more history than half the city. Most Initiates skip straight to the swords.",
           "That's your first side quest done. See? It's ticked off your main quest too. Many side quests will help you along like that.",
@@ -365,7 +378,7 @@ export const PROLOGUE_END: Chapter[] = [
         lines: [
           "Twenty! You see how the Heart Shrine's warmth helps you?",
           "Take these blessing scrolls. Read one whenever you want a blessing of your own. The Emberhall makes them for every Emberborn.",
-          "Keeper Aldric wants to see you. I think it's time you swore the Oath.",
+          "High Keeper Aldric wants to see you. I think it's time you swore the Oath.",
         ],
         give: [{ item: "blessing_scroll", count: 3 }],
       },
@@ -436,7 +449,7 @@ export const ACT_ONE: Chapter[] = [
         task: `Go back to ${ALDRIC}`, goal: { kind: "talk" },
         lines: [
           "All six! Well done. And... the inn wall. Yes. I've heard.",
-          "The Ashbound, I expect. They hate the shrines. They hate anything that helps people. I've sent Brother Tomas to scrub it off.",
+          "The Ashbound, I expect. They hate the shrines. They hate anything that helps people. I've sent Keeper Tomas to scrub it off.",
           "Don't let it trouble you, friend. Here: your pay, and a blessing scroll for your trouble.",
         ],
         give: [{ item: "blessing_scroll" }],
@@ -543,7 +556,7 @@ export const ACT_ONE: Chapter[] = [
         task: "Bring the oak logs to Woodworker Rook", goal: { kind: "talk" }, take: { oak_logs: 5 },
         lines: [
           "Good wood. Give me a moment.",
-          "...There. A shrine totem. Take it to Keeper Aldric.",
+          "...There. A shrine totem. Take it to High Keeper Aldric.",
           "Oh, and I've tucked a little note inside, for luck. Old carver's habit. Don't you go reading it, mind.",
         ],
         give: [{ item: "shrine_totem" }, { item: "rooks_note" }],
@@ -771,7 +784,7 @@ export const ACT_ONE: Chapter[] = [
         task: "Meet the stranger by the shrine", goal: { kind: "talk" }, who: "rhys",
         lines: [
           "Nicely done! I'm Rhys. Emberborn, same as you: woke up at the Heart Shrine a few weeks before you did.",
-          "They made me a Flame last week. I'm going all the way: one day I'll have a statue in the Emberhall garden, with the Extinguished. Brother Oren says I've got the spark for it.",
+          "They made me a Flame last week. I'm going all the way: one day I'll have a statue in the Emberhall garden, with the Extinguished. Keeper Oren says I've got the spark for it.",
           "Race you there! Ha!",
         ],
       },

@@ -8,7 +8,7 @@ You start as an [[Initiates|Initiate]], not a member. [[The Emberguard]]'s trial
 
 | Act | Where, levels | What happens | Trial mark |
 |---|---|---|---|
-| **Prologue: Awakening** (built) | [[The Emberhall]] and [[Emberhold]], 1 to 10 | The tutorial. You wake at [[The Heart Shrine]], take Brother Oren's tour, and learn every skill from the townsfolk. Then you swear the Oath of the Flame to be allowed to try for the Emberguard. | Ember |
+| **Prologue: Awakening** (built) | [[The Emberhall]] and [[Emberhold]], 1 to 10 | The tutorial. You wake at [[The Heart Shrine]], take Keeper Oren's tour, and learn every skill from the townsfolk. Then you swear the Oath of the Flame to be allowed to try for the Emberguard. | Ember |
 | **Act 1: The First Trial** (built) | [[Heartvale]] only, 5 to 20 | You learn the base story and prove yourself around home. Small things feel off: the land at the valley's edge is dying, and the edge is creeping closer every year. | Flame |
 | **Act 2: The Outer Shrines** | All six outer regions, 20 to 40 | The roads open. You travel to every region's city, meet its [[Emberwardens|Emberwarden]], and do the first tier of its quests (the *Arrival* stage). | Blaze |
 | **Act 3: The Far Reaches** | The outer reaches of all six regions, 40 to 60 | You head into the withering wilds far from the cities (the *Wilds* stage), then take each Emberwarden's trial and relight their great shrine (the *Trial* stage). It ends with your invitation, and the truth. | Radiant |
@@ -19,22 +19,22 @@ The Prologue and Act 1 are in the game: see [[Quests]] for every built quest, st
 
 ## Act 1 in detail (Heartvale only)
 
-Act 1 stays inside [[Heartvale]]. Keeper Aldric gives most of it. These are the quests in the game today. Since version 0.20 (on the dev test server first), every one of them happens in Heartvale, out of Emberhold's gates, and follows the new story: the shrines are good, and the land dies farthest from them. *A Flame at the Valley's Edge* replaced *A Flame in the Thornwood*.
+Act 1 stays inside [[Heartvale]]. High Keeper Aldric gives most of it. These are the quests in the game today. Since version 0.20 (on the dev test server first), every one of them happens in Heartvale, out of Emberhold's gates, and follows the new story: the shrines are good, and the land dies farthest from them. *A Flame at the Valley's Edge* replaced *A Flame in the Thornwood*.
 
 | Quest | Giver | What you do | Story beat |
 |---|---|---|---|
-| Lantern Rounds | [[Keeper Aldric]] | Light six shrine lanterns around Heartvale. | "THE FLAME EATS" painted on the inn wall. Aldric blames the Ashbound. |
-| The First Tithe | Keeper Aldric | Hear how the Tithe works; get two Tithe tonics. | Falling now costs you. |
-| Blessing the Fields | [[Sister Celene]] | Bless Farmer Odo's three fields. | Odo refuses blessings. |
+| Lantern Rounds | [[High Keeper Aldric]] | Light six shrine lanterns around Heartvale. | "THE FLAME EATS" painted on the inn wall. Aldric blames the Ashbound. |
+| The First Tithe | High Keeper Aldric | Hear how the Tithe works; get two Tithe tonics. | Falling now costs you. |
+| Blessing the Fields | [[Keeper Celene]] | Bless Farmer Odo's three fields. | Odo refuses blessings. |
 | Tithe Tonics | [[Alchemist Moss]] | Brew five Tithe tonics. | "They sell the cure for a debt they put on you." |
 | The Totem | [[Woodworker Rook]] | Chop oak for a shrine totem and deliver it. | Rook hides a note in it. |
 | Ash on the Road | [[Captain Bryn]] | Drive Ashbound scouts off the Westroad shrine. | A dropped note: "They aren't what they seem." |
-| Rebuild the Shrine | Keeper Aldric | Bring oak and bronze and rebuild the Westroad shrine. | The grass around it greens in a ring, but the ring is small. A thin thread of light runs from the flame east along the road toward Emberhold. |
+| Rebuild the Shrine | High Keeper Aldric | Bring oak and bronze and rebuild the Westroad shrine. | The grass around it greens in a ring, but the ring is small. A thin thread of light runs from the flame east along the road toward Emberhold. |
 | What Holt Saw | [[Forester Holt]] | Count dead trees in six places. | 2 dead near shrines, 28 out at the valley's edge, where his father counted almost none forty years ago. The edge is moving in. |
 | Odo's Stubborn Field | [[Farmer Odo]] | Grow four crops with no blessing. | A blessing lasted a season in his gran's day, and barely a week now. The shrines have less to give every year: where's it going? |
 | The Hollow Wolves | [[Huntmaster Kael]] | Clear five Blighted wolves. | "The Blight is always worst furthest from a shrine, and the line gets closer every year." |
 | Maren's Question | [[Old Maren]] | Talk to Maren. | She isn't an Emberborn, but after forty years of caring for them she's noticed they come back "a little less" every time they fall. She asks out of worry, and gives you her charm. |
-| A Flame at the Valley's Edge | Keeper Aldric | Escort two Emberguard to the edge of the valley, protect them, and light a new roadside shrine. | You meet [[Rhys]]. Aldric names you a Flame. |
+| A Flame at the Valley's Edge | High Keeper Aldric | Escort two Emberguard to the edge of the valley, protect them, and light a new roadside shrine. | You meet [[Rhys]]. Aldric names you a Flame. |
 
 ## Acts 2 and 3: the regions in parallel
 

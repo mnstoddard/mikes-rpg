@@ -18,7 +18,7 @@ infobox.Plinth: The empty one in [[The Emberhall]], with a W left
 
 ## The empty plinth
 
-His statue once stood in the great hall of [[The Emberhall]], a gift of thanks from the city. After the war it was pulled down and his name scratched off the plinth, very carefully, letter by letter. Only the first letter is left under the dust: **W**. [[Brother Oren]] ends his tour there: *this is what betrayal earns.*
+His statue once stood in the great hall of [[The Emberhall]], a gift of thanks from the city. After the war it was pulled down and his name scratched off the plinth, very carefully, letter by letter. Only the first letter is left under the dust: **W**. [[Keeper Oren]] ends his tour there: *this is what betrayal earns.*
 
 In the game today the letter is still an S, from the older story. It becomes a W in Mike's next update.
 

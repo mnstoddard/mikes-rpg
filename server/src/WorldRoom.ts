@@ -254,7 +254,7 @@ export class Player extends Schema {
   invite: { from: string; until: number } | null = null; // a party invite waiting for an answer (from = their session id)
   loginNotes: string[] = []; // things to tell the player when they arrive (e.g. what happened to an old, bigger bag)
   dirty = false; // something changed since the last save
-  /** Standing at the restricted section's grille, when Sister Lisette last stopped you, and how often (version 0.21). */
+  /** Standing at the restricted section's grille, when Keeper Lisette last stopped you, and how often (version 0.21). */
   atGrille = false;
   grilleAt = 0;
   grilleTries = 0;
@@ -430,6 +430,8 @@ export class WorldRoom extends Room<WorldState> {
       const p = this.state.players.get(client.sessionId);
       if (!p || !Number.isInteger(msg?.x) || !Number.isInteger(msg?.y)) return;
       if (!isWalkable(msg.x, msg.y)) return;
+      // Putting on the robe at the very start (version 0.21, Mike's note): you can't walk off until it's on.
+      if (this.robeStep(p)) return;
       this.stopActions(p);
       const goal = { x: msg.x, y: msg.y };
       const path = p.x === goal.x && p.y === goal.y ? [goal] : findPath({ x: p.x, y: p.y }, goal);
@@ -449,6 +451,7 @@ export class WorldRoom extends Room<WorldState> {
       const dx = msg?.dx, dy = msg?.dy;
       if (!p || !Number.isFinite(dx) || !Number.isFinite(dy)) return;
       const len = Math.hypot(dx, dy);
+      if (len >= 0.01 && this.robeStep(p)) return; // dressing first (version 0.21)
       if (len < 0.01) {
         if (p.walkDir) { p.walkDir = null; p.path = []; }
         return;
@@ -974,7 +977,7 @@ export class WorldRoom extends Room<WorldState> {
       const step = this.step(p);
       if (!step) this.say(client, tutorialDone(p.quest) ? "Welcome back!" : "Welcome back! Talk to anyone with a ❗ for your next lesson.");
       else if (p.quest.active === "awakening" && p.quest.ch.awakening?.step === 0) {
-        // The opening scene (Mike's note #1): you wake lying by the shrine, and Sister Celene comes over, helps you up and talks to you.
+        // The opening scene (Mike's note #1): you wake lying by the shrine, and Keeper Celene comes over, helps you up and talks to you.
         this.say(client, "✨ You open your eyes on the steps of the Heart Shrine. The flame crackles above you, and someone is hurrying over.");
         const celene = npcById("celene")!;
         this.doTalk(client, p, chapterById("awakening"), this.step(p)!, celene, [], true);
@@ -2338,7 +2341,7 @@ export class WorldRoom extends Room<WorldState> {
     const sid = this.sidOf(p);
     const client = sid ? this.clients.getById(sid) : undefined;
     if (this.robeStep(p)) {
-      if (client) this.dialog(client, ["Not like that, friend! Put your robe on first: open your 🎒 bag, click the robe, then press Equip. Then come and meet Keeper Aldric."], "Sister Celene");
+      if (client) this.dialog(client, ["Not like that, friend! Put your robe on first: open your 🎒 bag, click the robe, then press Equip. Then come and meet High Keeper Aldric."], "Keeper Celene");
       return;
     }
     if (isDanger(door.to.x, door.to.y) && !isDanger(p.x, p.y) && !gateOpen(p.quest)) {
@@ -3533,7 +3536,7 @@ export class WorldRoom extends Room<WorldState> {
     this.sendQuest(client, p);
   }
 
-  /** Tick Sister Lisette off The Hall of Embers (her side quest is done). True if that quest is now active (advance() has done the rest). */
+  /** Tick Keeper Lisette off The Hall of Embers (her side quest is done). True if that quest is now active (advance() has done the rest). */
   private tickLisette(p: Player, client: Client | undefined): boolean {
     const hall = p.quest.ch.hall;
     const step = hall && chapterById("hall").steps[hall.step];
@@ -3542,7 +3545,7 @@ export class WorldRoom extends Room<WorldState> {
     hall.count = hall.got.filter((id) => (step.goal as { npcs: string[] }).npcs.includes(id)).length;
     p.quest.active = "hall";
     p.dirty = true;
-    if (client) this.say(client, `📜 The Hall of Embers: ✓ Sister Lisette (${hall.count} of ${step.goal.npcs.length} Emberguard).`);
+    if (client) this.say(client, `📜 The Hall of Embers: ✓ Keeper Lisette (${hall.count} of ${step.goal.npcs.length} Emberguard).`);
     if (hall.count >= step.goal.npcs.length) this.advance(p, client);
     else if (client) this.sendQuest(client, p);
     this.saveSoon(p);
@@ -3756,14 +3759,14 @@ export class WorldRoom extends Room<WorldState> {
     return p.quest.active === "awakening" && step?.goal.kind === "gear";
   }
 
-  /** Keeper Aldric or Sister Celene, clicked while you're still in your shirt: they walk you through putting the robe on. */
+  /** High Keeper Aldric or Keeper Celene, clicked while you're still in your shirt: they walk you through putting the robe on. */
   private robeHelp(client: Client, p: Player, npc: NpcDef): boolean {
     if ((npc.id !== "aldric" && npc.id !== "celene") || !this.robeStep(p)) return false;
     const step = this.step(p)!;
     const given = this.giveMissing(p, step.ensure);
     if (given) this.sendInventory(client, p);
     this.dialog(client, [
-      npc.id === "aldric" ? "Welcome, welcome! But first things first: let's get you dressed, and then we'll talk properly." : "Let's get you dressed first, then you can meet Keeper Aldric.",
+      npc.id === "aldric" ? "Welcome, welcome! But first things first: let's get you dressed, and then we'll talk properly." : "Let's get you dressed first, then you can meet High Keeper Aldric.",
       "Open your 🎒 bag with the button at the bottom right of the screen. Click the robe, then press Equip. That's all there is to it.",
       ...(given ? [`Here, take ${given}. You must have dropped yours.`] : []),
     ], npc.name);
@@ -3789,7 +3792,7 @@ export class WorldRoom extends Room<WorldState> {
       ashbound_note: ["Charcoal on rough paper, in a hurried hand:", "\"They aren't what they seem.\""],
       marens_charm: ["A little wooden flame, worn smooth. On the back, scratched very small: a single letter, M.", "It's warm, as if someone had only just let go of it."],
       holts_notes: ["Near shrines: 28 dead trees out of 35.", "Far from shrines: 2 dead trees out of 34.", "Underneath, Holt has written: \"Ashbound poison? Then why only near the shrines they DIDN'T smash?\""],
-      lantern: ["Keeper Aldric's lantern. Nights are less dark while you carry it."],
+      lantern: ["High Keeper Aldric's lantern. Nights are less dark while you carry it."],
       shrine_totem: ["Rook's oak totem, carved with the Emberhall's flame."],
     };
     this.dialog(client, text[item] ?? [STORY_ITEMS[item as keyof typeof STORY_ITEMS].description], name);
@@ -3802,7 +3805,7 @@ export class WorldRoom extends Room<WorldState> {
    */
   private storyClick(client: Client, p: Player, npc: NpcDef): boolean {
     const q = p.quest;
-    // Sister Lisette's tick in The Hall of Embers waits for her side quest (version 0.21): talking to her starts it (talkQuest).
+    // Keeper Lisette's tick in The Hall of Embers waits for her side quest (version 0.21): talking to her starts it (talkQuest).
     if (npc.id === "lisette" && !chapterDone(q, "four_books")) return false;
     // A visit step in another chapter you've started (a book for Lisette while The Hall of Embers is active): switch to it.
     const cur = this.step(p);
@@ -3849,13 +3852,13 @@ export class WorldRoom extends Room<WorldState> {
     const n = Number(npc.id.slice(5)) - 1;
     const book = FOUR_BOOKS[n];
     const prog = p.quest.ch.four_books;
-    if (!prog) return this.dialog(client, [`${npc.greeting} Sister Lisette looks after the history books. Ask her about them first.`], npc.name);
+    if (!prog) return this.dialog(client, [`${npc.greeting} Keeper Lisette looks after the history books. Ask her about them first.`], npc.name);
     // Step 0 is Lisette's talk; book n is step n + 1.
     if (chapterDone(p.quest, "four_books") || prog.step > n + 1) return this.dialog(client, book.pages, `📖 ${book.title}`);
-    this.dialog(client, ["(The book won't come off the shelf. Sister Lisette calls over: \"The glowing one first, dear. History only makes sense in order.\")"], npc.name);
+    this.dialog(client, ["(The book won't come off the shelf. Keeper Lisette calls over: \"The glowing one first, dear. History only makes sense in order.\")"], npc.name);
   }
 
-  /** Walked up to the restricted section's grille (version 0.21): Sister Lisette hurries over with a reason it's closed today. */
+  /** Walked up to the restricted section's grille (version 0.21): Keeper Lisette hurries over with a reason it's closed today. */
   private checkGrille(p: Player) {
     const g = PLACES["lighthall.grille"];
     if (!g || p.y !== g.y || Math.abs(p.x - g.x) > 2) { p.atGrille = false; return; }
@@ -3870,7 +3873,7 @@ export class WorldRoom extends Room<WorldState> {
     if (!client) return;
     const flustered = p.grilleStreak >= 3;
     const line = flustered ? "Please. I'd be in terrible trouble." : LISETTE_EXCUSES[p.grilleTries++ % LISETTE_EXCUSES.length];
-    this.dialog(client, [line], "Sister Lisette");
+    this.dialog(client, [line], "Keeper Lisette");
   }
 
   /** What a story station looks like to you (lit or not). */
@@ -3888,6 +3891,12 @@ export class WorldRoom extends Room<WorldState> {
     if (!step || !prog || step.goal.kind !== "reach") return;
     const spot = step.goal.spots.find((k) => !prog.got?.includes(k) && Math.max(Math.abs(PLACES[k].x - p.x), Math.abs(PLACES[k].y - p.y)) <= 2);
     if (!spot) return;
+    // The running lesson: walking there doesn't count (version 0.21).
+    if (step.goal.run && !this.canRun(p)) {
+      const c = this.clientOf(p);
+      if (c && Date.now() - p.grilleAt > 3000) { p.grilleAt = Date.now(); this.say(c, "🏃 You walked there! Press the 🏃 run button (or hold Shift), walk away a little, and run back to the mark."); }
+      return;
+    }
     prog.got = [...(prog.got ?? []), spot];
     prog.count = prog.got.length;
     p.dirty = true;
@@ -4043,7 +4052,8 @@ export class WorldRoom extends Room<WorldState> {
       : this.fightBlock(p) ? (step.fightWith === "magic" ? "Hold your staff first!" : step.fightWith === "ranged" ? "Hold your sling first!" : "Hold a weapon first!") : undefined;
     const checklist = this.checklist(p, step, progNow);
     const robeLock = this.robeStep(p) && g.kind === "gear" ? g.items.filter((pre) => !GEAR_SLOTS.some((sl) => p.gear[sl]?.item.startsWith(pre))) : undefined;
-    return { ...base, done: false, quest: chapter.title, giver: chapter.name, task: step.task, progress, fraction, talk: g.kind === "talk", warning, need, checklist, robeLock };
+    const runLesson = g.kind === "reach" && g.run ? true : undefined;
+    return { ...base, done: false, quest: chapter.title, giver: chapter.name, task: step.task, progress, fraction, talk: g.kind === "talk", warning, need, checklist, robeLock, runLesson };
   }
 
   /** Steps you can do in any order (version 0.21, Mike's note): each person, place or piece, ticked off as you go. One-thing steps get none. */
