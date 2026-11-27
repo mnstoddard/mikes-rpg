@@ -9,6 +9,7 @@ import type { Room } from "colyseus.js";
 import { toCanvas } from "html-to-image";
 import { recentMessages } from "./ui";
 import { GAME_VERSION } from "../../shared/version";
+import { setCrashMessages } from "./crash"; // 💥 automatic crash reports (errors, lost 3D drawing, the page being killed)
 
 // Show which version this is, at the bottom of Settings.
 const versionEl = document.getElementById("game-version");
@@ -34,6 +35,8 @@ console.error = (...args: unknown[]) => {
 function safeJson(v: unknown) {
   try { return JSON.stringify(v); } catch { return String(v); }
 }
+
+setCrashMessages(() => recentMessages(15));
 
 // ---- Which room we're in (set by the world scene when you log in) ----
 

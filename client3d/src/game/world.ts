@@ -39,6 +39,7 @@ import { darkness, isNight, minutesUntilChange } from "../../../shared/daynight"
 import { joinWorld, rejoinWorld } from "../../../client/src/network";
 import { showLogin } from "../../../client/src/login";
 import { setReportRoom, setReportSource } from "../../../client/src/report";
+import { crumb, reportCrash, setCrashSource, watchCanvas } from "../../../client/src/crash";
 import { setTreeActions } from "../../../client/src/tree";
 import { setWorldMapActions, setWorldMapMarks, setWorldMapPlayers, updateWorldMap } from "../../../client/src/worldmap";
 import {
@@ -220,6 +221,18 @@ export class World3D {
     (window as any).world3d = this; // for automated browser tests
     // The 🐞 button's screenshot: draw a fresh frame and copy it in the same moment.
     setReportSource("3d", () => { this.renderer.render(this.scene, this.camera); return this.renderer.domElement; });
+    // 💥 Automatic crash reports: what's being drawn, and the drawing being lost.
+    watchCanvas(this.renderer.domElement);
+    setCrashSource("3d", () => this.room?.sessionId, () => {
+      const info = this.renderer.info;
+      const me = this.room ? (this.room.state as any)?.players?.get(this.room.sessionId) : null;
+      return {
+        area: this.here?.id, x: me?.x, y: me?.y, connected: !!this.room,
+        drawCalls: info.render.calls, triangles: info.render.triangles,
+        geometries: info.memory.geometries, textures: info.memory.textures,
+        pixelRatio: this.renderer.getPixelRatio(), objects: this.scene.children.length,
+      };
+    });
     this.loop();
   }
 
@@ -608,6 +621,7 @@ export class World3D {
     this.walkSent = "0,0";
     this.room = room;
     setReportRoom(room);
+    crumb(reconnected ? "reconnected to the server" : "joined the game");
     room.onMessage("message", (text: string) => showMessage(text));
     // Once per browser: tell them about walking with the keyboard.
     try {
@@ -772,6 +786,7 @@ export class World3D {
     room.onLeave((code: number) => {
       if (this.room !== room) return;
       this.room = undefined;
+      crumb(`connection closed (code ${code})`);
       if (code === 1000) this.hud.textContent = "Disconnected from server.";
       else void this.recover(room.reconnectionToken);
     });
@@ -791,6 +806,8 @@ export class World3D {
         await new Promise((r) => setTimeout(r, wait));
       }
     }
+    // Couldn't get back in for almost two minutes: the server probably restarted or crashed.
+    reportCrash("disconnect", "Lost the connection to the game server and couldn't reconnect");
     this.clearWorld();
     this.hud.textContent = "Log in to play";
     this.attach(await showLogin(joinWorld));
@@ -1038,6 +1055,7 @@ export class World3D {
   // ---------------------------------------------------------------- areas, NPCs and lighting
 
   private showArea(a: AreaDef, x: number, y: number) {
+    if (this.here !== a) crumb(`entered ${a.name ?? a.id}`);
     this.here = a;
     this.terrain.setArea(a);
     this.terrain.setCenter(x, y);
