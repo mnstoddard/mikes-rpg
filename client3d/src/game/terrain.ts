@@ -12,8 +12,8 @@ import * as THREE from "three";
 import { withWallCut } from "./wallcut";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { AREAS, AreaDef, DOORS, MAP, MAP_NODES, OUTDOORS, Tile, areaAt, charAt } from "../../../shared/map";
-import { CITY_BUILDINGS, CITY_SIGNS, type CityBuilding } from "../../../shared/world";
-import { cityBackdrop, cityLand, emberhallCrown, gpuOnly, rampartBlock, RAMPART_H } from "./city";
+import { CITY_BUILDINGS, CITY_SIGNS, EMBER_HILL, EMBER_HILL_H, groundHeight, type CityBuilding } from "../../../shared/world";
+import { cityBackdrop, cityLand, emberhallCastle, emberhallCrown, grandDoors, gpuOnly, rampartBlock, RAMPART_H, terraceBlock } from "./city";
 import { treeKey, type ResourceId } from "../../../shared/foraging";
 import { NPCS } from "../../../shared/npcs";
 import { createEnv, house, TILE, type EnvPiece } from "../environment";
@@ -33,7 +33,12 @@ export const VIEW_TILES = 30;
 const LIVE_TILES = 7;
 
 /** The middle of a tile, in world metres. */
-export const tileCenter = (x: number, y: number) => new THREE.Vector3((x + 0.5) * TILE, 0, (y + 0.5) * TILE);
+/** The middle of a tile, on the ground (raised on Ember Hill, version 0.22). */
+export const tileCenter = (x: number, y: number) => new THREE.Vector3((x + 0.5) * TILE, groundHeight(x, y), (y + 0.5) * TILE);
+/** A point this far up over a tile's ground. */
+export const tileUp = (x: number, y: number, up: number) => new THREE.Vector3((x + 0.5) * TILE, groundHeight(x, y) + up, (y + 0.5) * TILE);
+/** Ember Hill's stairway (drawn as steps, not ground). */
+const onStairs = (x: number, y: number) => x >= EMBER_HILL.sx0 && x <= EMBER_HILL.sx1 && y >= EMBER_HILL.sy0 && y <= EMBER_HILL.sy1;
 
 // ---------------------------------------------------------------- what's on each tile
 
@@ -62,7 +67,7 @@ function floorOf(t: Tile, area: AreaDef): Ground | null {
 }
 
 /** Tiles with something standing on them get the ground of their neighbours underneath. */
-const STANDS_ON = new Set<Tile>(["tree", "rock", "dig", "sign", "fence", "gate", "hedge", "well", "barricade", "statue", "grave", "crates", "table", "shelf", "bed", "door", "lockeddoor", "brazier", "innerdoor", "grille", "rampart", "tower", "citygate", "lamp", "stall"]);
+const STANDS_ON = new Set<Tile>(["tree", "rock", "dig", "sign", "fence", "gate", "hedge", "well", "barricade", "statue", "grave", "crates", "table", "shelf", "bed", "door", "lockeddoor", "brazier", "innerdoor", "grille", "rampart", "tower", "citygate", "lamp", "stall", "terrace"]);
 
 function groundUnder(x: number, y: number, area: AreaDef): Ground {
   for (let r = 1; r <= 3; r++) {
@@ -195,7 +200,7 @@ export class Terrain {
     if (areaAt(x, y) !== this.area) return 0;
     const t = MAP[y]?.[x];
     // Indoors the walls dip out of the way instead of pulling the camera in (version 0.19), so only the city's walls count.
-    if (this.area.kind === "outdoor") return t === "rampart" || t === "tower" || t === "citygate" ? RAMPART_H[t] : buildingHeight(x, y);
+    if (this.area.kind === "outdoor") return t === "rampart" || t === "tower" || t === "citygate" ? RAMPART_H[t] : Math.max(buildingHeight(x, y), groundHeight(x, y));
     return 0;
   }
 
@@ -423,7 +428,7 @@ export class Terrain {
     const kinds: (Ground | null)[] = [];
     const idx = (x: number, y: number) => (y - c.cy * CHUNK) * CHUNK + (x - c.cx * CHUNK);
     for (let y = c.cy * CHUNK; y < (c.cy + 1) * CHUNK; y++) for (let x = c.cx * CHUNK; x < (c.cx + 1) * CHUNK; x++) {
-      kinds[idx(x, y)] = x >= a.x && y >= a.y && x < a.x + a.w && y < a.y + a.h && MAP[y]?.[x] ? groundAt(x, y, a) : null;
+      kinds[idx(x, y)] = x >= a.x && y >= a.y && x < a.x + a.w && y < a.y + a.h && MAP[y]?.[x] && !onStairs(x, y) ? groundAt(x, y, a) : null;
     }
     const used = new Uint8Array(CHUNK * CHUNK);
     const byMat = new Map<THREE.Material, THREE.BufferGeometry[]>();
@@ -431,7 +436,9 @@ export class Terrain {
     for (let j = 0; j < CHUNK; j++) for (let i = 0; i < CHUNK; i++) {
       const g = kinds[j * CHUNK + i];
       if (!g || used[j * CHUNK + i]) continue;
-      const same = (ii: number, jj: number) => { const o = kinds[jj * CHUNK + ii]; return !used[jj * CHUNK + ii] && o && o.id === g.id && o.variant === g.variant; };
+      const lift = (ii: number, jj: number) => { const x = c.cx * CHUNK + ii, y = c.cy * CHUNK + jj; return MAP[y][x] === "terrace" ? 0 : groundHeight(x, y); };
+      const h0 = lift(i, j);
+      const same = (ii: number, jj: number) => { const o = kinds[jj * CHUNK + ii]; return !used[jj * CHUNK + ii] && o && o.id === g.id && o.variant === g.variant && lift(ii, jj) === h0; };
       let w = 1;
       while (i + w < CHUNK && w < 4 && same(i + w, j)) w++;
       let h = 1;
@@ -453,7 +460,7 @@ export class Terrain {
         if (mat.emissive && mat.emissive.getHex() !== 0) animated = true;
       });
       if (animated) {
-        if (isBridge) piece.object.position.y = 0.15;
+        piece.object.position.y = (isBridge ? 0.15 : 0) + h0;
         c.group.add(piece.object);
         extras.push(piece);
       } else {
@@ -462,7 +469,7 @@ export class Terrain {
           if (!m.isMesh || Array.isArray(m.material)) return;
           let geo = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone();
           geo.applyMatrix4(m.matrixWorld);
-          if (isBridge) geo.translate(0, 0.15, 0);
+          if (isBridge || h0) geo.translate(0, (isBridge ? 0.15 : 0) + h0, 0);
           const list = byMat.get(m.material) ?? [];
           list.push(geo);
           byMat.set(m.material, list);
@@ -533,6 +540,18 @@ export class Terrain {
         // Spikes along the top, and the gate's lock in the middle.
         for (let k = 0; k < n; k++) bar(0.05, 0.22, 0.05, (k + 0.5) / n * TILE - TILE / 2, h + 0.1, 0x2c2a2e);
         if (MAP[y][x - 2] === "grille" && MAP[y][x + 2] === "grille") bar(0.3, 0.36, 0.16, 0, 1.1, 0xd4a640);
+      } else if (t === "terrace") {
+        blocks.push(...terraceBlock(x, y, groundHeight(x, y), onStairs(x + 1, y) || onStairs(x - 1, y)));
+      } else if (onStairs(x, y)) {
+        // Ember Hill's white stairway (version 0.22): two steps a tile, down to the plaza.
+        const top = groundHeight(x, y), rise = EMBER_HILL_H / (EMBER_HILL.sy1 - EMBER_HILL.sy0 + 2);
+        for (let k = 0; k < 2; k++) {
+          const hh = Math.max(0.05, top - k * rise / 2);
+          const g = new THREE.BoxGeometry(TILE, hh, TILE / 2).toNonIndexed();
+          g.deleteAttribute("uv");
+          g.translate((x + 0.5) * TILE, hh / 2, y * TILE + TILE / 4 + k * TILE / 2);
+          blocks.push(painted(g, mix(0xece6da, 0xf6f2ea, hash2(x, y + k, 61))));
+        }
       } else if (t === "rampart" || t === "tower" || t === "citygate" || t === "gateway") {
         blocks.push(...rampartBlock(t, x, y));
       } else if (t === "cavewall") {
@@ -570,7 +589,7 @@ export class Terrain {
           n++;
         }
         const piece = createEnv(id, { variant, length: n * TILE, seed: x * 7 + y });
-        piece.object.position.set(horiz ? (x + n / 2) * TILE : (x + 0.5) * TILE, 0, horiz ? (y + 0.5) * TILE : (y + n / 2) * TILE);
+        piece.object.position.set(horiz ? (x + n / 2) * TILE : (x + 0.5) * TILE, groundHeight(x, y), horiz ? (y + 0.5) * TILE : (y + n / 2) * TILE);
         piece.object.rotation.y = horiz ? 0 : Math.PI / 2;
         piece.object.traverse((o) => { if ((o as THREE.Mesh).isMesh) o.castShadow = true; });
         c.group.add(piece.object);
@@ -583,7 +602,7 @@ export class Terrain {
 
     // 4. Trees, rocks, props and decorations.
     const m4 = (x: number, y: number, rot: number, s = 1, dx = 0, dz = 0) =>
-      new THREE.Matrix4().compose(new THREE.Vector3((x + 0.5) * TILE + dx, 0, (y + 0.5) * TILE + dz), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), rot), new THREE.Vector3(s, s, s));
+      new THREE.Matrix4().compose(new THREE.Vector3((x + 0.5) * TILE + dx, groundHeight(x, y), (y + 0.5) * TILE + dz), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), rot), new THREE.Vector3(s, s, s));
     const addInst = (id: string, key: string, build: () => THREE.Object3D, matrix: THREE.Matrix4, cast = true) => {
       this.instancer.add(id, key, build, matrix, cast);
       c.instances.push(id);
@@ -621,7 +640,7 @@ export class Terrain {
         c.group.add(c.live[c.live.length - 1].object);
       } else if (t === "water" && node) {
         const spot = createFood(`spot-${node as ResourceId}`, { seed: x + y, variant: 0 });
-        spot.object.position.copy(tileCenter(x, y)).setY(-0.08);
+        spot.object.position.copy(tileUp(x, y, -0.08));
         c.group.add(spot.object);
         c.live.push({ object: spot.object, update: (dt, tt) => spot.update(dt, tt), dispose: () => spot.dispose() });
       } else if (t === "brazier") {
@@ -760,22 +779,34 @@ export class Terrain {
         const back = cityBackdrop(a, (x, y, h) => HEIGHTS.set(y * 100000 + x, h));
         add(back.object, back.update, back.dispose);
         if (!city) for (const b of CITY_BUILDINGS) if (b.landmark === "emberhall" && !b.detail && areaAt(b.x, b.y) === a) {
-          const crown = emberhallCrown(b, b.floors * 2.5 + 3);
+          const crown = emberhallCrown(b, b.floors * 2.5 + 3 + 3);
           add(crown.object, crown.update, crown.dispose);
         }
       }
-      for (const s of CITY_SIGNS) if (areaAt(s.x, s.y) === a) this.signs.push({ text: s.text, at: tileCenter(s.x, s.y).setY(s.big ? 7 : 6.2) });
+      for (const s of CITY_SIGNS) if (areaAt(s.x, s.y) === a) this.signs.push({ text: s.text, at: tileUp(s.x, s.y, s.big ? 7 : 6.2) });
       for (const b of city ? cityDetailed(a) : findBuildings()) {
         const built = makeBuilding(b);
+        const lift = groundHeight(b.x, b.y);
+        built.object.position.y = lift;
         add(built.object, (dt, t, night) => built.update(dt, t, night), () => built.dispose());
         if (b.city?.landmark === "emberhall") {
+          // Ember Hill's castle (version 0.22, Mike's notes): towers, battlements and great double doors.
+          const castle = emberhallCastle(b.city, built.wallTop);
+          castle.object.position.y = lift;
+          add(castle.object, castle.update, castle.dispose);
           const crown = emberhallCrown(b.city, built.height - 1.5);
+          crown.object.position.y = lift;
           add(crown.object, crown.update, crown.dispose);
+          for (const d of b.doors) {
+            const gd = grandDoors(this.walkers);
+            gd.object.position.copy(tileCenter(d.x, d.y)).add(new THREE.Vector3(0, 0, 0.12));
+            add(gd.object, gd.update, gd.dispose);
+          }
         }
         // Tap anywhere on a door (not just the step in front of it) to walk through it.
         for (const d of b.doors) {
           const pick = new THREE.Mesh(DOOR_PICK, PICK_MAT);
-          pick.position.copy(tileCenter(d.x, d.y)).setY(1.3);
+          pick.position.copy(tileUp(d.x, d.y, 1.3));
           pick.userData.tile = { x: d.x, y: d.y };
           pick.visible = false;
           this.doorPicks.push(pick);
@@ -798,7 +829,7 @@ export class Terrain {
     }
     for (const d of DOORS) {
       if (!d.sign || areaAt(d.x, d.y) !== a) continue;
-      this.signs.push({ text: d.sign, at: tileCenter(d.x, d.y).setY(a.kind === "outdoor" ? 4.4 : 2.6) });
+      this.signs.push({ text: d.sign, at: tileUp(d.x, d.y, a.kind === "outdoor" ? 4.4 : 2.6) });
     }
   }
 }
@@ -1050,7 +1081,7 @@ function buildingHeight(x: number, y: number): number {
   return HEIGHTS.get(y * 100000 + x) ?? 0;
 }
 
-function makeBuilding(b: Building): { object: THREE.Object3D; height: number; update: (dt: number, t: number, night: number) => void; dispose: () => void } {
+function makeBuilding(b: Building): { object: THREE.Object3D; height: number; wallTop: number; update: (dt: number, t: number, night: number) => void; dispose: () => void } {
   const seed = b.x * 31 + b.y;
   const wall: WallKind = b.city ? b.city.wall : b.wall === "A" ? "marble" : b.wall === "W" ? "guild" : b.x >= 160 && b.y < 60 ? "plank" : "timber";
   const [roof, roofVariant]: [RoofKind, number] = b.city ? CITY_ROOF[b.city.roof] : [b.roof === "u" ? "gold" : wall === "plank" ? "thatch" : "tile", b.roof === "u" ? 1 : seed % 3];
@@ -1059,7 +1090,9 @@ function makeBuilding(b: Building): { object: THREE.Object3D; height: number; up
   const area = b.w * b.h;
   const floors = (b.city?.floors ?? 1) > 1 ? b.city!.floors : area >= 120 ? 3 : area >= 48 ? 2 : 1;
   const built = house({ tw: b.w, td: b.h - 0.5, wall, wallVariant, roof, roofVariant, seed, floors });
-  for (let yy = b.y; yy < b.y + b.h; yy++) for (let xx = b.x; xx < b.x + b.w; xx++) HEIGHTS.set(yy * 100000 + xx, built.height);
+  const lift = groundHeight(b.x, b.y);
+  for (let yy = b.y; yy < b.y + b.h; yy++) for (let xx = b.x; xx < b.x + b.w; xx++) HEIGHTS.set(yy * 100000 + xx, built.height + lift);
+  const grand = b.city?.landmark === "emberhall";
   const object = new THREE.Group();
   built.piece.object.position.set((b.x + b.w / 2) * TILE, 0, (b.y + (b.h - 0.5) / 2) * TILE);
   object.add(built.piece.object);
@@ -1067,6 +1100,7 @@ function makeBuilding(b: Building): { object: THREE.Object3D; height: number; up
   // Doors, and a window or two on the front.
   const frontZ = (b.y + b.h - 0.5) * TILE;
   for (const d of b.doors) {
+    if (grand) continue; // the Emberhall has its great double doors (grandDoors, city.ts)
     const door = createEnv("wall-door", { variant: b.wall === "A" ? 1 : 0, seed });
     const side = d.y === b.y + b.h - 1 ? "s" : d.y === b.y ? "n" : d.x === b.x ? "w" : "e";
     // Out from the wall a little, so the wall's stones and beams can't poke through the door.
@@ -1085,7 +1119,7 @@ function makeBuilding(b: Building): { object: THREE.Object3D; height: number; up
   }
   const doorXs = b.doors.filter((d) => d.y === b.y + b.h - 1).map((d) => d.x);
   for (let f = 0; f < floors; f++) for (let x = b.x + 1; x < b.x + b.w - 1; x += 3) {
-    if (f === 0 && doorXs.some((dx) => Math.abs(dx - x) < 2)) continue;
+    if (f <= (grand ? 1 : 0) && doorXs.some((dx) => Math.abs(dx - x) < (grand ? 3 : 2))) continue;
     const win = createEnv("orn-window", { variant: b.wall === "A" || b.wall === "W" ? 1 : seed % 3 === 1 ? 2 : 0, seed: seed + x + f * 7 });
     win.object.position.set((x + 0.5) * TILE, 1.5 + f * WALL_H, frontZ + 0.01);
     object.add(win.object);
@@ -1095,6 +1129,7 @@ function makeBuilding(b: Building): { object: THREE.Object3D; height: number; up
   return {
     object,
     height: built.height,
+    wallTop: floors * WALL_H,
     update: (dt, t, night) => parts.forEach((p) => p.update(dt, t, { night, wind: 0.3 })),
     dispose: () => parts.forEach((p) => p.dispose()),
   };

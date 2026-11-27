@@ -18,6 +18,7 @@ import { createFood } from "../food";
 import { isWeapon, parseWeapon } from "../../../shared/gear";
 import { createEnv, type EnvPiece } from "../environment";
 import { tileCenter } from "./terrain";
+import { groundHeightAt } from "../../../shared/world";
 import { makeFlame } from "./flame";
 import { TILE } from "../environment";
 
@@ -294,6 +295,7 @@ export class Person {
     }
     this.root.position.x = x;
     this.root.position.z = z;
+    this.root.position.y = groundHeightAt(x / TILE, z / TILE); // up and down Ember Hill's stairway
   }
 
   /** The weapon they hold now (item id, or "" for fists). Shows next time they fight. */

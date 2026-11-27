@@ -314,20 +314,20 @@ export const PROLOGUE_START: Chapter[] = [
       {
         task: `Talk to ${ALDRIC}`, goal: { kind: "talk" },
         lines: [
-          "Now, a small job, but an important one. Every evening we light the lanterns on the Emberhall's steps and round the plaza below them, so no one in the city walks in the dark.",
-          "Walk out through the great doors at the bottom of the hall and light all six: click each lantern. The ❗ marks show you which are still dark.",
+          "Now, a small job, but an important one. Every evening we light the lanterns on the great stairway down Ember Hill, so no one in the city walks in the dark.",
+          "Walk out through the great doors at the bottom of the hall and light all six, three down each side of the stairs: click each lantern. The ❗ marks show you which are still dark.",
         ],
       },
       {
-        task: "Light the 6 lanterns on the steps and round the plaza", goal: { kind: "visit", npcs: ["lantern_1", "lantern_2", "lantern_3", "lantern_4", "lantern_5", "lantern_6"], names: "lanterns" },
-        hint: "Go out through the great doors at the bottom of the hall. The lanterns stand on the steps and round the plaza: click each one with a ❗.",
+        task: "Light the 6 lanterns on the Emberhall's stairway", goal: { kind: "visit", npcs: ["lantern_1", "lantern_2", "lantern_3", "lantern_4", "lantern_5", "lantern_6"], names: "lanterns" },
+        hint: "Go out through the great doors at the bottom of the hall. The lanterns stand on the walls either side of the stairway down the hill: click each one with a ❗.",
         visitLines: {
           lantern_1: ["You light the lantern. Warm light spills across the white steps."],
           lantern_2: ["You light the lantern. Its glow catches the gold on the Emberhall's doors."],
-          lantern_3: ["You light the lantern. A cat stretches out in the warm light under it."],
-          lantern_4: ["You light the lantern. A guard on the plaza nods to you."],
-          lantern_5: ["You light the lantern. Someone on the plaza claps."],
-          lantern_6: ["You light the last lantern. The whole plaza glows gold."],
+          lantern_3: ["You light the lantern. A cat asleep on the warm stone stretches out in its light."],
+          lantern_4: ["You light the lantern. A guard on the plaza below looks up and nods to you."],
+          lantern_5: ["You light the lantern. Someone at the foot of the stairs claps."],
+          lantern_6: ["You light the last lantern. The whole stairway glows gold, all the way up the hill."],
         },
       },
       {

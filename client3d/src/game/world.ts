@@ -12,7 +12,7 @@ import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRe
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { getStateCallbacks, Room } from "colyseus.js";
 import { AreaDef, MAP, OUTDOORS, TICK_MS, TOWN_SPOT, areaAt, doorAt, isWalkable } from "../../../shared/map";
-import { PLACES } from "../../../shared/world";
+import { PLACES, groundHeight, groundHeightAt } from "../../../shared/world";
 import { bookAt } from "../../../shared/lore";
 import { Minimap, nextGoal } from "./minimap";
 import { CombatMasteryId, CombatMasteryXp, MONSTERS, MonsterId, SpellId, combatMasteryName } from "../../../shared/combat";
@@ -55,7 +55,7 @@ import {
 } from "../../../client/src/ui";
 import { createSkyDome, SKY_TIMES, TILE, type SkyDome } from "../environment";
 import { setRockEnvironment } from "../rocks";
-import { Terrain, tileCenter } from "./terrain";
+import { Terrain, tileCenter, tileUp } from "./terrain";
 import { MonsterView, Person, label, makeStation, npcRecipe, playerRecipe, type StationView } from "./actors";
 import { openCreator } from "./creator";
 import { lookToRecipe } from "./look";
@@ -572,15 +572,29 @@ export class World3D {
         }
       }
     }
-    const p = new THREE.Vector3();
-    if (!this.raycaster.ray.intersectPlane(this.ground, p)) return null;
+    const p = this.groundHit();
+    if (!p) return null;
     return { x: Math.floor(p.x / TILE), y: Math.floor(p.z / TILE) };
+  }
+
+  /** Where the last click's ray meets the ground, Ember Hill's terrace and stairway included (version 0.22). */
+  private groundHit(): THREE.Vector3 | null {
+    const p = new THREE.Vector3();
+    const ray = this.raycaster.ray;
+    const top = new THREE.Plane(new THREE.Vector3(0, 1, 0), -4);
+    if (this.here.kind !== "outdoor" || !ray.intersectPlane(top, p)) return ray.intersectPlane(this.ground, p);
+    // Step down the ray from 4 m up until it's under the ground.
+    for (let i = 0; i < 80; i++) {
+      if (p.y <= groundHeightAt(p.x / TILE, p.z / TILE)) return p;
+      p.addScaledVector(ray.direction, 0.25);
+    }
+    return ray.intersectPlane(this.ground, p);
   }
 
   /** Where the last click's ray meets the ground, if that's inside tile (x, y). */
   private groundSpot(x: number, y: number): THREE.Vector3 | null {
-    const p = new THREE.Vector3();
-    if (!this.raycaster.ray.intersectPlane(this.ground, p)) return null;
+    const p = this.groundHit();
+    if (!p) return null;
     return Math.floor(p.x / TILE) === x && Math.floor(p.z / TILE) === y ? p : null;
   }
 
@@ -635,11 +649,11 @@ export class World3D {
       // Walk right to the spot you clicked (not just the middle of its tile).
       const spot = this.groundSpot(x, y);
       this.room.send("move", spot ? { x, y, fx: spot.x / TILE, fy: spot.z / TILE } : { x, y });
-      this.marker.position.copy(spot ?? tileCenter(x, y)).setY(0.08);
+      this.marker.position.copy(spot ? spot.clone().setY(groundHeight(x, y) + 0.08) : tileUp(x, y, 0.08));
       this.marker.visible = true;
       return;
     } else return;
-    this.marker.position.copy(tileCenter(x, y)).setY(0.08);
+    this.marker.position.copy(tileUp(x, y, 0.08));
     this.marker.visible = true;
   }
 
@@ -1332,9 +1346,9 @@ export class World3D {
     for (const s of q.spots ?? []) {
       const ring = new THREE.Mesh(new THREE.RingGeometry(0.7, 0.95, 32), new THREE.MeshBasicMaterial({ color: 0xffd84a, transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide }));
       ring.rotation.x = -Math.PI / 2;
-      ring.position.copy(tileCenter(s.x, s.y)).setY(0.1);
+      ring.position.copy(tileUp(s.x, s.y, 0.1));
       const pin = label("pin3d", "📍");
-      pin.obj.position.copy(tileCenter(s.x, s.y)).setY(2);
+      pin.obj.position.copy(tileUp(s.x, s.y, 2));
       this.scene.add(ring, pin.obj);
       this.spotMarks.push(ring, pin.obj);
     }
@@ -1359,7 +1373,7 @@ export class World3D {
     if (!best) { this.openBook(x, y); return; }
     this.pendingBook = { x, y };
     this.room!.send("move", best);
-    this.marker.position.copy(tileCenter(best.x, best.y)).setY(0.08);
+    this.marker.position.copy(tileUp(best.x, best.y, 0.08));
     this.marker.visible = true;
   }
 
@@ -1582,7 +1596,7 @@ export class World3D {
       if (!plot || !inPlot(i, plot.w, plot.h)) continue;
       const t = tileOf(Number(key), i);
       const soil = new THREE.Mesh(new THREE.BoxGeometry(TILE * 0.92, 0.12, TILE * 0.92), soilMat);
-      soil.position.copy(tileCenter(t.x, t.y)).setY(0.06);
+      soil.position.copy(tileUp(t.x, t.y, 0.06));
       soil.receiveShadow = true;
       group.add(soil);
       const c = decodeCrop(plot.crops[i]);
@@ -1590,7 +1604,7 @@ export class World3D {
       const g = growth(c, now);
       const l = label("crop3d", g >= 1 ? ITEMS[CROPS[c.crop].produce].icon : g < 0.34 ? "🌱" : "🌿");
       l.el.style.fontSize = `${Math.round(14 + g * 12)}px`;
-      l.obj.position.copy(tileCenter(t.x, t.y)).setY(0.5);
+      l.obj.position.copy(tileUp(t.x, t.y, 0.5));
       group.add(l.obj);
       crops.push(l.obj);
     }

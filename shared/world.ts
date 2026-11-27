@@ -620,6 +620,13 @@ function districtOf(x: number, y: number, riverX: number): District {
   return "market";
 }
 
+/** The Emberhall's stairway, in city tiles: from the top (y0) down to the plaza (y1). */
+const EMBER_STAIRS = { x0: 66, x1: 76, y0: 33, y1: 38 };
+/** Ember Hill (version 0.22): the raised terrace (world tiles) and its stairway. */
+const emberHill = { x0: 0, y0: 0, x1: -1, y1: -1, sx0: 0, sx1: -1, sy0: 0, sy1: -1 };
+/** How high the terrace is, in metres. */
+export const EMBER_HILL_H = 3;
+
 function buildEmberhold(o: Point): Canvas {
   const r = rng(20261126);
   const c = new Canvas(CITY_W, CITY_H, ".");
@@ -736,12 +743,18 @@ function buildEmberhold(o: Point): Canvas {
   const lh = building(c, 62, 15, 19, 17, { side: "s", at: 9 }, { roof: "u", wall: "A" });
   c.fill(62, 31, 80, 31, "A");
   c.set(lh!.x, lh!.y, "D");
-  c.fill(66, 32, 76, 33, "a"); // the white steps
   detail(62, 15, 19, 17, "marble", "gold", { landmark: "emberhall" });
   pushDoor(lh, "lighthall", "Enter the Emberhall", "✨ The Emberhall");
+  // Ember Hill (version 0.22, Mike's note): the Emberhall and its garden stand on a raised stone terrace, with a
+  // white stairway down to the plaza. "[" is the terrace's retaining wall (and the stairway's side walls).
+  c.fill(56, 11, 86, 11, "["); c.fill(56, 11, 56, 33, "["); c.fill(86, 11, 86, 33, "["); c.fill(56, 33, 86, 33, "[");
+  c.fill(66, 32, 76, 32, "a"); // the landing at the top
+  c.fill(EMBER_STAIRS.x0 - 1, EMBER_STAIRS.y0, EMBER_STAIRS.x1 + 1, EMBER_STAIRS.y1, "[");
+  c.fill(EMBER_STAIRS.x0, EMBER_STAIRS.y0, EMBER_STAIRS.x1, EMBER_STAIRS.y1, "a"); // the stairway
+  emberHill.x0 = o.x + 57; emberHill.y0 = o.y + 12; emberHill.x1 = o.x + 85; emberHill.y1 = o.y + 32;
+  emberHill.sx0 = o.x + EMBER_STAIRS.x0; emberHill.sx1 = o.x + EMBER_STAIRS.x1; emberHill.sy0 = o.y + EMBER_STAIRS.y0; emberHill.sy1 = o.y + EMBER_STAIRS.y1;
   // The Extinguished: four statues in the garden, one at each corner (their plaques are in shared/npcs.ts).
   ([[58, 14], [84, 14], [58, 30], [84, 30]] as const).forEach(([x, y], i) => { c.set(x, y, "S"); places[`extinguished_${i + 1}`] = A(x, y); });
-  c.fill(57, 12, 57, 32, "h"); c.fill(85, 12, 85, 32, "h");
   places.lighthallSteps = A(71, 34);
   storySpots["spot.nearLighthall"] = A(59, 21); // What Holt Saw: the trees in the Emberhall's garden
 
@@ -795,8 +808,8 @@ function buildEmberhold(o: Point): Canvas {
   places.board = A(86, 51);
   places.bryn = A(88, 51);
   for (const [x, y] of [[61, 52], [64, 52], [67, 52], [80, 63], [83, 63], [86, 63], [61, 62], [64, 62], [123, 50], [123, 54], [123, 60], [127, 50], [127, 56]] as const) c.set(x, y, "(");
-  // The story's lanterns (Light the Way): on the Emberhall's steps and round the plaza.
-  ([[65, 33], [77, 33], [52, 36], [82, 36], [60, 39], [84, 39]] as const).forEach(([x, y], i) => { places[`lantern_${i + 1}`] = A(x, y); });
+  // The story's lanterns (Light the Way): on the side walls of the Emberhall's stairway, three each side (version 0.22).
+  ([[65, 33], [77, 33], [65, 35], [77, 35], [65, 37], [77, 37]] as const).forEach(([x, y], i) => { places[`lantern_${i + 1}`] = A(x, y); });
 
   // ---- Forge Row (west) ----
   const holt = building(c, 16, 47, 7, 9, { side: "s", at: 3 });
@@ -901,7 +914,7 @@ function buildEmberhold(o: Point): Canvas {
   for (const [k, p] of Object.entries(places)) {
     const lx = p.x - o.x, ly = p.y - o.y;
     if (!c.in(lx, ly) || k.includes(".") && !k.startsWith("tg.")) continue;
-    if (!".,;:asw*=lfp".includes(c.get(lx, ly))) c.set(lx, ly, ";");
+    if (!".,;:asw*=lfp[".includes(c.get(lx, ly))) c.set(lx, ly, ";"); // ("[": the lanterns stand on the stairway's walls)
   }
   return c;
 }
@@ -1238,6 +1251,31 @@ export const CITY_BUILDINGS: readonly CityBuilding[] = cityBuildings;
 export const CITY_TOWERS: readonly Point[] = cityTowers;
 export const CITY_SIGNS: readonly { x: number; y: number; text: string; big?: boolean }[] = citySigns;
 /** The outdoor area a place belongs to: itself if it's outdoors, else where its front door is. */
+export const EMBER_HILL: Readonly<typeof emberHill> = emberHill;
+
+/**
+ * How high the ground is on a tile, in metres (version 0.22): 0 everywhere but Ember Hill, where the
+ * Emberhall's terrace is EMBER_HILL_H up and its stairway steps down to the plaza. Walls round it ("[")
+ * report the height of their top, so things set on them (the stairway's lanterns) sit on top.
+ */
+export function groundHeight(x: number, y: number): number {
+  const e = emberHill;
+  if (x < e.x0 - 1 || x > e.x1 + 1 || y < e.y0 - 1 || y > e.sy1) return 0;
+  const step = (yy: number) => EMBER_HILL_H * (e.sy1 + 1 - yy) / (e.sy1 - e.sy0 + 2);
+  if (y >= e.sy0 && x >= e.sx0 - 1 && x <= e.sx1 + 1) return x >= e.sx0 && x <= e.sx1 ? step(y) : step(y) + 0.5;
+  if (x >= e.x0 && x <= e.x1 && y >= e.y0 && y <= e.y1) return EMBER_HILL_H;
+  return y <= e.y1 + 1 ? EMBER_HILL_H + 0.7 : 0;
+}
+
+/** The ground's height at any point (in tiles, with fractions): smooth up and down the stairway, for walking. */
+export function groundHeightAt(fx: number, fy: number): number {
+  const e = emberHill, x = Math.floor(fx);
+  if (x >= e.sx0 && x <= e.sx1 && fy >= e.sy0 - 0.5 && fy <= e.sy1 + 1.5) {
+    return Math.max(0, Math.min(EMBER_HILL_H, EMBER_HILL_H * (e.sy1 + 1.5 - fy) / (e.sy1 - e.sy0 + 2)));
+  }
+  return groundHeight(x, Math.floor(fy));
+}
+
 export function outdoorAreaOf(id: string): AreaDef | null {
   const a = areas.find((ar) => ar.id === id);
   if (!a) return null;
