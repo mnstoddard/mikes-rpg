@@ -13,7 +13,7 @@ export interface GameUpdate { version: string; date: string; title: string; chan
 
 export const UPDATES: GameUpdate[] = [
   {
-    version: "0.18",
+    version: "0.19",
     date: "2026-11-27",
     title: "Walls out of the way",
     changes: [

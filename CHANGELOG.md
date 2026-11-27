@@ -6,7 +6,7 @@ in `shared/version.ts` (the game reads it from there), so update both together.
 Each update adds 0.1 to the number. Version 1.0 is saved for the finished game on Steam
 (see docs/VERSION-1.0-PLAN.md).
 
-## 0.18 · 27 November 2026 · Walls out of the way
+## 0.19 · 27 November 2026 · Walls out of the way
 
 - Walking along a wall inside no longer pulls the camera in close. Walls between the camera and you now dip down to a low stub (with a soft speckled edge) so you can see yourself and the room, and pop back up once you've passed. (#35)
 - The yellow guide arrow is drawn on top of everything, so a wall can't hide it any more. (#36)
