@@ -67,7 +67,7 @@ Checklist, any order (Oren first, since he walks you round):
 The quest log shows a checklist, ticked as you go. The order doesn't matter.
 
 - ☐ Sister Lisette, in the library: read her four books (her side quest, [[The Four Books]])
-- ☐ Brother Tomas, in the stores
+- ☐ Brother Tomas, in the great hall
 - ☐ Sister Wynne, in the infirmary
 
 Lisette's tick only appears once you've finished her side quest, so the main quest waits for it. That's how the game first shows you that side quests matter.
@@ -90,7 +90,7 @@ Lisette's tick only appears once you've finished her side quest, so the main que
 
 Tomas is a true believer: strict, proud of the Emberguard, and fond of the word "flame".
 
-> The stores, yes. And the keys: every key in this hall is on this ring. That gold-locked door is the ledger room. Keepers only. Very dull.
+> Brother Tomas. I keep the keys: every key in this hall is on this ring. That barred door over there? The restricted section. Keepers only. Very dull.
 >
 > Now listen closely, Initiate, because this is the most important thing anyone will tell you today.
 >

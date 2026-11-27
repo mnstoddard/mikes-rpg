@@ -93,6 +93,7 @@ After Wick breaks your Oath in Act 4, grey ash marks slowly spread up your chara
 
 - **Checklists in the quest log:** any step that can be done in any order (meeting several people, visiting several places, lighting several lanterns) shows each one with a ☐ that ticks as you go. Steps where the order matters show one at a time. This applies to every quest.
 - **The opening:** the first quest locks the screen to the glowing bag button while you equip each robe piece yourself ([[Awakening]]); Lisette, Tomas and Wynne each teach part of the game, and Lisette's [[The Four Books]] is the first side quest ([[The Hall of Embers]]); Hopeful becomes Initiate everywhere.
+- **The Emberhall's west-south wing:** Brother Tomas and Enchanter Vale's corner move into the great hall, and the old stores and ledger room become [[The Restricted Section]]: a barred door, a grille at the back of the library, and Lisette's excuses.
 - The Oath of the Flame today says you join and become an Ember. It should become an oath to *try* for the Emberguard, with Ember, Flame, Blaze and Radiant as trial marks, not ranks (see [[Trial marks]]).
 - Act 1's title, "The Light Welcomes You", should become "The First Trial".
 - The Act 1 changes in the table above.
