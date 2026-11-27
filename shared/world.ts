@@ -142,7 +142,7 @@ const doors: Door[] = [];
 /** Outside door tiles waiting to be linked to their area's inside door. */
 const pendingDoors: { x: number; y: number; out: Point; area: string; sign?: string; label: string; from?: string }[] = [];
 /**
- * Version 0.17: the town moved inside Emberhold's walls. Heartvale's old village
+ * Version 0.18: the town moved inside Emberhold's walls. Heartvale's old village
  * buildings are still drawn (it's where the gates will lead one day), but their
  * doors don't go anywhere now: the same shops and houses are in the city.
  */
@@ -406,7 +406,7 @@ function buildOverworld(): Canvas {
       oldLots.push({ x, y });
     }
   }
-  // The old farm's fields (the lots themselves moved into Emberhold in version 0.17).
+  // The old farm's fields (the lots themselves moved into Emberhold in version 0.18).
   for (const l of oldLots) c.fill(l.x, l.y, l.x + 5, l.y + 5, "f");
 
   // ---- The Saltmere Coast ----
@@ -516,7 +516,7 @@ function buildOverworld(): Canvas {
   return c;
 }
 
-// ---------------------------------------------------------------- Emberhold, the walled capital (version 0.17)
+// ---------------------------------------------------------------- Emberhold, the walled capital (version 0.18)
 //
 // Emberhold is its own outdoor area, below the inside places on the grid. A ring
 // of stone walls with towers, and four gates (all shut for now). Inside:
@@ -1126,7 +1126,7 @@ export const MAP_LABELS: readonly { x: number; y: number; text: string; big?: bo
   { x: 187, y: 132, text: "Graveyard" },
 ];
 
-/** The farm's lots (top-left tile of each 6 × 6 lot). Since version 0.17 they're all in Emberhold. */
+/** The farm's lots (top-left tile of each 6 × 6 lot). Since version 0.18 they're all in Emberhold. */
 export const WORLD_LOTS: readonly Point[] = lots;
 /** Where each lot is ("in the Lower Town allotments"), by lot number. */
 export const LOT_PLACES: readonly string[] = lotPlaces;

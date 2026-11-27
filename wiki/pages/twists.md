@@ -7,7 +7,7 @@ summary: Each twist is hinted at early and revealed later, so a careful player c
 ::: secret The whole page
 | # | The twist | Early hints | Revealed in |
 |---|---|---|---|
-| 1 | [[The shrines]] cause the Withering they claim to fight. | Trees die nearest the small shrines; the grass around a relit shrine goes brown; [[Herbalist Wren]]'s maps. | Act 1 (hinted), Act 3 (proved) |
+| 1 | The Withering isn't bad luck, and the shrines aren't failing. Something is drinking from them. | Holt's count: trees near shrines are fine, trees at the edge are dying, and the edge is moving in; Odo's blessings fade faster every year; [[Herbalist Wren]]'s maps show a tightening ring; a relit shrine's warmth is pulled away down a thread. | Act 1 (hinted), Act 3 (proved) |
 | 2 | The [[Radiance Ceremony]] doesn't light new heroes. It drains champions into Vale. | Old champions "feel the Fading" suspiciously early; "spark flawed" in the Ceremony calendar; Tilda's cairn: "Don't go down the stair." | Act 2 (hinted), end of Act 3 |
 | 3 | The Emberguard's leaders are the old [[The Ember Circle|Ember Circle]], alive as [[The Undying]]. | "THE FLAME EATS" painted on a wall; the Tithe mark; Emberwardens who carry the same names as the Circle. | End of Act 3, from Wick |
 | 4 | Two of the [[Emberwardens]], Ivy and Reed, are impostors. The real ones died on Wick's side. | Warden Ivy doesn't know an old Tangle song every child there knows; the Blackfen shrine's carving uses a name Warden Reed doesn't answer to. | Act 3 (hinted), Act 4 |

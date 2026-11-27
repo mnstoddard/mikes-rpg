@@ -8,7 +8,7 @@ infobox.Gates: North, West, Saltmere and River (shut for now)
 ---
 **Emberhold** is the capital: a walled city on the edge of [[Heartvale]], built around [[The Heart Shrine]] during [[The Rebuilding]]. A great stone wall with towers runs all the way round it. [[The Emberhall]] stands on Ember Hill in the middle, its spire and flame visible from every street.
 
-In version 0.17 (on the dev test server first) the whole game happens inside the walls. The four gates are shut for now; they'll open as the world outside is rebuilt. Later, homes in the city will be enterable too.
+In version 0.18 (on the dev test server first) the whole game happens inside the walls. The four gates are shut for now; they'll open as the world outside is rebuilt. Later, homes in the city will be enterable too.
 
 ## Districts
 

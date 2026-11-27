@@ -1,4 +1,4 @@
-// Emberhold, the walled capital (version 0.17), in 3D.
+// Emberhold, the walled capital (version 0.18), in 3D.
 //
 // The city has hundreds of buildings, so it's drawn the light way (Mike plays on
 // an iPad): every backdrop building is made from the same few kit pieces (a

@@ -26,7 +26,7 @@ People say her name the way they'd spit. Refusing a Ceremony is the most shamefu
 
 **The Ashbound:** the stranger was [[Wick]]. Together they started the Ashbound. She's its face and its leader; he stays hidden, researching. With his help she cut her own thread so the shrines could never pull her back in, and since then ash has been creeping up her hands. She knows what that means, and she chose it.
 
-**The lies are the cover-up.** The Withering began centuries before the Ashbound existed. Blaming them hides what the shrines are doing, and turns Sable's name into a warning for every champion who might wonder what a Ceremony really is.
+**The lies are the cover-up.** The Withering began centuries before the Ashbound existed. Blaming them hides what Vale is taking from the shrines, and turns Sable's name into a warning for every champion who might wonder what a Ceremony really is.
 :::
 
 Not in the game yet.

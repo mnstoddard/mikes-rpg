@@ -1178,7 +1178,7 @@ export function teacherOf(skill: SkillId): Chapter | null {
  * open to them like anyone.
  * Rev 6 (version 0.14): a step added to Awakening after Celene's first talk
  * (putting on the robe). Anyone past her first talk moves one step along.
- * Rev 7 (version 0.17, Emberhold): Maren's chapter is shorter (23 steps to 19):
+ * Rev 7 (version 0.18, Emberhold): Maren's chapter is shorter (23 steps to 19):
  * the "sell a fish to Tam" step and the Fishing 3 / Cooking 3 tail are gone,
  * and one last talk sends you round the Training Ground's trainers.
  */

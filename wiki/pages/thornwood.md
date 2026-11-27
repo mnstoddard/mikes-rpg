@@ -11,5 +11,5 @@ infobox.Home_of: Woodcutting: maple, yew and elderwood, plus truffles and night 
 Its old trees glowed with [[The ember|ember]] at night. Now the woods are going dark: the Dark Forest is spreading toward [[Emberhold]] a few steps a day. [[Forester Holt]] remembers when it still glowed. Its great shrine, with a forest town around it, is kept by Warden Crowe (see [[Emberwardens]]); in the game today, Act 1 ends with lighting a new shrine at the forest's edge (*[[A Flame in the Thornwood]]*). The plan moves that quest inside Heartvale (see [[Main story]]).
 
 ::: secret
-The shrines pull the glow away, and where it's gone the bark turns black. That's the Dark Forest.
+The glow is ember. The shrines have less of it to give every year, because Vale drinks from their threads, so the glow is dying from the far side of the forest inward. Where it's gone, the bark turns black. That's the Dark Forest.
 :::

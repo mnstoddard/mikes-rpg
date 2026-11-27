@@ -27,7 +27,7 @@ The land between the cities is where [[The Withering]] is worst, so nobody wande
 The first time you go to a region (its *Arrival* stage, in Act 2), you walk or ride its King's Road. The journey is part of the quest: escorting a caravan, relighting a roadside shrine that's gone dark, clearing an ambush.
 
 ::: secret
-The roads are safe for the same reason the land beside them is dying: every roadside shrine pulls ember out of the wilds around it to keep the road warm. That's why the Withering is worst just off the King's Roads.
+The roadside shrines warm a strip of land along each road, which is why the roads are safe. That strip gets narrower every year, because Vale drinks from every shrine's thread. Old travellers say the green verge used to reach out of sight. Now it's a stone's throw.
 :::
 
 ### 2. Shrine-walking
@@ -35,7 +35,7 @@ The roads are safe for the same reason the land beside them is dying: every road
 Once you've reached a great shrine and it knows you, you can **shrine-walk**: step into one great shrine and out of another, along the threads that link them. It's the game's fast travel. The Emberguard teach it as a gift of the Heart Shrine to its heroes.
 
 ::: secret
-You're travelling along the same threads that carry stolen ember to the Undying. In Act 4, after Wick cuts your thread, shrine-walking stops working until you've turned a great shrine. You can then walk between the shrines you've turned, and Ashbound hearths.
+You're travelling along the same threads that carry stolen ember to the Undying. In Act 4, after Wick cuts your thread, shrine-walking stops working until you've freed a great shrine. You can then walk between the shrines you've freed, and Ashbound hearths.
 :::
 
 ### 3. Boats and caravans

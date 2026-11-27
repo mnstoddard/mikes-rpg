@@ -51,7 +51,7 @@ number of logins and total time played. Anyone playing right now is listed at th
 Lines older than a year are cleared out when the server starts. The JSON version is at
 `/admin/api/logins`. See `server/src/logins.ts`.
 
-## Emberhold and the Training Ground (version 0.17)
+## Emberhold and the Training Ground (version 0.18)
 
 The game now takes place inside **Emberhold**, a walled city (`buildEmberhold` in
 `shared/world.ts`, drawn in 3D by `client3d/src/game/city.ts`). Its four gates are shut
@@ -60,6 +60,17 @@ the **Emberhall Training Ground** just east of the hall, where every trainer tea
 (their spots are the `tg.*` places in `shared/world.ts`). The Oath of the Flame opens once
 every trainer's lesson is done. The older Heartvale map is still there, past the gates.
 Some of the text below still describes the old village.
+## 💥 Crash reports (admin only)
+
+When the game breaks, it sends a crash report by itself (`client/src/crash.ts`): an
+uncaught error, the 3D drawing being lost (WebGL context lost), losing the server for
+good, or the page stopping without closing (noticed the next time it opens; on an iPad
+that's usually Safari running out of memory). Each has the error and stack, the version,
+device, memory, what was being drawn, where the player was and the last things that
+happened. The server records its own uncaught errors (and keeps running) and every start,
+flagging a restart without a new deploy. Open `/admin/crashes` (same `ADMIN_PASSWORD`).
+Each report says which server sent it (`live`, `dev` or `local`, from Render's branch,
+or set `SERVER_NAME`). JSON at `/admin/api/crashes`. See `server/src/crashes.ts`.
 
 ## The tutorial: Old Maren
 

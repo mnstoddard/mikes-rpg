@@ -16,7 +16,7 @@ export type Tile = "grass" | "path" | "water" | "tree" | "rock" | "bridge" | "fe
   | "void" | "door" | "lockeddoor" | "cobble" | "sand" | "withered" | "cliff" | "hedge" | "well" | "barricade" | "roof" | "goldroof"
   | "marblewall" | "marble" | "glow" | "carpet" | "statue" | "table" | "shelf" | "crates" | "bed" | "grave" | "gravel"
   | "brazier" | "innerdoor"
-  // Emberhold (version 0.17): the city wall, its towers and gates, street lamps and market stalls.
+  // Emberhold (version 0.18): the city wall, its towers and gates, street lamps and market stalls.
   | "rampart" | "tower" | "citygate" | "lamp" | "stall";
 
 const LEGEND: Record<string, Tile> = {

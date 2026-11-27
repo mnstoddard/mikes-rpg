@@ -13,8 +13,8 @@ export interface GameUpdate { version: string; date: string; title: string; chan
 
 export const UPDATES: GameUpdate[] = [
   {
-    version: "0.17",
-    date: "2026-11-26",
+    version: "0.18",
+    date: "2026-11-27",
     title: "Emberhold, the walled city",
     changes: [
       { text: "Emberhold, the walled capital, is built (on the dev test server first). A great stone wall with towers runs round the whole city, with four gates: the North Gate, the West Gate, the Saltmere Gate and the River Gate. The gates are shut for now, so the whole game happens inside the walls." },
@@ -24,6 +24,17 @@ export const UPDATES: GameUpdate[] = [
       { text: "A shorter prologue that takes you through every skill. Keeper Aldric sends you to the Training Ground, Old Maren's first lessons are shorter (no more selling a fish to Tam, and no Fishing 3 or Cooking 3 at the end), and the Oath of the Flame now opens once you've learned from every trainer. Holt asks for 5 logs instead of 10, and Kael's last lesson is the rat pit instead of a wolf outside." },
       { text: "The townsfolk (Baker Hanna, little Pip, Guard Dunstan and the others) now walk the streets of Emberhold. The old village in Heartvale is still out there, past the closed gates." },
       { text: "Saves from before move along: anyone in the middle of Maren's lessons keeps their place in the shorter list, and everyone starts in Emberhold's plaza." },
+    ],
+  },
+  {
+    version: "0.17",
+    date: "2026-11-27",
+    title: "Automatic crash reports",
+    changes: [
+      { text: "Automatic crash reports. When the game breaks, it now tells the server by itself, with no button to press: a JavaScript error, the 3D drawing being lost (often the device running out of memory), losing the server and not getting back in, or the page stopping without closing (on an iPad that's usually Safari reloading the page because it ran out of memory; it's noticed the next time the game opens)." },
+      { text: "Each report has the error and where in the code it happened, the game version, the device, how much memory the game was using, how much it was drawing, where the player was, and the last things that happened before it broke." },
+      { text: "The server writes down its own errors too, and keeps running instead of stopping. Every time it starts it notes it, and flags a restart that wasn't a new deploy (that usually means it crashed or ran out of memory)." },
+      { text: "Only the admin can see them, at /admin/crashes on the game's address (the same password as the bug report page and the login log). Each report says which server it came from (live or dev), since they can share a database." },
     ],
   },
   {

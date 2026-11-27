@@ -18,7 +18,7 @@ These are planned, not built. (Built quests are on [[Quests]].) None are needed 
 | 4.19 | The Living Fire | [[Wick]] | 🎬 Put your hand in the Emberheart and feel how much it has lost. | The land is going cold, and how fast. |
 | E.1 | The Ember Seed | Wick | Follow the coins' clues into the Crown Vault under Whitestone. | The Seed is real, and half-made. |
 
-## Skill challenges (Mike's idea, version 0.17)
+## Skill challenges (Mike's idea, version 0.18)
 
 After the Oath, each trainer from the [[Emberhall Training Ground]] can be found in [[The Emberhall]], and gives **skill challenge quests**: harder jobs in their own skill that pay bonus XP in it. Later challenges need other skills levelled too, so a player keeps growing across the board. Not built yet. Ideas so far:
 
@@ -43,7 +43,7 @@ After the Oath, each trainer from the [[Emberhall Training Ground]] can be found
 | The Scratched Name | [[Brother Oren]] | Clean the empty plinth. One letter is left: W. | Talking, Handicraft | The plinth was Wick's, and Oren's story of him has holes in it. |
 | Tam's Missing Cart | [[Shopkeeper Tam]] | Find Tam's lost cart on the Westroad. The crates are full of ash. | Exploring, Hunting | Tam deals with the Ashbound. |
 | Mending Costs | [[Repairer Oswin]] | Repair an old lantern with Maren's note inside. | Repair, Handicraft | Waiting on Maren's new story. |
-| A Grey Fox | [[Huntmaster Kael]] | Track a Blighted fox to its den, right under a shrine. | Hunting, Combat | The Blight starts at the shrines. |
+| A Grey Fox | [[Huntmaster Kael]] | Track a Blighted fox from the edge of the valley, where its den went cold, to the shrine it keeps circling for warmth. | Hunting, Combat | The Blight starts where the warmth runs out. |
 
 ## The Thornwood (levels 20 to 60)
 

@@ -25,7 +25,7 @@ export const SAVE_VERSION = 3; // 3 = the five Disciplines (Strength, Endurance,
  * map aren't used (those characters start in the town square instead).
  * Missing = the first small island map. 2 = the big map of Embervale, with insides.
  */
-export const MAP_REV = 3; // 3: version 0.17, the town moved inside Emberhold's walls
+export const MAP_REV = 3; // 3: version 0.18, the town moved inside Emberhold's walls
 
 /** Everything about a character that survives logging out. */
 export interface SaveData {
@@ -119,6 +119,22 @@ export interface LoginEntry {
 }
 export type NewLogin = Pick<LoginEntry, "username" | "outcome" | "device">;
 
+/** One automatic crash report (server/src/crashes.ts): from a player's game, or from the server itself. */
+export interface CrashEntry {
+  id: number;
+  at: string; // ISO time
+  /** "error", "webgl", "disconnect", "killed" (from a player's game), "server-error", "server-start" (the server itself). */
+  kind: string;
+  message: string;
+  stack: string;
+  username: string | null;
+  /** Which game server: "live", "dev" or "local" (dev and live can share a database). */
+  server: string;
+  /** Version, device, memory, what was being drawn, the trail of what happened just before. */
+  info: Record<string, unknown>;
+}
+export type NewCrash = Omit<CrashEntry, "id" | "at">;
+
 interface Store {
   init(): Promise<void>;
   get(username: string): Promise<Account | null>;
@@ -147,6 +163,9 @@ interface Store {
   endLogin(id: number, how: string): Promise<void>;
   /** Newest first. */
   listLogins(opts: { limit: number }): Promise<LoginEntry[]>;
+  /** Crash reports: add one; list them newest first. */
+  addCrash(entry: NewCrash): Promise<number>;
+  listCrashes(opts: { limit: number }): Promise<CrashEntry[]>;
   close(): Promise<void>;
 }
 
@@ -157,6 +176,16 @@ export const usernameKey = (username: string) => username.trim().toLowerCase();
 const LOGIN_KEEP_DAYS = 365;
 /** The local file version keeps at most this many lines. */
 const LOGIN_KEEP_LINES = 5000;
+/** Crash reports older than this are thrown away when the server starts. */
+const CRASH_KEEP_DAYS = 90;
+const CRASH_KEEP_LINES = 2000;
+
+function crashFromRow(r: any): CrashEntry {
+  return {
+    id: r.id, at: new Date(r.at).toISOString(), kind: r.kind, message: r.message, stack: r.stack ?? "",
+    username: r.username ?? null, server: r.server ?? "", info: r.info ?? {},
+  };
+}
 
 function loginFromRow(r: any): LoginEntry {
   return {
@@ -220,6 +249,28 @@ class PostgresStore implements Store {
     // Anyone still "on" from before this start was cut off by a restart or redeploy.
     await this.pool.query("UPDATE logins SET ended = 'server restarted' WHERE ended IS NULL AND outcome <> 'failed'");
     await this.pool.query(`DELETE FROM logins WHERE at < now() - interval '${LOGIN_KEEP_DAYS} days'`);
+    await this.pool.query(`
+      CREATE TABLE IF NOT EXISTS crashes (
+        id       SERIAL PRIMARY KEY,
+        at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+        kind     TEXT NOT NULL,
+        message  TEXT NOT NULL,
+        stack    TEXT NOT NULL DEFAULT '',
+        username TEXT,
+        server   TEXT NOT NULL DEFAULT '',
+        info     JSONB NOT NULL DEFAULT '{}'::jsonb
+      )`);
+    await this.pool.query(`DELETE FROM crashes WHERE at < now() - interval '${CRASH_KEEP_DAYS} days'`);
+  }
+  async addCrash(c: NewCrash) {
+    const { rows } = await this.pool.query(
+      "INSERT INTO crashes (kind, message, stack, username, server, info) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
+      [c.kind, c.message, c.stack, c.username, c.server, JSON.stringify(c.info)]);
+    return rows[0].id as number;
+  }
+  async listCrashes(opts: { limit: number }) {
+    const { rows } = await this.pool.query("SELECT * FROM crashes ORDER BY id DESC LIMIT $1", [opts.limit]);
+    return rows.map(crashFromRow);
   }
   async addLogin(e: NewLogin) {
     const { rows } = await this.pool.query(
@@ -335,6 +386,30 @@ class FileStore implements Store {
       if (err.code !== "ENOENT") throw err;
     }
     for (const e of this.logins) if (!e.ended && e.outcome !== "failed") e.ended = "server restarted";
+    try {
+      this.crashes = JSON.parse(await fs.readFile(this.crashFile, "utf8"));
+    } catch (err: any) {
+      if (err.code !== "ENOENT") throw err;
+    }
+  }
+  // Crash reports go in server/data/crashes.json.
+  private get crashFile() { return path.join(path.dirname(this.file), "crashes.json"); }
+  private crashes: CrashEntry[] = [];
+  private crashWriting: Promise<void> = Promise.resolve();
+  async addCrash(c: NewCrash) {
+    const id = (this.crashes.at(-1)?.id ?? 0) + 1;
+    this.crashes.push({ ...c, id, at: new Date().toISOString() });
+    if (this.crashes.length > CRASH_KEEP_LINES) this.crashes.splice(0, this.crashes.length - CRASH_KEEP_LINES);
+    this.crashWriting = this.crashWriting.catch(() => {}).then(async () => {
+      await fs.mkdir(path.dirname(this.crashFile), { recursive: true });
+      await fs.writeFile(`${this.crashFile}.tmp`, JSON.stringify(this.crashes, null, 2));
+      await fs.rename(`${this.crashFile}.tmp`, this.crashFile);
+    });
+    await this.crashWriting;
+    return id;
+  }
+  async listCrashes(opts: { limit: number }) {
+    return this.crashes.slice(-opts.limit).reverse();
   }
   // The login log goes in server/data/logins.json.
   private get loginFile() { return path.join(path.dirname(this.file), "logins.json"); }
@@ -463,7 +538,7 @@ class FileStore implements Store {
     acct.passwordHash = passwordHash;
     await this.flush();
   }
-  async close() { await this.writing; await this.worldWriting; await this.reportWriting; await this.loginWriting; }
+  async close() { await this.writing; await this.worldWriting; await this.reportWriting; await this.loginWriting; await this.crashWriting; }
   private flush() {
     // Write one at a time, to a temp file first, so a crash can't leave half a file.
     this.writing = this.writing.catch(() => {}).then(async () => {
