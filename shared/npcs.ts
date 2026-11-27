@@ -15,7 +15,8 @@ export type NpcId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kae
   | "archmage" | "altar" | "guildboard" | "repairer" | "alchemy_table" | "chest" | "chest_east" | "chest_forest" | "chest_farm" | "chest_inn"
   // The Emberhall (the Emberguard's temple) and its people.
   | "heart_shrine" | "aldric" | "celene" | "vale" | "oren" | "lisette" | "tomas" | "wynne" | "plinth"
-  | "radiant_1" | "radiant_2" | "radiant_3" | "radiant_4"
+  | "extinguished_1" | "extinguished_2" | "extinguished_3" | "extinguished_4"
+  | "circle_vale" | "circle_aldemar" | "circle_crowe" | "circle_flint" | "circle_ivy" | "circle_merrow" | "circle_dunn" | "circle_reed"
   // The story (shared/story.ts): lanterns to light, the shrines out in Heartvale, and Rhys.
   | "lantern_1" | "lantern_2" | "lantern_3" | "lantern_4" | "lantern_5" | "lantern_6"
   | "round_1" | "round_2" | "round_3" | "round_4" | "round_5" | "round_6"
@@ -185,7 +186,7 @@ export const NPCS: NpcDef[] = [
   },
   {
     id: "oren", name: "Brother Oren", kind: "person", ...at("lighthall.oren"), color: 0xeadcb5, badge: "🏛️",
-    greeting: "These are the Extinguished: the greatest heroes the shrines ever raised. Perhaps one day, you.",
+    greeting: "These are the Ember Circle, who raised the shrines. The Extinguished, our greatest heroes, stand out in the garden. Perhaps one day, you.",
   },
   {
     id: "lisette", name: "Sister Lisette", kind: "person", ...at("lighthall.lisette"), color: 0xeadcb5, badge: "📚",
@@ -201,24 +202,58 @@ export const NPCS: NpcDef[] = [
   },
   {
     id: "plinth", name: "Empty plinth", kind: "station", ...at("lighthall.plinth"), color: 0xbdb6a0,
-    greeting: "A plinth with no statue. Someone has scratched the name off the stone.",
+    greeting: "A plinth with no statue, among the Ember Circle. Someone has scratched the name off the stone, letter by letter. The first letter might have been a W.",
   },
-  // Four of the Extinguished's statues, along the great hall's walls (Brother Oren's tour, in shared/story.ts). Their plaques:
+  // The Extinguished: four statues in the Emberhall's garden, one at each corner. Their plaques:
   {
-    id: "radiant_1", name: "Halric the Dawnbringer", kind: "station", ...at("lighthall.radiant_1"), color: 0xf3efe4,
-    greeting: "HALRIC THE DAWNBRINGER. He held the Greyspine pass for three days, and fell eleven times. \"Again.\"",
-  },
-  {
-    id: "radiant_2", name: "Ida of the Saltmere", kind: "station", ...at("lighthall.radiant_2"), color: 0xf3efe4,
-    greeting: "IDA OF THE SALTMERE. She lit the coast's shrines from a fishing boat. Someone has left a seashell at her feet.",
+    id: "extinguished_1", name: "Halric the Dawnbringer", kind: "station", ...at("extinguished_1"), color: 0xf3efe4,
+    greeting: "HALRIC THE DAWNBRINGER, ONE OF THE EXTINGUISHED. He held the Greyspine pass alone for three days, and fell eleven times. \"Again.\"",
   },
   {
-    id: "radiant_3", name: "Tilda Ashwalker", kind: "station", ...at("lighthall.radiant_3"), color: 0xf3efe4,
-    greeting: "TILDA ASHWALKER. She walked into the Withering and led two hundred people home.",
+    id: "extinguished_2", name: "Ida of the Saltmere", kind: "station", ...at("extinguished_2"), color: 0xf3efe4,
+    greeting: "IDA OF THE SALTMERE, ONE OF THE EXTINGUISHED. She lit the coast's shrines from a fishing boat. Someone has left a seashell at her feet.",
   },
   {
-    id: "radiant_4", name: "Orla the Kind", kind: "station", ...at("lighthall.radiant_4"), color: 0xf3efe4,
-    greeting: "ORLA THE KIND. A healer through the Grey Fever. The stone of her hands is worn smooth where people touch them.",
+    id: "extinguished_3", name: "Tilda Ashwalker", kind: "station", ...at("extinguished_3"), color: 0xf3efe4,
+    greeting: "TILDA ASHWALKER, ONE OF THE EXTINGUISHED. She walked into the Withering and led two hundred people home.",
+  },
+  {
+    id: "extinguished_4", name: "Orla the Kind", kind: "station", ...at("extinguished_4"), color: 0xf3efe4,
+    greeting: "ORLA THE KIND, ONE OF THE EXTINGUISHED. A healer through the Grey Fever. The stone of her hands is worn smooth where people touch them.",
+  },
+  // The statues of the Ember Circle, in the great hall (Brother Oren's tour, in shared/story.ts). Their plaques tell the
+  // official story (see the wiki's Emberfall page): Wick is the traitor, Vale the saviour.
+  {
+    id: "circle_vale", name: "Archmage Vale", kind: "station", ...at("lighthall.circle_vale"), color: 0xf3efe4,
+    greeting: "ARCHMAGE VALE, THE SAVIOUR. He raised the Heart Shrine, held back the Emberfall, and gave his life to win the Sundering War. \"The flame endures.\"",
+  },
+  {
+    id: "circle_aldemar", name: "King Aldemar XVIII", kind: "station", ...at("lighthall.circle_aldemar"), color: 0xf3efe4,
+    greeting: "KING ALDEMAR XVIII, THE LAST KING OF ALDMERA. He led the Ember Circle, and was struck down on the night of the Fall. His stone crown has a crack across it.",
+  },
+  {
+    id: "circle_crowe", name: "Crowe of the Circle", kind: "station", ...at("lighthall.circle_crowe"), color: 0xf3efe4,
+    greeting: "CROWE. Raised the great shrine of the Thornwood. Warden Crowe keeps it now, and carries the name.",
+  },
+  {
+    id: "circle_flint", name: "Flint of the Circle", kind: "station", ...at("lighthall.circle_flint"), color: 0xf3efe4,
+    greeting: "FLINT. Raised the great shrine of the Greyspine Peaks. Warden Flint keeps it now, and carries the name.",
+  },
+  {
+    id: "circle_ivy", name: "Ivy of the Circle", kind: "station", ...at("lighthall.circle_ivy"), color: 0xf3efe4,
+    greeting: "IVY. Raised the great shrine of the Tangle. Warden Ivy keeps it now, and carries the name.",
+  },
+  {
+    id: "circle_merrow", name: "Merrow of the Circle", kind: "station", ...at("lighthall.circle_merrow"), color: 0xf3efe4,
+    greeting: "MERROW. Raised the great shrine of the Saltmere Coast. Warden Merrow keeps it now, and carries the name. Someone has left a seashell at the statue's feet.",
+  },
+  {
+    id: "circle_dunn", name: "Dunn of the Circle", kind: "station", ...at("lighthall.circle_dunn"), color: 0xf3efe4,
+    greeting: "DUNN. Raised the great shrine of the Ashen Barrens. Warden Dunn keeps it now, and carries the name.",
+  },
+  {
+    id: "circle_reed", name: "Reed of the Circle", kind: "station", ...at("lighthall.circle_reed"), color: 0xf3efe4,
+    greeting: "REED. Raised the great shrine of Blackfen. Warden Reed keeps it now, and carries the name.",
   },
   // ---- The story: lanterns, shrines and Rhys (shared/story.ts) ----
   ...([1, 2, 3, 4, 5, 6] as const).map((n): NpcDef => ({

@@ -700,6 +700,76 @@ const PROP_FOR: Record<string, string> = {
   tanning_rack: "tanning_rack", alchemy_table: "alchemy_table", altar: "altar", board: "guild_board", guildboard: "guild_board",
 };
 
+// ---------------------------------------------------------------- statues
+
+interface StatueDef {
+  recipe: Partial<CharacterRecipe>;
+  /** How much bigger than life. */
+  scale: number;
+  /** Shoulder and elbow angles: [shoulder x, shoulder z, elbow x] for each arm (negative x lifts the arm forward). */
+  armL: [number, number, number];
+  armR: [number, number, number];
+  head?: number;
+  /** Which way it faces: east (+1) or west (-1) along a side wall, or south (0, the default). */
+  face?: -1 | 0 | 1;
+  stone?: number;
+}
+
+const MAGE = { top: "robe", bottom: "skirt", shoes: "boots", belt: "on" } as const;
+const STATUES: Record<string, StatueDef> = {
+  // Behind the Heart Shrine: Vale, one hand raised over the flame.
+  circle_vale: { scale: 1.55, recipe: { ...MAGE, frame: 0, height: 1.08, build: 0.25, hairStyle: "long", hairLength: 0.7, beard: "wizard", hat: "none" }, armL: [-0.2, 0.25, -0.3], armR: [-2.75, -0.15, -0.2], head: -0.12 },
+  circle_aldemar: { scale: 1.3, face: 1, recipe: { ...MAGE, frame: 0, height: 1.05, build: 0.45, muscle: 0.6, hairStyle: "short", beard: "full", hat: "crown" }, armL: [-0.15, 0.2, -0.2], armR: [-0.9, -0.1, -1.7] },
+  circle_crowe: { scale: 1.25, face: 1, recipe: { ...MAGE, frame: 0.2, hairStyle: "messy", beard: "stubble", hat: "wizard" }, armL: [-1.1, 0.3, -0.5], armR: [-0.1, -0.2, -0.2] },
+  circle_flint: { scale: 1.25, face: 1, recipe: { ...MAGE, frame: 0, build: 0.7, muscle: 0.9, shoulders: 1.15, hairStyle: "buzz", beard: "full" }, armL: [-0.1, 0.2, -1.9], armR: [-0.1, -0.2, -1.9] },
+  circle_ivy: { scale: 1.25, face: 1, recipe: { ...MAGE, frame: 1, hairStyle: "long", hairLength: 0.9, lashes: "on" }, armL: [-0.2, 0.2, -0.2], armR: [-1.4, -0.5, -0.4] },
+  circle_merrow: { scale: 1.25, face: -1, recipe: { ...MAGE, frame: 0.9, hairStyle: "bun", lashes: "on" }, armL: [-1.4, 0.5, -0.4], armR: [-0.2, -0.2, -0.2] },
+  circle_dunn: { scale: 1.25, face: -1, recipe: { ...MAGE, frame: 0.1, build: 0.5, hairStyle: "bald", beard: "goatee" }, armL: [-0.1, 0.2, -0.2], armR: [-2.2, -0.3, -0.4] },
+  circle_reed: { scale: 1.25, face: -1, recipe: { ...MAGE, frame: 0.6, hairStyle: "ponytail", hat: "headband" }, armL: [-0.8, 0.15, -1.2], armR: [-0.8, -0.15, -1.2] },
+  // The Extinguished, out in the garden: Halric with his fist raised, Ida with an oar, Tilda leading, Orla with open hands.
+  extinguished_1: { scale: 1.3, recipe: { frame: 0, build: 0.6, muscle: 0.9, top: "tunic", bottom: "pants", hairStyle: "short", beard: "stubble" }, armL: [-0.1, 0.2, -0.2], armR: [-2.9, -0.1, -0.1], stone: 0xe9e3d4 },
+  extinguished_2: { scale: 1.3, recipe: { frame: 1, top: "long", bottom: "skirt", hairStyle: "ponytail", lashes: "on" }, armL: [-0.9, 0.1, -1.2], armR: [-0.9, -0.1, -1.2], stone: 0xe9e3d4 },
+  extinguished_3: { scale: 1.3, recipe: { frame: 0.8, top: "tunic", bottom: "pants", hairStyle: "bob", lashes: "on" }, armL: [-0.1, 0.2, -0.2], armR: [-1.5, -0.4, -0.1], stone: 0xe9e3d4 },
+  extinguished_4: { scale: 1.3, recipe: { frame: 1, top: "robe", bottom: "skirt", hairStyle: "bun", lashes: "on" }, armL: [-1.1, 0.5, -0.6], armR: [-1.1, -0.5, -0.6], stone: 0xe9e3d4 },
+};
+
+/** A character carved in stone, on a plinth. */
+function makeStatue(d: StatueDef): { object: THREE.Group; top: number; dispose: () => void } {
+  const group = new THREE.Group();
+  const marble = new THREE.MeshStandardMaterial({ color: d.stone ?? 0xfaf8f2, roughness: 0.5, metalness: 0.02 });
+  const plinthMat = new THREE.MeshStandardMaterial({ color: 0xcfc6b2, roughness: 0.7 });
+  const plinthH = 0.55;
+  const plinth = new THREE.Mesh(new THREE.BoxGeometry(1.5, plinthH, 1.5), plinthMat);
+  plinth.position.y = plinthH / 2;
+  const cap = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.1, 1.62), plinthMat);
+  cap.position.y = plinthH + 0.05;
+  group.add(plinth, cap);
+  const hero = createCharacter(makeRecipe({ ...d.recipe, mouth: "neutral" }), { anim: null });
+  const J = hero.joints;
+  J.shL.rotation.set(d.armL[0], 0, J.rest + d.armL[1]);
+  J.shR.rotation.set(d.armR[0], 0, -J.rest + d.armR[1]);
+  J.elL.rotation.set(d.armL[2], 0, 0);
+  J.elR.rotation.set(d.armR[2], 0, 0);
+  if (d.head) J.head.rotation.x = d.head;
+  hero.object.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (!m.isMesh) return;
+    const old = m.material as THREE.Material | THREE.Material[];
+    for (const x of Array.isArray(old) ? old : [old]) x.dispose();
+    m.material = marble;
+  });
+  hero.object.scale.setScalar(d.scale);
+  hero.object.position.y = plinthH + 0.1;
+  hero.object.rotation.y = (d.face ?? 0) * Math.PI / 2;
+  group.add(hero.object);
+  const top = plinthH + 0.1 + new THREE.Box3().setFromObject(hero.object).max.y - hero.object.position.y;
+  return {
+    object: group,
+    top,
+    dispose: () => { hero.dispose(); marble.dispose(); plinthMat.dispose(); plinth.geometry.dispose(); cap.geometry.dispose(); },
+  };
+}
+
 export interface StationView {
   root: THREE.Group;
   update(dt: number, time: number, night: number): void;
@@ -724,9 +794,13 @@ export function makeStation(npc: NpcDef): StationView {
     parts.push({ update: (dt, t) => item.update(dt, t), dispose: () => item.dispose() });
     const box = new THREE.Box3().setFromObject(item.object);
     tag.obj.position.y = box.max.y + 0.4;
-  } else if (npc.id.startsWith("radiant_")) {
-    // The statues of the Extinguished are part of the hall already: just their name.
-    tag.obj.position.y = 3.4;
+  } else if (STATUES[npc.id]) {
+    // A statue (version 0.18): the Ember Circle in the great hall, the Extinguished in the garden. Each is a real
+    // character, posed and carved in white stone, on a plinth.
+    const st = makeStatue(STATUES[npc.id]);
+    root.add(st.object);
+    parts.push({ update: () => {}, dispose: st.dispose });
+    tag.obj.position.y = st.top + 0.35;
   } else if (npc.id === "heart_shrine") {
     // The Heart Shrine (version 0.14): a tall flame in a wide stone bowl, ringed with gold.
     const stone = new THREE.MeshStandardMaterial({ color: 0xe8e0cc, roughness: 0.6 });

@@ -145,43 +145,35 @@ export const PROLOGUE_START: Chapter[] = [
         task: `Talk to ${ALDRIC}`, goal: { kind: "talk" },
         lines: [
           "Now, let me tell you about our home. The Emberhall is the Emberguard's temple, built round the Heart Shrine: the brightest flame in all Embervale.",
-          "The statues along these walls are the Extinguished, the greatest heroes the shrines ever raised. Brother Oren keeps them, and he's waiting to show you round. He's just down the hall on the left.",
+          "The statues along these walls are the Ember Circle, the mages who raised the shrines after the Emberfall. Brother Oren keeps them, and he's waiting to show you round. He's just down the hall on the left.",
           "Then meet the rest of my brothers and sisters: Sister Lisette keeps the library, through the door on the west side, Brother Tomas the stores, through the other west door, and Sister Wynne the infirmary, through the east door. Come back to me when you've met them all.",
         ],
       },
       {
-        // Brother Oren's tour of the great hall: he tells you about each of the Extinguished, and who the Emberguard are.
-        task: "Take Brother Oren's tour of the statues: Oren, the 4 Extinguished and the empty plinth", goal: { kind: "visit", npcs: ["oren", "radiant_1", "radiant_2", "radiant_3", "radiant_4", "plinth"], names: "stops on Oren's tour" },
-        hint: "Brother Oren is waiting by the statues on the west side of the great hall. Talk to him, then click each statue with a ❗ along both walls, and the empty plinth near the doors, and he'll tell you about it.",
+        // Brother Oren's tour of the great hall: the statues of the Ember Circle (version 0.18, Mike's note), told the way the
+        // Emberguard teach it (the official story on the wiki's Emberfall page), and the embers drifting overhead.
+        task: "Take Brother Oren's tour: the king, Archmage Vale and the empty plinth", goal: { kind: "visit", npcs: ["oren", "circle_aldemar", "circle_vale", "plinth"], names: "stops on Oren's tour" },
+        hint: "Brother Oren is by the statues on the west side of the great hall. Talk to him, then click King Aldemar's statue (west wall, by the shrine), Archmage Vale's statue (behind the Heart Shrine) and the empty plinth near the doors (east side). Each has a ❗.",
         speaker: "Brother Oren",
         visitLines: {
           oren: [
-            "Welcome, welcome! I'm Brother Oren. I keep the statues of the Extinguished, the greatest heroes the shrines ever raised. Every one of them woke where you woke.",
-            "Come, I'll walk you round right now. Every new Emberborn ought to know whose footsteps they're following. Click each statue with a ❗ and I'll tell you about them.",
+            "Welcome, welcome! I'm Brother Oren. I keep the statues in this hall: the Ember Circle, the greatest mages Aldmera ever had. Every Emberborn who wakes here owes them everything.",
+            "Come, I'll walk you round. Start with the king, by the shrine on this side. Click each statue with a ❗ and I'll tell you about it. The others along the walls have plaques you can read any time.",
           ],
-          radiant_1: [
-            "Let's start at the beginning. Five hundred years ago came the Emberfall: the land's fire burst up out of the earth in anger, and embers rained down for a whole year. No one was to blame. That's why we count the years After the Fall.",
-            "Then the lords fought over the glowing shards it left, and the Sundering War nearly ended Embervale. The Old Kingdom fell, and there was almost no one left to fight.",
-            "So the Archmage Vale built the shrines, and the shrines raised the first Emberborn: heroes made of ember, who came back every time they fell.",
-            "This is Halric the Dawnbringer, one of those very first. He held the Greyspine pass on his own for three days. He fell eleven times, and the shrine raised him eleven times. On the twelfth morning the enemy simply ran out of courage.",
+          circle_aldemar: [
+            "King Aldemar the Eighteenth, the last king of Aldmera. Eight hundred years ago he led the Ember Circle, nine mages who meant to harness the Emberheart, the fire under the land, so no one would ever be hungry or cold again.",
+            "On the night they finished the working, deep under this very valley, one of the nine struck the king down and seized it for himself. The working broke loose. Fire burst out of the earth and embers fell for a whole year. That was the Emberfall, and that's why we count the years After the Fall.",
           ],
-          radiant_2: [
-            "Ida of the Saltmere. When the war ended, the Archmage was gone, and someone had to look after his shrines. That someone is us: the Emberguard.",
-            "We aren't soldiers. We keep the shrines lit, we welcome every Emberborn who wakes, and we write down every deed, so the Emberheart remembers you even when you can't.",
-            "Ida rowed the whole Saltmere coast in a fishing boat, lighting shrines in villages that had been dark for a hundred years. The fisherfolk still leave shells at her feet.",
-          ],
-          radiant_3: [
-            "Tilda Ashwalker. When the Withering first crept out of the Barrens, she walked straight into it and brought a whole village home. Two hundred people, on foot, through the dust.",
-            "The Withering is still out there, friend. That's why the land needs heroes like you, and why the shrines raise more of you every year.",
-          ],
-          radiant_4: [
-            "And Orla the Kind. A healer, not a fighter. Through the Grey Fever she went from house to house, and every time the fever took her, the shrine sent her back to keep working.",
-            "When an Emberborn has done enough, we honor them with a Radiance Ceremony. They burn brighter than ever, and then their ember goes back into the Heart Shrine, to raise the heroes who come after. That's why we call them the Extinguished. There's no higher honor. Every statue in this hall is someone who was given it.",
-            "None of them are with us now, of course. That's what it means. One flame goes out so a hundred can be lit.",
+          circle_vale: [
+            "And this is Archmage Vale. When the Fall came, he and the loyal Circle held the torrent back. Each of them raised a great shrine in their own land, and Vale raised the greatest of all: the Heart Shrine, right here.",
+            "The shrines pinned the fire down and warmed the land again, and about thirty years later they began to raise the first Emberborn. Heroes made of ember, who come back every time they fall. Heroes like you.",
+            "Centuries later the traitor turned half the Circle against the rest, and tried to tear the shrines down. That was the Sundering War. Vale won it, and gave his life doing so. The six along the walls are the ones who raised the other great shrines; the Emberwardens keep those now, and carry their names.",
+            "Look up, too. See the little embers drifting through the hall? Each one is for one of the Extinguished: the greatest Emberborn, honoured with a Radiance Ceremony. They burn brighter than ever, and their ember goes back into the Heart Shrine to raise the heroes who come after. One flame goes out so many can be lit.",
           ],
           plinth: [
-            "(Brother Oren hurries you past the empty plinth. Someone has scratched the name off the stone, very carefully, letter by letter. You can just make out the first letter, under the dust. It might be an S.)",
-            "That? An old mistake. A name that didn't deserve to be kept. Don't trouble yourself with it. Now go and meet the others: Sister Lisette in the library, Brother Tomas in the stores and Sister Wynne in the infirmary.",
+            "(Brother Oren slows down at the empty plinth. Someone has scratched the name off the stone, very carefully, letter by letter. Under the dust you can just make out the first letter: a W.)",
+            "Wick. The king's own right hand, and the one who struck him down. The city pulled his statue down after the war. He fled into the dark and was never seen again, and the Emberguard keep watch so nobody ever finishes what he started.",
+            "But that's enough gloom for your first day! Go and meet the others: Sister Lisette in the library, Brother Tomas in the stores and Sister Wynne in the infirmary.",
           ],
         },
       },
@@ -674,7 +666,7 @@ export const ACT_ONE: Chapter[] = [
         task: "Meet the stranger by the shrine", goal: { kind: "talk" }, who: "rhys",
         lines: [
           "Nicely done! I'm Rhys. Emberborn, same as you: woke up at the Heart Shrine a few weeks before you did.",
-          "They made me a Flame last week. I'm going all the way: one day I'll have a statue in the Emberhall, with the Extinguished. Brother Oren says I've got the spark for it.",
+          "They made me a Flame last week. I'm going all the way: one day I'll have a statue in the Emberhall garden, with the Extinguished. Brother Oren says I've got the spark for it.",
           "Race you there! Ha!",
         ],
       },

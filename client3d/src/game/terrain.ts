@@ -14,6 +14,7 @@ import { AREAS, AreaDef, DOORS, MAP, MAP_NODES, OUTDOORS, Tile, areaAt, charAt }
 import { CITY_BUILDINGS, CITY_SIGNS, type CityBuilding } from "../../../shared/world";
 import { cityBackdrop, cityLand, emberhallCrown, gpuOnly, rampartBlock, RAMPART_H } from "./city";
 import { treeKey, type ResourceId } from "../../../shared/foraging";
+import { NPCS } from "../../../shared/npcs";
 import { createEnv, house, TILE, type EnvPiece } from "../environment";
 import type { RoofKind, WallKind } from "../environment/building";
 import { hash2, makeRng, noise2, mix, rockGeo, painted, WALL_H } from "../environment/kit";
@@ -609,7 +610,7 @@ export class Terrain {
         c.live.push(d);
       } else {
         const prop = PROPS[t];
-        if (prop) {
+        if (prop && !(t === "statue" && CARVED.has(y * 100000 + x))) {
           const [id, variant] = prop(x, y);
           const r = facing(t, x, y, h);
           addInst(`p${x},${y}`, `${id}:${variant}`, () => (id.startsWith("box-") ? boxProp(id, variant) : createEnv(id, { variant, seed: 3, length: TILE }).object), m4(x, y, r));
@@ -764,6 +765,9 @@ export class Terrain {
 }
 
 // ---------------------------------------------------------------- props and decorations
+
+/** Statue tiles with a carved character on them (drawn as a station in actors.ts, not the plain statue). */
+const CARVED = new Set(NPCS.filter((n) => n.id.startsWith("circle_") || n.id.startsWith("extinguished_")).map((n) => n.y * 100000 + n.x));
 
 const PROPS: Partial<Record<Tile, (x: number, y: number) => [string, number]>> = {
   crates: (x, y) => ["decor-barrels", Math.floor(hash2(x, y, 21) * 3)],

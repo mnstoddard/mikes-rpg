@@ -236,7 +236,7 @@ async function prologue(name: string) {
   // One flowing talk with Aldric: Awakening's end and the start of The Hall of Embers together.
   await b.talkUntilNew("aldric"); step("Aldric (Awakening done, Hall of Embers started)");
   if (!/Oren/.test(b.task)) throw new Error(`expected Oren's tour next, got: ${b.task}`);
-  for (const id of ["oren", "radiant_1", "radiant_2", "radiant_3", "radiant_4", "plinth"]) await b.talk(id);
+  for (const id of ["oren", "circle_aldemar", "circle_vale", "plinth"]) await b.talk(id);
   step("Oren's tour");
   for (const id of ["lisette", "tomas", "wynne"]) await b.talk(id);
   step("met the three");

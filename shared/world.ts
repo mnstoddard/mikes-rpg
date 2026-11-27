@@ -680,7 +680,8 @@ function buildEmberhold(o: Point): Canvas {
   c.fill(66, 32, 76, 33, "a"); // the white steps
   detail(62, 15, 19, 17, "marble", "gold", { landmark: "emberhall" });
   pushDoor(lh, "lighthall", "Enter the Emberhall", "✨ The Emberhall");
-  for (const [x, y] of [[58, 14], [84, 14], [58, 30], [84, 30]] as const) c.set(x, y, "S"); // statues in the garden
+  // The Extinguished: four statues in the garden, one at each corner (their plaques are in shared/npcs.ts).
+  ([[58, 14], [84, 14], [58, 30], [84, 30]] as const).forEach(([x, y], i) => { c.set(x, y, "S"); places[`extinguished_${i + 1}`] = A(x, y); });
   c.fill(57, 12, 57, 32, "h"); c.fill(85, 12, 85, 32, "h");
   places.lighthallSteps = A(71, 34);
 
@@ -873,7 +874,7 @@ function insides(): Inside[] {
 
   // ---- The Emberhall: the Emberguard's temple, built around the Heart Shrine ----
   // Three parts (version 0.14): the great hall in the middle (the Heart Shrine's
-  // flame at the top, braziers, and the statues of the Extinguished along both
+  // flame at the top, braziers, and the statues of the Ember Circle along both
   // walls), the library and the stores to the west, and the infirmary to the
   // east, with a bedroom for each patient. Real doors ("d") join the rooms.
   {
@@ -911,8 +912,10 @@ function insides(): Inside[] {
     c.fill(16, 3, 20, 7, "o");
     for (const [x, y] of [[14, 4], [22, 4], [14, 23], [22, 23]] as const) c.set(x, y, "F"); // braziers
     for (const [x, y] of [[13, 12], [23, 12], [13, 19], [23, 19]] as const) c.set(x, y, "A"); // pillars
-    // The Extinguished: statues along both walls (Brother Oren's tour), and the empty plinth.
-    for (const [x, y] of [[11, 10], [11, 15], [25, 10], [25, 16]] as const) c.set(x, y, "S");
+    // The Ember Circle: statues along both walls (Brother Oren's tour), and Wick's empty plinth.
+    // The Ember Circle (Mike's note, version 0.18): Vale behind the Heart Shrine, King Aldemar and the six who raised the other
+    // great shrines along the walls, and Wick's empty plinth by the doors. "S" keeps the tile solid; the client draws each statue.
+    for (const [x, y] of [[18, 1], [11, 4], [11, 10], [11, 15], [11, 23], [25, 4], [25, 10], [25, 16]] as const) c.set(x, y, "S");
     c.fill(17, 8, 19, 25, "z");
     const door = { x: 18, y: 26 };
     c.set(door.x, door.y, "D");
@@ -925,8 +928,9 @@ function insides(): Inside[] {
         wynne: { x: 28, y: 10 },
         // Sister Celene's walking lesson: two glowing marks down the hall.
         walkLeft: { x: 13, y: 18 }, walkRight: { x: 23, y: 18 },
-        // The four statues on Brother Oren's tour.
-        radiant_1: { x: 11, y: 10 }, radiant_2: { x: 25, y: 10 }, radiant_3: { x: 11, y: 15 }, radiant_4: { x: 25, y: 16 },
+        // The statues of the Ember Circle (Brother Oren's tour).
+        circle_vale: { x: 18, y: 1 }, circle_aldemar: { x: 11, y: 4 }, circle_crowe: { x: 11, y: 10 }, circle_flint: { x: 11, y: 15 },
+        circle_ivy: { x: 11, y: 23 }, circle_merrow: { x: 25, y: 4 }, circle_dunn: { x: 25, y: 10 }, circle_reed: { x: 25, y: 16 },
       },
     });
   }

@@ -11,6 +11,7 @@ import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRe
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { getStateCallbacks, Room } from "colyseus.js";
 import { AreaDef, MAP, OUTDOORS, TICK_MS, TOWN_SPOT, areaAt, doorAt, isWalkable } from "../../../shared/map";
+import { PLACES } from "../../../shared/world";
 import { bookAt } from "../../../shared/lore";
 import { Minimap, nextGoal } from "./minimap";
 import { CombatMasteryId, CombatMasteryXp, MONSTERS, MonsterId, SpellId, combatMasteryName } from "../../../shared/combat";
@@ -310,6 +311,7 @@ export class World3D {
     for (const p of this.players.values()) { near(p.root); p.update(dt, this.time); }
     this.updateIntro(dt, me);
     this.updateSpotRings();
+    this.updateHallEmbers();
     for (const p of this.npcs.values()) if (near(p.root)) p.update(dt, this.time);
     const worldMs = Date.now() + this.clockOffset;
     this.folk.update(dt, this.time, worldMs, this.here.id);
@@ -851,6 +853,46 @@ export class World3D {
   // ---------------------------------------------------------------- places to go (a "reach" quest step)
 
   private spotRings: THREE.Group[] = [];
+  /** Embers drifting up through the Emberhall's great hall (only while you're inside). */
+  private hallEmbers: THREE.Points | null = null;
+
+  private setHallEmbers(on: boolean) {
+    if (!on) {
+      if (this.hallEmbers) { this.scene.remove(this.hallEmbers); this.hallEmbers.geometry.dispose(); (this.hallEmbers.material as THREE.Material).dispose(); this.hallEmbers = null; }
+      return;
+    }
+    if (this.hallEmbers) return;
+    const shrine = PLACES["lighthall.heartShrine"];
+    const n = 140, pos = new Float32Array(n * 3), seed = new Float32Array(n);
+    for (let i = 0; i < n; i++) seed[i] = Math.random();
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    const pts = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffa040, size: 0.16, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false }));
+    pts.frustumCulled = false;
+    // The great hall: 7 tiles either side of the shrine, from the north wall down to the doors.
+    pts.userData = { x0: (shrine.x - 7) * TILE, x1: (shrine.x + 8) * TILE, z0: (shrine.y - 4) * TILE, z1: (shrine.y + 21) * TILE, seed };
+    this.scene.add(pts);
+    this.hallEmbers = pts;
+  }
+
+  private updateHallEmbers() {
+    const e = this.hallEmbers;
+    if (!e) return;
+    const { x0, x1, z0, z1, seed } = e.userData as { x0: number; x1: number; z0: number; z1: number; seed: Float32Array };
+    const pos = e.geometry.attributes.position as THREE.BufferAttribute;
+    const t = this.time;
+    for (let i = 0; i < pos.count; i++) {
+      const s = seed[i], s2 = (s * 7.31) % 1, s3 = (s * 13.7) % 1;
+      // Each one rises slowly from the floor to the roof and starts again, wandering side to side as it goes.
+      const life = (t * (0.035 + s3 * 0.03) + s) % 1;
+      pos.setXYZ(i,
+        x0 + s2 * (x1 - x0) + Math.sin(t * 0.6 + s * 40) * 0.6,
+        0.3 + life * 6.5,
+        z0 + s3 * (z1 - z0) + Math.cos(t * 0.5 + s * 23) * 0.6);
+    }
+    pos.needsUpdate = true;
+    (e.material as THREE.PointsMaterial).size = 0.14 + 0.04 * Math.sin(t * 3);
+  }
   /** A glowing ring and a soft beam of light on each place the quest wants you to walk to. */
   private showSpotRings(spots: { x: number; y: number }[]) {
     for (const r of this.spotRings) { this.scene.remove(r); r.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) { m.geometry.dispose(); (m.material as THREE.Material).dispose(); } }); }
@@ -1125,6 +1167,7 @@ export class World3D {
     this.room?.state.players.forEach((pl: any, id: string) => { const v = this.players.get(id); if (v) v.root.userData.show = inArea(pl.x, pl.y) || id === this.room!.sessionId; });
     this.room?.state.monsters?.forEach((m: any, id: string) => { const v = this.monsters.get(id); if (v) v.root.userData.show = m.alive && inArea(m.x, m.y); });
     this.plotViews.forEach((v, key) => { const lot = LOTS[Number(key)]; v.group.visible = !!lot && a === areaAt(lot.x, lot.y); });
+    this.setHallEmbers(a.id === "lighthall");
     this.sky.object.visible = a.kind === "outdoor";
     this.scene.background = a.kind === "outdoor" ? null : new THREE.Color(0x000000);
     this.updateDaylight();
