@@ -16,7 +16,7 @@ import { cityBackdrop, cityLand, emberhallCrown, gpuOnly, rampartBlock, RAMPART_
 import { treeKey, type ResourceId } from "../../../shared/foraging";
 import { createEnv, house, TILE, type EnvPiece } from "../environment";
 import type { RoofKind, WallKind } from "../environment/building";
-import { hash2, makeRng, noise2, mix, rockGeo, painted } from "../environment/kit";
+import { hash2, makeRng, noise2, mix, rockGeo, painted, WALL_H } from "../environment/kit";
 import { createTree, TREE_TYPES, type Tree, type TreeKind } from "../trees";
 import { createRock, ROCK_TYPES, type Rock, type RockKind } from "../rocks";
 import { createFood } from "../food";
@@ -729,7 +729,7 @@ export class Terrain {
         const built = makeBuilding(b);
         add(built.object, (dt, t, night) => built.update(dt, t, night), () => built.dispose());
         if (b.city?.landmark === "emberhall") {
-          const crown = emberhallCrown(b.city, built.height * 0.6);
+          const crown = emberhallCrown(b.city, built.height - 1.5);
           add(crown.object, crown.update, crown.dispose);
         }
         // Tap anywhere on a door (not just the step in front of it) to walk through it.
@@ -1012,7 +1012,10 @@ function makeBuilding(b: Building): { object: THREE.Object3D; height: number; up
   const wall: WallKind = b.city ? b.city.wall : b.wall === "A" ? "marble" : b.wall === "W" ? "guild" : b.x >= 160 && b.y < 60 ? "plank" : "timber";
   const [roof, roofVariant]: [RoofKind, number] = b.city ? CITY_ROOF[b.city.roof] : [b.roof === "u" ? "gold" : wall === "plank" ? "thatch" : "tile", b.roof === "u" ? 1 : seed % 3];
   const wallVariant = wall === "timber" ? seed % 3 : wall === "plank" && b.city ? 1 : 0;
-  const built = house({ tw: b.w, td: b.h - 0.5, wall, wallVariant, roof, roofVariant, seed });
+  // Bigger buildings get more storeys, so they don't end up as one low floor under a huge roof.
+  const area = b.w * b.h;
+  const floors = (b.city?.floors ?? 1) > 1 ? b.city!.floors : area >= 120 ? 3 : area >= 48 ? 2 : 1;
+  const built = house({ tw: b.w, td: b.h - 0.5, wall, wallVariant, roof, roofVariant, seed, floors });
   for (let yy = b.y; yy < b.y + b.h; yy++) for (let xx = b.x; xx < b.x + b.w; xx++) HEIGHTS.set(yy * 100000 + xx, built.height);
   const object = new THREE.Group();
   built.piece.object.position.set((b.x + b.w / 2) * TILE, 0, (b.y + (b.h - 0.5) / 2) * TILE);
@@ -1038,10 +1041,10 @@ function makeBuilding(b: Building): { object: THREE.Object3D; height: number; up
     parts.push(lantern);
   }
   const doorXs = b.doors.filter((d) => d.y === b.y + b.h - 1).map((d) => d.x);
-  for (let x = b.x + 1; x < b.x + b.w - 1; x += 3) {
-    if (doorXs.some((dx) => Math.abs(dx - x) < 2)) continue;
-    const win = createEnv("orn-window", { variant: b.wall === "A" || b.wall === "W" ? 1 : seed % 3 === 1 ? 2 : 0, seed: seed + x });
-    win.object.position.set((x + 0.5) * TILE, 1.5, frontZ + 0.01);
+  for (let f = 0; f < floors; f++) for (let x = b.x + 1; x < b.x + b.w - 1; x += 3) {
+    if (f === 0 && doorXs.some((dx) => Math.abs(dx - x) < 2)) continue;
+    const win = createEnv("orn-window", { variant: b.wall === "A" || b.wall === "W" ? 1 : seed % 3 === 1 ? 2 : 0, seed: seed + x + f * 7 });
+    win.object.position.set((x + 0.5) * TILE, 1.5 + f * WALL_H, frontZ + 0.01);
     object.add(win.object);
     parts.push(win);
   }
