@@ -15,7 +15,13 @@ export type Tile = "grass" | "path" | "water" | "tree" | "rock" | "bridge" | "fe
   | "dig" | "cave" | "cavewall" | "crystal" | "field"
   | "void" | "door" | "lockeddoor" | "cobble" | "sand" | "withered" | "cliff" | "hedge" | "well" | "barricade" | "roof" | "goldroof"
   | "marblewall" | "marble" | "glow" | "carpet" | "statue" | "table" | "shelf" | "crates" | "bed" | "grave" | "gravel"
-  | "brazier" | "innerdoor";
+  | "brazier" | "innerdoor" | "grille"
+  // Emberhold (version 0.20): the city wall, its towers and gates, street lamps and market stalls.
+  | "rampart" | "tower" | "citygate" | "lamp" | "stall"
+  // Emberhold's open gateways, and the city seen from Heartvale (its rooftops and streets, out of reach behind the walls).
+  | "gateway" | "cityblock" | "citystreet"
+  // Ember Hill's retaining wall, round the Emberhall's terrace and down its stairway (version 0.22).
+  | "terrace";
 
 const LEGEND: Record<string, Tile> = {
   ".": "grass", ",": "path", "~": "water", "=": "bridge", ":": "grass", "|": "fence", "+": "gate", "!": "sign",
@@ -23,7 +29,9 @@ const LEGEND: Record<string, Tile> = {
   "*": "dig", C: "cave", K: "cavewall", G: "crystal", f: "field",
   " ": "void", D: "door", J: "lockeddoor", ";": "cobble", s: "sand", w: "withered", "^": "cliff", h: "hedge", q: "well", x: "barricade",
   r: "roof", u: "goldroof", A: "marblewall", a: "marble", o: "glow", z: "carpet", S: "statue", n: "table", b: "shelf", e: "crates", y: "bed", V: "grave", l: "gravel",
-  F: "brazier", d: "innerdoor",
+  F: "brazier", d: "innerdoor", "]": "grille",
+  "%": "rampart", "&": "tower", "@": "citygate", ")": "lamp", "(": "stall",
+  "}": "gateway", ">": "cityblock", "<": "citystreet", "[": "terrace",
 };
 
 /** Map letters for each type of tree, rock and fishing spot. */
@@ -51,7 +59,8 @@ export const charAt = (x: number, y: number) => ROWS[y]?.[x] ?? " ";
 
 const BLOCKED: ReadonlySet<Tile> = new Set<Tile>([
   "water", "tree", "rock", "fence", "sign", "wall", "house", "cavewall",
-  "void", "lockeddoor", "cliff", "hedge", "well", "barricade", "roof", "goldroof", "marblewall", "statue", "table", "shelf", "crates", "bed", "grave", "brazier",
+  "void", "lockeddoor", "cliff", "hedge", "well", "barricade", "roof", "goldroof", "marblewall", "statue", "table", "shelf", "crates", "bed", "grave", "brazier", "grille",
+  "rampart", "tower", "citygate", "lamp", "stall", "cityblock", "citystreet", "terrace",
 ]);
 export const isBlockedTile = (t: Tile) => BLOCKED.has(t);
 

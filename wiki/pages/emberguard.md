@@ -4,11 +4,11 @@ icon: 🛡️
 aliases: Emberguard, Lightkeepers
 summary: Noble protectors of the ember shrines. Only the worthy are let in.
 infobox.Home: [[The Emberhall]], [[Emberhold]]
-infobox.Leader: The hooded High Keeper
+infobox.Leader: [[High Keeper Aldric]]
 infobox.Runs: [[The shrines]]
 infobox.Old_name: The Lightkeepers
 ---
-**The Emberguard** keep [[The shrines]] lit across the land. They describe themselves as "keepers of the shrines that saved us after the Emberfall". [[The Ember Circle]] founded the order around year 50, during [[The Rebuilding]]. Their temple is [[The Emberhall]] in [[Emberhold]], built right over the place the Emberfall began. Embers drift through its great hall, one for every hero honoured with a Ceremony. Only the worthy are let in: new [[Emberborn]] start as [[Initiates]] and have to earn their way through the Emberguard's trials.
+**The Emberguard** keep [[The shrines]] lit across the land. They describe themselves as "keepers of the shrines that saved us after the Emberfall". [[The Ember Circle]] founded the order around year 80, during [[The Rebuilding]]. Their temple is [[The Emberhall]] in [[Emberhold]], built right over the place the Emberfall began. Embers drift through its great hall, one for every hero honoured with a Ceremony. Only the worthy are let in: new [[Emberborn]] start as [[Initiates]] and have to earn their way through the Emberguard's trials.
 
 Most members are honest and believe every word of it.
 
@@ -25,15 +25,15 @@ Their order's rule (from a book in the Emberhall library):
 
 ## People
 
-- [[Keeper Aldric]] welcomes every new Emberborn and decides who's ready for the trials.
-- [[Sister Celene]], the shrine healer.
-- [[Enchanter Vale]], the gentle enchanter.
-- [[Brother Oren]], [[Sister Lisette]], [[Brother Tomas]] and [[Sister Wynne]], the Emberhall's staff.
+- [[High Keeper Aldric]] welcomes every new Emberborn and decides who's ready for the trials.
+- [[Keeper Celene]], the shrine healer.
+- [[Enchanter Corwen]], the gentle enchanter.
+- [[Keeper Oren]], [[Keeper Lisette]], [[Keeper Tomas]] and [[Keeper Wynne]], the Emberhall's staff.
 - The six [[Emberwardens]], each keeping a region's great shrine.
 
 ::: secret
-The Emberguard's leaders are what's left of [[The Ember Circle]]. They never passed into legend: they became [[The Undying]], living on ember the shrines pull from the land and from every Emberborn. [[Archmage Vale]], who caused the Emberfall, leads them as the hooded High Keeper. After the [[Sundering War]] they rewrote the history books and took [[The Mages' Guild]]'s old records, until everyone believed Wick was the villain.
+The Emberguard's leaders are what's left of [[The Ember Circle]]. They never passed into legend: they became [[The Undying]], living on ember the shrines pull from the land and from every Emberborn. [[Archmage Vale]], who caused the Emberfall, leads them in plain sight as [[High Keeper Aldric]]. After the [[Sundering War]] they rewrote the history books and took [[The Mages' Guild]]'s old records, until everyone believed Wick was the villain.
 
-**Every Keeper is in on it.** Keepers officiate the [[Radiance Ceremony]], so they all know what it does, and they're paid for their silence with a share of the drain and a life without ageing. [[Keeper Aldric]] is one of them. The brothers and sisters below them, like Oren, Lisette, Tomas and Wynne, are honest and know nothing.
+**Every Keeper is in on it.** Keepers officiate the [[Radiance Ceremony]], so they all know what it does, and they're paid for their silence with a share of the drain and a life without ageing. Since version 0.22 everyone who works in the Emberhall is a Keeper (Celene, Oren, Lisette, Tomas, Wynne and Corwen, under High Keeper Aldric), so **all of them know**. Celene is Emberborn herself. Their kindness to you is real enough; their silence is bought.
 :::
 

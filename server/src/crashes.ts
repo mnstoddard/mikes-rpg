@@ -16,16 +16,13 @@
 //   /admin/api/crashes?limit=N   the same as JSON, newest first
 import express from "express";
 import { readFileSync } from "node:fs";
-import { store, type NewCrash } from "./storage";
+import { SERVER_NAME, store, type NewCrash } from "./storage";
 import { adminOnly } from "./reports";
 import { playerForReport } from "./WorldRoom";
 
 const KINDS = new Set(["error", "webgl", "disconnect", "killed"]);
 const MAX_INFO_CHARS = 60_000;
 
-/** Which server this is: dev and live can share one database, so every report says which. */
-export const SERVER_NAME = process.env.SERVER_NAME
-  ?? (process.env.RENDER_GIT_BRANCH ? (process.env.RENDER_GIT_BRANCH === "main" ? "live" : process.env.RENDER_GIT_BRANCH) : "local");
 const BUILD = process.env.RENDER_GIT_COMMIT?.slice(0, 7) ?? "local";
 
 // At most 30 reports per address every 10 minutes.

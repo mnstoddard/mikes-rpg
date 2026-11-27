@@ -15,7 +15,7 @@ The six **Emberwardens** each keep a region's great shrine, and each gives the p
 | Warden Dunn | [[The Ashen Barrens]] | Dunn of the Circle |
 | Warden Reed | [[Blackfen]] | An impostor. The real Reed died in the Sundering War |
 
-[[The Heart Shrine]] in Heartvale is kept by the Emberguard's High Keeper. [[Frostfell]]'s shrine is frozen, and has no warden.
+[[The Heart Shrine]] in Heartvale is kept by the Emberguard's High Keeper, [[High Keeper Aldric]]. In the Emberhall, [[Keeper Tomas]] tells new Initiates that the Emberwardens are the highest rank of all, above the Keepers. Nobody tells Initiates they're the same people as the old Circle. [[Frostfell]]'s shrine is frozen, and has no warden.
 
 ::: secret
 All six are [[The Undying]]. Four are the original Circle members who sided with [[Archmage Vale]] in the [[Sundering War]]. The other two were chosen by Vale from the most corrupt of the Emberguard and Emberborn to take the dead members' names and shrines. Nobody outside the Undying knows.

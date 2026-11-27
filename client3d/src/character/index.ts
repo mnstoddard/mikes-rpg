@@ -17,7 +17,7 @@ import { CharacterRecipe, makeRecipe } from "./recipe";
 import { lerp } from "./shapes";
 
 export type { CharacterRecipe } from "./recipe";
-export { CHARACTER_PRESETS, DEFAULT_RECIPE, makeRecipe, recipeFromCode } from "./recipe";
+export { CHARACTER_PRESETS, DEFAULT_RECIPE, LINEN, makeRecipe, recipeFromCode, undress } from "./recipe";
 export type { Fit, Joints } from "./body";
 export * as shapes from "./shapes";
 

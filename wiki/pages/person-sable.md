@@ -15,7 +15,7 @@ infobox.Ceremony: Chosen about year 780; she never came
 - **Her shame drove her mad.** She fled her honour, and couldn't live with it. Now she leads bandits in the woods, smashing the shrines that raised her.
 - **She's killing the land.** The Withering, the dying trees, the grey ground: the Emberguard say that's the Ashbound's doing.
 
-People say her name the way they'd spit. Refusing a Ceremony is the most shameful thing an Emberborn can do, and Sable is the only one most people have ever heard of. Brother Oren calls her "every family's black sheep".
+People say her name the way they'd spit. Refusing a Ceremony is the most shameful thing an Emberborn can do, and Sable is the only one most people have ever heard of. Keeper Oren calls her "every family's black sheep".
 
 ::: secret
 ## What really happened

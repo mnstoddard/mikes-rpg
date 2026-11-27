@@ -12,6 +12,8 @@ export interface WallOptions {
   seed: number;
   /** How tall (defaults to one storey). */
   height?: number;
+  /** Doors: a door between two rooms, with no dark doorway behind it (you see the next room when it opens). */
+  hollow?: boolean;
 }
 type WallBuilder = (o: WallOptions) => EnvPiece;
 
@@ -476,7 +478,7 @@ export const door: WallBuilder = (o) => {
   frame.box(W + 0.28, 0.14, 0.16, 0x4e3220, 0, H + 0.07, 0);
   frame.box(W + 0.5, 0.08, 0.5, 0x8e8a80, 0, 0.04, 0.2); // doorstep
   // The dark doorway behind the door: it hides the wall (nothing pokes through), and shows when the door opens.
-  frame.box(W + 0.02, H + 0.02, 0.04, 0x1e140c, 0, H / 2, -0.07);
+  if (!o.hollow) frame.box(W + 0.02, H + 0.02, 0.04, 0x1e140c, 0, H / 2, -0.07);
   if (arched) {
     const a = new THREE.CylinderGeometry(W / 2 + 0.14, W / 2 + 0.14, 0.16, 12, 1, false, -Math.PI / 2, Math.PI);
     a.rotateX(-Math.PI / 2);
@@ -559,6 +561,8 @@ export interface RoofOptions {
   seed: number;
   /** Colour of the triangle gable ends (match the walls). */
   gable?: number;
+  /** The tallest the roof may rise (big buildings get a gentler pitch instead of a towering one). */
+  maxRise?: number;
 }
 type RoofBuilder = (o: RoofOptions) => EnvPiece;
 
@@ -567,6 +571,8 @@ function gableRoof(o: RoofOptions, layer: (parts: Parts, slope: Slope, rng: Rng)
   const rng = makeRng(o.seed);
   const over = 0.35;
   const half = o.d / 2 + over;
+  // A small house gets a steep roof; a big hall gets a lower pitch, not a roof taller than the house.
+  if (o.maxRise && (o.d / 2) * rise * 2 > o.maxRise) rise = o.maxRise / o.d;
   const h = (o.d / 2) * rise * 2;
   const len = Math.hypot(half, h + over * rise * 2);
   const ang = Math.atan2(h + over * rise * 2, half);
@@ -726,6 +732,8 @@ export interface HouseOptions {
   open?: boolean;
   /** Leave the roof off. */
   noRoof?: boolean;
+  /** Storeys (1 if left out): each one is another band of wall, with a ledge between. */
+  floors?: number;
 }
 
 /**
@@ -743,14 +751,39 @@ export function house(o: HouseOptions): { piece: EnvPiece; front: number; w: num
     group.add(p.object);
     parts.push(p);
   };
-  if (!o.open) add(W({ length: w, variant: o.wallVariant, seed: o.seed }), 0, d / 2 - WALL_T / 2, 0);
-  add(W({ length: w, variant: o.wallVariant, seed: o.seed + 1 }), 0, -d / 2 + WALL_T / 2, Math.PI);
-  add(W({ length: d - WALL_T * 2, variant: o.wallVariant, seed: o.seed + 2 }), w / 2 - WALL_T / 2, 0, Math.PI / 2);
-  add(W({ length: d - WALL_T * 2, variant: o.wallVariant, seed: o.seed + 3 }), -w / 2 + WALL_T / 2, 0, -Math.PI / 2);
-  let height = WALL_H;
+  const floors = Math.max(1, o.floors ?? 1);
+  for (let f = 0; f < floors; f++) {
+    const y = f * WALL_H, k = o.seed + f * 17;
+    const n = parts.length;
+    if (!o.open || f > 0) add(W({ length: w, variant: o.wallVariant, seed: k }), 0, d / 2 - WALL_T / 2, 0);
+    add(W({ length: w, variant: o.wallVariant, seed: k + 1 }), 0, -d / 2 + WALL_T / 2, Math.PI);
+    add(W({ length: d - WALL_T * 2, variant: o.wallVariant, seed: k + 2 }), w / 2 - WALL_T / 2, 0, Math.PI / 2);
+    add(W({ length: d - WALL_T * 2, variant: o.wallVariant, seed: k + 3 }), -w / 2 + WALL_T / 2, 0, -Math.PI / 2);
+    for (const p of parts.slice(n)) p.object.position.y = y;
+  }
+  if (floors > 1) {
+    // A ledge between the storeys, so it reads as a building with floors, not one tall wall.
+    const ledge = new Parts();
+    const col = shade(GABLE[o.wall](o.wallVariant), o.wall === "timber" || o.wall === "plank" ? 0.45 : 0.78);
+    for (let f = 1; f < floors; f++) {
+      ledge.box(w + 0.16, 0.22, 0.3, col, 0, f * WALL_H, d / 2 + 0.02);
+      ledge.box(w + 0.16, 0.22, 0.3, col, 0, f * WALL_H, -d / 2 - 0.02);
+      ledge.box(0.3, 0.22, d + 0.16, col, w / 2 + 0.02, f * WALL_H, 0);
+      ledge.box(0.3, 0.22, d + 0.16, col, -w / 2 - 0.02, f * WALL_H, 0);
+    }
+    const m = ledge.build();
+    if (m) { group.add(m); parts.push({ object: m as unknown as THREE.Group, update: () => {}, dispose: () => { m.geometry.dispose(); } }); }
+  }
+  const wallTop = floors * WALL_H;
+  let height = wallTop;
   if (!o.noRoof) {
-    const r = ROOFS[o.roof]({ w, d, variant: o.roofVariant, seed: o.seed + 4, gable: GABLE[o.wall](o.wallVariant) });
-    r.object.position.y = WALL_H;
+    // The ridge runs along the longer side, and the pitch stays sensible however big the building is.
+    const deep = d > w * 1.15;
+    const span = Math.min(w, d);
+    const maxRise = span <= 9 ? undefined : Math.min(8, 3 + span * 0.17);
+    const r = ROOFS[o.roof]({ w: deep ? d : w, d: deep ? w : d, variant: o.roofVariant, seed: o.seed + 4, gable: GABLE[o.wall](o.wallVariant), maxRise });
+    r.object.position.y = wallTop;
+    if (deep) r.object.rotation.y = Math.PI / 2;
     group.add(r.object);
     parts.push(r);
     height += r.object.userData.height ?? 2;

@@ -14,21 +14,21 @@ const LIGHTHALL: Book[] = [
   {
     title: "The Emberfall",
     pages: [
-      "Five hundred years ago the land's fire burst up out of the earth under Heartvale, in anger. Embers rained down across the Old Kingdom for a whole year, and the ground fell in where the valley is now. We count the years from it: this is the five hundredth year After the Fall.",
-      "No one was to blame. The land's fire is wild, as all fire is. The shrines keep it calm now, and the Emberguard keep the shrines.",
+      "Eight hundred years ago the land's fire burst up out of the earth under Heartvale. Embers rained down across Aldmera for forty years, and the ground fell in where the valley is now. We count the years from it: this is the eight hundredth year After the Fall.",
+      "King Aldemar went down into the fire himself and poured his own ember into it, holding it back like a door against a storm. It cost him his life, but it held the fire back for forty years, and in those years the Ember Circle worked out how to raise the shrines. When the king's strength gave out, the shrines held. The Emberguard have kept them lit ever since.",
       "Pressed between the last pages, a dry leaf and a note in an old hand: \"Fire does not burst up on its own. Ask what was dug.\"",
     ],
   },
   {
     title: "The Sundering War (a short history for new Emberborn)",
     pages: [
-      "Before the war, Embervale was the Old Kingdom: green from the Greyspine to the sea, ruled from a city of white stone in what is now the Barrens.",
-      "No one now living remembers how the war began. It ended with the Old Kingdom's crown lost, its city in ruins, and barely enough people left to bury the dead.",
-      "It was then that the Archmage Vale built the first shrines, and the first Emberborn woke. The Emberguard have kept his shrines lit ever since.",
+      "Before the Fall, Embervale was Aldmera: green from the Greyspine to the sea, ruled from Whitestone, the city of white stone in what is now the Barrens.",
+      "Four hundred years after the Fall, Wick, who had stood beside the king and helped raise the shrines, turned half the Circle against the rest and tried to tear the shrines down. The war lasted a hundred years, and when it ended there were barely enough people left to bury the dead.",
+      "The Archmage Vale won it, and died winning it. Wick was driven out, and his shrine in the north went cold. The Emberwardens carry the old Circle names as titles now, and the Emberguard keep the shrines lit.",
     ],
   },
   {
-    title: "On the Shrines, by Keeper Aldric",
+    title: "On the Shrines, by High Keeper Aldric",
     pages: [
       "A shrine is a door the ember comes through. It finds a spark in the Emberheart, deep under Heartvale, and gives it a body.",
       "When an Emberborn falls, the shrine nearest them gathers up what's left of the spark and makes them again. We do not fully understand it. We tend it, as a gardener tends what he did not plant.",
@@ -61,9 +61,9 @@ const LIGHTHALL: Book[] = [
   {
     title: "The Withering: notes from the Barrens",
     pages: [
-      "It began in the far west, where the Old Kingdom's city stood. Grass greys, then crumbles. Animals grow thin and angry. Wells taste of ash.",
-      "The Ashbound blame the shrines. This is, of course, nonsense. The shrines are the only warmth the Barrens have left.",
-      "Note in the margin, in pencil: \"Then why is it worst where the shrines are brightest?\" It has been rubbed half out.",
+      "It begins at the far edges of things, wherever a place lies farthest from a shrine. Grass greys, then crumbles. Animals grow thin and angry. Wells taste of ash.",
+      "The Ashbound are said to poison it. Whatever the cause, the shrines are the only warmth the Barrens have left.",
+      "Note in the margin, in pencil: \"If the shrines keep the land alive, why does their warmth reach a little less far every year?\" It has been rubbed half out.",
     ],
   },
   {
@@ -109,7 +109,7 @@ const GUILD: Book[] = [
     title: "On Enchanting",
     pages: [
       "An enchantment is a little piece of a refined emberstone's power, woven into a thing. Weapons take fire and frost; armor takes warding.",
-      "Enchanter Vale of the Emberhall is the finest enchanter living. He is very old. Some say older than the Guild.",
+      "Enchanter Corwen of the Emberhall is the finest enchanter living. He learned his craft from High Keeper Aldric, who has kept the Emberhall longer than anyone can remember.",
     ],
   },
   {
@@ -141,7 +141,7 @@ const TOWN: Book[] = [
     title: "Herbs of the Valley",
     pages: [
       "Wild root: dig it near the lake. Red cap: find it under oaks. Moonpetal: only at night, and only if you're lucky.",
-      "Herbalist Wren adds, in her own hand: the plants by the shrines are dying first. Why?",
+      "Herbalist Wren adds, in her own hand: the plants at the valley's edge, farthest from the shrines, are dying first. They never used to. Why?",
     ],
   },
   {

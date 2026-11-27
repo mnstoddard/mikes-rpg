@@ -392,8 +392,8 @@ export function buildBody(P: CharacterRecipe, opts: BuildOptions = {}): BuiltBod
     stub = M(mixHex(P.hairColor, P.skin, 0.5), { r: 1 });
   const top = P.top, bottom = P.bottom;
   const longSleeve = top === "long" || top === "tunic" || top === "robe";
-  const sleeveM = top === "tank" ? skin : shirt, foreM = longSleeve ? shirt : skin;
-  const thighM = bottom === "skirt" ? skin : pants, shinM = bottom === "pants" ? pants : skin;
+  const sleeveM = top === "tank" || top === "under" ? skin : shirt, foreM = longSleeve ? shirt : skin;
+  const thighM = bottom === "skirt" || bottom === "under" ? skin : pants, shinM = bottom === "pants" ? pants : skin;
 
   const thighL = 0.41 * S * P.legs, shinL = 0.39 * S * P.legs, footH = 0.055;
   const torsoH = 0.5 * S;
@@ -693,6 +693,7 @@ export function buildBody(P: CharacterRecipe, opts: BuildOptions = {}): BuiltBod
     J[("hip" + n) as "hipL"] = hp;
     add(hp, limbGeo(thighR, thighR * 0.8, thighL, 8), thighM);
     if (bottom === "shorts") add(hp, limbGeo(thighR * 1.08, thighR * 0.95, thighL * 0.55, 8), pants);
+    if (bottom === "under") add(hp, limbGeo(thighR * 1.07, thighR * 1.02, thighL * 0.26, 8), pants); // short linen drawers
     const kn = G(hp, 0, -thighL, 0);
     J[("knee" + n) as "kneeL"] = kn;
     add(kn, ball(thighR * 0.8, 8, 6), bottom === "pants" ? pants : skin);

@@ -71,14 +71,14 @@ away **loving** the Lightkeepers.
 
 | # | Quest | Giver | What you do | Skills used | Reward |
 |---|---|---|---|---|---|
-| P.1 | **Awakening** | Sister Celene | 🎬 You wake on the steps of the Heart Shrine inside the Lighthall. Light pours from the shrine. Sister Celene helps you up. Keeper Aldric welcomes you: "The light made you for a reason, friend. You won't remember anything; none of you do." | Clicking, walking | Plain robe |
-| P.2 | **The Hall of Light** | Keeper Aldric | A tour of the Lighthall: the Heart Shrine, the **Hall of Champions** (statues of past Radiants, and one empty plinth with a scratched-off name), the locked ledger room, and Enchanter Vale's quiet alcove. Talk to four Lightkeepers. | Talking | Lighthall map |
-| P.3 | **Light the Way** | Keeper Aldric | Light the lanterns along the Lighthall steps and out into the town square at dusk. | Walking, a first use of an item | Your own lantern |
-| P.4 | **The Old Sweeper** | Keeper Aldric | Aldric sends you to Old Maren, in her cottage by the lake: "Harmless. She's been here forever, and she teaches every new hero the basics." | Talking | Maren's chapter begins |
+| P.1 | **Awakening** | Keeper Celene | 🎬 You wake on the steps of the Heart Shrine inside the Lighthall. Light pours from the shrine. Keeper Celene helps you up. High Keeper Aldric welcomes you: "The light made you for a reason, friend. You won't remember anything; none of you do." | Clicking, walking | Plain robe |
+| P.2 | **The Hall of Light** | High Keeper Aldric | A tour of the Lighthall: the Heart Shrine, the **Hall of Champions** (statues of past Radiants, and one empty plinth with a scratched-off name), the locked ledger room, and Enchanter Vale's quiet alcove. Talk to four Lightkeepers. | Talking | Lighthall map |
+| P.3 | **Light the Way** | High Keeper Aldric | Light the lanterns along the Lighthall steps and out into the town square at dusk. | Walking, a first use of an item | Your own lantern |
+| P.4 | **The Old Sweeper** | High Keeper Aldric | Aldric sends you to Old Maren, in her cottage by the lake: "Harmless. She's been here forever, and she teaches every new hero the basics." | Talking | Maren's chapter begins |
 | P.5 | **Living off the land** *(built)* | Old Maren | Today's first lessons: fishing, cooking, eating, selling. Maren is kind, but watches you closely: "Another one. Welcome, child." | Fishing, Cooking, Trading | As today |
 | P.6 | **The trainers** *(built)* | Each trainer | Today's trainer chapters (list below). Aldric says the Lightkeepers **pay** the trainers to teach new heroes, so every lesson feels like a gift from the Lighthall. | Every skill | As today |
-| P.7 | **A Blessing** | Sister Celene | Celene gives you your first blessing (a 30-minute XP boost) and asks you to use it to gather 20 of anything. | Any gathering | Blessing scroll x3 |
-| P.8 | **Oath of the Flame** | Keeper Aldric | 🎬 Swear the Oath at the Heart Shrine "so the shrine knows you, and can always bring you home". The shrine flares. You feel a tug, like a thread pulled tight. **Soul Debt switches on from here.** | Talking | Rank **Ember**, Ember cloak, 1 silver. **Act 1 begins.** |
+| P.7 | **A Blessing** | Keeper Celene | Celene gives you your first blessing (a 30-minute XP boost) and asks you to use it to gather 20 of anything. | Any gathering | Blessing scroll x3 |
+| P.8 | **Oath of the Flame** | High Keeper Aldric | 🎬 Swear the Oath at the Heart Shrine "so the shrine knows you, and can always bring you home". The shrine flares. You feel a tug, like a thread pulled tight. **Soul Debt switches on from here.** | Talking | Rank **Ember**, Ember cloak, 1 silver. **Act 1 begins.** |
 
 **Dying is free** until the Oath (no Soul Debt yet), so new players are never
 punished while learning.
@@ -114,18 +114,18 @@ player should **like** them. A few small things feel off.
 
 | # | Quest | Giver | What you do | Skills used | Reward |
 |---|---|---|---|---|---|
-| 1.1 | **Lantern Rounds** | Keeper Aldric | Light the shrine lanterns all around Heartvale at dusk. On one wall someone has painted "THE LIGHT EATS". Aldric has it scrubbed off. | Walking, night | Lightkeeper rank progress |
-| 1.2 | **The First Tithe** | Keeper Aldric | After your first death since the Oath, Aldric explains the gold chain by your health bar: a **Tithe mark**, "a small tithe so the shrines can keep raising heroes". He gives you a Tithe tonic to clear it faster. | Talking | Tithe tonic x2 |
-| 1.3 | **Blessing the Fields** | Sister Celene | Help Celene bless the farmers' fields around town. Farmer Odo chases you both off his land. | Walking, Farming | Blessing scroll x2 |
+| 1.1 | **Lantern Rounds** | High Keeper Aldric | Light the shrine lanterns all around Heartvale at dusk. On one wall someone has painted "THE LIGHT EATS". Aldric has it scrubbed off. | Walking, night | Lightkeeper rank progress |
+| 1.2 | **The First Tithe** | High Keeper Aldric | After your first death since the Oath, Aldric explains the gold chain by your health bar: a **Tithe mark**, "a small tithe so the shrines can keep raising heroes". He gives you a Tithe tonic to clear it faster. | Talking | Tithe tonic x2 |
+| 1.3 | **Blessing the Fields** | Keeper Celene | Help Celene bless the farmers' fields around town. Farmer Odo chases you both off his land. | Walking, Farming | Blessing scroll x2 |
 | 1.4 | **Tithe Tonics** | Alchemist Moss | Help Moss brew 10 Tithe tonics for the Lighthall (the Lightkeepers sell them to heroes to "clear debt faster"). | Alchemy, Foraging | Recipe: Tithe tonic, 50 bronze |
 | 1.5 | **The Totem** | Woodworker Rook | Carve a shrine totem from oak and deliver it to Aldric. Rook slips a folded note inside "for luck". You don't read it (yet). | Woodcutting, Handicraft | Oak handle upgrade for one tool |
 | 1.6 | **Ash on the Road** | Captain Bryn | Ashbound raiders are smashing a roadside shrine. Drive them off (defeat 4). One drops a note: "They aren't what they seem." | Melee / Ranged / Spellcasting | Bounty pay, Renown |
-| 1.7 | **Rebuild the Shrine** | Keeper Aldric | Repair the smashed shrine: chop 6 oak logs for the frame, smelt 2 bronze bars, and bring Rook's new totem. Aldric relights it. 🎬 Notice the grass around it goes brown. | Mining, Smelting, Handicraft | Rank progress, health potions x3 |
+| 1.7 | **Rebuild the Shrine** | High Keeper Aldric | Repair the smashed shrine: chop 6 oak logs for the frame, smelt 2 bronze bars, and bring Rook's new totem. Aldric relights it. 🎬 Notice the grass around it goes brown. | Mining, Smelting, Handicraft | Rank progress, health potions x3 |
 | 1.8 | **What Holt Saw** | Forester Holt | Holt asks you to count dead trees near three shrines, then near three places far from shrines. The difference is obvious. | Woodcutting, walking | Holt's notes (journal page), Woodcutting XP |
 | 1.9 | **Odo's Stubborn Field** | Farmer Odo | Grow a full plot with no blessing active. Odo talks about the "old days" before the Lighthall. | Farming | Heirloom seeds (a rare crop) |
 | 1.10 | **The Hollow Wolves** | Huntmaster Kael | More Blighted wolves at Wolf Hollow. Clear them with a party or alone. Kael mutters that the Blight is "always worst downhill of a shrine". | Melee / Ranged, Hunting | Warden's bow or Warden's blade |
 | 1.11 | **Maren's Question** | Old Maren | Maren asks, very quietly, if you've died yet since the Oath. "Did it feel like something was taken?" She won't say more. 🧩 *Echo: the first shrine* | Talking | Maren's worn charm (no stats, plot item) |
-| 1.12 | **A Light in the Thornwood** | Keeper Aldric | Escort Lightkeepers to the edge of the Thornwood and light its first shrine. Rhys, a cheerful Kindled a few steps ahead of you, meets you there. | Fighting, escort | Rank **Flame**, Thornwood shrine unlocked as a respawn point |
+| 1.12 | **A Light in the Thornwood** | High Keeper Aldric | Escort Lightkeepers to the edge of the Thornwood and light its first shrine. Rhys, a cheerful Kindled a few steps ahead of you, meets you there. | Fighting, escort | Rank **Flame**, Thornwood shrine unlocked as a respawn point |
 
 **End of Act 1:** the Lightkeepers name you a Flame. Rhys says he's going for
 **Radiant** before you. Rook's note, if you open it, says: *"Ask Maren about
@@ -192,7 +192,7 @@ Each region follows the same rhythm, so it's easy to build and easy to follow:
 | 2D.4 | **Burn the Camp** | Warden Ashka | Ashka orders you to burn the Ashbound's supply camp. You can do it, or warn them first (they still leave either way). | Fighting or sneaking | Rank progress (either way) |
 | 2D.5 | **The Barrens Lightshrine** | Warden Ashka | Relight the great shrine: brew 5 strong restoration potions for it. 🎬 As it lights, you feel something pulled out of you. You take your first **Tithe mark** without dying. | Alchemy | Respawn point |
 | 2D.6 | **The Dust Titan** (boss) | Warden Ashka | Defeat a giant Blighted beetle that guards the old Aurel road. | Fighting | Titan shell (shield part) |
-| 2D.7 | **Summoned to the Light** | Keeper Aldric | Aldric sends word: you and Rhys are both to be honoured at the **Radiance Ceremony**. Come home. | Talking | Radiant robes (ceremony outfit) |
+| 2D.7 | **Summoned to the Light** | High Keeper Aldric | Aldric sends word: you and Rhys are both to be honoured at the **Radiance Ceremony**. Come home. | Talking | Radiant robes (ceremony outfit) |
 
 ### Act 2 side line: Rhys
 
@@ -217,7 +217,7 @@ in the shared world, so until then the player has to **hide** what they know.
 
 | # | Quest | Giver | What you do | Skills used | Reward |
 |---|---|---|---|---|---|
-| 3.1 | **The Radiance Ceremony** | Keeper Aldric | 🎬 The whole town gathers at the Heart Shrine. Rhys is honoured first. The light pours out of him. He drops to **level 1**, grey and shaking, and runs. Aldric: "His spark was flawed. We'll honour the next champion soon." He looks at you. | A story scene | Nothing. That's the point. |
+| 3.1 | **The Radiance Ceremony** | High Keeper Aldric | 🎬 The whole town gathers at the Heart Shrine. Rhys is honoured first. The light pours out of him. He drops to **level 1**, grey and shaking, and runs. Aldric: "His spark was flawed. We'll honour the next champion soon." He looks at you. | A story scene | Nothing. That's the point. |
 | 3.2 | **Find Rhys** | Old Maren | Maren finds you that night: "Now you've seen it. Find the boy, before they do." Track Rhys into the Thornwood. | Hunting (tracking) | Rhys found, and alive |
 | 3.3 | **The Note in the Totem** | Woodworker Rook | Rook admits the notes were his. He's been passing messages to the Ashbound for years. He gives you the way to their hidden camp. | Talking | Ashbound password |
 | 3.4 | **The Cinders** | Sable | Reach the Ashbound camp in the Barrens. Sable tells you the truth: the Lightkeepers are the Undying, and she was a Radiant once. 🎬 | Talking | **Ashbound standing: Ally**, a hearth (respawn point) at the camp |
@@ -226,9 +226,9 @@ in the shared world, so until then the player has to **hide** what they know.
 | 3.7 | **Maren's Story** | Old Maren | Maren tells you everything: the war, Vael, the shrines, and how she cut her own thread and grew old. 🧩 *Echo: Maren cuts her thread* | Talking | Maren's real charm |
 | 3.8 | **The Ashguard** | Sable and Ysolde | Make an **Ashguard charm** to shield your thread: Blighted heartwood, a cut gem, an enchant, and an alchemy wash. **Soul Debt drops to 10%, max 3 marks.** | Handicraft, Smithing, Enchanting, Alchemy | Ashguard charm |
 | 3.9 | **Cleanse the Heart Shrine** | Sable | Try to cleanse the Heart Shrine at night. 🎬 It **fails**: the corruption runs down to the Wellspring, through every shrine. You can't cleanse it. You'll have to cut yourself free instead. | Spellcasting | The truth: only your own thread can be cut |
-| 3.10 | **A Face in the Crowd** | Keeper Aldric | Back in town, Aldric invites you to be honoured at the next Ceremony. Play along: take the invitation and smile. | Talking | Ceremony date: you have time, but not forever |
+| 3.10 | **A Face in the Crowd** | High Keeper Aldric | Back in town, Aldric invites you to be honoured at the next Ceremony. Play along: take the invitation and smile. | Talking | Ceremony date: you have time, but not forever |
 | 3.11 | **Rhys, Again** | Rhys | Help Rhys train back up: give him a tool, a weapon and some food you made. | Crafting, Cooking | Rhys joins the Ashbound |
-| 3.12 | **Celene's Doubt** | Sister Celene | Celene has noticed heroes going grey. Show her the ledger. She's heartbroken, and promises to warn heroes quietly. | Talking | Celene's blessing (an honest one, no tithe) |
+| 3.12 | **Celene's Doubt** | Keeper Celene | Celene has noticed heroes going grey. Show her the ledger. She's heartbroken, and promises to warn heroes quietly. | Talking | Celene's blessing (an honest one, no tithe) |
 | 3.13 | **Bryn's Choice** | Captain Bryn | Show Bryn the truth. He takes down the Ashbound bounty posters, and gives you the watch's secret passages. | Talking | Bryn's key |
 | 3.14 | **A Voice in the Light** | The High Keeper | 🎬 The Heart Shrine calls you in, alone, at night. A hooded figure speaks from inside the light: the High Keeper. He doesn't lie. "The land is dying whatever we do. Sable would let everyone fade with it. We chose to **live**. Join us, and you'll never be drained again. You'll be the one who drinks." | Talking | An offer |
 | 3.15 | **The Crossroads** | — | 🎬 Sable waits at the Cinders. The High Keeper waits at the Heart Shrine. **You choose**: the Ashbound or the Lightkeepers. This is the biggest choice in the game. (Decided: the choice happens here, at the end of Act 3.) | A choice | **Act 4 begins**, on your side's path |
@@ -300,12 +300,12 @@ cruel to real players: the people you harvest from are monsters and NPCs.
 
 | # | Quest | Giver | What you do | Skills used | Reward |
 |---|---|---|---|---|---|
-| 4L.1 | **Beneath the Lighthall** | Keeper Aldric | 🎬 Aldric takes you down the sealed stair to the Lightkeepers' hidden halls, where the real work happens. | Talking | Lighthall undercroft unlocked |
+| 4L.1 | **Beneath the Lighthall** | High Keeper Aldric | 🎬 Aldric takes you down the sealed stair to the Lightkeepers' hidden halls, where the real work happens. | Talking | Lighthall undercroft unlocked |
 | 4L.2 | **The High Keeper** | The High Keeper | 🎬 The High Keeper lowers his hood. It's **Enchanter Vale**, and he tells you his true name: **Vael**, who built the shrines. | Talking | 🧩 *Echo: Vael, young and afraid of dying* |
 | 4L.3 | **First Harvest** | Enchanter Vale | Use Soul trap on 10 Blighted beasts and pour their sparks into a **radiant vessel**. Feel the stolen light fill you. | Spellcasting (Soul trap), Enchanting | Radiant vessel, **Soul Debt ends**: you no longer pay the tithe |
-| 4L.4 | **Loose Ends** | Keeper Aldric | The Tithe ledger was stolen (by you, in Act 3). Get it back from the Cinders, and plant a fake one in its place. | Sneaking, Spellcasting (Invisibility) | Aldric's trust |
+| 4L.4 | **Loose Ends** | High Keeper Aldric | The Tithe ledger was stolen (by you, in Act 3). Get it back from the Cinders, and plant a fake one in its place. | Sneaking, Spellcasting (Invisibility) | Aldric's trust |
 | 4L.5 | **Lightforged** | Enchanter Vale | Brann won't work for you any more. Forge your own **Lightforged** weapon at the undercroft forge, quenched in a filled soul gem. | Smithing, Smelting, Enchanting | Lightforged weapon |
-| 4L.6 | **The Tonic Trade** | Keeper Aldric | Moss has quit brewing Tithe tonics. Take over the recipe and supply the Lighthall with 50. | Alchemy, Foraging | Tonic profits (coins every day) |
+| 4L.6 | **The Tonic Trade** | High Keeper Aldric | Moss has quit brewing Tithe tonics. Take over the recipe and supply the Lighthall with 50. | Alchemy, Foraging | Tonic profits (coins every day) |
 | 4L.7 | **Corvane's Hunt** | Warden Corvane | Hunt an Ashbound band through the Thornwood. | Hunting, fighting | Corvane's lantern |
 | 4L.8 | **The Conduits** | Warden Halbrecht | Build emberstone conduits that carry life from the Greyspine veins to the Lighthall. | Mining, Smithing | Halbrecht's seal |
 | 4L.9 | **The Gem Fleet** | Warden Merrow | Escort a ship of filled soul gems across the Saltmere islands. The Ashbound attack at sea. | Sailing, fighting | Merrow's seal |
@@ -496,6 +496,6 @@ What the quest system needs beyond what's built today:
 
 A sensible order: **the Prologue and Act 1 can start in today's 2D game**
 (they're all in Heartvale and use existing skills), along with adding the
-Lighthall, Keeper Aldric and Sister Celene, and renaming the bandits to the
+Lighthall, High Keeper Aldric and Keeper Celene, and renaming the bandits to the
 Ashbound. Acts 2 to 4 and the Crown need the new regions, so they fit best in
 Version 1.0.

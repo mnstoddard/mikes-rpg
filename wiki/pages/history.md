@@ -10,11 +10,11 @@ The game takes place in **year 800 After the Fall**. Oldest first. For the offic
 |---|---|---|
 | Before 0 | [[Aldmera]], the kingdom of the [[Aldmere]], covers the whole land, ruled from [[Whitestone]]. Its roads, towers and bridges stand everywhere. Country folk called [[The Tenders]] live by one rule: "take only what the land gives back." | "A golden age." |
 | The last years before 0 | 🔒 [[King Aldemar XVIII]] leads [[The Ember Circle]] in a great working to harness [[The Emberheart]] for all Aldmera. [[Archmage Vale]] and [[Wick]] are his two highest. | "The Circle was the pride of the kingdom." |
-| 0 | [[The Emberfall (disaster)|The Emberfall]]. 🔒 As the work concludes, Vale twists the working and it breaks loose. The king gives his life to hold it back for a year while embers rain down, and Aldmera falls. Every member of the Circle is filled with power and stops ageing, Vale most of all. Only Vale knows what he did. | "The land's fire woke. The king gave his life to hold it back, and the Circle built the shrines." |
-| 0 to 10 | Each member of the Circle raises a great shrine in their own region to pin the torrent down (see [[The shrines]]). | "The great mages saved what was left." |
-| About 30 | The shrines raise the first [[Emberborn]] from the wild ember, protectors to stabilize and guard the ruined land. | Same. |
-| About 50 | The Circle founds [[The Emberguard]] to keep the shrines and train the Emberborn. | Same. |
-| 0 to 200 | [[The Rebuilding]]. It takes two centuries to take back control of the land. Cities grow up around the great shrines, [[Emberhold]] around the Heart Shrine. | "The age of heroes." |
+| 0 | [[The Emberfall (disaster)|The Emberfall]]. 🔒 As the work concludes, Vale twists the working and it breaks loose. The king gives his life to hold it back for about forty years while embers rain down and the Circle works out how to build the shrines, and Aldmera falls. Every member of the Circle is filled with power and stops ageing, Vale most of all. Only Vale knows what he did. | "The land's fire woke. The king gave his life to hold it back, and the Circle built the shrines." |
+| About 40 | Each member of the Circle raises a great shrine in their own region to pin the torrent down (see [[The shrines]]). | "The great mages saved what was left." |
+| About 70 | The shrines raise the first [[Emberborn]] from the wild ember, protectors to stabilize and guard the ruined land. | Same. |
+| About 80 | The Circle founds [[The Emberguard]] to keep the shrines and train the Emberborn. | Same. |
+| 40 to 250 | [[The Rebuilding]]. It takes two centuries to take back control of the land. Cities grow up around the great shrines, [[Emberhold]] around the Heart Shrine. | "The age of heroes." |
 | About 200 | The first Emberborn begin to fade ([[The Fading]]). Vale creates the [[Radiance Ceremony]] so a weary Emberborn can retire. 🔒 The ember goes to Vale. Halric the Dawnbringer is the first of [[The Extinguished]]. | "One flame goes out so a hundred can be lit." |
 | 200 to 400 | Ceremonies become normal and honoured. 🔒 Vale grows stronger. The rest of the Circle slowly grows greedy on the power their shrines pull in. Small shrines spread along every road. Vale and the others drink more from the threads, the shrines' warmth reaches less far, and the land furthest from them starts to wither. | "The Emberguard keep us safe." |
 | About 400 | 🔒 Wick grows suspicious, and finds out what the Ceremony really does. | |
@@ -31,10 +31,6 @@ The game takes place in **year 800 After the Fall**. Oldest first. For the offic
 
 ## What the game still says
 
-This timeline was settled after the latest game update. Until Mike's next update, the game's own text still follows the older story:
+The game's books, the Emberhall and Act 1 now follow this timeline: the year is 800, the old kingdom is Aldmera, the books blame Wick for the Fall, the empty plinth shows a **W**, embers drift through the Emberhall, and the Act 1 clues show the land dying farthest from the shrines. One thing still follows the older story:
 
-- The books and quest text say the game is set **500 years** after the Fall, and talk about the "Old Kingdom" and a war over shards.
-- The empty plinth in the Emberhall shows the letter **S**. In the new story it's Wick's plinth, so it will become a **W**.
 - [[Old Maren]] is the fishing teacher. In the new story she's a kindly old woman who helps the Emberborn, and not an Emberborn herself.
-- There are no floating embers in the Emberhall yet.
-- The Act 1 clues still say the shrines kill the land near them: Holt counts 28 dead trees near shrines and 2 far away, the rebuilt Westroad shrine browns the grass, Kael says the Blight is worst downhill of a shrine, and Odo says the ground got tired once the shrines came. Two books say the same (*The Withering: notes from the Barrens* and *Herbs of the Valley*). In the new story the shrines are good, and the land dies far from them because Vale drains them (see [[The shrines]]).

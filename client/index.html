@@ -123,6 +123,17 @@
     .skill-bar div { height: 100%; background: #5fb84a; transition: width .3s; }
     .skill-xp { grid-column: 1 / 4; font-size: 12px; color: #c9bc9c; margin-top: 2px; }
     .skill.flash { animation: flash 1.2s ease-out; }
+    /* The very first quest (version 0.21): only the 🎒 bag works, and it glows; then the robe piece, then Equip. */
+    @keyframes robe-glow { 50% { box-shadow: 0 0 6px 2px #ffd84a, 0 0 16px 6px rgba(255, 170, 40, .7); } }
+    body.robe-lock:not([data-panel="inventory"]) #bag-tab, body.robe-lock .robe-glow { animation: robe-glow 1.1s ease-in-out infinite; box-shadow: 0 0 4px 1px #ffd84a; position: relative; z-index: 5; }
+    @keyframes wobble { 20% { transform: rotate(-10deg) scale(1.1); } 40% { transform: rotate(9deg) scale(1.1); } 60% { transform: rotate(-6deg); } 80% { transform: rotate(4deg); } }
+    #bag-tab.wobble, body.lesson-dim .wobble { animation: wobble .5s ease-in-out !important; }
+    /* One click at a time: everything dims except a spotlight on the thing to click (version 0.21). */
+    #lesson-spot { display: none; position: fixed; z-index: 9999; pointer-events: none; border-radius: 10px;
+      box-shadow: 0 0 0 200vmax rgba(0, 0, 0, .62), 0 0 0 3px #ffd84a, 0 0 18px 6px rgba(255, 190, 60, .8); transition: left .2s, top .2s, width .2s, height .2s; }
+    body.lesson-dim #lesson-spot { display: block; }
+    body.run-lesson #run3d:not(.on) { animation: robe-glow 1.1s ease-in-out infinite; box-shadow: 0 0 4px 1px #ffd84a; }
+    body.robe-lock #joystick, body.robe-lock .panel.btn.tab:not(#bag-tab) { opacity: .35; }
     @keyframes flash { from { background: rgba(255, 216, 74, .5); } to { background: rgba(0,0,0,.25); } }
 
     /* Phones and other small screens */
@@ -275,6 +286,10 @@
     .info-row .dura div { height: 100%; background: #5fb84a; }
     #info .craft-head { margin-bottom: 6px; }
     .svg-icon { width: 1em; height: 1em; display: block; }
+    /* Item pictures (version 0.21): each item's own 3D model, from one picture sheet. */
+    .pic-icon { width: 1.25em; height: 1.25em; display: block; background: url(icons/items.png) no-repeat; image-rendering: auto; }
+    #drag-ghost .pic-icon { width: 30px; height: 30px; }
+    #amount .amount-icon .pic-icon { width: 24px; height: 24px; }
     .slot > span, .belt-slot > span { display: flex; align-items: center; justify-content: center; }
     .skill { cursor: pointer; }
     /* Stamina: always showing, under the player count */
@@ -358,6 +373,11 @@
     #quest .q-task { color: #fff; font-size: 13px; line-height: 1.35; }
     #quest .q-progress { margin-top: 3px; font-size: 11px; color: #9be28a; }
     #quest .q-warn { margin-top: 3px; font-size: 12px; color: #ff9a8a; }
+    #quest .q-check { margin-top: 4px; display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
+    #quest .q-check div { color: #f0e6cc; }
+    #quest .q-check div::before { content: "☐ "; color: #c9b88a; }
+    #quest .q-check div.done { color: #9be28a; text-decoration: line-through; text-decoration-color: rgba(155, 226, 138, 0.5); }
+    #quest .q-check div.done::before { content: "✓ "; color: #9be28a; }
     #quest .q-bar { height: 6px; margin-top: 3px; background: #1d170f; border: 1px solid #6b5a3e; border-radius: 3px; overflow: hidden; }
     #quest .q-bar div { height: 100%; background: #9be28a; transition: width .3s; }
     #quest.flash { animation: flash 1.2s ease-out; }
@@ -391,7 +411,15 @@
       #dialog-text { font-size: 14px; }
     }
     /* 📜 Quests tab: Maren's quest and the board's bounties. Tap one to track it. */
-    #quests { width: 290px; max-height: calc(100vh - 100px); overflow-y: auto; }
+    #quests { width: min(300px, calc(100vw - 24px)); box-sizing: border-box; max-height: calc(100vh - 140px); max-height: calc(100dvh - 140px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); overflow-y: auto; overscroll-behavior: contain; }
+    .qt-tabs { display: flex; gap: 4px; margin: 0 0 6px; position: sticky; top: -8px; background: inherit; z-index: 1; padding-top: 2px; }
+    .qt-tab { flex: 1; font: inherit; font-size: 12px; padding: 6px 2px; border-radius: 4px; border: 1px solid #6b5a3e; background: rgba(0,0,0,.3); color: #f2e6c9; cursor: pointer; touch-action: manipulation; }
+    .qt-tab.on { border-color: #ffd84a; background: #5a4a2f; color: #ffd84a; }
+    .qt-recap-row { cursor: pointer; }
+    .qt-recap { margin: -2px 0 6px; padding: 6px 8px; background: rgba(0,0,0,.35); border-left: 2px solid #ffd84a; border-radius: 0 3px 3px 0; }
+    .qt-recap-where { font-size: 11px; color: #c9bc9c; margin-bottom: 4px; }
+    .qt-recap-step { font-size: 12px; color: #9be28a; margin-top: 4px; }
+    .qt-recap-said { font-size: 11.5px; color: #f2e6c9; font-style: italic; margin: 2px 0 0 12px; line-height: 1.35; }
     .qt-head { font-size: 11px; color: #c9bc9c; margin: 6px 0 3px; }
     .qt-row { display: grid; grid-template-columns: auto 26px 1fr; gap: 1px 6px; align-items: center; padding: 6px 7px; margin-bottom: 3px; background: rgba(0,0,0,.25); border: 1px solid transparent; border-radius: 3px; cursor: pointer; touch-action: manipulation; }
     .qt-row:hover { background: rgba(255,255,255,.08); }

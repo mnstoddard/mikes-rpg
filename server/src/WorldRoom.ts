@@ -5,7 +5,7 @@ import { PLAYER_RADIUS, clearAt, findPath, Point, smoothPath } from "../../share
 import {
   RESOURCES, RESOURCE_FOR_ITEM, ROCK_EMPTY_CHANCE, ResourceId, TREE_FALL_CHANCE,
   FORAGE_FINDS, PATCH_EMPTY_CHANCE, isDigPatch, rollForageFind,
-  fishAt, forageXp, gatherChancePerTick, gatherSuccessChance, masteryIn, nodeAt, resourcesFor, treeKey,
+  fishAt, forageXp, gatherChancePerTick, gatherStepPerTick, gatherSuccessChance, steadyGather, masteryIn, nodeAt, resourcesFor, treeKey,
 } from "../../shared/foraging";
 import {
   ItemMasteryXp, MasteryId, masteryIn as masteryLevelIn, masteryLevelForXp, percent,
@@ -17,7 +17,7 @@ import {
 } from "../../shared/disciplines";
 import {
   ALL_MASTERY_IDS, Recipe, buyPriceFor, failXp, gearDurability, masteryName, recipeFor, recipeWear, sellPriceFor,
-  successFor,
+  successFor, SMITH_ORDER, smithLevel,
 } from "../../shared/crafting";
 import {
   AGGRO_RADIUS, ALL_COMBAT_MASTERY_IDS, ATTACK_STAMINA, Attack, CombatMasteryId, CombatMasteryXp, HEALTH_REGEN_MS, HEALTH_REGEN_TICKS,
@@ -58,7 +58,7 @@ import {
   fireDamage, fits, frostTicks, guardPercent, isEnchantId, isSpent, lifeStealPercent, manaFlowPercent, poisonDamage, soulPower, staffHit, stripEnchants,
   thornsDamage, vitalityHp, swiftPercent, bountyPercent, tirelessPercent, wisdomPercent,
 } from "../../shared/enchanting";
-import { Material, Metal, barId, baseItem, isWoodTool } from "../../shared/tools";
+import { MATERIALS, MATERIAL_IDS, Material, Metal, barId, baseItem, isWoodTool } from "../../shared/tools";
 import { ARROW_RECOVER, ARROW_LEVEL, ArrowId, CLOTH_LEVEL, SOFT_LEVEL, TANNING, THREAD_LEVEL, WOOD_LEVEL, arrowId } from "../../shared/handicraft";
 import { ArmorType, SOFT_NAMES } from "../../shared/gear";
 
@@ -85,7 +85,7 @@ import {
   questMarks, marenDone, stewsBurn, ChapterProgress, Chapter, ChapterId,
 } from "../../shared/quests";
 import { SHOPS, SHOP_IDS, ShopId, isShop } from "../../shared/shops";
-import { RepairJob, isBroken, isRepairable, maxUses, repairCost } from "../../shared/repair";
+import { RepairJob, isBroken, isRepairable, kindName, maxUses, pickSpare, repairFee, repairKind } from "../../shared/repair";
 import { BOUNTY_COUNT, Bounty, bountyChoices, bountyName, bountyReward, newBoard, newBounty, slotCounts, validBounty } from "../../shared/bounties";
 import { roomError } from "./crashes";
 import { Account, MAP_REV, SAVE_VERSION, SaveData, checkPassword, hashPassword, store, usernameKey } from "./storage";
@@ -95,7 +95,7 @@ import { REROLL_FEE, boardDay } from "../../shared/bounties";
 import { MagicJob, isJob } from "../../shared/guild";
 import { canBuyHere } from "../../shared/shops";
 import { CHAPTERS, gateMet, litLanterns, oathSworn, opensAfter, rankOf, talkWith } from "../../shared/quests";
-import { BLESS_MINUTES, BLESS_POWER, RANKS as LIGHT_RANKS, STORY_ITEMS, SPOT_NAMES, TITHE_MAX, TITHE_SHARE, isStoryItem, titheCost } from "../../shared/story";
+import { BLESS_MINUTES, BLESS_POWER, FOUR_BOOKS, LISETTE_EXCUSES, RANKS as LIGHT_RANKS, STORY_ITEMS, SPOT_NAMES, TITHE_MAX, TITHE_SHARE, isStoryItem, titheCost } from "../../shared/story";
 import { AREAS, DOORS, PLACES } from "../../shared/map";
 import { stepSpots } from "./questTargets";
 import { cleanLook } from "../../shared/look";
@@ -103,6 +103,7 @@ import {
   CROPS, CROP_IDS, CropId, FARM_CHEST_PRICE, FarmView, LOTS, LOT_SIZE, MASTERY_EXTRA, PLANT_XP, PLOT_SIZES, SEED_BACK, SEED_BACK_PER_LEVEL, SeedId,
   cropOfSeed, decodeCrop, encodeCrop, inPlot, isSeed, lotAt, plotPrice, seedId, tileOf, timeLeft,
 } from "../../shared/farming";
+import { HV_WALL, LOT_PLACES } from "../../shared/world";
 
 const STEP_LOOP_MS = 50; // how often the server checks whether someone should take a step
 const AUTOSAVE_TICKS = 100; // 100 x 0.6s = once a minute
@@ -182,6 +183,7 @@ export class Player extends Schema {
   @type("number") tithe = 0; // Tithe marks (Ember Debt): others see the gold links by your health bar
   @type("string") held = ""; // the weapon in your hand (item id, "" for bare fists), so others see what you fight with
   @type("boolean") running = false; // running (shared/stats.ts RUN_SPEED): others see you run
+  @type("string") worn = ""; // the armor you have on, comma separated item ids (helmet_bronze,platebody_cloth), so others see it on you
   @type("string") look = ""; // how your 3D character looks: the Character Workshop's recipe as JSON (shared/look.ts), "" until you make one
 
   // Server-only (not synced to everyone):
@@ -192,6 +194,8 @@ export class Player extends Schema {
   movedAt = 0; // when we last moved them (ms), to know how far to go this time
   gateToldAt = 0; // when we last told them the Dark Forest gate is shut (ms)
   runDist = 0; // how far they've run since breath was last taken for it (tiles)
+  gatherFill = 0; // chopping and mining: how far toward the next log or ore (it comes at gatherNeed)
+  gatherNeed = 1;
   target: Point | null = null; // tree or water the player is heading to / working on
   activity: SkillId | null = null; // what they'll do when they get there
   resource: ResourceId | null = null; // which type of tree / rock / fish
@@ -252,6 +256,11 @@ export class Player extends Schema {
   invite: { from: string; until: number } | null = null; // a party invite waiting for an answer (from = their session id)
   loginNotes: string[] = []; // things to tell the player when they arrive (e.g. what happened to an old, bigger bag)
   dirty = false; // something changed since the last save
+  /** Standing at the restricted section's grille, when Keeper Lisette last stopped you, and how often (version 0.21). */
+  atGrille = false;
+  grilleAt = 0;
+  grilleTries = 0;
+  grilleStreak = 0;
   lastSavedAt = 0;
 }
 
@@ -313,6 +322,7 @@ type QuestEvent =
   | { kind: "sell"; item: ItemId }
   | { kind: "buy"; item: ItemId }
   | { kind: "repair" }
+  | { kind: "trash"; item: ItemId }
   | { kind: "kill"; monster: MonsterId; style?: CombatStyle }
   | { kind: "drink" }
   | { kind: "enchant" }
@@ -423,6 +433,8 @@ export class WorldRoom extends Room<WorldState> {
       const p = this.state.players.get(client.sessionId);
       if (!p || !Number.isInteger(msg?.x) || !Number.isInteger(msg?.y)) return;
       if (!isWalkable(msg.x, msg.y)) return;
+      // Putting on the robe at the very start (version 0.21, Mike's note): you can't walk off until it's on.
+      if (this.robeStep(p)) return;
       this.stopActions(p);
       const goal = { x: msg.x, y: msg.y };
       const path = p.x === goal.x && p.y === goal.y ? [goal] : findPath({ x: p.x, y: p.y }, goal);
@@ -442,6 +454,7 @@ export class WorldRoom extends Room<WorldState> {
       const dx = msg?.dx, dy = msg?.dy;
       if (!p || !Number.isFinite(dx) || !Number.isFinite(dy)) return;
       const len = Math.hypot(dx, dy);
+      if (len >= 0.01 && this.robeStep(p)) return; // dressing first (version 0.21)
       if (len < 0.01) {
         if (p.walkDir) { p.walkDir = null; p.path = []; }
         return;
@@ -456,6 +469,11 @@ export class WorldRoom extends Room<WorldState> {
       const p = this.state.players.get(client.sessionId);
       if (!p) return;
       p.running = !!msg?.on;
+      if (p.running && this.carried(p) > this.capacity(p)) {
+        p.running = false;
+        client.send("heavy", true);
+        this.say(client, "🏋️ You're carrying too much to run. Sell, trash or store something first.");
+      }
       p.outOfBreath = false;
       p.stepMs = this.stepMsOf(p);
     });
@@ -701,8 +719,9 @@ export class WorldRoom extends Room<WorldState> {
       const item = p.inventory[msg.slot];
       if (!item || !isFood(item)) return;
       if (isProtected(p.quest, item)) return this.say(client, this.keepIt(p, item, "eat"));
-      const questEat = this.step(p)?.goal.kind === "eat" && isMeal(item); // Maren asked you to eat it, so you can even when full
-      if (p.stamina >= p.maxStamina && !questEat) return this.say(client, `You're not hungry. Your stamina is full (${p.maxStamina}).`);
+      // Maren's stew lesson (Mike's note, version 0.22): with stamina already full the stew would do nothing, so use some up first.
+      if (p.stamina >= p.maxStamina && this.step(p)?.goal.kind === "eat" && isMeal(item)) return this.say(client, "⚡ Your stamina's full, so the stew would go to waste. Catch a few fish at the pond to use some up, then eat it.");
+      if (p.stamina >= p.maxStamina) return this.say(client, "You're not hungry. Your stamina is full.");
       const gain = foodStamina(item, p.mastery, this.tree(p, "cooking", "mealStamina"));
       takeFromEntry(p, msg.slot, 1);
       const before = p.stamina;
@@ -967,7 +986,7 @@ export class WorldRoom extends Room<WorldState> {
       const step = this.step(p);
       if (!step) this.say(client, tutorialDone(p.quest) ? "Welcome back!" : "Welcome back! Talk to anyone with a ❗ for your next lesson.");
       else if (p.quest.active === "awakening" && p.quest.ch.awakening?.step === 0) {
-        // The opening scene (Mike's note #1): you wake lying by the shrine, and Sister Celene comes over, helps you up and talks to you.
+        // The opening scene (Mike's note #1): you wake lying by the shrine, and Keeper Celene comes over, helps you up and talks to you.
         this.say(client, "✨ You open your eyes on the steps of the Heart Shrine. The flame crackles above you, and someone is hurrying over.");
         const celene = npcById("celene")!;
         this.doTalk(client, p, chapterById("awakening"), this.step(p)!, celene, [], true);
@@ -981,11 +1000,12 @@ export class WorldRoom extends Room<WorldState> {
       const p = this.state.players.get(client.sessionId);
       if (!p || !Number.isInteger(msg?.slot) || !p.inventory[msg.slot]) return;
       const item = p.inventory[msg.slot]!;
-      if (p.locked[msg.slot]) return this.say(client, `That ${ITEMS[item].single} is locked. Unlock it to drop it.`);
+      if (p.locked[msg.slot]) return this.say(client, `That ${ITEMS[item].single} is locked. Unlock it to trash it.`);
       if (isProtected(p.quest, item)) return this.say(client, this.keepIt(p, item, "drop"));
       if (isStoryItem(item) && !STORY_ITEMS[item].droppable) return this.say(client, `Better keep your ${ITEMS[item].single}. It's part of your story.`);
       clearEntry(p, msg.slot); // the whole stack
       this.sendInventory(client, p);
+      this.questEvent(p, client, { kind: "trash", item });
       this.saveSoon(p);
     });
 
@@ -1457,6 +1477,7 @@ export class WorldRoom extends Room<WorldState> {
       return false;
     }
     this.checkReach(p);
+    this.checkGrille(p);
     return true;
   }
 
@@ -1559,10 +1580,11 @@ export class WorldRoom extends Room<WorldState> {
     }
     if (p.action !== action) {
       p.action = action;
+      p.gatherFill = 0;
       p.faceX = t.x;
       p.faceY = t.y;
       if (client) {
-        this.say(client, START[gather] + (belt ? "" : ` You have no ${TOOL_TYPES[tool].name.toLowerCase()} on your belt, so it's 3 times slower. The trainers sell them.`));
+        this.say(client, START[gather] + (belt ? "" : ` It's much faster with ${aOr(TOOL_TYPES[tool].name.toLowerCase())} on your belt. The trainers sell them.`));
       }
       return;
     }
@@ -1577,7 +1599,16 @@ export class WorldRoom extends Room<WorldState> {
     const bait = baitSlot >= 0 ? BAITS[p.inventory[baitSlot] as BaitId] : null;
     // Faster with the skill tree's "Quick hands", and with speed bait.
     const boost = 1 + this.tree(p, skill, "speed") + (bait?.effect === "speed" ? bait.amount : 0);
-    if (!FAST_GATHER_FOR_TESTS && Math.random() >= gatherChancePerTick(resource, mastery, belt ? toolBonus(belt.item) : null) * boost) return;
+    if (!FAST_GATHER_FOR_TESTS) {
+      const tb = belt ? toolBonus(belt.item) : null;
+      if (steadyGather(resource)) {
+        // Steady (version 0.22): each swing fills toward the next log, no lucky streaks.
+        p.gatherFill += gatherStepPerTick(resource, mastery, tb) * boost;
+        if (p.gatherFill < p.gatherNeed) return;
+        p.gatherFill = 0;
+        p.gatherNeed = 0.85 + Math.random() * 0.3;
+      } else if (Math.random() >= gatherChancePerTick(resource, mastery, tb) * boost) return;
+    }
     if (Math.random() >= gatherSuccessChance(resource, mastery)) {
       // Never happens yet (success is always 100%); here for harder types later.
       if (client) this.say(client, skill === "fishing" ? "Something bites, but it gets away." : "You don't manage to get anything.");
@@ -2037,6 +2068,7 @@ export class WorldRoom extends Room<WorldState> {
     if (npc.id === "bryn") this.renownTalk(client, p); // a new rank, if you've earned one
     if (this.robeHelp(client, p, npc)) return;
     if (this.storyClick(client, p, npc)) return;
+    if (npc.id.startsWith("book_")) return this.bookClick(client, p, npc);
     if (this.talkQuest(client, p, npc)) return;
     if (STORY_STATIONS.has(npc.id)) return this.say(client, `${npc.name}: ${this.stationLook(p, npc)}`);
     if (npc.id === "maren") return;
@@ -2329,11 +2361,16 @@ export class WorldRoom extends Room<WorldState> {
     const sid = this.sidOf(p);
     const client = sid ? this.clients.getById(sid) : undefined;
     if (this.robeStep(p)) {
-      if (client) this.dialog(client, ["Not like that, friend! Put your robe on first: open your 🎒 bag, click the robe, then press Equip. Then come and meet Keeper Aldric."], "Sister Celene");
+      if (client) this.dialog(client, ["Not like that, friend! Put your robe on first: open your 🎒 bag, click the robe, then press Equip. Then come and meet High Keeper Aldric."], "Keeper Celene");
       return;
     }
     if (isDanger(door.to.x, door.to.y) && !isDanger(p.x, p.y) && !gateOpen(p.quest)) {
       if (client) this.say(client, this.notReady());
+      return;
+    }
+    // Emberhold's gates (version 0.20): Initiates stay inside the walls until they've sworn the Oath of the Flame.
+    if (door.gate && !chapterDone(p.quest, "oath")) {
+      if (client) this.dialog(client, ["Halt there, Initiate! Nobody goes out into the valley until they've sworn the Oath of the Flame at the Emberhall. Finish your training first: open 📜 Quests to see what's next."], "Gate guard");
       return;
     }
     if (this.heldInTown(p, door.to)) {
@@ -2956,12 +2993,26 @@ export class WorldRoom extends Room<WorldState> {
 
   // ---- The Repairer (shared/repair.ts), at the Mages' Guild ----
 
-  /** Everything worn or broken: belt tools, gear you're wearing, and tools and gear in your bag. */
+  /** Spares in your bag that could give their ember to a repair (not locked, not enchanted, not one the story needs). */
+  private spares(p: Player, except = -1) {
+    const out: { entry: number; item: ItemId; left: number }[] = [];
+    p.inventory.forEach((item, e) => {
+      if (e === except || !item || !isRepairable(item) || p.locked[e] || item.includes("+") || isProtected(p.quest, item)) return;
+      out.push({ entry: e, item, left: p.durability[e] ?? maxUses(item) });
+    });
+    return out;
+  }
+
+  /** Everything worn or broken (belt tools, gear you're wearing, tools and gear in your bag), with the spare that would fix it. */
   private repairJobs(p: Player): RepairJob[] {
     const jobs: RepairJob[] = [];
     const add = (where: RepairJob["where"], key: string | number, item: ItemId, durability: number) => {
-      const cost = repairCost(item, durability);
-      if (cost > 0) jobs.push({ where, key, item, durability, max: maxUses(item), cost });
+      const max = maxUses(item);
+      if (durability >= max) return;
+      const kind = repairKind(item);
+      if (!kind) return;
+      const spare = pickSpare(item, max - Math.max(0, durability), this.spares(p, where === "bag" ? key as number : -1)) ?? undefined;
+      jobs.push({ where, key, item, durability, max, kind, spare, cost: spare ? repairFee(item, spare.restores) : 0 });
     };
     for (const type of TOOL_TYPE_IDS) { const t = p.belt[type]; if (t) add("belt", type, t.item, t.durability); }
     for (const slot of GEAR_SLOTS) { const g = p.gear[slot]; if (g) add("gear", slot, g.item, g.durability); }
@@ -2969,7 +3020,7 @@ export class WorldRoom extends Room<WorldState> {
     return jobs;
   }
 
-  /** Old Maren's lesson: your first repair (her broken rod) is free. */
+  /** Old Maren's lesson used to send you here with a free repair (no longer: version 0.22). */
   private freeRepair(p: Player) {
     return this.step(p)?.goal.kind === "repair";
   }
@@ -2978,31 +3029,50 @@ export class WorldRoom extends Room<WorldState> {
     client.send("repair", { jobs: this.repairJobs(p), free: this.freeRepair(p), open });
   }
 
-  /** Fix these, as many as you can pay for (cheapest first when you can't afford them all). */
+  /** Pour a spare's ember into a worn thing (Oswin, or your own Mend). Returns the uses it gave back. */
+  private mendWith(p: Player, j: RepairJob): number {
+    if (!j.spare) return 0;
+    const gain = j.spare.restores;
+    if (j.where === "belt") p.belt[j.key as ToolType]!.durability = Math.min(j.max, Math.max(0, j.durability) + gain);
+    else if (j.where === "gear") p.gear[j.key as GearSlot]!.durability = Math.min(j.max, Math.max(0, j.durability) + gain);
+    else p.durability[j.key as number] = Math.min(j.max, Math.max(0, j.durability) + gain);
+    takeFromEntry(p, j.spare.entry, 1);
+    p.dirty = true;
+    return gain;
+  }
+
+  /** Fix these, one at a time (each uses up a spare of the same kind from your bag), as many as you have spares and coins for. */
   private doRepairs(client: Client, p: Player, jobs: RepairJob[]) {
     if (!this.nearNpc(p, "repairer")) return this.say(client, "You need to be next to the Repairer at the Mages' Guild.");
     if (!jobs.length) return this.say(client, "Repairer Oswin: Nothing here needs fixing!");
     const free = this.freeRepair(p);
-    const order = jobs.length > 1 ? [...jobs].sort((a, b) => a.cost - b.cost) : jobs;
     let paid = 0;
     const fixed: string[] = [];
+    const missing = new Set<string>();
     let short = 0;
-    for (const j of order) {
+    // The bag changes as spares are used up, so work out each job again before doing it.
+    const wanted = jobs.map((j) => `${j.where}:${j.key}`);
+    for (let n = 0; n < 40; n++) {
+      const j = this.repairJobs(p).find((x) => wanted.includes(`${x.where}:${x.key}`) && !fixed.includes(`${x.where}:${x.key}`) && !missing.has(`${x.where}:${x.key}`));
+      if (!j) break;
+      const id = `${j.where}:${j.key}`;
+      if (!j.spare) { missing.add(id); continue; }
       const cost = free ? 0 : j.cost;
-      if (p.coins < cost) { short++; continue; }
+      if (p.coins < cost) { short++; missing.add(id); continue; }
       p.coins -= cost;
       paid += cost;
-      if (j.where === "belt") p.belt[j.key as ToolType]!.durability = j.max;
-      else if (j.where === "gear") p.gear[j.key as GearSlot]!.durability = j.max;
-      else p.durability[j.key as number] = j.max;
-      fixed.push(ITEMS[j.item].single);
+      this.mendWith(p, j);
+      fixed.push(id);
     }
     if (fixed.length) {
-      const list = fixed.length > 3 ? `${fixed.length} things` : fixed.length > 1 ? `${fixed.slice(0, -1).join(", ")} and ${fixed[fixed.length - 1]}` : `your ${fixed[0]}`;
-      this.say(client, free ? `Repairer Oswin fixes ${list} for free. "Maren's an old friend. The next one costs, mind!"`
-        : `Repairer Oswin fixes ${list} for ${formatMoney(paid)}. Good as new!`);
-      p.dirty = true;
+      this.say(client, free ? `Repairer Oswin draws the ember from your spare into ${fixed.length > 1 ? `${fixed.length} things` : "it"}. "Maren's an old friend. The next one costs, mind!"`
+        : `Repairer Oswin draws the ember out of your spare${fixed.length > 1 ? "s" : ""} and into ${fixed.length > 1 ? `${fixed.length} things` : "it"}, for ${formatMoney(paid)}. "Everything that comes from the land holds a little ember, even an old axe."`);
       this.questEvent(p, client, { kind: "repair" });
+    }
+    const noSpare = [...missing].length - short;
+    if (noSpare > 0 && !fixed.length) {
+      const j = jobs.find((x) => !x.spare) ?? jobs[0];
+      this.say(client, `Repairer Oswin: "I need a spare ${kindName(j.kind)} to fix that: any ${kindName(j.kind)} will do, but a finer one gives more. Its ember goes into yours."`);
     }
     if (short) this.say(client, `You don't have enough coins to fix ${fixed.length ? `the other ${short}` : short === 1 ? "that" : "those"}.`);
     this.sendInventory(client, p);
@@ -3256,30 +3326,12 @@ export class WorldRoom extends Room<WorldState> {
 
   /** Mend: fix your most worn tool, weapon or armor piece, using 1 of what it's made of. */
   private mend(client: Client, p: Player): string | null {
-    type Worn = { where: "belt" | "gear"; key: string; item: ItemId; left: number; max: number };
-    const worn: Worn[] = [];
-    for (const t of TOOL_TYPE_IDS) { const b = p.belt[t]; if (b) worn.push({ where: "belt", key: t, item: b.item, left: b.durability, max: maxDurability(b.item) }); }
-    for (const sl of GEAR_SLOTS) { const g = p.gear[sl]; if (g) worn.push({ where: "gear", key: sl, item: g.item, left: g.durability, max: gearDurability(g.item) }); }
-    const target = worn.filter((w) => w.left < w.max).sort((a, b) => a.left / a.max - b.left / b.max)[0];
-    if (!target) return "Nothing you're using is worn. (Mend fixes tools on your belt and gear you're wearing.)";
-    // What it's made of: its metal's bar, or (for a fishing rod, or a wooden bow or staff) a log of its wood.
-    let material: ItemId;
-    if (isTool(target.item)) {
-      const t = parseTool(target.item);
-      material = isWoodTool(t.type) ? `${t.wood!}_logs` as ItemId : barId(t.metal as Metal);
-    } else if (isWeapon(target.item)) {
-      const w = parseWeapon(target.item);
-      material = w.metal === "stone" ? `${w.wood}_logs` as ItemId : barId(w.metal as Metal);
-    } else {
-      const m = parseArmor(target.item as never).metal;
-      material = m === "leather" || m === "cloth" ? m : barId(m);
-    }
-    if (!p.inventory.some((it, i) => it === material && !p.locked[i])) {
-      return `Mend needs 1 ${ITEMS[material].single} to fix your ${ITEMS[baseItem(target.item) as ItemId].single}.`;
-    }
-    takeItem(p, material, 1, (e) => !p.locked[e]);
-    if (target.where === "belt") p.belt[target.key as ToolType]!.durability = target.max;
-    else p.gear[target.key as GearSlot]!.durability = target.max;
+    // Version 0.22: Mend draws the ember out of a spare of the same kind in your bag (any axe for an axe), like Oswin does.
+    const worn = this.repairJobs(p).filter((j) => j.where !== "bag").sort((a, b) => a.durability / a.max - b.durability / b.max);
+    if (!worn.length) return "Nothing you're using is worn. (Mend fixes tools on your belt and gear you're wearing.)";
+    const target = worn.find((j) => j.spare) ?? worn[0];
+    if (!target.spare) return `Mend needs a spare ${kindName(target.kind)} in your bag: its ember goes into the one you're using. Any ${kindName(target.kind)} will do, but a finer one gives more.`;
+    this.mendWith(p, target);
     this.sendInventory(client, p);
     if (target.where === "belt") client.send("belt", p.belt); else this.sendGear(client, p);
     return null;
@@ -3386,6 +3438,8 @@ export class WorldRoom extends Room<WorldState> {
 
   private sendGear(client: Client, p: Player) {
     p.held = p.gear.weapon?.item ?? "";
+    // The armor everyone sees you wearing (the weapon is `held`; a shield is armor too).
+    p.worn = (["head", "body", "legs", "feet", "offhand"] as const).map((sl) => p.gear[sl]?.item ?? "").filter((id) => id && !isWeapon(id)).join(",");
     client.send("gear", { gear: p.gear, spell: p.spell });
   }
 
@@ -3427,6 +3481,8 @@ export class WorldRoom extends Room<WorldState> {
       counts = 1;
     } else if (g.kind === "repair" && ev.kind === "repair") {
       counts = 1;
+    } else if (g.kind === "trash" && ev.kind === "trash") {
+      if (ev.item.startsWith(g.prefix)) counts = 1;
     } else if (g.kind === "kill" && ev.kind === "kill") {
       if ((!g.monster || ev.monster === g.monster) && (!g.style || ev.style === g.style)) counts = 1;
     } else if (g.kind === "drink" && ev.kind === "drink") {
@@ -3501,6 +3557,8 @@ export class WorldRoom extends Room<WorldState> {
         this.say(client, `🎉 Quest complete: ${chapter.title}!`);
         client.send("questDone", { quest: chapter.title });
       }
+      // The Four Books done: Lisette is ticked off The Hall of Embers' checklist, and that quest picks up again (version 0.21).
+      if (chapter.id === "four_books" && this.tickLisette(p, client)) return;
     }
     this.saveSoon(p);
     this.refreshStats(p, client); // a lesson may have taught you a skill
@@ -3508,11 +3566,27 @@ export class WorldRoom extends Room<WorldState> {
     if (step) this.say(client, `📜 Next: ${step.task}.`);
     else {
       // A story chapter that's just opened: say who to see next.
-      const next = CHAPTERS.find((c) => (c.act || c.id === "maren") && !p.quest.ch[c.id] && chapterOpen(p.quest, c.id) && gateMet(c, this.levelOf(p)));
+      const next = CHAPTERS.find((c) => (c.act || c.id === "maren") && !c.side && !p.quest.ch[c.id] && chapterOpen(p.quest, c.id) && gateMet(c, this.levelOf(p)));
       if (next) this.say(client, `📜 Next: ${next.title}. Talk to ${next.name}, ${next.where}.`);
       else if (!tutorialDone(p.quest)) this.say(client, "📜 Next: talk to anyone with a ❗ for your next lesson (the 📜 Quests tab lists them all).");
     }
     this.sendQuest(client, p);
+  }
+
+  /** Tick Keeper Lisette off The Hall of Embers (her side quest is done). True if that quest is now active (advance() has done the rest). */
+  private tickLisette(p: Player, client: Client | undefined): boolean {
+    const hall = p.quest.ch.hall;
+    const step = hall && chapterById("hall").steps[hall.step];
+    if (!hall || step?.goal.kind !== "visit" || !step.goal.npcs.includes("lisette")) return false;
+    if (!hall.got?.includes("lisette")) hall.got = [...(hall.got ?? []), "lisette"];
+    hall.count = hall.got.filter((id) => (step.goal as { npcs: string[] }).npcs.includes(id)).length;
+    p.quest.active = "hall";
+    p.dirty = true;
+    if (client) this.say(client, `📜 The Hall of Embers: ✓ Keeper Lisette (${hall.count} of ${step.goal.npcs.length} Emberguard).`);
+    if (hall.count >= step.goal.npcs.length) this.advance(p, client);
+    else if (client) this.sendQuest(client, p);
+    this.saveSoon(p);
+    return true;
   }
 
   /** The tutorial makes some crafting turn out a set way: every stew burns until Maren explains it, and some tries always work. */
@@ -3605,7 +3679,8 @@ export class WorldRoom extends Room<WorldState> {
       if (!q.ch[chapter.id]) q.ch[chapter.id] = { step: 0, count: 0 };
       q.active = chapter.id;
       p.dirty = true;
-      if (was) this.say(client, `📜 You switch to ${chapter.name}'s lesson. ${was.name}'s will wait for you: talk to them to pick it up again.`);
+      if (was && chapter.side && chapter.act) this.say(client, `📜 New side quest: ${chapter.title}. ${was.title} waits for you; your 📜 Quests tab has both.`);
+      else if (was) this.say(client, `📜 You switch to ${chapter.name}'s lesson. ${was.name}'s will wait for you: talk to them to pick it up again.`);
       this.sendQuest(client, p);
     }
     const step = this.step(p);
@@ -3647,7 +3722,7 @@ export class WorldRoom extends Room<WorldState> {
     }
     const gifts = giftItems(step.give);
     if (!roomForAll(p, gifts.map((g) => g.item))) {
-      this.dialog(client, [`I've got ${gifts.length === 1 ? "something" : `${gifts.length} things`} for you, but your bag is too full. Make some room and come back.`], chapter.name);
+      this.dialog(client, [`I've got ${gifts.length === 1 ? "something" : `${gifts.length} things`} for you, but your bag is too full. Make some room and come back.`], speaker);
       return true;
     }
     for (const [item, n] of take) takeItem(p, item, n);
@@ -3678,7 +3753,7 @@ export class WorldRoom extends Room<WorldState> {
     }
     if (step.bless) this.bless(client, p);
     if (step.warden) this.giveWarden(client, p);
-    if (step.opensGate) this.say(client, "🚪 The gate to the Dark Forest is open to you now. It's just south of Kael's lodge on the south road, past the ⚠ signs.");
+    if (step.opensGate) this.say(client, "🚪 The gate to the Dark Forest is open to you now. It's in Heartvale, just outside Emberhold's River Gate, past the ⚠ signs (the city gates open after the Oath).");
     if (step.opensBoard) this.say(client, "📋 The bounty board is open to you now. Its jobs are in the 📜 Quests tab too.");
     this.advance(p, client);
     if (step.rank) this.updateRank(client, p);
@@ -3721,14 +3796,14 @@ export class WorldRoom extends Room<WorldState> {
     return p.quest.active === "awakening" && step?.goal.kind === "gear";
   }
 
-  /** Keeper Aldric or Sister Celene, clicked while you're still in your shirt: they walk you through putting the robe on. */
+  /** High Keeper Aldric or Keeper Celene, clicked while you're still in your shirt: they walk you through putting the robe on. */
   private robeHelp(client: Client, p: Player, npc: NpcDef): boolean {
     if ((npc.id !== "aldric" && npc.id !== "celene") || !this.robeStep(p)) return false;
     const step = this.step(p)!;
     const given = this.giveMissing(p, step.ensure);
     if (given) this.sendInventory(client, p);
     this.dialog(client, [
-      npc.id === "aldric" ? "Welcome, welcome! But first things first: let's get you dressed, and then we'll talk properly." : "Let's get you dressed first, then you can meet Keeper Aldric.",
+      npc.id === "aldric" ? "Welcome, welcome! But first things first: let's get you dressed, and then we'll talk properly." : "Let's get you dressed first, then you can meet High Keeper Aldric.",
       "Open your 🎒 bag with the button at the bottom right of the screen. Click the robe, then press Equip. That's all there is to it.",
       ...(given ? [`Here, take ${given}. You must have dropped yours.`] : []),
     ], npc.name);
@@ -3754,7 +3829,7 @@ export class WorldRoom extends Room<WorldState> {
       ashbound_note: ["Charcoal on rough paper, in a hurried hand:", "\"They aren't what they seem.\""],
       marens_charm: ["A little wooden flame, worn smooth. On the back, scratched very small: a single letter, M.", "It's warm, as if someone had only just let go of it."],
       holts_notes: ["Near shrines: 28 dead trees out of 35.", "Far from shrines: 2 dead trees out of 34.", "Underneath, Holt has written: \"Ashbound poison? Then why only near the shrines they DIDN'T smash?\""],
-      lantern: ["Keeper Aldric's lantern. Nights are less dark while you carry it."],
+      lantern: ["High Keeper Aldric's lantern. Nights are less dark while you carry it."],
       shrine_totem: ["Rook's oak totem, carved with the Emberhall's flame."],
     };
     this.dialog(client, text[item] ?? [STORY_ITEMS[item as keyof typeof STORY_ITEMS].description], name);
@@ -3767,15 +3842,41 @@ export class WorldRoom extends Room<WorldState> {
    */
   private storyClick(client: Client, p: Player, npc: NpcDef): boolean {
     const q = p.quest;
+    // Keeper Lisette's tick in The Hall of Embers waits for her side quest (version 0.21): talking to her starts it (talkQuest).
+    if (npc.id === "lisette" && !chapterDone(q, "four_books")) return false;
+    // A visit step in another chapter you've started (a book for Lisette while The Hall of Embers is active): switch to it.
+    const cur = this.step(p);
+    if (!(cur?.goal.kind === "visit" && cur.goal.npcs.includes(npc.id))) {
+      const other = (Object.keys(q.ch) as ChapterId[]).find((id) => {
+        if (id === q.active || chapterDone(q, id)) return false;
+        const st = chapterById(id).steps[q.ch[id]!.step];
+        return st?.goal.kind === "visit" && st.goal.npcs.includes(npc.id) && !q.ch[id]!.got?.includes(npc.id);
+      });
+      if (other) { q.active = other; p.dirty = true; }
+    }
     const step = this.step(p);
     const prog = this.prog(p);
     if (step && prog && step.goal.kind === "visit" && step.goal.npcs.includes(npc.id)) {
-      if (prog.got?.includes(npc.id)) return false;
+      // Keeper Oren's tour (version 0.22, Mike's note): once you've talked to him he walks you round the statues himself.
+      const tourLeft = () => step.tour ? (step.goal as { npcs: string[] }).npcs.filter((id) => id !== step.tour && !prog.got?.includes(id)) : [];
+      if (prog.got?.includes(npc.id)) {
+        if (npc.id === step.tour && tourLeft().length) {
+          this.dialog(client, ["Ready? Come along, then. Stay by me."], step.speaker ?? npc.name);
+          client.send("tour", { guide: npc.id, stops: tourLeft() });
+          return true;
+        }
+        return false;
+      }
+      if (step.tour && npc.id !== step.tour && !prog.got?.includes(step.tour)) {
+        this.dialog(client, [`(${step.speaker ?? "Your guide"} hurries over.) "Ah, not without me! Come and find me first, and I'll walk you round."`], step.speaker ?? npc.name);
+        return true;
+      }
       prog.got = [...(prog.got ?? []), npc.id];
       prog.count = prog.got.filter((id) => (step.goal as { npcs: string[] }).npcs.includes(id)).length;
       p.dirty = true;
       const lines = step.visitLines?.[npc.id];
       if (lines) this.dialog(client, lines, step.speaker ?? npc.name);
+      if (npc.id === step.tour && tourLeft().length) client.send("tour", { guide: npc.id, stops: tourLeft() });
       if (prog.count >= step.goal.npcs.length) this.advance(p, client);
       else { this.say(client, `📜 ${prog.count} of ${step.goal.npcs.length} ${step.goal.names}.`); this.sendQuest(client, p); }
       this.saveSoon(p);
@@ -3797,11 +3898,40 @@ export class WorldRoom extends Room<WorldState> {
     return false;
   }
 
+  /** One of the Four Books that isn't the one you're on (version 0.21): not yet, a later one, or one you've read (read it again). */
+  private bookClick(client: Client, p: Player, npc: NpcDef) {
+    const n = Number(npc.id.slice(5)) - 1;
+    const book = FOUR_BOOKS[n];
+    const prog = p.quest.ch.four_books;
+    if (!prog) return this.dialog(client, [`${npc.greeting} Keeper Lisette looks after the history books. Ask her about them first.`], npc.name);
+    // Step 0 is Lisette's talk; book n is step n + 1.
+    if (chapterDone(p.quest, "four_books") || prog.step > n + 1) return this.dialog(client, book.pages, `📖 ${book.title}`);
+    this.dialog(client, ["(The book won't come off the shelf. Keeper Lisette calls over: \"The glowing one first, dear. History only makes sense in order.\")"], npc.name);
+  }
+
+  /** Walked up to the restricted section's grille (version 0.21): Keeper Lisette hurries over with a reason it's closed today. */
+  private checkGrille(p: Player) {
+    const g = PLACES["lighthall.grille"];
+    if (!g || p.y !== g.y || Math.abs(p.x - g.x) > 2) { p.atGrille = false; return; }
+    if (p.atGrille) return;
+    p.atGrille = true;
+    const now = Date.now();
+    if (now - p.grilleAt < 4000) return;
+    // Keep trying within a minute or so and she gets flustered.
+    p.grilleStreak = now - p.grilleAt < 90_000 ? p.grilleStreak + 1 : 1;
+    p.grilleAt = now;
+    const client = this.clientOf(p);
+    if (!client) return;
+    const flustered = p.grilleStreak >= 3;
+    const line = flustered ? "Please. I'd be in terrible trouble." : LISETTE_EXCUSES[p.grilleTries++ % LISETTE_EXCUSES.length];
+    this.dialog(client, [line], "Keeper Lisette");
+  }
+
   /** What a story station looks like to you (lit or not). */
   private stationLook(p: Player, npc: NpcDef): string {
     const lit = litLanterns(p.quest).includes(npc.id);
-    if (npc.id === "west_shrine") return lit ? "The rebuilt shrine glows gold. The grass round it is brown and dry." : npc.greeting;
-    if (npc.id === "thorn_shrine") return lit ? "The Thornwood's first shrine burns gold. The trees nearest it look grey." : npc.greeting;
+    if (npc.id === "west_shrine") return lit ? "The rebuilt shrine glows gold, and the grass round it is green again. A thin thread of light runs from its flame east along the road, toward Emberhold." : npc.greeting;
+    if (npc.id === "thorn_shrine") return lit ? "The valley's edge shrine burns gold. The grass round it is green, but only just: a few steps further out, the dust is grey." : npc.greeting;
     return lit ? "The lantern burns bright and steady." : npc.greeting;
   }
 
@@ -3812,6 +3942,12 @@ export class WorldRoom extends Room<WorldState> {
     if (!step || !prog || step.goal.kind !== "reach") return;
     const spot = step.goal.spots.find((k) => !prog.got?.includes(k) && Math.max(Math.abs(PLACES[k].x - p.x), Math.abs(PLACES[k].y - p.y)) <= 2);
     if (!spot) return;
+    // The running lesson: walking there doesn't count (version 0.21).
+    if (step.goal.run && !this.canRun(p)) {
+      const c = this.clientOf(p);
+      if (c && Date.now() - p.grilleAt > 3000) { p.grilleAt = Date.now(); this.say(c, "🏃 You walked there! Press the 🏃 run button (or hold Shift), walk away a little, and run back to the mark."); }
+      return;
+    }
     prog.got = [...(prog.got ?? []), spot];
     prog.count = prog.got.length;
     p.dirty = true;
@@ -3861,9 +3997,12 @@ export class WorldRoom extends Room<WorldState> {
     const door = area && area.kind !== "outdoor" ? DOORS.find((d) => d.area === area.id && areaAt(d.x, d.y)?.kind === "outdoor") : null;
     const from = door ?? p;
     const heart = DOORS.find((d) => d.area === "lighthall" && areaAt(d.x, d.y)?.kind === "outdoor")!;
-    const choices: { name: string; at: Point; from: Point }[] = [{ name: "the Heart Shrine in the Emberhall", at: WAKE_SPOT, from: heart }];
+    // Out in Heartvale, the Heart Shrine counts as being where Emberhold's walls are.
+    const hvCity = { x: (HV_WALL.X0 + HV_WALL.X1) / 2, y: (HV_WALL.Y0 + HV_WALL.Y1) / 2 };
+    const inValley = areaAt(from.x, from.y)?.id === "heartvale";
+    const choices: { name: string; at: Point; from: Point }[] = [{ name: "the Heart Shrine in the Emberhall", at: WAKE_SPOT, from: inValley ? hvCity : heart }];
     if (lit.includes("west_shrine")) choices.push({ name: "the Westroad shrine", at: PLACES.westShrine, from: PLACES.westShrine });
-    if (lit.includes("thorn_shrine")) choices.push({ name: "the Thornwood shrine", at: PLACES.thornShrine, from: PLACES.thornShrine });
+    if (lit.includes("thorn_shrine")) choices.push({ name: "the valley's edge shrine", at: PLACES.thornShrine, from: PLACES.thornShrine });
     const dist = (a: Point) => Math.hypot(a.x - from.x, a.y - from.y);
     const best = area && area.kind !== "outdoor" && !door ? choices[0] : choices.reduce((a, b) => (dist(b.from) < dist(a.from) ? b : a));
     return { name: best.name, at: best.at };
@@ -3923,7 +4062,7 @@ export class WorldRoom extends Room<WorldState> {
       : step ? stepSpots(step, p, this.levelOf(p), [...this.state.monsters.values()], (it) => this.countOf(p, it)) : undefined;
     const lessons = chapters.filter((c) => !c.act);
     const base = { number: lessons.filter((c) => c.state === "done").length, of: lessons.length, marks: questMarks(p.quest, this.levelOf(p)), chapters,
-      spots, lit: litLanterns(p.quest), rank: rankOf(p.quest) };
+      spots, reach: step?.goal.kind === "reach" || undefined, lit: litLanterns(p.quest), rank: rankOf(p.quest) };
     if (!step) {
       return tutorialDone(p.quest)
         ? { ...base, done: true, quest: "All lessons done", giver: "", task: "Tap 📜 Quests to track a bounty from the board.", talk: false }
@@ -3962,12 +4101,34 @@ export class WorldRoom extends Room<WorldState> {
     const need = this.questNeeds(p, g, progNow);
     const warning = step.needsTool && !p.belt[step.needsTool] ? `Put your ${TOOL_TYPES[step.needsTool].name.toLowerCase()} back on your belt first!`
       : this.fightBlock(p) ? (step.fightWith === "magic" ? "Hold your staff first!" : step.fightWith === "ranged" ? "Hold your sling first!" : "Hold a weapon first!") : undefined;
-    return { ...base, done: false, quest: chapter.title, giver: chapter.name, task: step.task, progress, fraction, talk: g.kind === "talk", warning, need };
+    const checklist = this.checklist(p, step, progNow);
+    const robeLock = this.robeStep(p) && g.kind === "gear" ? g.items.filter((pre) => !GEAR_SLOTS.some((sl) => p.gear[sl]?.item.startsWith(pre))) : undefined;
+    const runLesson = g.kind === "reach" && g.run ? true : undefined;
+    return { ...base, done: false, quest: chapter.title, giver: chapter.name, task: step.task, progress, fraction, talk: g.kind === "talk", warning, need, checklist, robeLock, runLesson };
+  }
+
+  /** Steps you can do in any order (version 0.21, Mike's note): each person, place or piece, ticked off as you go. One-thing steps get none. */
+  private checklist(p: Player, step: QuestStep, prog: { got?: string[] }): QuestView["checklist"] {
+    const g = step.goal;
+    const got = prog.got ?? [];
+    let list: { label: string; done: boolean }[] = [];
+    if (g.kind === "visit") {
+      list = g.npcs.map((id) => ({ label: step.checkLabels?.[id] ?? NPCS.find((n) => n.id === id)?.name ?? id, done: got.includes(id) }));
+      // Six lanterns all called "Lantern": number them.
+      if (new Set(list.map((c) => c.label)).size < list.length) list.forEach((c, i) => { c.label = `${c.label} ${i + 1}`; });
+    }
+    else if (g.kind === "reach") list = g.spots.map((k) => ({ label: SPOT_NAMES[k] ? SPOT_NAMES[k][0].toUpperCase() + SPOT_NAMES[k].slice(1) : k, done: got.includes(k) }));
+    else if (g.kind === "gear") list = g.items.map((pre) => {
+      const id = (Object.keys(ITEMS) as ItemId[]).find((it) => it.startsWith(pre));
+      return { label: id ? ITEMS[id].single[0].toUpperCase() + ITEMS[id].single.slice(1) : pre, done: GEAR_SLOTS.some((sl) => p.gear[sl]?.item.startsWith(pre)) };
+    });
+    else if (g.kind === "have") list = (Object.entries(g.items) as [ItemId, number][]).map(([id, n]) => ({ label: n === 1 ? ITEMS[id].single : `${n} ${ITEMS[id].name.toLowerCase()}`, done: this.countOf(p, id) >= n }));
+    return list.length > 1 ? list : undefined;
   }
 
   /** Between chapters: the story chapter (or Maren's lessons) you can start next, by name, else "pick your next lesson" (Mike's note #11). */
   private nextChapterView(p: Player, base: Omit<QuestView, "done" | "quest" | "giver" | "task" | "talk">): QuestView {
-    const next = CHAPTERS.find((c) => (c.act || c.id === "maren") && !p.quest.ch[c.id] && chapterOpen(p.quest, c.id) && gateMet(c, this.levelOf(p)));
+    const next = CHAPTERS.find((c) => (c.act || c.id === "maren") && !c.side && !p.quest.ch[c.id] && chapterOpen(p.quest, c.id) && gateMet(c, this.levelOf(p)));
     if (next) return { ...base, done: false, quest: next.title, giver: next.name, task: `Talk to ${next.name}, ${next.where}`, talk: true };
     return { ...base, done: false, quest: "Pick your next lesson", giver: "", task: "Talk to anyone with a ❗ (the 📜 Quests tab says where they are)", talk: true };
   }
@@ -4124,7 +4285,7 @@ export class WorldRoom extends Room<WorldState> {
     }
     p.dirty = true;
     void this.saveFarms();
-    const where = LOTS[lot].y < 73 ? "north of the road" : "south of the road";
+    const where = LOT_PLACES[lot] ?? "in Emberhold";
     this.say(client, mine ? `🌾 Your plot is now ${plot.w} × ${plot.h}.`
       : `🌾 You have a plot! It's ${plot.w} × ${plot.h}, ${where}: look for your name on its sign. Click it to plant${price ? "" : " (Odo paid for this one)"}.`);
     client.send("coins", p.coins);
@@ -4375,6 +4536,14 @@ export class WorldRoom extends Room<WorldState> {
           const lv = CROPS[c].level;
           if (lv > 1 && lv > before && lv <= after) this.say(client, `🌱 You can now grow ${ITEMS[CROPS[c].produce].name.toLowerCase()}! Farmer Odo sells the seeds.`);
         }
+      } else if (skill === "smithing") {
+        // One new thing at the anvil each level (version 0.22).
+        for (const m of MATERIAL_IDS) {
+          for (const t of SMITH_ORDER) {
+            const lv = smithLevel(t, MATERIALS[m].level);
+            if (lv > before && lv <= after) this.say(client, `🔨 You can now make ${t === "rod" ? "fishing rods" : `${MATERIALS[m].name.toLowerCase()} ${t === "tongs" ? "tongs" : t === "platelegs" ? "platelegs" : t === "darts" ? "darts" : `${t}s`}`} at the anvil!`);
+          }
+        }
       } else if (skill === "handicraft") {
         for (const b of Object.values(BAITS)) if (b.level > before && b.level <= after) this.say(client, `You can now make ${b.name.toLowerCase()} at the workbench!`);
         const now = (lv: number) => lv > before && lv <= after;
@@ -4496,9 +4665,11 @@ export class WorldRoom extends Room<WorldState> {
     if (lv === p.loadLevel) return;
     const was = p.loadLevel;
     p.loadLevel = lv;
+    if (lv > 0) p.running = false; // too heavy to run (version 0.22)
+    client.send("heavy", lv > 0);
     p.stepMs = this.stepMsOf(p);
     const SPEED = ["", "half speed, and you can't run", "a quarter of your speed", "an eighth of your speed"];
-    if (lv > was) this.say(client, `🏋️ You're carrying ${kg(this.carried(p))}, more than the ${kg(this.capacity(p))} you can carry. You slow to ${SPEED[lv]}. Sell, drop or eat something, or use your enchanted chest.`);
+    if (lv > was) this.say(client, `🏋️ You're carrying ${kg(this.carried(p))}, more than the ${kg(this.capacity(p))} you can carry. You slow to ${SPEED[lv]}. Sell, trash or eat something, or use your enchanted chest.`);
     else if (lv === 0) this.say(client, "🎒 Your load is light enough again: you're back to full speed.");
     else this.say(client, `🏋️ A little lighter: you're at ${SPEED[lv]} now.`);
   }
@@ -4642,7 +4813,7 @@ export class WorldRoom extends Room<WorldState> {
       p.x = spawn.x;
       p.y = spawn.y;
       if (save.mapRev !== MAP_REV) {
-        p.loginNotes.push("🗺️ The world has grown! You're in the town square, by the steps of the Emberhall, the Emberguard's great white temple. Shops and trainers work indoors now: walk onto a door to go in. Tap 🗺️ (top right) for a map.");
+        p.loginNotes.push("🏰 Welcome to the new Emberhold! The town is now a walled stone city. You're on the Emberhall's plaza. Every trainer now teaches in the Emberhall Training Ground, right next door (east of the Emberhall). The city gates are shut for now. Tap 🗺️ (top right) for a map of the city.");
       }
     }
     // Load the saved bag as it was (older saves had 28 slots, one entry each), then fit it into today's bag below.

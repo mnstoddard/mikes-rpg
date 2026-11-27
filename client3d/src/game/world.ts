@@ -6,11 +6,13 @@
 // The message handling below follows client/src/WorldScene.ts closely, so a
 // new server message added there is easy to add here too.
 import * as THREE from "three";
+import { undress } from "../character";
 import { wallCut } from "./wallcut";
 import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { getStateCallbacks, Room } from "colyseus.js";
-import { AreaDef, MAP, OUTDOORS, TICK_MS, areaAt, doorAt, isWalkable } from "../../../shared/map";
+import { AreaDef, MAP, OUTDOORS, TICK_MS, TOWN_SPOT, areaAt, doorAt, isWalkable } from "../../../shared/map";
+import { PLACES, groundHeight, groundHeightAt } from "../../../shared/world";
 import { bookAt } from "../../../shared/lore";
 import { Minimap, nextGoal } from "./minimap";
 import { CombatMasteryId, CombatMasteryXp, MONSTERS, MonsterId, SpellId, combatMasteryName } from "../../../shared/combat";
@@ -53,7 +55,7 @@ import {
 } from "../../../client/src/ui";
 import { createSkyDome, SKY_TIMES, TILE, type SkyDome } from "../environment";
 import { setRockEnvironment } from "../rocks";
-import { Terrain, tileCenter } from "./terrain";
+import { Terrain, tileCenter, tileUp } from "./terrain";
 import { MonsterView, Person, label, makeStation, npcRecipe, playerRecipe, type StationView } from "./actors";
 import { openCreator } from "./creator";
 import { lookToRecipe } from "./look";
@@ -61,6 +63,8 @@ import * as sfx from "./sfx";
 import { AutoQuality } from "./quality";
 import { Townsfolk } from "./townsfolk";
 import { setMusicPlace, setupMusicSettings, updateMusic } from "./music";
+import { createJoystick, type Stick } from "./joystick";
+import { setupFullscreen } from "./fullscreen";
 
 const MIN_DIST = 7;
 const MAX_DIST = 42;
@@ -72,6 +76,10 @@ const WALK_KEYS = ["KeyW", "KeyA", "KeyS", "KeyD"];
 const CULL_M = 60;
 /** At most this many lamps light the scene at once (the nearest ones), so it stays fast. */
 const MAX_LAMPS = 6;
+
+/** When Keeper Celene starts talking in the opening scene (seconds), once you're on your feet. */
+/** The opening scene (version 0.21): when Keeper Celene starts talking, in seconds. */
+const INTRO_TALK = 12.2;
 
 export class World3D {
   private renderer: THREE.WebGLRenderer;
@@ -125,6 +133,8 @@ export class World3D {
   private lightTimer = 0;
   // Walking with the keyboard (WASD).
   private keys = new Set<string>();
+  /** The touch-screen walking pad (all zero on a computer). */
+  private stick: Stick = { fwd: 0, right: 0 };
   private walkSent = "0,0"; // the direction we last told the server ("dx,dy")
   private walkSentAt = 0; // when we told it (ms)
   private lastStepAt = new THREE.Vector3(); // where we last played a footstep
@@ -140,7 +150,7 @@ export class World3D {
   private folk: Townsfolk;
   /**
    * The opening scene for a new character (Mike's note #1): they're formed lying by
-   * the Heart Shrine, Sister Celene walks over and helps them up, then she talks.
+   * the Heart Shrine, Keeper Celene walks over and helps them up, then she talks.
    */
   private intro: { t: number; wait?: number; name: string; lines: string[]; talked: boolean; cam: { yaw: number; pitch: number; dist: number }; skip?: HTMLButtonElement; sparks?: THREE.Points } | null = null;
 
@@ -168,6 +178,10 @@ export class World3D {
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
     host.appendChild(this.renderer.domElement);
+    // A phone short of memory can throw away everything on the graphics card. Three.js
+    // puts most of it back, but the merged ground and walls keep no spare copy: build them again.
+    this.renderer.domElement.addEventListener("webglcontextlost", (e) => { e.preventDefault(); crumb("graphics lost"); });
+    this.renderer.domElement.addEventListener("webglcontextrestored", () => { crumb("graphics back"); this.terrain.rebuild(); });
     this.labels = new CSS2DRenderer();
     this.labels.domElement.className = "labels3d";
     host.appendChild(this.labels.domElement);
@@ -209,7 +223,8 @@ export class World3D {
 
     this.drawNpcs();
     this.folk = new Townsfolk(this.scene);
-    this.showArea(OUTDOORS, 120, 95);
+    const town = areaAt(TOWN_SPOT.x, TOWN_SPOT.y) ?? OUTDOORS;
+    this.showArea(town, TOWN_SPOT.x, TOWN_SPOT.y);
     this.setupInput();
     window.addEventListener("resize", () => this.resize());
     this.resize();
@@ -303,6 +318,9 @@ export class World3D {
     };
     for (const p of this.players.values()) { near(p.root); p.update(dt, this.time); }
     this.updateIntro(dt, me);
+    this.updateSpotRings();
+    this.updateHallEmbers();
+    this.updateTour(dt);
     for (const p of this.npcs.values()) if (near(p.root)) p.update(dt, this.time);
     const worldMs = Date.now() + this.clockOffset;
     this.folk.update(dt, this.time, worldMs, this.here.id);
@@ -394,6 +412,8 @@ export class World3D {
   // ---------------------------------------------------------------- input
 
   private setupInput() {
+    this.stick = createJoystick(() => { this.walkPaused = false; if (this.tour) this.endTour(); });
+    setupFullscreen();
     const el = this.renderer.domElement;
     el.style.touchAction = "none";
     const pointers = new Map<number, { x: number; y: number; sx: number; sy: number; button: number }>();
@@ -449,7 +469,7 @@ export class World3D {
       if (e.key === "Shift" && !this.runShift) { this.runShift = true; this.sendRun(); }
       if (WALK_KEYS.includes(e.code) && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
-        if (!this.keys.has(e.code)) { this.keys.add(e.code); this.walkPaused = false; }
+        if (!this.keys.has(e.code)) { this.keys.add(e.code); this.walkPaused = false; if (this.tour) this.endTour(); }
         return;
       }
       if (e.key === "ArrowLeft" || e.key === "q" || e.key === "Q") { this.yaw += 0.12; this.saveCamera(); }
@@ -487,8 +507,8 @@ export class World3D {
   /** Which way (dx, dy) the held keys point, turned to match the camera: any angle, not just 8 ways. */
   private keyDirection(): { dx: number; dy: number } {
     const k = this.keys;
-    const fwd = (k.has("KeyW") ? 1 : 0) - (k.has("KeyS") ? 1 : 0);
-    const right = (k.has("KeyD") ? 1 : 0) - (k.has("KeyA") ? 1 : 0);
+    const fwd = (k.has("KeyW") ? 1 : 0) - (k.has("KeyS") ? 1 : 0) + this.stick.fwd;
+    const right = (k.has("KeyD") ? 1 : 0) - (k.has("KeyA") ? 1 : 0) + this.stick.right;
     // Not while making your character (its window covers the game).
     if (this.walkPaused || (!fwd && !right) || document.getElementById("creator") || this.intro) return { dx: 0, dy: 0 };
     // The camera sits at (sin yaw, cos yaw) from you, so it looks along -(sin yaw, cos yaw).
@@ -552,15 +572,29 @@ export class World3D {
         }
       }
     }
-    const p = new THREE.Vector3();
-    if (!this.raycaster.ray.intersectPlane(this.ground, p)) return null;
+    const p = this.groundHit();
+    if (!p) return null;
     return { x: Math.floor(p.x / TILE), y: Math.floor(p.z / TILE) };
+  }
+
+  /** Where the last click's ray meets the ground, Ember Hill's terrace and stairway included (version 0.22). */
+  private groundHit(): THREE.Vector3 | null {
+    const p = new THREE.Vector3();
+    const ray = this.raycaster.ray;
+    const top = new THREE.Plane(new THREE.Vector3(0, 1, 0), -4);
+    if (this.here.kind !== "outdoor" || !ray.intersectPlane(top, p)) return ray.intersectPlane(this.ground, p);
+    // Step down the ray from 4 m up until it's under the ground.
+    for (let i = 0; i < 80; i++) {
+      if (p.y <= groundHeightAt(p.x / TILE, p.z / TILE)) return p;
+      p.addScaledVector(ray.direction, 0.25);
+    }
+    return ray.intersectPlane(this.ground, p);
   }
 
   /** Where the last click's ray meets the ground, if that's inside tile (x, y). */
   private groundSpot(x: number, y: number): THREE.Vector3 | null {
-    const p = new THREE.Vector3();
-    if (!this.raycaster.ray.intersectPlane(this.ground, p)) return null;
+    const p = this.groundHit();
+    if (!p) return null;
     return Math.floor(p.x / TILE) === x && Math.floor(p.z / TILE) === y ? p : null;
   }
 
@@ -576,6 +610,7 @@ export class World3D {
 
   private onClick(sx: number, sy: number) {
     if (!this.room || this.intro) return;
+    if (this.tour) this.endTour(); // walking off on your own ends the tour
     const t = this.tileAt(sx, sy);
     // Townsfolk: they just say something (they aren't part of any quest).
     const folkHit = this.raycaster.intersectObjects(this.folk.roots(), true)[0];
@@ -614,11 +649,11 @@ export class World3D {
       // Walk right to the spot you clicked (not just the middle of its tile).
       const spot = this.groundSpot(x, y);
       this.room.send("move", spot ? { x, y, fx: spot.x / TILE, fy: spot.z / TILE } : { x, y });
-      this.marker.position.copy(spot ?? tileCenter(x, y)).setY(0.08);
+      this.marker.position.copy(spot ? spot.clone().setY(groundHeight(x, y) + 0.08) : tileUp(x, y, 0.08));
       this.marker.visible = true;
       return;
     } else return;
-    this.marker.position.copy(tileCenter(x, y)).setY(0.08);
+    this.marker.position.copy(tileUp(x, y, 0.08));
     this.marker.visible = true;
   }
 
@@ -630,6 +665,11 @@ export class World3D {
     setReportRoom(room);
     crumb(reconnected ? "reconnected to the server" : "joined the game");
     room.onMessage("message", (text: string) => showMessage(text));
+    // Carrying too much (version 0.22, Mike's note): running switches off and the 🏃 button greys out.
+    room.onMessage("heavy", (heavy: boolean) => {
+      document.getElementById("run3d")?.classList.toggle("heavy", !!heavy);
+      if (heavy) { this.runToggle = false; this.runShift = false; this.showRun(false); }
+    });
     // Once per browser: tell them about walking with the keyboard.
     try {
       if (!localStorage.getItem("rpg3d.wasdTip")) {
@@ -711,6 +751,7 @@ export class World3D {
       this.npcs.forEach((p, id) => { if (p.alert) p.alert.obj.visible = q.marks.includes(id as never); });
       this.stations.forEach((s, id) => { if (s.alert) s.alert.obj.visible = q.marks.includes(id as never); });
       setWorldMapMarks(q.marks, q.spots);
+      this.showSpotRings(q.reach ? q.spots ?? [] : []);
       renderQuest(q);
       this.showStory(q);
     });
@@ -744,7 +785,14 @@ export class World3D {
       this.showHit(h);
     });
     room.onMessage("died", () => this.showDeath());
-    room.onMessage("dialog", (msg: { name: string; lines: string[] }) => { this.marker.visible = false; openDialog(msg.name, msg.lines); });
+    room.onMessage("dialog", (msg: { name: string; lines: string[] }) => {
+      this.marker.visible = false;
+      openDialog(msg.name, msg.lines);
+      // On a tour, this is the stop we were walking to: on to the next once it's read.
+      if (this.tour?.sent) { this.tour.stops.shift(); this.tour.sent = false; this.tour.wait = 0.6; }
+    });
+    // Keeper Oren walks you round the statues (version 0.22, Mike's note): no clicking each one.
+    room.onMessage("tour", (msg: { guide: string; stops: string[] }) => { this.tour = { guide: msg.guide, stops: [...msg.stops], sent: false, wait: 0.6, follow: 0 }; });
     room.onMessage("intro", (msg: { name: string; lines: string[] }) => this.startIntro(msg.name, msg.lines));
     room.onMessage("stamina", (msg: { stamina: number; max: number; winded?: number }) => renderStamina(msg.stamina, msg.max, msg.winded ?? 0));
     room.onMessage("reward", (msg: { text: string }) => this.floatText(msg.text, "#ffd84a", true));
@@ -842,6 +890,77 @@ export class World3D {
     this.skillXpSeen = false;
   }
 
+  // ---------------------------------------------------------------- places to go (a "reach" quest step)
+
+  private spotRings: THREE.Group[] = [];
+  /** Embers drifting up through the Emberhall's great hall (only while you're inside). */
+  private hallEmbers: THREE.Points | null = null;
+
+  private setHallEmbers(on: boolean) {
+    if (!on) {
+      if (this.hallEmbers) { this.scene.remove(this.hallEmbers); this.hallEmbers.geometry.dispose(); (this.hallEmbers.material as THREE.Material).dispose(); this.hallEmbers = null; }
+      return;
+    }
+    if (this.hallEmbers) return;
+    const shrine = PLACES["lighthall.heartShrine"];
+    const n = 140, pos = new Float32Array(n * 3), seed = new Float32Array(n);
+    for (let i = 0; i < n; i++) seed[i] = Math.random();
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    const pts = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffa040, size: 0.16, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false }));
+    pts.frustumCulled = false;
+    // The great hall: 7 tiles either side of the shrine, from the north wall down to the doors.
+    pts.userData = { x0: (shrine.x - 7) * TILE, x1: (shrine.x + 8) * TILE, z0: (shrine.y - 4) * TILE, z1: (shrine.y + 21) * TILE, seed };
+    this.scene.add(pts);
+    this.hallEmbers = pts;
+  }
+
+  private updateHallEmbers() {
+    const e = this.hallEmbers;
+    if (!e) return;
+    const { x0, x1, z0, z1, seed } = e.userData as { x0: number; x1: number; z0: number; z1: number; seed: Float32Array };
+    const pos = e.geometry.attributes.position as THREE.BufferAttribute;
+    const t = this.time;
+    for (let i = 0; i < pos.count; i++) {
+      const s = seed[i], s2 = (s * 7.31) % 1, s3 = (s * 13.7) % 1;
+      // Each one rises slowly from the floor to the roof and starts again, wandering side to side as it goes.
+      const life = (t * (0.035 + s3 * 0.03) + s) % 1;
+      pos.setXYZ(i,
+        x0 + s2 * (x1 - x0) + Math.sin(t * 0.6 + s * 40) * 0.6,
+        0.3 + life * 6.5,
+        z0 + s3 * (z1 - z0) + Math.cos(t * 0.5 + s * 23) * 0.6);
+    }
+    pos.needsUpdate = true;
+    (e.material as THREE.PointsMaterial).size = 0.14 + 0.04 * Math.sin(t * 3);
+  }
+  /** A glowing ring and a soft beam of light on each place the quest wants you to walk to. */
+  private showSpotRings(spots: { x: number; y: number }[]) {
+    for (const r of this.spotRings) { this.scene.remove(r); r.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) { m.geometry.dispose(); (m.material as THREE.Material).dispose(); } }); }
+    this.spotRings = spots.map((s) => {
+      const g = new THREE.Group();
+      g.position.copy(tileCenter(s.x, s.y));
+      const ring = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.78, 40), new THREE.MeshBasicMaterial({ color: 0xffc04a, transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false }));
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = 0.06;
+      const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.62, 3.2, 24, 1, true), new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0.18, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }));
+      beam.position.y = 1.6;
+      g.add(ring, beam);
+      g.userData.x = s.x; g.userData.y = s.y;
+      this.scene.add(g);
+      return g;
+    });
+  }
+  private updateSpotRings() {
+    if (!this.spotRings.length) return;
+    const t = performance.now() / 1000;
+    for (const g of this.spotRings) {
+      const a = this.here ? areaAt(g.userData.x, g.userData.y) === this.here : true;
+      g.visible = a;
+      const k = 1 + 0.12 * Math.sin(t * 3);
+      g.children[0].scale.set(k, k, 1);
+    }
+  }
+
   // ---------------------------------------------------------------- the opening scene
 
   /** A new character's first moments: wait for the character maker to close, then play the scene. */
@@ -858,62 +977,92 @@ export class World3D {
     const wake = { x: Math.floor(me.root.position.x / TILE), y: Math.floor(me.root.position.z / TILE) };
     // Lying still while the character maker is open.
     if (it.t < 0) {
-      me.lying = 1;
+      me.stage = 0;
       me.faceYaw(0, true);
       // (A brand-new character makes their look first: the character maker opens a moment after logging in.)
       const mine = this.room?.state.players.get(this.room.sessionId);
       it.wait = (it.wait ?? 0) + dt;
       if (document.getElementById("creator") || (!mine?.look && it.wait < 3)) return;
       it.t = 0;
-      this.yaw = 0.35; this.pitch = 0.55; this.dist = 10;
+      document.body.classList.add("intro-on"); // the messages and quest box would give the scene away
+      // A wide shot of the Heart Shrine first.
+      this.yaw = 0.2; this.pitch = 0.85; this.dist = 24;
       const skip = document.createElement("button");
       skip.id = "intro-skip";
       skip.className = "shop-btn";
       skip.textContent = "Skip ▸";
-      skip.onclick = () => { if (this.intro) this.intro.t = Math.max(this.intro.t, 4.4); };
+      skip.onclick = () => { if (this.intro) this.intro.t = Math.max(this.intro.t, INTRO_TALK); };
       document.body.append(skip);
       it.skip = skip;
-      // Embers gather where the new hero is being formed.
-      const n = 60, pos = new Float32Array(n * 3);
+      // Lots of embers: they burst out of the shrine's flame, then circle the place the new hero will be.
+      const n = 240, pos = new Float32Array(n * 3);
       const geo = new THREE.BufferGeometry();
       geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-      it.sparks = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffb040, size: 0.12, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+      it.sparks = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffb048, size: 0.3, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
       it.sparks.frustumCulled = false;
       this.scene.add(it.sparks);
       me.setFaded(0);
+      me.setGlow(1);
     }
     const before = it.t;
     it.t += dt;
     const t = it.t;
     const passed = (s: number) => before < s && t >= s;
-    // 0 - 2 s: the embers swirl in and the body forms.
+    const ramp = (a: number, b: number) => Math.max(0, Math.min(1, (t - a) / (b - a)));
+    const ease = (k: number) => k * k * (3 - 2 * k);
+    // The camera comes slowly down from the wide shot to you.
+    if (t < INTRO_TALK) {
+      const k = ease(ramp(1.5, 8.5));
+      this.dist = 24 + (10 - 24) * k; this.pitch = 0.85 + (0.55 - 0.85) * k; this.yaw = 0.2 + (0.35 - 0.2) * k;
+    }
+    // 0.4 - 2.4 s: the embers burst out of the flame and fly wide. 2.4 - 3.8 s: they gather into a ring round you.
+    // Then they circle, faster and tighter, and fade away by about 6 s.
     if (it.sparks) {
+      const shrine = NPCS.find((n) => n.id === "heart_shrine")!;
+      const sx = (shrine.x + 0.5) * TILE, sz = (shrine.y + 0.5) * TILE;
+      const wx = me.root.position.x, wz = me.root.position.z;
       const pos = it.sparks.geometry.attributes.position as THREE.BufferAttribute;
-      const k = Math.min(1, t / 2.2);
+      const burst = ease(ramp(0.4, 2.4)), gather = ease(ramp(2.4, 3.8));
       for (let i = 0; i < pos.count; i++) {
-        const a = i * 2.4 + t * 2, r = (1 - k) * (1.6 + (i % 5) * 0.3) + 0.15;
-        pos.setXYZ(i, me.root.position.x + Math.cos(a) * r, 0.2 + ((i * 0.37) % 1) * (1 - k) * 2 + 0.1, me.root.position.z - 0.8 + Math.sin(a) * r * 0.8);
+        const h1 = (i * 0.6180339) % 1, h2 = (i * 0.4142135) % 1, h3 = (i * 0.7320508) % 1;
+        // Out of the flame: up, then out and down in an arc.
+        const ang = h1 * Math.PI * 2, far = 2.5 + h2 * 4.5;
+        const bx = sx + Math.cos(ang) * far * burst, bz = sz + Math.sin(ang) * far * burst * 0.8;
+        const by = 2.2 + Math.sin(burst * Math.PI) * (1.5 + h3 * 2.5) + burst * (h3 * 1.2 - 0.6);
+        // Into the ring: round and round where you lie.
+        const spin = t * (1.6 + h2 * 1.2) * (1 + ramp(3.8, 5.8)) + ang;
+        const r = (1.15 + h3 * 0.5) * (1 - 0.45 * ramp(3.8, 5.8));
+        const rx = wx + Math.cos(spin) * r, rz = wz + Math.sin(spin) * r * 0.85;
+        const ry = 0.25 + h1 * 1.7 + Math.sin(t * 3 + i) * 0.08;
+        pos.setXYZ(i, bx + (rx - bx) * gather, by + (ry - by) * gather, bz + (rz - bz) * gather);
       }
       pos.needsUpdate = true;
-      (it.sparks.material as THREE.PointsMaterial).opacity = t < 2 ? 1 : Math.max(0, 1 - (t - 2) / 0.6);
-      if (t > 2.7) { this.scene.remove(it.sparks); it.sparks.geometry.dispose(); (it.sparks.material as THREE.Material).dispose(); it.sparks = undefined; }
+      (it.sparks.material as THREE.PointsMaterial).opacity = ramp(0.2, 0.6) * (1 - ramp(4.8, 6.2));
+      if (t > 6.3) { this.scene.remove(it.sparks); it.sparks.geometry.dispose(); (it.sparks.material as THREE.Material).dispose(); it.sparks = undefined; }
     }
-    me.setFaded(Math.min(1, Math.max(0, (t - 0.3) / 1.6)));
-    // 1.2 s: Sister Celene hurries over to the left of you.
+    // 4.2 s: as the embers fade, a body of light forms in the ring, then slowly turns from glowing gold into you.
+    me.setFaded(ramp(4.2, 5.6));
+    me.setGlow(1 - ease(ramp(6.0, 8.6)));
+    // 7.6 s: Keeper Celene walks up close, reaches out her hand, and helps you up.
     if (celene) {
-      if (passed(1.2)) celene.walkTo(home.x + 1, home.y - 1, 650);
-      if (passed(1.85)) celene.walkTo(wake.x - 1, wake.y, 650);
-      if (t > 2.5 && t < 4.6) celene.faceYaw(Math.PI / 2);
+      if (passed(7.6)) celene.walkTo(home.x + 1, home.y - 1, 700);
+      if (passed(8.3)) celene.walkTo(wake.x - 1, wake.y, 700);
+      if (t > 9.0 && t < INTRO_TALK) celene.faceYaw(Math.PI / 2);
+      celene.stage = 3 - 0.35 * (ramp(9.0, 9.5) - ramp(11.0, 11.8)); // she leans down to you, then straightens with you
+      celene.reach = Math.min(ramp(9.1, 9.6), 1 - ramp(11.2, 11.9));
     }
-    // 2.8 - 4 s: she takes your hand and helps you up.
-    me.lying = t < 2.8 ? 1 : Math.max(0, 1 - (t - 2.8) / 1.2);
-    if (t > 3.6) me.faceYaw(-Math.PI / 2);
-    // 4.4 s: she talks.
-    if (t >= 4.4 && !it.talked) {
+    // You sit up, take her hand, get up onto one knee, then stand.
+    me.stage = ramp(9.5, 10.3) + ramp(10.4, 11.0) + ramp(11.0, 11.8);
+    // She talks.
+    if (t >= INTRO_TALK && !it.talked) {
       it.talked = true;
       if (celene && t - before > 0.5) celene.walkTo(wake.x - 1, wake.y, 10); // skipped: be there already
-      me.lying = 0;
+      if (celene) { celene.stage = 3; celene.reach = 0; }
+      me.faceYaw(-Math.PI / 2);
+      me.stage = 3;
       me.setFaded(1);
+      me.setGlow(0);
+      if (it.sparks) { this.scene.remove(it.sparks); it.sparks.geometry.dispose(); (it.sparks.material as THREE.Material).dispose(); it.sparks = undefined; }
       it.skip?.remove();
       openDialog(it.name, it.lines);
     }
@@ -924,6 +1073,7 @@ export class World3D {
         setTimeout(() => celene.walkTo(home.x, home.y, 650), 700);
       }
       this.yaw = it.cam.yaw; this.pitch = it.cam.pitch; this.dist = it.cam.dist;
+      document.body.classList.remove("intro-on");
       this.intro = null;
     }
   }
@@ -950,7 +1100,7 @@ export class World3D {
 
     $(room.state).players.onAdd((player: any, sessionId: string) => {
       const isMe = sessionId === room.sessionId;
-      const view = new Person(playerRecipe(player.look, player.name, player.color), { name: player.name, me: isMe });
+      const view = new Person(undress(playerRecipe(player.look, player.name, player.color)), { name: player.name, me: isMe });
       view.place(player.x, player.y);
       view.onHit = (x, y) => this.terrain.hitNode(x, y);
       if (isMe) view.onBeat = (phase, action) => (phase === "swing" ? sfx.onSwing(action) : sfx.onToolHit(action));
@@ -986,8 +1136,10 @@ export class World3D {
       $(player).listen("maxHp", () => { view.bar.set(player.hp, player.maxHp); this.refreshParty(); });
       $(player).listen("party", () => this.refreshParty());
       $(player).listen("partyLead", () => this.refreshParty());
-      $(player).listen("color", (color: number) => { if (!player.look) view.setLook(playerRecipe("", player.name, color)); if (isMe) renderMe(player.name, color); });
-      $(player).listen("look", (look: string) => { if (look) view.setLook(lookToRecipe(look) ?? playerRecipe("", player.name, player.color)); });
+      // Players start in plain undergarments: clothes are the armor they wear.
+      $(player).listen("color", (color: number) => { if (!player.look) view.setLook(undress(playerRecipe("", player.name, color))); if (isMe) renderMe(player.name, color); });
+      $(player).listen("look", (look: string) => { if (look) view.setLook(undress(lookToRecipe(look) ?? playerRecipe("", player.name, player.color))); });
+      $(player).listen("worn", (worn: string) => view.setWorn(worn ? worn.split(",") : []));
       $(player).listen("invisible", (inv: boolean) => view.setFaded(inv ? (isMe ? 0.4 : 0.12) : 1));
       $(player).listen("title", (t: string) => view.setTitle(t));
       $(player).listen("rank", (r: number) => view.setRank(r));
@@ -1079,10 +1231,42 @@ export class World3D {
     this.stations.forEach((s, id) => { const n = NPCS.find((d) => d.id === id)!; s.root.userData.show = inArea(n.x, n.y); });
     this.room?.state.players.forEach((pl: any, id: string) => { const v = this.players.get(id); if (v) v.root.userData.show = inArea(pl.x, pl.y) || id === this.room!.sessionId; });
     this.room?.state.monsters?.forEach((m: any, id: string) => { const v = this.monsters.get(id); if (v) v.root.userData.show = m.alive && inArea(m.x, m.y); });
-    this.plotViews.forEach((v) => { v.group.visible = a === OUTDOORS; });
+    this.plotViews.forEach((v, key) => { const lot = LOTS[Number(key)]; v.group.visible = !!lot && a === areaAt(lot.x, lot.y); });
+    this.setHallEmbers(a.id === "lighthall");
     this.sky.object.visible = a.kind === "outdoor";
     this.scene.background = a.kind === "outdoor" ? null : new THREE.Color(0x000000);
     this.updateDaylight();
+  }
+
+  /** Keeper Oren's tour: where we're going next, and the guide walking beside you. */
+  private tour: { guide: string; stops: string[]; sent: boolean; wait: number; follow: number } | null = null;
+
+  private updateTour(dt: number) {
+    const t = this.tour;
+    if (!t || !this.room) return;
+    const guide = this.npcs.get(t.guide);
+    const me = this.players.get(this.room.sessionId);
+    // The guide keeps beside you (a step behind and to the side), walking at your pace.
+    if (guide && me && (t.follow -= dt) <= 0) {
+      t.follow = 0.4;
+      const px = Math.round(me.root.position.x / TILE - 0.5), py = Math.round(me.root.position.z / TILE - 0.5);
+      const spots = [[1, 1], [-1, 1], [1, 0], [-1, 0], [0, 1], [1, -1], [-1, -1]].map(([dx, dy]) => ({ x: px + dx, y: py + dy })).filter((c) => isWalkable(c.x, c.y) && !npcAt(c.x, c.y));
+      const g = { x: guide.root.position.x / TILE - 0.5, y: guide.root.position.z / TILE - 0.5 };
+      const best = spots.sort((a, b) => Math.hypot(a.x - g.x, a.y - g.y) - Math.hypot(b.x - g.x, b.y - g.y))[0];
+      if (best && Math.hypot(best.x - g.x, best.y - g.y) > 0.5) guide.walkTo(best.x, best.y, TICK_MS);
+    }
+    if (document.body.classList.contains("dialog-open")) return;
+    if ((t.wait -= dt) > 0) return;
+    if (!t.stops.length) return this.endTour();
+    if (!t.sent) { t.sent = true; this.room.send("talk", { id: t.stops[0] }); }
+  }
+
+  /** The tour's over (or you walked off): the guide goes back to their spot. */
+  private endTour() {
+    const t = this.tour;
+    this.tour = null;
+    const def = t && NPCS.find((n) => n.id === t.guide);
+    if (def) this.npcs.get(def.id)?.walkTo(def.x, def.y, TICK_MS * 1.5);
   }
 
   private drawNpcs() {
@@ -1162,9 +1346,9 @@ export class World3D {
     for (const s of q.spots ?? []) {
       const ring = new THREE.Mesh(new THREE.RingGeometry(0.7, 0.95, 32), new THREE.MeshBasicMaterial({ color: 0xffd84a, transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide }));
       ring.rotation.x = -Math.PI / 2;
-      ring.position.copy(tileCenter(s.x, s.y)).setY(0.1);
+      ring.position.copy(tileUp(s.x, s.y, 0.1));
       const pin = label("pin3d", "📍");
-      pin.obj.position.copy(tileCenter(s.x, s.y)).setY(2);
+      pin.obj.position.copy(tileUp(s.x, s.y, 2));
       this.scene.add(ring, pin.obj);
       this.spotMarks.push(ring, pin.obj);
     }
@@ -1174,6 +1358,9 @@ export class World3D {
   private readShelf(x: number, y: number) {
     const me = this.room && this.room.state.players.get(this.room.sessionId);
     if (!me) return;
+    // The restricted section's shelves (version 0.21): behind the grille, out of reach.
+    const g = PLACES["lighthall.grille"];
+    if (this.here.id === "lighthall" && g && y > g.y + 1 && x < g.x + 6) { showMessage("Those shelves are behind the restricted section's iron grille. It's locked."); return; }
     if (Math.max(Math.abs(me.x - x), Math.abs(me.y - y)) <= 1) { this.openBook(x, y); return; }
     // The free tile next to the shelf that's closest to us.
     let best: { x: number; y: number } | null = null, bd = Infinity;
@@ -1186,7 +1373,7 @@ export class World3D {
     if (!best) { this.openBook(x, y); return; }
     this.pendingBook = { x, y };
     this.room!.send("move", best);
-    this.marker.position.copy(tileCenter(best.x, best.y)).setY(0.08);
+    this.marker.position.copy(tileUp(best.x, best.y, 0.08));
     this.marker.visible = true;
   }
 
@@ -1366,7 +1553,8 @@ export class World3D {
     else if (t === "dig") setHoverText("Examine", "Dug-out patch (it glints again soon)", px, py);
     else if (door) setHoverText(door.label.startsWith("Leave") || door.label.startsWith("Back") || door.label.startsWith("Go") ? door.label : "Enter", door.label.replace(/^Enter /, ""), px, py);
     else if (this.here.danger && (t === "cave" || t === "crystal")) setHoverText(`⚠ ${this.here.name}:`, "monsters here attack on sight!", px, py);
-    else if (t === "lockeddoor") setHoverText("Locked", "a heavy door with a gold lock", px, py);
+    else if (t === "lockeddoor") setHoverText("Locked", this.here.id === "lighthall" ? "the restricted section: barred" : "a heavy door with a gold lock", px, py);
+    else if (t === "grille") setHoverText("Iron grille", "the restricted section, locked", px, py);
     else if (t === "barricade") setHoverText("Road closed:", "the Ashen Barrens lie beyond. The Watch has shut the road.", px, py);
     else if (lotAt(x, y)) {
       const at = lotAt(x, y)!;
@@ -1396,7 +1584,7 @@ export class World3D {
     let view = this.plotViews.get(key);
     if (view) { this.scene.remove(view.group); view.sign.element.remove(); view.crops.forEach((c) => c.element.remove()); }
     const group = new THREE.Group();
-    group.visible = this.here === OUTDOORS;
+    group.visible = this.here === areaAt(lot.x, lot.y);
     const plot = this.plots.get(key);
     const sign = label("sign3d small", plot ? `${plot.owner}'s farm` : "Free lot: ask Farmer Odo");
     sign.obj.position.copy(tileCenter(lot.x, lot.y)).add(new THREE.Vector3(LOT_SIZE * TILE / 2 - TILE / 2, 1.2, -TILE / 2));
@@ -1408,7 +1596,7 @@ export class World3D {
       if (!plot || !inPlot(i, plot.w, plot.h)) continue;
       const t = tileOf(Number(key), i);
       const soil = new THREE.Mesh(new THREE.BoxGeometry(TILE * 0.92, 0.12, TILE * 0.92), soilMat);
-      soil.position.copy(tileCenter(t.x, t.y)).setY(0.06);
+      soil.position.copy(tileUp(t.x, t.y, 0.06));
       soil.receiveShadow = true;
       group.add(soil);
       const c = decodeCrop(plot.crops[i]);
@@ -1416,7 +1604,7 @@ export class World3D {
       const g = growth(c, now);
       const l = label("crop3d", g >= 1 ? ITEMS[CROPS[c.crop].produce].icon : g < 0.34 ? "🌱" : "🌿");
       l.el.style.fontSize = `${Math.round(14 + g * 12)}px`;
-      l.obj.position.copy(tileCenter(t.x, t.y)).setY(0.5);
+      l.obj.position.copy(tileUp(t.x, t.y, 0.5));
       group.add(l.obj);
       crops.push(l.obj);
     }

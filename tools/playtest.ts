@@ -16,7 +16,7 @@ import { MAP, isWalkable } from "../shared/map";
 import { treeKey } from "../shared/foraging";
 import { nodeAt } from "../shared/foraging";
 import { tileOf } from "../shared/farming";
-import { isFood } from "../shared/cooking";
+import { isFood, SHOP_STEW } from "../shared/cooking";
 
 const URL = process.env.RPG_URL ?? "ws://localhost:2567";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -24,7 +24,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export class Bot {
   room!: Room;
   quest: QuestView | null = null;
-  /** What Sister Celene said in the opening scene (new characters). */
+  /** What Keeper Celene said in the opening scene (new characters). */
   intro: string[] | null = null;
   log: string[] = [];
   started = Date.now();
@@ -126,17 +126,36 @@ export class Bot {
   /** Things the current chapter needs, so dropJunk leaves them alone. */
   keep: string[] = [];
   dropJunk() {
-    const junk = ["axe_bronze_oak", "red_cap", "wild_root", "oak_logs", "worm", "mushroom", "sage", "honey", "old_bone", "minnow", "pine_logs", "ginseng", "food_scraps"];
+    const junk = ["axe_bronze_oak", "copper_ore", "tin_ore", "red_cap", "wild_root", "oak_logs", "worm", "mushroom", "sage", "honey", "old_bone", "minnow", "pine_logs", "ginseng", "food_scraps"];
     this.bag.inventory.forEach((it: string | null, i: number) => { if (it && junk.includes(it) && !this.keep.includes(it)) this.room.send("drop", { slot: i }); });
     this.note("🗑️ dropped junk to make room");
   }
   /** Eat a meal or a fish when stamina runs low, like a player would. */
   async eatIfTired() {
-    if (this.me.stamina >= 25) return;
-    const i = this.bag?.inventory.findIndex((it: string | null) => isFood(it as any)) ?? -1;
+    if (this.stamina >= 25) return;
+    let i = this.bag?.inventory.findIndex((it: string | null) => isFood(it as any)) ?? -1;
+    // Out of food and nearly worn out: buy stew from Tam, like a player would (resting is 1 stamina every 30 seconds).
+    if (i < 0 && this.stamina < 12 && !this.shopping && Date.now() - this.shoppedAt > 120000) {
+      this.shopping = true; this.shoppedAt = Date.now();
+      try {
+        const back = { ...this.pos };
+        await this.talk("tam");
+        this.room.send("buy", { item: SHOP_STEW, count: 6 });
+        await sleep(1000);
+        this.note("🍲 bought stew from Tam");
+        await this.enter(back.x, back.y);
+      } finally { this.shopping = false; }
+      i = this.bag?.inventory.findIndex((it: string | null) => isFood(it as any)) ?? -1;
+    }
     if (i >= 0) { this.room.send("eat", { slot: i }); await sleep(600); }
   }
-  watchBag() { this.room.onMessage("bag", (b: any) => { this.bag = b; }); }
+  shopping = false;
+  shoppedAt = 0;
+  watchBag() {
+    this.room.onMessage("bag", (b: any) => { this.bag = b; });
+    this.room.onMessage("stamina", (m: any) => { this.stamina = m.stamina; });
+  }
+  stamina = 100;
   slotOf(item: string) { return this.bag?.inventory.indexOf(item) ?? -1; }
 
   /** Fight monsters of one kind until the task changes. */
@@ -178,8 +197,10 @@ export class Bot {
     for (let n = 0; n < 200 && !done(); n++) {
       if (this.log.slice(-10).some((l) => l.includes("bag is full") || l.includes("too heavy"))) { this.dropJunk(); this.log.push("(made room)"); await sleep(1000); }
       await this.eatIfTired();
-      const spot = this.nearestNode(resource, kind, near);
-      if (!spot) throw new Error(`${this.name}: no ${resource} near ${near.x},${near.y}`);
+      let spot = this.nearestNode(resource, kind, near);
+      // All used up: wait for them to grow back (the Training Ground only has a few of each).
+      for (let w = 0; !spot && w < 40; w++) { await sleep(3000); spot = this.nearestNode(resource, kind, near); }
+      if (!spot) throw new Error(`${this.name}: no ${resource ?? kind} near ${near.x},${near.y}`);
       this.room.send(kind, spot);
       const k = treeKey(spot.x, spot.y);
       // Work it until it's used up (or we have what we need).
@@ -231,18 +252,48 @@ async function prologue(name: string) {
   await b.talk("aldric");
   if (b.task !== t0 || !b.log.slice(-4).some((l) => l.includes("Equip"))) throw new Error("Aldric didn't help with the robe");
   step("Aldric explains the robe");
+  if (!b.quest!.robeLock?.length) throw new Error("the robe step should lock everything but the bag");
   b.room.send("wear", { slot: b.slotOf("platebody_cloth") });
-  await b.until(() => /Aldric/.test(b.task), 5000, "the robe to count"); step("robe on");
+  await sleep(600);
+  if (b.quest!.robeLock?.join() !== "platelegs_cloth") throw new Error(`robe lock should wait for the skirt, got ${b.quest!.robeLock}`);
+  if (!b.quest!.checklist?.[0].done || b.quest!.checklist?.[1].done) throw new Error("the robe checklist should tick the top only");
+  if (/Walk/.test(b.task)) throw new Error("the robe top alone counted as the whole robe");
+  b.room.send("wear", { slot: b.slotOf("platelegs_cloth") });
+  await b.until(() => /Walk/.test(b.task), 5000, "the robe to count"); step("robe on");
+  // Celene's walking lesson: the two glowing marks down the hall.
+  for (const k of ["spot.hallLeft", "spot.hallRight"]) await b.goTo(PLACES[k].x, PLACES[k].y);
+  await b.until(() => /Run to/.test(b.task), 5000, "the walking lesson to finish"); step("walked to both marks");
+  // The running lesson: the mark only counts if you arrive running.
+  b.room.send("run", { on: true });
+  await b.goTo(PLACES["spot.hallRun"].x, PLACES["spot.hallRun"].y);
+  await b.until(() => /Aldric/.test(b.task), 5000, "the running lesson to finish"); step("ran to the mark");
+  b.room.send("run", { on: false });
   // One flowing talk with Aldric: Awakening's end and the start of The Hall of Embers together.
   await b.talkUntilNew("aldric"); step("Aldric (Awakening done, Hall of Embers started)");
   if (!/Oren/.test(b.task)) throw new Error(`expected Oren's tour next, got: ${b.task}`);
-  for (const id of ["oren", "radiant_1", "radiant_2", "radiant_3", "radiant_4", "plinth"]) await b.talk(id);
+  for (const id of ["oren", "circle_aldemar", "circle_vale", "plinth"]) await b.talk(id);
   step("Oren's tour");
-  for (const id of ["lisette", "tomas", "wynne"]) await b.talk(id);
-  step("met the three");
+  if (b.quest!.checklist?.length !== 3) throw new Error("meeting the three should show a checklist");
+  for (const id of ["tomas", "wynne"]) await b.talk(id);
+  step("met Tomas and Wynne");
+  // Keeper Lisette: her side quest, The Four Books, read in order. Her tick waits for it.
+  await b.talk("lisette");
+  if (!/glowing shelf/.test(b.task)) throw new Error(`expected The Four Books, got: ${b.task}`);
+  if (b.quest!.checklist) throw new Error("one book at a time: no checklist");
+  if (!b.quest!.lit?.includes("book_1")) throw new Error("the first book should glow");
+  const t1 = b.task;
+  await b.talk("book_3");
+  if (b.task !== t1) throw new Error("read a later book out of order");
+  for (let n = 1; n <= 4; n++) await b.talk(`book_${n}`);
+  if (!/Lisette/.test(b.task)) throw new Error(`expected to go back to Lisette, got: ${b.task}`);
+  await b.talk("lisette");
+  await b.until(() => /Go back to High Keeper Aldric/.test(b.task), 5000, "Lisette's tick to finish the three"); step("The Four Books (side quest), Lisette ticked");
   await b.talkUntilNew("aldric"); step("Hall done, Light the Way started");
   for (let n = 1; n <= 6; n++) await b.talk(`lantern_${n}`);
-  step("lanterns lit");
+  step("lanterns lit (on the stairway down Ember Hill)");
+  // Your room at the top of the tower, with an enchanted chest.
+  await b.talk("chest_room");
+  step("climbed to my room, opened the enchanted chest");
   await b.talkUntilNew("aldric"); step("got the lantern, The Old Sweeper too");
   if (!b.has("lantern")) throw new Error("no lantern");
   await b.until(() => b.quest!.marks.includes("maren"), 5000, "Maren's ❗"); step("The Old Sweeper");
@@ -277,8 +328,10 @@ async function story(name: string) {
     return tileOf(at, 0);
   };
   await b.until(() => !!b.quest, 10000, "the quest tracker");
+  // Every minute (with PLAYTEST_TRACE set): where the bot is and what it's on, to spot where it gets stuck.
+  if (process.env.PLAYTEST_TRACE) setInterval(() => console.log(`  · ${b.minutes()} min at ${b.pos.x},${b.pos.y} (${areaAt(b.pos.x, b.pos.y)?.id}) · ${b.task} · last: ${b.log.slice(-2).join(" | ").slice(0, 160)}`), 60000).unref();
   const quarry = { x: 90, y: 24 };
-  const digSome = async (until: () => boolean) => b.gather("dig", null, until, town);
+  const digSome = async (until: () => boolean) => b.gather("dig", null, until, PLACES["tg.greta"]);
 
   // P.7 A Blessing: dig 20 patches (that also finds the herbs for Moss's tonics).
   if (!isDone("blessing")) {
@@ -339,12 +392,15 @@ async function story(name: string) {
   }
   // 1.4 Tithe Tonics.
   if (!isDone("tonics")) {
+    b.keep = ["red_cap", "wild_root"];
     await b.talkUntilNew("moss");
     if (b.count("red_cap") < 5 || b.count("wild_root") < 5) await digSome(() => b.count("red_cap") >= 5 && b.count("wild_root") >= 5);
     const table = npcById("alchemy_table")!;
     await b.enter(table.x, table.y);
     t = b.task;
-    for (let n = 0; n < 5 && b.task === t; n++) {
+    for (let n = 0; n < 15 && b.task === t; n++) {
+      // A failed brew uses up the herbs: dig for more.
+      if (b.count("red_cap") < 1 || b.count("wild_root") < 1) { await digSome(() => b.count("red_cap") >= 2 && b.count("wild_root") >= 2); await b.enter(table.x, table.y); }
       await b.talk("alchemy_table");
       const had = b.count("potion_tithe");
       b.room.send("craft", { item: "potion_tithe" });
@@ -352,15 +408,18 @@ async function story(name: string) {
       await sleep(500);
     }
     await b.talkUntilNew("moss");
+    b.keep = [];
     done("1.4 Tithe Tonics");
   }
   // 1.5 The Totem.
   if (!isDone("totem")) {
+    b.keep = ["oak_logs"];
     await b.talkUntilNew("rook");
-    await b.gather("chop", "oak", () => b.count("oak_logs") >= 5, town);
+    await b.gather("chop", "oak", () => b.count("oak_logs") >= 5, PLACES["tg.holt"]);
     await b.talkUntilNew("rook");
     await b.talkUntilNew("aldric");
     await b.talkUntilNew("rook");
+    b.keep = [];
     done("1.5 The Totem");
   }
   // 1.6 Ash on the Road.
@@ -376,9 +435,14 @@ async function story(name: string) {
   }
   // 1.7 Rebuild the Shrine.
   if (!isDone("rebuild")) {
+    b.keep = ["oak_logs", "bronze_bar", "copper_ore", "tin_ore"];
     await b.talkUntilNew("aldric");
-    await b.gather("mine", "copper", () => b.count("copper_ore") >= 3, quarry);
-    await b.gather("mine", "tin", () => b.count("tin_ore") >= 3, quarry);
+    // Back for another go after a stop: the logs or bars might have gone (the shrine checks again).
+    if (b.task.startsWith("Rebuild") && (b.count("oak_logs") < 6 || b.count("bronze_bar") < 2)) await b.gather("chop", "oak", () => b.count("oak_logs") >= 6, PLACES["tg.holt"]);
+    if (b.count("bronze_bar") < 2) {
+      await b.gather("mine", "copper", () => b.count("copper_ore") >= 3, quarry);
+      await b.gather("mine", "tin", () => b.count("tin_ore") >= 3, quarry);
+    }
     const furnace = npcById("furnace")!;
     await b.enter(furnace.x, furnace.y);
     for (let n = 0; n < 10 && b.count("bronze_bar") < 2; n++) {
@@ -395,8 +459,8 @@ async function story(name: string) {
     }
     // Oak logs for the shrine's frame: keep them when making room. Chop until the task moves on.
     b.keep = ["oak_logs"];
-    await b.gather("chop", "oak", () => b.task.startsWith("Pick up"), town);
-    await b.until(() => b.task.startsWith("Pick up"), 5000, "oak logs and bars");
+    await b.gather("chop", "oak", () => !b.task.startsWith("Get") && b.count("oak_logs") >= 6, PLACES["tg.holt"]);
+    await b.until(() => !b.task.startsWith("Get"), 5000, "oak logs and bars");
     await b.talkUntilNew("rook");
     await b.talkUntilNew("west_shrine");
     b.keep = [];
@@ -415,7 +479,9 @@ async function story(name: string) {
     await b.talk("odo");
     await b.until(() => (b.room.state.serverNow ?? 0) >= 0 && !(b.quest?.task ?? "").startsWith("Plant"), 2000, "harvest step").catch(() => {});
     t = b.task;
+    b.dropJunk();
     for (let n = 0; n < 60 && b.task === t; n++) {
+      if (b.log.slice(-3).some((l) => l.includes("bag is full"))) b.dropJunk();
       b.room.send("farm", plotTile());
       await sleep(20000);
     }
@@ -427,13 +493,13 @@ async function story(name: string) {
     await b.talkUntilNew("kael");
     t = b.task;
     for (let n = 0; n < 6 && b.task === t; n++) {
-      await b.goTo(70, 140, 3); // (again after a knock-out: you wake at a shrine)
+      await b.goTo(16, 90, 3); // the grey dust west of the pasture (again after a knock-out: you wake at a shrine)
       await b.fight("hollow_wolf", true, 15);
     }
     await b.talkUntilNew("kael");
     done("1.10 The Hollow Wolves");
   }
-  // 1.12 A Light in the Thornwood.
+  // 1.12 A Flame at the Valley's Edge.
   if (!isDone("thorn_light")) {
     await b.talkUntilNew("aldric");
     t = b.task;
@@ -446,7 +512,7 @@ async function story(name: string) {
     await b.talkUntilNew("rhys");
     await b.talk("aldric");
     if (b.me.rank !== 2) throw new Error("not a Flame");
-    done("1.12 A Light in the Thornwood");
+    done("1.12 A Flame at the Valley's Edge");
   }
   console.log(`\nAll done in ${b.minutes()} minutes. Deaths: ${b.deaths}. Tithe marks now: ${b.me.tithe}.`);
   for (const [w, m] of times) console.log(`  ${w.padEnd(34)} ${m} min`);
@@ -454,7 +520,106 @@ async function story(name: string) {
   return b;
 }
 
-const SCENARIOS: Record<string, (name: string) => Promise<Bot>> = { prologue, story };
+/**
+ * A new character's first lessons (version 0.22): the prologue, then all of Old Maren's "Living off the land"
+ * (the rod that breaks, trashing it, the borrowed oak rod and 10 fish, a Mastery point, the burned stew, the
+ * pot, eating), then Smith Brann's smithing lesson (hammer first, then tongs), checking the new rules on the way.
+ */
+async function lessons(name: string) {
+  const b = await prologue(name);
+  await b.join(false);
+  b.watchBag();
+  await b.until(() => !!b.quest && !!b.bag, 10000, "the quest tracker and bag");
+  const step = (what: string) => console.log(`[${b.minutes()} min] ${what} -> task: ${b.task}`);
+  const pond = PLACES["tg.maren"];
+  const tools = () => (b.bag?.inventory ?? []).filter((it: string | null) => it && /^(rod|axe|pickaxe|pot|hammer|tongs)_/.test(it));
+  const equip = async (prefix: string) => {
+    const i = b.bag.inventory.findIndex((it: string | null) => it?.startsWith(prefix));
+    if (i < 0) throw new Error(`no ${prefix} in the bag`);
+    b.room.send("equip", { slot: i });
+    await sleep(800);
+  };
+  const t0 = b.task;
+  await b.gather("fish", null, () => b.task !== t0, pond); step("caught a minnow by hand");
+  await b.talkUntilNew("maren"); step("got Maren's old rod");
+  await equip("rod_"); step("equipped the rod");
+  let t = b.task;
+  await b.gather("fish", null, () => b.task !== t, pond); step("fished until the rod broke");
+  await b.talkUntilNew("maren"); step("Maren explains breaking");
+  if (!/Trash/.test(b.task)) throw new Error(`expected the trash step, got: ${b.task}`);
+  b.room.send("drop", { slot: b.slotOf("rod_pine") });
+  await b.until(() => /Talk to/.test(b.task), 5000, "trashing the rod"); step("trashed the broken rod");
+  await b.talkUntilNew("maren");
+  if (!b.has("rod_oak")) throw new Error("no oak rod on loan");
+  step("Maren lends her oak rod");
+  await equip("rod_oak");
+  t = b.task;
+  await b.gather("fish", null, () => b.task !== t, pond); step("caught 10 fish with the oak rod");
+  b.keep = ["minnow"];
+  await b.talkUntilNew("maren"); step("the rod is mine now");
+  b.room.send("treeBuy", { node: "fishing.insight" });
+  await b.until(() => !/Spend/.test(b.task), 8000, "spending a point (Keen eye)"); step("spent a Mastery point on Keen eye");
+  if (!b.has("minnow")) await b.gather("fish", null, () => b.has("minnow"), pond);
+  await b.talkUntilNew("maren"); step("Maren: cook a stew");
+  await b.talk("stove");
+  t = b.task;
+  b.room.send("craft", { item: "meal_stew_pine_minnow" });
+  await b.until(() => b.task !== t, 15000, "the first stew (it burns)"); step("burned the first stew");
+  await b.talkUntilNew("maren");
+  const pots = b.bag.inventory.filter((it: string | null) => it?.startsWith("pot_")).length;
+  if (pots !== 1) throw new Error(`Maren should give exactly one pot, got ${pots}`);
+  step("got one pot");
+  await equip("pot_");
+  await b.talk("stove");
+  t = b.task;
+  b.room.send("craft", { item: "meal_stew_pine_minnow" });
+  await b.until(() => b.task !== t, 15000, "the second stew"); step("cooked a stew");
+  await b.talkUntilNew("maren"); step("showed Maren the stew");
+  const stew = b.bag.inventory.findIndex((it: string | null) => it === "meal_stew_pine_minnow");
+  b.room.send("eat", { slot: stew });
+  await sleep(1200);
+  if (/Eat/.test(b.task)) {
+    // Stamina was full: Maren's hint says catch a few fish first.
+    if (!b.log.slice(-4).some((l) => /fish/i.test(l))) throw new Error("full stamina should say to catch some fish first");
+    step("stamina full: told to fish first");
+    await b.gather("fish", null, () => b.stamina < 100, pond);
+    b.room.send("eat", { slot: b.bag.inventory.findIndex((it: string | null) => it === "meal_stew_pine_minnow") });
+    await b.until(() => !/Eat/.test(b.task), 5000, "eating the stew");
+  }
+  step("ate the stew");
+  while (/Maren/.test(b.task)) await b.talkUntilNew("maren");
+  step("Living off the land done");
+  // Smith Brann: Smithing first. Only the hammer at level 1.
+  await b.talkUntilNew("brann"); step("Brann's first talk");
+  await b.talk("anvil");
+  t = b.task;
+  b.room.send("craft", { item: "tongs_bronze" });
+  await sleep(1200);
+  if (!b.log.slice(-3).some((l) => /level/i.test(l))) throw new Error("tongs should be locked at Smithing level 1");
+  step("tongs are locked at level 1");
+  b.room.send("craft", { item: "hammer_bronze_pine" });
+  await b.until(() => b.task !== t, 15000, "the hammer"); step("made the hammer");
+  await equip("hammer_");
+  await b.until(() => /Go back/.test(b.task), 5000, "equipping the hammer");
+  await b.talkUntilNew("brann"); step("Brann: ore for bars");
+  await b.talk("furnace");
+  t = b.task;
+  for (let n = 0; n < 3; n++) { b.room.send("craft", { item: "bronze_bar" }); await sleep(2500); }
+  await b.until(() => b.task !== t, 20000, "smelting 3 bars"); step("smelted 3 bars");
+  await b.talk("anvil");
+  t = b.task;
+  b.room.send("craft", { item: "tongs_bronze" });
+  await b.until(() => b.task !== t, 15000, "the tongs"); step("made the tongs");
+  await b.talkUntilNew("brann"); step("Brann's lesson done");
+  const counts: Record<string, number> = {};
+  for (const it of tools()) counts[it.split("_")[0]] = (counts[it.split("_")[0]] ?? 0) + 1;
+  console.log(`Tools in the bag: ${JSON.stringify(counts)} (one of each). Deaths: ${b.deaths}. Took ${b.minutes()} minutes.`);
+  if (Object.values(counts).some((n) => n > 1)) throw new Error("a quest gave a second copy of a tool");
+  await b.leave();
+  return b;
+}
+
+const SCENARIOS: Record<string, (name: string) => Promise<Bot>> = { prologue, story, lessons };
 
 if (process.argv[2]) {
   const which = process.argv[2];

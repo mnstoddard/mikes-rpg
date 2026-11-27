@@ -30,8 +30,9 @@ export function withWallCut<T extends THREE.Material>(mat: T): T {
     float t = dot(vCutPos - uCam, dir);
     if (t > 0.0 && t < len - 0.4) {
       float r = length(vCutPos - (uCam + dir * t));
-      // Wider near you, so the walls round you open up; a speckled edge so it doesn't look like a hole.
-      float R = mix(1.6, 3.4, clamp(t / len, 0.0, 1.0));
+      // Only what's really in the way of seeing you (version 0.22, Mike's note: walls beside you stay up);
+      // a speckled edge so it doesn't look like a hole.
+      float R = mix(0.9, 1.7, clamp(t / len, 0.0, 1.0));
       float cut = smoothstep(R, R * 0.7, r);
       float n = fract(sin(dot(floor(gl_FragCoord.xy), vec2(12.9898, 78.233))) * 43758.5453);
       // Cut down to a low stub (not right through), so you can still see where the wall runs.

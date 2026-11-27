@@ -139,34 +139,69 @@ const COBBLE = [
   { stone: [0x8f9188, 0x7f8478, 0x9a9b90], mortar: 0x4f5a3c, moss: 0x6e9a42 },
 ];
 
-export const cobble: Builder = (o) => {
-  const p = COBBLE[o.variant] ?? COBBLE[0];
-  const geo = surface({ ...o, seg: 2, height: () => 0, color: (x, z) => (p.moss && noise2(x, z, 1, 3) > 0.55 ? p.moss : p.mortar) });
-  const extras: THREE.BufferGeometry[] = [];
-  const sz = 0.4;
-  const j0 = Math.floor(o.z0 / sz), j1 = Math.ceil((o.z0 + o.d) / sz);
-  for (let j = j0; j < j1; j++) {
-    const off = (j % 2) * sz * 0.5;
-    const i0 = Math.floor((o.x0 - off) / sz) - 1, i1 = Math.ceil((o.x0 + o.w - off) / sz);
-    for (let i = i0; i <= i1; i++) {
-      const rng = makeRng(Math.floor(hash2(i, j, 31 + o.seed) * 1e9) + 1);
-      const cx = i * sz + off + sz / 2, cz = j * sz + sz / 2;
-      // Stones that would hang over the patch edge are trimmed to fit.
-      const xa = Math.max(o.x0, cx - sz / 2 + 0.035), xb = Math.min(o.x0 + o.w, cx + sz / 2 - 0.035);
-      const za = Math.max(o.z0, cz - sz / 2 + 0.035), zb = Math.min(o.z0 + o.d, cz + sz / 2 - 0.035);
-      if (xb - xa < 0.06 || zb - za < 0.06) continue;
-      const h = 0.05 + rng() * 0.04;
-      const g = new THREE.BoxGeometry(xb - xa, h, zb - za, 1, 1, 1);
-      // Round the top a little: pull the top corners in.
-      const pos = g.attributes.position as THREE.BufferAttribute;
-      for (let k = 0; k < pos.count; k++) if (pos.getY(k) > 0) { pos.setX(k, pos.getX(k) * 0.82); pos.setZ(k, pos.getZ(k) * 0.82); pos.setY(k, pos.getY(k) + (rng() - 0.5) * 0.015); }
-      g.translate((xa + xb) / 2, h / 2, (za + zb) / 2);
-      let c = jitter(p.stone[Math.floor(rng() * p.stone.length)], rng, 0.07);
-      if (p.moss && rng() < 0.25) c = mix(c, p.moss, 0.45);
-      extras.push(painted(g, c));
+/**
+ * Cobblestones (version 0.22, Mike's note: the cobbles were a lot to draw). They
+ * used to be thousands of little 3D stones; now each street is one flat piece
+ * with a painted cobble picture on it, which looks nearly the same from the
+ * game's camera and costs a tiny fraction to draw (the city is mostly street).
+ */
+const COBBLE_SPAN = 1.6; // metres of street one copy of the picture covers (4 x 4 stones)
+const cobbleTex: THREE.Texture[] = [];
+function cobbleTexture(variant: number): THREE.Texture {
+  if (cobbleTex[variant]) return cobbleTex[variant];
+  const p = COBBLE[variant] ?? COBBLE[0];
+  const N = 256, S = N / 4;
+  const c = document.createElement("canvas");
+  c.width = c.height = N;
+  const g = c.getContext("2d")!;
+  const hex = (n: number) => `#${n.toString(16).padStart(6, "0")}`;
+  g.fillStyle = hex(p.mortar);
+  g.fillRect(0, 0, N, N);
+  const rng = makeRng(17 + variant);
+  for (let j = 0; j < 4; j++) {
+    const off = (j % 2) * S * 0.5;
+    for (let i = -1; i < 4; i++) {
+      let col = jitter(p.stone[Math.floor(rng() * p.stone.length)], rng, 0.07);
+      if (p.moss && rng() < 0.25) col = mix(col, p.moss, 0.45);
+      const x = i * S + off + 4, y = j * S + 4, w = S - 8, h = S - 8;
+      const stone = (dx: number, dy: number, color: number) => {
+        g.fillStyle = hex(color);
+        g.beginPath();
+        g.roundRect(x + dx, y + dy, w, h, 12);
+        g.fill();
+      };
+      // A shadow below and right, a lit edge above and left, then the stone's face: it reads as raised.
+      stone(2, 3, shade(p.mortar, 0.7));
+      stone(-1, -1, shade(col, 1.18));
+      stone(0, 0, col);
+      // A few speckles so it isn't flat paint.
+      for (let k = 0; k < 6; k++) {
+        g.fillStyle = hex(shade(col, 0.88 + rng() * 0.2));
+        g.fillRect(x + 6 + rng() * (w - 12), y + 6 + rng() * (h - 12), 3, 3);
+      }
     }
   }
-  return patch(o, geo, extras).piece;
+  // The stones that run off the right edge carry on at the left (it repeats).
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  return (cobbleTex[variant] = t);
+}
+const cobbleMat: THREE.MeshStandardMaterial[] = [];
+
+export const cobble: Builder = (o) => {
+  const variant = COBBLE[o.variant] ? o.variant : 0;
+  const m = cobbleMat[variant] ??= new THREE.MeshStandardMaterial({ map: cobbleTexture(variant), roughness: 0.92 });
+  const geo = new THREE.PlaneGeometry(o.w, o.d);
+  geo.rotateX(-Math.PI / 2);
+  geo.translate(o.x0 + o.w / 2, 0.02, o.z0 + o.d / 2);
+  // The picture is pinned to the world, so neighbouring streets line up.
+  const pos = geo.attributes.position as THREE.BufferAttribute, uv = geo.attributes.uv as THREE.BufferAttribute;
+  for (let k = 0; k < pos.count; k++) uv.setXY(k, pos.getX(k) / COBBLE_SPAN, -pos.getZ(k) / COBBLE_SPAN);
+  const group = new THREE.Group();
+  group.add(mesh(geo, m, false));
+  return { object: group, update() {}, dispose: () => disposeGroup(group) };
 };
 
 export const sand: Builder = (o) => {

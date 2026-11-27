@@ -4,9 +4,10 @@
 //
 // Names, health bars and the ❗ over people float above them as HTML labels
 // (CSS2DObject), so they stay crisp at any zoom.
+import { ARMOR_BY_ID, coversOf, dressFor, wearArmor } from "../armor";
 import * as THREE from "three";
 import { CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
-import { TICK_MS } from "../../../shared/map";
+import { MAP, TICK_MS, isBlockedTile } from "../../../shared/map";
 import type { NpcDef } from "../../../shared/npcs";
 import { RANK_CLOAK } from "../../../shared/story";
 import { createCharacter, makeRecipe, type Character, type CharacterRecipe } from "../character";
@@ -17,6 +18,7 @@ import { createFood } from "../food";
 import { isWeapon, parseWeapon } from "../../../shared/gear";
 import { createEnv, type EnvPiece } from "../environment";
 import { tileCenter } from "./terrain";
+import { groundHeightAt } from "../../../shared/world";
 import { makeFlame } from "./flame";
 import { TILE } from "../environment";
 
@@ -121,8 +123,15 @@ export class Person {
   private weapon = "";
   /** Running (they move faster and the legs go quicker). */
   running = false;
-  /** 1 = lying on their back (head to the north), 0 = standing: the opening scene, where a new hero wakes by the shrine. */
-  lying = 0;
+  /**
+   * Getting up off the floor (the opening scene): 0 = lying on their back (head to the north),
+   * 1 = sitting up, 2 = down on one knee, 3 = standing (the normal animations). Anything in
+   * between blends smoothly. Keeper Celene kneels beside a new hero at 2.
+   */
+  stage = 3;
+  /** 0..1: reaching out a hand (Celene helping a new hero up). */
+  reach = 0;
+  private groundBox = new THREE.Box3();
   /** A fish being pulled out of the water (fishing). */
   private catching?: { fish: THREE.Object3D; t: number; from: THREE.Vector3; dispose: () => void };
   private rodTip?: THREE.Object3D;
@@ -130,6 +139,7 @@ export class Person {
 
   constructor(recipe: CharacterRecipe, opts: { name: string; me?: boolean; npc?: boolean; badge?: string }) {
     this.hero = createCharacter(recipe);
+    this.baseRecipe = recipe;
     this.prepHero();
     this.root.add(this.hero.object);
     this.name = label("name3d" + (opts.me ? " me" : "") + (opts.npc ? " npc" : ""));
@@ -164,12 +174,34 @@ export class Person {
     const text = JSON.stringify(recipe);
     if (text === this.recipeText) return;
     this.recipeText = text;
+    this.baseRecipe = recipe;
+    this.rebuild();
+  }
+
+  /** The armor they have on (item ids: helmet_bronze, platebody_cloth...), drawn on the body. */
+  setWorn(ids: string[]) {
+    const list = ids.filter((id) => ARMOR_BY_ID[id]);
+    if (list.join(",") === this.worn.join(",")) return;
+    this.worn = list;
+    this.rebuild();
+  }
+
+  private baseRecipe: CharacterRecipe | null = null;
+  private worn: string[] = [];
+  private rankNow = 0;
+  private rebuild() {
+    if (!this.baseRecipe) return;
+    const covers = this.worn.flatMap((id) => coversOf(ARMOR_BY_ID[id]));
+    const dressed = dressFor(this.baseRecipe, covers);
     this.dropHeld();
     this.root.remove(this.hero.object);
     this.hero.dispose();
-    this.hero = createCharacter(recipe);
+    this.hero = createCharacter({ ...this.baseRecipe, ...dressed.recipe });
+    for (const id of this.worn) wearArmor(this.hero, id);
+    if (dressed.hideHair) for (const h of this.hero.joints.hair) h.visible = false;
     this.prepHero();
     this.root.add(this.hero.object);
+    if (this.rankNow) { this.cloak = undefined; this.setRank(this.rankNow); }
     const a = this.action;
     this.action = "";
     this.setAction(a, this.faceTile.x, this.faceTile.y);
@@ -177,6 +209,7 @@ export class Person {
 
   /** An Emberguard's cloak (Ember orange, Flame gold) on the back. */
   setRank(rank: number) {
+    this.rankNow = rank;
     const col = RANK_CLOAK[rank] ?? 0;
     if (this.cloak) { this.cloak.parent?.remove(this.cloak); this.cloak.geometry.dispose(); this.cloak = undefined; }
     if (!col) return;
@@ -262,6 +295,7 @@ export class Person {
     }
     this.root.position.x = x;
     this.root.position.z = z;
+    this.root.position.y = groundHeightAt(x / TILE, z / TILE); // up and down Ember Hill's stairway
   }
 
   /** The weapon they hold now (item id, or "" for fists). Shows next time they fight. */
@@ -363,6 +397,55 @@ export class Person {
     }
   }
 
+  /** Lying, sitting, kneeling (see `stage`): poses the joints on top of the normal animation. */
+  private poseGetUp() {
+    const o = this.hero.object, J = this.hero.joints, f = this.hero.fit;
+    const s = Math.max(0, Math.min(3, this.stage));
+    if (s >= 3 && this.reach <= 0) {
+      if (o.rotation.x || o.position.y || o.position.z || o.position.x) { o.rotation.x = 0; o.position.set(0, 0, 0); }
+      return;
+    }
+    // Keyframes: how the body is tipped and lowered, and each joint's forward bend (radians).
+    type K = { rx: number; y: number; back: number; hips: number; spine: number; head: number; hipL: number; kneeL: number; ankL: number; hipR: number; kneeR: number; ankR: number; shL: number; elL: number; shR: number; elR: number };
+    const hy = J.hipsY;
+    const lie: K = { rx: -Math.PI / 2, y: 0.16, back: 0, hips: 0, spine: 0, head: 0, hipL: 0, kneeL: 0, ankL: 0, hipR: 0, kneeR: 0, ankR: 0, shL: 0, elL: -0.14, shR: 0, elR: -0.14 };
+    // Sitting on the floor, legs out in front, leaning on both hands behind.
+    const sit: K = { rx: 0, y: 0, back: hy * 0.92, hips: f.thighR + 0.03 - hy, spine: 0.32, head: -0.15, hipL: -1.7, kneeL: 0.3, ankL: 0.25, hipR: -1.8, kneeR: 0.7, ankR: 0.2, shL: 0.55, elL: -0.15, shR: 0.55, elR: -0.15 };
+    // Down on the right knee, left foot planted, a hand on the left knee.
+    const kh = f.shinL + f.footH * 0.9;
+    const kneel: K = { rx: 0, y: 0, back: hy * 0.25, hips: kh - hy, spine: 0.22, head: 0.1, hipL: -1.45, kneeL: 1.45, ankL: 0.05, hipR: -0.05, kneeR: 1.55, ankR: 1.0, shL: -0.45, elL: -0.7, shR: 0.1, elR: -0.3 };
+    const now: K = { rx: 0, y: 0, back: 0, hips: J.hips.position.y - hy, spine: J.spine.rotation.x, head: J.head.rotation.x, hipL: J.hipL.rotation.x, kneeL: J.kneeL.rotation.x, ankL: J.ankL.rotation.x, hipR: J.hipR.rotation.x, kneeR: J.kneeR.rotation.x, ankR: J.ankR.rotation.x, shL: J.shL.rotation.x, elL: J.elL.rotation.x, shR: J.shR.rotation.x, elR: J.elR.rotation.x };
+    const keys = [lie, sit, kneel, now];
+    const i = Math.min(2, Math.floor(s)), u = s - i, e = u * u * (3 - 2 * u);
+    const a = keys[i], b = keys[i + 1];
+    const m = (k: keyof K) => a[k] + (b[k] - a[k]) * e;
+    o.rotation.x = m("rx");
+    // Lying and sitting sit back from the feet (the body lay with its head to the north).
+    const back = m("back");
+    o.position.set(-Math.sin(this.yaw) * back, m("y"), -Math.cos(this.yaw) * back);
+    J.hips.position.y = hy + m("hips");
+    J.spine.rotation.x = m("spine");
+    J.head.rotation.x = m("head");
+    J.hipL.rotation.x = m("hipL"); J.kneeL.rotation.x = m("kneeL"); J.ankL.rotation.x = m("ankL");
+    J.hipR.rotation.x = m("hipR"); J.kneeR.rotation.x = m("kneeR"); J.ankR.rotation.x = m("ankR");
+    J.shL.rotation.x = m("shL"); J.elL.rotation.x = m("elL");
+    J.shR.rotation.x = m("shR"); J.elR.rotation.x = m("elR");
+    // Rest on the floor: whatever the blend, the lowest part of the body (a heel, a knee, the seat) just touches the ground,
+    // so nothing sinks into it or hovers over it (Mike's note: the new hero stepped into the ground getting up).
+    if (s < 3) {
+      o.updateMatrixWorld(true);
+      const low = this.groundBox.setFromObject(o).min.y;
+      if (Number.isFinite(low)) o.position.y += this.root.position.y - low;
+    }
+    // Reaching out the right hand.
+    if (this.reach > 0) {
+      const r = this.reach * this.reach * (3 - 2 * this.reach);
+      J.shR.rotation.x += (-1.25 - J.shR.rotation.x) * r;
+      J.shR.rotation.z += (-0.05 - J.shR.rotation.z) * r;
+      J.elR.rotation.x += (-0.25 - J.elR.rotation.x) * r;
+    }
+  }
+
   update(dt: number, time: number) {
     if (this.t < 1) {
       this.t = Math.min(1, this.t + dt / this.dur);
@@ -376,11 +459,7 @@ export class Person {
     const walking = this.moving;
     this.hero.setAnim(walking ? (this.running ? "run" : "walk") : "idle");
     this.hero.update(dt, time);
-    // Lying down (the opening scene): tip over backwards from the feet, lifted a little off the floor.
-    const lie = Math.max(0, Math.min(1, this.lying));
-    const ease = lie * lie * (3 - 2 * lie);
-    this.hero.object.rotation.x = -ease * Math.PI / 2;
-    this.hero.object.position.y = ease * 0.16;
+    this.poseGetUp();
     const fists = this.action === "fighting" && !isWeapon(this.weapon);
     const a = fists ? { move: "punch" as Move, hits: false } : ACTIONS[this.action];
     if (a && !walking) {
@@ -472,6 +551,27 @@ export class Person {
       for (const mat of mats) { mat.transparent = alpha < 1; mat.opacity = alpha; }
     });
     this.name.obj.visible = alpha > 0.2;
+  }
+
+  /**
+   * Glowing ember-gold (the opening scene, version 0.21): 1 is a body made of light, 0 is how they really look. Each
+   * material keeps its own colours in userData the first time, so it always comes back exactly.
+   */
+  setGlow(k: number) {
+    const gold = new THREE.Color(0xffd890), ember = new THREE.Color(0xff9a30);
+    this.hero.object.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (!m.isMesh) return;
+      const mats = Array.isArray(m.material) ? m.material : [m.material];
+      for (const mat of mats as THREE.MeshStandardMaterial[]) {
+        if (!mat.color || !mat.emissive) continue;
+        const u = mat.userData as { glow0?: { color: THREE.Color; emissive: THREE.Color; i: number } };
+        u.glow0 ??= { color: mat.color.clone(), emissive: mat.emissive.clone(), i: mat.emissiveIntensity };
+        mat.color.copy(u.glow0.color).lerp(gold, k * 0.8);
+        mat.emissive.copy(u.glow0.emissive).lerp(ember, k);
+        mat.emissiveIntensity = u.glow0.i + (1.6 - u.glow0.i) * k;
+      }
+    });
   }
 
   dispose() {
@@ -631,6 +731,76 @@ const PROP_FOR: Record<string, string> = {
   tanning_rack: "tanning_rack", alchemy_table: "alchemy_table", altar: "altar", board: "guild_board", guildboard: "guild_board",
 };
 
+// ---------------------------------------------------------------- statues
+
+interface StatueDef {
+  recipe: Partial<CharacterRecipe>;
+  /** How much bigger than life. */
+  scale: number;
+  /** Shoulder and elbow angles: [shoulder x, shoulder z, elbow x] for each arm (negative x lifts the arm forward). */
+  armL: [number, number, number];
+  armR: [number, number, number];
+  head?: number;
+  /** Which way it faces: east (+1) or west (-1) along a side wall, or south (0, the default). */
+  face?: -1 | 0 | 1;
+  stone?: number;
+}
+
+const MAGE = { top: "robe", bottom: "skirt", shoes: "boots", belt: "on" } as const;
+const STATUES: Record<string, StatueDef> = {
+  // Behind the Heart Shrine: Vale, one hand raised over the flame.
+  circle_vale: { scale: 1.55, recipe: { ...MAGE, frame: 0, height: 1.08, build: 0.25, hairStyle: "long", hairLength: 0.7, beard: "wizard", hat: "none" }, armL: [-0.2, 0.25, -0.3], armR: [-2.75, -0.15, -0.2], head: -0.12 },
+  circle_aldemar: { scale: 1.3, face: 1, recipe: { ...MAGE, frame: 0, height: 1.05, build: 0.45, muscle: 0.6, hairStyle: "short", beard: "full", hat: "crown" }, armL: [-0.15, 0.2, -0.2], armR: [-0.9, -0.1, -1.7] },
+  circle_crowe: { scale: 1.25, face: 1, recipe: { ...MAGE, frame: 0.2, hairStyle: "messy", beard: "stubble", hat: "wizard" }, armL: [-1.1, 0.3, -0.5], armR: [-0.1, -0.2, -0.2] },
+  circle_flint: { scale: 1.25, face: 1, recipe: { ...MAGE, frame: 0, build: 0.7, muscle: 0.9, shoulders: 1.15, hairStyle: "buzz", beard: "full" }, armL: [-0.1, 0.2, -1.9], armR: [-0.1, -0.2, -1.9] },
+  circle_ivy: { scale: 1.25, face: 1, recipe: { ...MAGE, frame: 1, hairStyle: "long", hairLength: 0.9, lashes: "on" }, armL: [-0.2, 0.2, -0.2], armR: [-1.4, -0.5, -0.4] },
+  circle_merrow: { scale: 1.25, face: -1, recipe: { ...MAGE, frame: 0.9, hairStyle: "bun", lashes: "on" }, armL: [-1.4, 0.5, -0.4], armR: [-0.2, -0.2, -0.2] },
+  circle_dunn: { scale: 1.25, face: -1, recipe: { ...MAGE, frame: 0.1, build: 0.5, hairStyle: "bald", beard: "goatee" }, armL: [-0.1, 0.2, -0.2], armR: [-2.2, -0.3, -0.4] },
+  circle_reed: { scale: 1.25, face: -1, recipe: { ...MAGE, frame: 0.6, hairStyle: "ponytail", hat: "headband" }, armL: [-0.8, 0.15, -1.2], armR: [-0.8, -0.15, -1.2] },
+  // The Extinguished, out in the garden: Halric with his fist raised, Ida with an oar, Tilda leading, Orla with open hands.
+  extinguished_1: { scale: 1.3, recipe: { frame: 0, build: 0.6, muscle: 0.9, top: "tunic", bottom: "pants", hairStyle: "short", beard: "stubble" }, armL: [-0.1, 0.2, -0.2], armR: [-2.9, -0.1, -0.1], stone: 0xe9e3d4 },
+  extinguished_2: { scale: 1.3, recipe: { frame: 1, top: "long", bottom: "skirt", hairStyle: "ponytail", lashes: "on" }, armL: [-0.9, 0.1, -1.2], armR: [-0.9, -0.1, -1.2], stone: 0xe9e3d4 },
+  extinguished_3: { scale: 1.3, recipe: { frame: 0.8, top: "tunic", bottom: "pants", hairStyle: "bob", lashes: "on" }, armL: [-0.1, 0.2, -0.2], armR: [-1.5, -0.4, -0.1], stone: 0xe9e3d4 },
+  extinguished_4: { scale: 1.3, recipe: { frame: 1, top: "robe", bottom: "skirt", hairStyle: "bun", lashes: "on" }, armL: [-1.1, 0.5, -0.6], armR: [-1.1, -0.5, -0.6], stone: 0xe9e3d4 },
+};
+
+/** A character carved in stone, on a plinth. */
+function makeStatue(d: StatueDef): { object: THREE.Group; top: number; dispose: () => void } {
+  const group = new THREE.Group();
+  const marble = new THREE.MeshStandardMaterial({ color: d.stone ?? 0xfaf8f2, roughness: 0.5, metalness: 0.02 });
+  const plinthMat = new THREE.MeshStandardMaterial({ color: 0xcfc6b2, roughness: 0.7 });
+  const plinthH = 0.55;
+  const plinth = new THREE.Mesh(new THREE.BoxGeometry(1.5, plinthH, 1.5), plinthMat);
+  plinth.position.y = plinthH / 2;
+  const cap = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.1, 1.62), plinthMat);
+  cap.position.y = plinthH + 0.05;
+  group.add(plinth, cap);
+  const hero = createCharacter(makeRecipe({ ...d.recipe, mouth: "neutral" }), { anim: null });
+  const J = hero.joints;
+  J.shL.rotation.set(d.armL[0], 0, J.rest + d.armL[1]);
+  J.shR.rotation.set(d.armR[0], 0, -J.rest + d.armR[1]);
+  J.elL.rotation.set(d.armL[2], 0, 0);
+  J.elR.rotation.set(d.armR[2], 0, 0);
+  if (d.head) J.head.rotation.x = d.head;
+  hero.object.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (!m.isMesh) return;
+    const old = m.material as THREE.Material | THREE.Material[];
+    for (const x of Array.isArray(old) ? old : [old]) x.dispose();
+    m.material = marble;
+  });
+  hero.object.scale.setScalar(d.scale);
+  hero.object.position.y = plinthH + 0.1;
+  hero.object.rotation.y = (d.face ?? 0) * Math.PI / 2;
+  group.add(hero.object);
+  const top = plinthH + 0.1 + new THREE.Box3().setFromObject(hero.object).max.y - hero.object.position.y;
+  return {
+    object: group,
+    top,
+    dispose: () => { hero.dispose(); marble.dispose(); plinthMat.dispose(); plinth.geometry.dispose(); cap.geometry.dispose(); },
+  };
+}
+
 export interface StationView {
   root: THREE.Group;
   update(dt: number, time: number, night: number): void;
@@ -655,9 +825,13 @@ export function makeStation(npc: NpcDef): StationView {
     parts.push({ update: (dt, t) => item.update(dt, t), dispose: () => item.dispose() });
     const box = new THREE.Box3().setFromObject(item.object);
     tag.obj.position.y = box.max.y + 0.4;
-  } else if (npc.id.startsWith("radiant_")) {
-    // The statues of the Extinguished are part of the hall already: just their name.
-    tag.obj.position.y = 3.4;
+  } else if (STATUES[npc.id]) {
+    // A statue (version 0.20): the Ember Circle in the great hall, the Extinguished in the garden. Each is a real
+    // character, posed and carved in white stone, on a plinth.
+    const st = makeStatue(STATUES[npc.id]);
+    root.add(st.object);
+    parts.push({ update: () => {}, dispose: st.dispose });
+    tag.obj.position.y = st.top + 0.35;
   } else if (npc.id === "heart_shrine") {
     // The Heart Shrine (version 0.14): a tall flame in a wide stone bowl, ringed with gold.
     const stone = new THREE.MeshStandardMaterial({ color: 0xe8e0cc, roughness: 0.6 });
@@ -681,6 +855,39 @@ export function makeStation(npc: NpcDef): StationView {
     root.add(flame.object);
     parts.push({ update: (dt, t) => flame.update(dt, t), dispose: () => flame.dispose() });
     tag.obj.position.y = 4.2;
+  } else if (npc.id.startsWith("book_")) {
+    // Keeper Lisette's Four Books (version 0.22, Mike's note): a heavy book on a library shelf, its spine sticking out
+    // a little. The one you're on glows, so you walk over and take it down.
+    let face = 0;
+    for (const [dx, dy] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
+      const t = MAP[npc.y + dy]?.[npc.x + dx];
+      if (t && !isBlockedTile(t)) { face = Math.atan2(dx, dy); break; }
+    }
+    const holder = new THREE.Group();
+    holder.rotation.y = face;
+    root.add(holder);
+    const cover = new THREE.MeshStandardMaterial({ color: npc.color, roughness: 0.7, emissive: 0xffb040, emissiveIntensity: 0 });
+    const gilt = new THREE.MeshStandardMaterial({ color: 0xd9b44a, roughness: 0.35, metalness: 0.6 });
+    const book = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.42, 0.32), cover);
+    book.position.set(0.1, 1.35, 0.26);
+    const band = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.05, 0.03), gilt);
+    band.position.set(0.1, 1.45, 0.42);
+    holder.add(book, band);
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.42, 12, 8), new THREE.MeshBasicMaterial({ color: 0xffc860, transparent: true, opacity: 0.2, depthWrite: false }));
+    glow.position.set(0.1, 1.35, 0.45);
+    glow.userData.noShadow = true;
+    glow.visible = false;
+    holder.add(glow);
+    setLit = (lit) => { glow.visible = lit; cover.emissiveIntensity = lit ? 0.9 : 0; };
+    parts.push({ update: (_dt, t) => {
+      if (!glow.visible) return;
+      (glow.material as THREE.MeshBasicMaterial).opacity = 0.16 + 0.1 * Math.sin(t * 3);
+      book.position.z = 0.26 + 0.03 * Math.sin(t * 3);
+    }, dispose: () => {
+      for (const m of [cover, gilt, glow.material as THREE.Material]) m.dispose();
+      for (const o of [book, band, glow]) o.geometry.dispose();
+    } });
+    tag.obj.position.y = 2.1;
   } else if (npc.id.startsWith("lantern_") || npc.id.startsWith("round_")) {
     const lamp: EnvPiece = createEnv("decor-lamp", { variant: npc.id.startsWith("round_") ? 0 : 1, seed: 4 });
     root.add(lamp.object);

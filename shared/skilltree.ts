@@ -30,7 +30,8 @@ export type TreeEffect =
   | "enchantSlot"  // enchanting: items take a second enchantment
   | "potency"      // enchanting: stronger enchantments
   | "reenchant"    // enchanting: enchant an item again after taking one off
-  | "growth";      // farming: crops ripen sooner
+  | "growth"       // farming: crops ripen sooner
+  | "insight";     // version 0.22 (Mike's note): see this skill's odds and numbers
 
 export interface TreeNode {
   /** e.g. "cooking.slots". */
@@ -120,6 +121,17 @@ export const TREES: Record<SkillId, TreeNode[]> = {
   ],
 };
 
+// Keen eye (version 0.22, Mike's note): the game keeps its numbers to itself ("much faster
+// with an axe", "likely to work") until you buy this in a skill's tree. Then that skill shows
+// its success chances, speeds and XP. One rank, one point.
+for (const skill of Object.keys(TREES) as SkillId[]) {
+  if (skill === "trading" || skill === "renown" || skill === "leadership") continue;
+  TREES[skill].push(node(skill, "insight", "Keen eye", "🔍", 1, 1));
+}
+
+/** Has this player bought Keen eye in this skill (so it shows them the numbers)? */
+export const hasInsight = (ranks: TreeRanks, skill: SkillId) => (ranks[`${skill}.insight`] ?? 0) > 0;
+
 export const ALL_TREE_NODES = Object.values(TREES).flat();
 export const treeNode = (id: string) => ALL_TREE_NODES.find((n) => n.id === id);
 
@@ -176,6 +188,7 @@ export function nodeEffect(n: TreeNode, rank: number, skillName: string): string
     case "potency": return `enchantments are ${pct} stronger`;
     case "reenchant": return "enchant an item again after its enchantment was taken off";
     case "growth": return `crops ripen ${pct} sooner`;
+    case "insight": return `see your exact odds, speeds and XP for ${skillName}`;
   }
 }
 

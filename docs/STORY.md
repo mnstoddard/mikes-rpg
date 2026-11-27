@@ -122,9 +122,9 @@ fighting over it.
   Undying, centuries old.
 - **The High Keeper**: the hooded head of the order, who only speaks from
   inside the Heart Shrine's light. (It's Vael.)
-- **Keeper Aldric**: the warm, cheerful Lightkeeper who welcomes every new hero,
+- **High Keeper Aldric**: the warm, cheerful Lightkeeper who welcomes every new hero,
   runs the Lighthall and hands out Lightkeeper ranks. Undying.
-- **Sister Celene**: the shrine healer who blesses heroes. She's Rooted and
+- **Keeper Celene**: the shrine healer who blesses heroes. She's Rooted and
   **doesn't know the truth**. She becomes an ally later.
 - **The four Lightwardens**, each running a region's great shrine, all Undying:
   **Warden Corvane** (Thornwood), **Warden Halbrecht** (Greyspine),
@@ -243,7 +243,7 @@ want the risk.
 At the end of Act 2, the Lightkeepers hold a grand ceremony to name a new
 **Radiant**. Everyone gathers. Your rival Rhys is the one honored. In front of
 everyone, the light pours out of him, and he drops to **level 1**, grey and
-shaking. Keeper Aldric announces, sadly, that "his spark was flawed". You were
+shaking. High Keeper Aldric announces, sadly, that "his spark was flawed". You were
 next on the list.
 
 ### The choice and the ending
@@ -283,5 +283,5 @@ one.
 6. ~~Where the buffs work~~ **Decided: rank buffs only work inside the
    Crown.**
 7. **What can go into the 2D game now?** For example: the Lighthall at the
-   centre of town, Keeper Aldric and Sister Celene, the new Prologue quests,
+   centre of town, High Keeper Aldric and Keeper Celene, the new Prologue quests,
    and renaming the bandits to the Ashbound.

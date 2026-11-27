@@ -9,10 +9,10 @@ summary: The secret leaders of the Emberguard, who live on the siphon.
 
 Members:
 
-- [[Archmage Vale]], as [[Enchanter Vale]] and the hooded High Keeper. The strongest by far, fed by every [[Radiance Ceremony]].
+- [[Archmage Vale]], as [[High Keeper Aldric]]. The strongest by far, fed by every [[Radiance Ceremony]].
 - Crowe, Flint, Merrow and Dunn: the Circle members who sided with Vale. Today they're four of the [[Emberwardens]].
 - Warden Ivy and Warden Reed: impostors wearing the names of the members killed on Wick's side.
-- [[Keeper Aldric]] and a few others Vale rewarded after the war.
+- [[High Keeper Aldric]] and a few others Vale rewarded after the war.
 
 **The Keepers** are the Undying's hands. Every Keeper of the Emberguard knows what the [[Radiance Ceremony]] really does, because Keepers officiate it: they choose who is "ready", lead the champion down the stair, and watch them drained. They know about the Tithe and what the [[Oath of the Flame]] really binds. In return they get a share of what flows down the threads, and they stop ageing. They've let it corrupt them. That's why the ledger room is "for the Keepers alone".
 

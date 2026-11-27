@@ -12,10 +12,11 @@ const at = (place: string) => {
 
 export type NpcId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "wren" | "moss" | "bryn" | "odo"
   | "furnace" | "anvil" | "stove" | "workbench" | "tanning_rack" | "spinning_wheel" | "board"
-  | "archmage" | "altar" | "guildboard" | "repairer" | "alchemy_table" | "chest" | "chest_east" | "chest_forest" | "chest_farm" | "chest_inn"
+  | "archmage" | "altar" | "guildboard" | "repairer" | "alchemy_table" | "chest" | "chest_east" | "chest_forest" | "chest_farm" | "chest_inn" | "chest_room"
   // The Emberhall (the Emberguard's temple) and its people.
-  | "heart_shrine" | "aldric" | "celene" | "vale" | "oren" | "lisette" | "tomas" | "wynne" | "plinth"
-  | "radiant_1" | "radiant_2" | "radiant_3" | "radiant_4"
+  | "heart_shrine" | "aldric" | "celene" | "vale" | "oren" | "lisette" | "tomas" | "wynne" | "plinth" | "book_1" | "book_2" | "book_3" | "book_4"
+  | "extinguished_1" | "extinguished_2" | "extinguished_3" | "extinguished_4"
+  | "circle_vale" | "circle_aldemar" | "circle_crowe" | "circle_flint" | "circle_ivy" | "circle_merrow" | "circle_dunn" | "circle_reed"
   // The story (shared/story.ts): lanterns to light, the shrines out in Heartvale, and Rhys.
   | "lantern_1" | "lantern_2" | "lantern_3" | "lantern_4" | "lantern_5" | "lantern_6"
   | "round_1" | "round_2" | "round_3" | "round_4" | "round_5" | "round_6"
@@ -37,11 +38,11 @@ export interface NpcDef {
 export const NPCS: NpcDef[] = [
   {
     // The guide (shared/quests.ts). Click her to talk; a ❗ shows when she has something for you.
-    id: "maren", name: "Old Maren", kind: "person", ...at("maren.maren"), color: 0x2e86c1, badge: "🎣",
+    id: "maren", name: "Old Maren", kind: "person", ...at("tg.maren"), color: 0x2e86c1, badge: "🎣",
     greeting: "",
   },
   {
-    id: "stove", name: "Stove", kind: "station", ...at("maren.stove"), color: 0x3a3a3a,
+    id: "stove", name: "Stove", kind: "station", ...at("tg.stove"), color: 0x3a3a3a,
     greeting: "The stove is ready. Pick a dish, put ingredients in the pot, and pick a log to burn.",
   },
   {
@@ -60,23 +61,23 @@ export const NPCS: NpcDef[] = [
   },
   // ---- Trainer Row (east of the square, north of the road) ----
   {
-    id: "holt", name: "Forester Holt", kind: "person", ...at("holt.holt"), color: 0x27ae60, badge: "🪓",
+    id: "holt", name: "Forester Holt", kind: "person", ...at("tg.holt"), color: 0x27ae60, badge: "🪓",
     greeting: "I buy logs and axes, and I sell bronze axes and logs.",
   },
   {
-    id: "greta", name: "Miner Greta", kind: "person", ...at("greta.greta"), color: 0x95a5a6, badge: "⛏️",
+    id: "greta", name: "Miner Greta", kind: "person", ...at("tg.greta"), color: 0x95a5a6, badge: "⛏️",
     greeting: "I buy ore and pickaxes, and I sell bronze pickaxes and ore.",
   },
   {
-    id: "brann", name: "Smith Brann", kind: "person", ...at("smithy.brann"), color: 0xc0392b, badge: "🔨",
+    id: "brann", name: "Smith Brann", kind: "person", ...at("tg.brann"), color: 0xc0392b, badge: "🔨",
     greeting: "I buy bars, tools, weapons and armor, and I sell hammers, tongs and bars.",
   },
   {
-    id: "furnace", name: "Furnace", kind: "station", ...at("smithy.furnace"), color: 0x8b3a1a,
+    id: "furnace", name: "Furnace", kind: "station", ...at("tg.furnace"), color: 0x8b3a1a,
     greeting: "The furnace roars. Pick a bar to smelt.",
   },
   {
-    id: "anvil", name: "Anvil", kind: "station", ...at("smithy.anvil"), color: 0x555a60,
+    id: "anvil", name: "Anvil", kind: "station", ...at("tg.anvil"), color: 0x555a60,
     greeting: "Pick a tool, weapon, armor or jewelry to make at the anvil, or cut a gem.",
   },
   // ---- Rook's workshop (just west of the square) ----
@@ -86,12 +87,12 @@ export const NPCS: NpcDef[] = [
     greeting: "Seeds for sale, and land if you want it. Everyone's crops grow while they sleep!",
   },
   {
-    id: "rook", name: "Woodworker Rook", kind: "person", ...at("rook.rook"), color: 0xa0522d, badge: "🪚",
+    id: "rook", name: "Woodworker Rook", kind: "person", ...at("tg.rook"), color: 0xa0522d, badge: "🪚",
     greeting: "Bows, arrows, staffs, leather and cloth: it all starts at my bench. I buy hides, silk and what you make, and sell worms, feathers and thread.",
   },
   {
     // Handicraft (shared/handicraft.ts): fishing bait for now.
-    id: "workbench", name: "Workbench", kind: "station", ...at("rook.workbench"), color: 0x8b5a2b,
+    id: "workbench", name: "Workbench", kind: "station", ...at("tg.workbench"), color: 0x8b5a2b,
     greeting: "A sturdy workbench. Pick something to make.",
   },
   {
@@ -101,42 +102,42 @@ export const NPCS: NpcDef[] = [
   },
   {
     // Handicraft: spider silk into thread, thread into cloth.
-    id: "spinning_wheel", name: "Spinning wheel", kind: "station", ...at("rook.spinning_wheel"), color: 0x8b5a2b,
+    id: "spinning_wheel", name: "Spinning wheel", kind: "station", ...at("tg.spinning_wheel"), color: 0x8b5a2b,
     greeting: "Spin spider silk into thread, and weave thread into cloth.",
   },
   // ---- Kael's lodge (by the gate to the Dark Forest) ----
   {
-    id: "kael", name: "Huntmaster Kael", kind: "person", ...at("kael.kael"), color: 0x6e2c00, badge: "🏹",
+    id: "kael", name: "Huntmaster Kael", kind: "person", ...at("tg.kael"), color: 0x6e2c00, badge: "🏹",
     greeting: "I buy weapons, armor and what monsters drop, and I sell starter weapons and potions.",
   },
   // ---- Wren's hut (by the lake, east of the Mages' Guild) ----
   {
-    id: "wren", name: "Herbalist Wren", kind: "person", ...at("wren.wren"), color: 0x3d8b37, badge: "🌱",
+    id: "wren", name: "Herbalist Wren", kind: "person", ...at("tg.wren"), color: 0x3d8b37, badge: "🌱",
     greeting: "I buy roots, herbs, mushrooms and shovels, and I sell bronze shovels.",
   },
   // ---- The Mages' Guild (shared/guild.ts): the hall south-west of town, past the lake ----
   {
-    id: "archmage", name: "Archmage Rowan", kind: "person", ...at("guild.archmage"), color: 0x5b2c9f, badge: "🔮",
+    id: "archmage", name: "Archmage Rowan", kind: "person", ...at("tg.archmage"), color: 0x5b2c9f, badge: "🔮",
     greeting: "Welcome to the Mages' Guild. Rent space in our enchanted chest, or help the guild to rise in rank.",
   },
   {
     // Alchemy (shared/alchemy.ts): teaches it, sells empty vials, buys potions and herbs.
-    id: "moss", name: "Alchemist Moss", kind: "person", ...at("guild.moss"), color: 0x1e8449, badge: "⚗️",
+    id: "moss", name: "Alchemist Moss", kind: "person", ...at("tg.moss"), color: 0x1e8449, badge: "⚗️",
     greeting: "I buy potions, herbs and monster parts, and I sell empty vials.",
   },
   {
-    id: "alchemy_table", name: "Alchemy table", kind: "station", ...at("guild.alchemy_table"), color: 0x4a3a6a,
+    id: "alchemy_table", name: "Alchemy table", kind: "station", ...at("tg.alchemy_table"), color: 0x4a3a6a,
     greeting: "Bottles, burners and a pestle. Pick two ingredients (and maybe a third) to brew.",
   },
   {
     // Enchanting (shared/enchanting.ts): refined emberstones add magic to staffs, armor and tools.
-    id: "altar", name: "Enchanting altar", kind: "station", ...at("guild.altar"), color: 0x8e44ad,
+    id: "altar", name: "Enchanting altar", kind: "station", ...at("tg.altar"), color: 0x8e44ad,
     greeting: "Runes glow on the stone. Place an item and a refined emberstone to enchant it.",
   },
   {
     // Fixes worn and broken tools, weapons and armor (shared/repair.ts), for anyone.
     id: "repairer", name: "Repairer Oswin", kind: "person", ...at("guild.repairer"), color: 0x7d6608, badge: "🔧",
-    greeting: "Worn out? Broken? I'll make it good as new, for a few coins.",
+    greeting: "Worn out? Broken? Everything comes from the land, you know, and holds a little ember. Bring me a spare of the same kind, any axe for an axe, and I'll coax its ember into your worn one for a few coins. A plain one only gives a little to a fine one, mind.",
   },
   {
     // Magic jobs that raise your guild rank. Opens once Old Maren's tutorial is done.
@@ -165,6 +166,10 @@ export const NPCS: NpcDef[] = [
     id: "chest_inn", name: "Enchanted chest", kind: "station", ...at("inn.chest_inn"), color: 0x6a3fb5,
     greeting: "The chest hums with magic.",
   },
+  {
+    id: "chest_room", name: "Enchanted chest", kind: "station", ...at("tower.chest_room"), color: 0x6a3fb5,
+    greeting: "The chest hums with magic.",
+  },
   // ---- The Emberhall: the Emberguard's great white temple, at the heart of town ----
   {
     // Where new heroes wake (and come back to when they're knocked out).
@@ -172,53 +177,104 @@ export const NPCS: NpcDef[] = [
     greeting: "The Heart Shrine's flame burns tall and gold. Its warmth feels like being remembered.",
   },
   {
-    id: "aldric", name: "Keeper Aldric", kind: "person", ...at("lighthall.aldric"), color: 0xf4e3b0, badge: "🕯️",
+    id: "aldric", name: "High Keeper Aldric", kind: "person", ...at("lighthall.aldric"), color: 0xf4e3b0, badge: "🕯️",
     greeting: "Welcome, friend! The Emberheart made you for a reason. Everything here is yours to learn.",
   },
   {
-    id: "celene", name: "Sister Celene", kind: "person", ...at("lighthall.celene"), color: 0xfdfdfd, badge: "🤍",
+    id: "celene", name: "Keeper Celene", kind: "person", ...at("lighthall.celene"), color: 0xfdfdfd, badge: "🤍",
     greeting: "Bless you. If you're hurt or lost, the shrine always brings you home.",
   },
   {
-    id: "vale", name: "Enchanter Vale", kind: "person", ...at("lighthall.vale"), color: 0x9b7fd1, badge: "💠",
+    id: "vale", name: "Enchanter Corwen", kind: "person", ...at("lighthall.vale"), color: 0x9b7fd1, badge: "💠",
     greeting: "Hm? Oh, a new spark. How bright you are. Come back when you know a little magic.",
   },
   {
-    id: "oren", name: "Brother Oren", kind: "person", ...at("lighthall.oren"), color: 0xeadcb5, badge: "🏛️",
-    greeting: "These are the Extinguished: the greatest heroes the shrines ever raised. Perhaps one day, you.",
+    id: "oren", name: "Keeper Oren", kind: "person", ...at("lighthall.oren"), color: 0xeadcb5, badge: "🏛️",
+    greeting: "These are the Ember Circle, who raised the shrines. The Extinguished, our greatest heroes, stand out in the garden. Perhaps one day, you.",
   },
   {
-    id: "lisette", name: "Sister Lisette", kind: "person", ...at("lighthall.lisette"), color: 0xeadcb5, badge: "📚",
+    id: "lisette", name: "Keeper Lisette", kind: "person", ...at("lighthall.lisette"), color: 0xeadcb5, badge: "📚",
     greeting: "The library is open to every Emberborn. Mind the dust: the oldest books are older than the town.",
   },
   {
-    id: "tomas", name: "Brother Tomas", kind: "person", ...at("lighthall.tomas"), color: 0xeadcb5, badge: "🗝️",
-    greeting: "The ledger room? Only for the Keepers, I'm afraid. Just old accounts. Very dull.",
+    id: "tomas", name: "Keeper Tomas", kind: "person", ...at("lighthall.tomas"), color: 0xeadcb5, badge: "🗝️",
+    greeting: "Build your flame, Initiate. Every lesson, every day. A dim Emberborn is a wasted one.",
   },
   {
-    id: "wynne", name: "Sister Wynne", kind: "person", ...at("lighthall.wynne"), color: 0xeadcb5, badge: "🛏️",
+    id: "wynne", name: "Keeper Wynne", kind: "person", ...at("lighthall.wynne"), color: 0xeadcb5, badge: "🛏️",
     greeting: "The infirmary is here whenever you need it. Every patient gets a room of their own, and the Emberhall's doors never close to an Emberborn.",
   },
   {
     id: "plinth", name: "Empty plinth", kind: "station", ...at("lighthall.plinth"), color: 0xbdb6a0,
-    greeting: "A plinth with no statue. Someone has scratched the name off the stone.",
+    greeting: "A plinth with no statue, among the Ember Circle. Someone has scratched the name off the stone, letter by letter. The first letter might have been a W.",
   },
-  // Four of the Extinguished's statues, along the great hall's walls (Brother Oren's tour, in shared/story.ts). Their plaques:
+  // Keeper Lisette's Four Books (shared/story.ts): four books on the library's shelves (version 0.22), read in order.
   {
-    id: "radiant_1", name: "Halric the Dawnbringer", kind: "station", ...at("lighthall.radiant_1"), color: 0xf3efe4,
-    greeting: "HALRIC THE DAWNBRINGER. He held the Greyspine pass for three days, and fell eleven times. \"Again.\"",
-  },
-  {
-    id: "radiant_2", name: "Ida of the Saltmere", kind: "station", ...at("lighthall.radiant_2"), color: 0xf3efe4,
-    greeting: "IDA OF THE SALTMERE. She lit the coast's shrines from a fishing boat. Someone has left a seashell at her feet.",
+    id: "book_1", name: "Aldmera, the Old Kingdom", kind: "station", ...at("lighthall.book_1"), color: 0x8a5a2e,
+    greeting: "A heavy history book on the shelf: Aldmera, the Old Kingdom.",
   },
   {
-    id: "radiant_3", name: "Tilda Ashwalker", kind: "station", ...at("lighthall.radiant_3"), color: 0xf3efe4,
-    greeting: "TILDA ASHWALKER. She walked into the Withering and led two hundred people home.",
+    id: "book_2", name: "The Emberfall", kind: "station", ...at("lighthall.book_2"), color: 0x8a2e1e,
+    greeting: "A heavy history book on the shelf: The Emberfall.",
   },
   {
-    id: "radiant_4", name: "Orla the Kind", kind: "station", ...at("lighthall.radiant_4"), color: 0xf3efe4,
-    greeting: "ORLA THE KIND. A healer through the Grey Fever. The stone of her hands is worn smooth where people touch them.",
+    id: "book_3", name: "On the Shrines", kind: "station", ...at("lighthall.book_3"), color: 0xc8a040,
+    greeting: "A heavy history book on the shelf: On the Shrines.",
+  },
+  {
+    id: "book_4", name: "The Lands of Embervale", kind: "station", ...at("lighthall.book_4"), color: 0x2e6a4a,
+    greeting: "A heavy history book on the shelf: The Lands of Embervale.",
+  },
+  // The Extinguished: four statues in the Emberhall's garden, one at each corner. Their plaques:
+  {
+    id: "extinguished_1", name: "Halric the Dawnbringer", kind: "station", ...at("extinguished_1"), color: 0xf3efe4,
+    greeting: "HALRIC THE DAWNBRINGER, ONE OF THE EXTINGUISHED. He held the Greyspine pass alone for three days, and fell eleven times. \"Again.\"",
+  },
+  {
+    id: "extinguished_2", name: "Ida of the Saltmere", kind: "station", ...at("extinguished_2"), color: 0xf3efe4,
+    greeting: "IDA OF THE SALTMERE, ONE OF THE EXTINGUISHED. She lit the coast's shrines from a fishing boat. Someone has left a seashell at her feet.",
+  },
+  {
+    id: "extinguished_3", name: "Tilda Ashwalker", kind: "station", ...at("extinguished_3"), color: 0xf3efe4,
+    greeting: "TILDA ASHWALKER, ONE OF THE EXTINGUISHED. She walked into the Withering and led two hundred people home.",
+  },
+  {
+    id: "extinguished_4", name: "Orla the Kind", kind: "station", ...at("extinguished_4"), color: 0xf3efe4,
+    greeting: "ORLA THE KIND, ONE OF THE EXTINGUISHED. A healer through the Grey Fever. The stone of her hands is worn smooth where people touch them.",
+  },
+  // The statues of the Ember Circle, in the great hall (Keeper Oren's tour, in shared/story.ts). Their plaques tell the
+  // official story (see the wiki's Emberfall page): Wick is the traitor, Vale the saviour.
+  {
+    id: "circle_vale", name: "Archmage Vale", kind: "station", ...at("lighthall.circle_vale"), color: 0xf3efe4,
+    greeting: "ARCHMAGE VALE, THE SAVIOUR. He raised the Heart Shrine in the forty years the king bought, and gave his life to win the Sundering War. \"The flame endures.\"",
+  },
+  {
+    id: "circle_aldemar", name: "King Aldemar XVIII", kind: "station", ...at("lighthall.circle_aldemar"), color: 0xf3efe4,
+    greeting: "KING ALDEMAR XVIII, THE LAST KING OF ALDMERA. He went down into the fire on the night of the Fall, and gave his life to hold it back for forty years while the Circle learned to build the shrines. His stone crown has a crack across it.",
+  },
+  {
+    id: "circle_crowe", name: "Crowe of the Circle", kind: "station", ...at("lighthall.circle_crowe"), color: 0xf3efe4,
+    greeting: "CROWE. Raised the great shrine of the Thornwood. Warden Crowe keeps it now, and carries the name.",
+  },
+  {
+    id: "circle_flint", name: "Flint of the Circle", kind: "station", ...at("lighthall.circle_flint"), color: 0xf3efe4,
+    greeting: "FLINT. Raised the great shrine of the Greyspine Peaks. Warden Flint keeps it now, and carries the name.",
+  },
+  {
+    id: "circle_ivy", name: "Ivy of the Circle", kind: "station", ...at("lighthall.circle_ivy"), color: 0xf3efe4,
+    greeting: "IVY. Raised the great shrine of the Tangle. Warden Ivy keeps it now, and carries the name.",
+  },
+  {
+    id: "circle_merrow", name: "Merrow of the Circle", kind: "station", ...at("lighthall.circle_merrow"), color: 0xf3efe4,
+    greeting: "MERROW. Raised the great shrine of the Saltmere Coast. Warden Merrow keeps it now, and carries the name. Someone has left a seashell at the statue's feet.",
+  },
+  {
+    id: "circle_dunn", name: "Dunn of the Circle", kind: "station", ...at("lighthall.circle_dunn"), color: 0xf3efe4,
+    greeting: "DUNN. Raised the great shrine of the Ashen Barrens. Warden Dunn keeps it now, and carries the name.",
+  },
+  {
+    id: "circle_reed", name: "Reed of the Circle", kind: "station", ...at("lighthall.circle_reed"), color: 0xf3efe4,
+    greeting: "REED. Raised the great shrine of Blackfen. Warden Reed keeps it now, and carries the name.",
   },
   // ---- The story: lanterns, shrines and Rhys (shared/story.ts) ----
   ...([1, 2, 3, 4, 5, 6] as const).map((n): NpcDef => ({
@@ -244,7 +300,7 @@ export const NPCS: NpcDef[] = [
 ];
 
 /** Every enchanted chest opens the same storage. */
-export const CHEST_IDS: NpcId[] = ["chest", "chest_east", "chest_forest", "chest_farm", "chest_inn"];
+export const CHEST_IDS: NpcId[] = ["chest", "chest_east", "chest_forest", "chest_farm", "chest_inn", "chest_room"];
 export const isChest = (id: string) => (CHEST_IDS as string[]).includes(id);
 
 // Looked up on every step of every path, so keep it quick: one map from tile to NPC.

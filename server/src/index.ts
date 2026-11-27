@@ -5,7 +5,7 @@ import express from "express";
 import { Server } from "colyseus";
 import { WebSocketTransport } from "@colyseus/ws-transport";
 import { WorldRoom } from "./WorldRoom";
-import { store, storageName } from "./storage";
+import { SERVER_NAME, store, storageName } from "./storage";
 import { reportsRouter } from "./reports";
 import { loginsRouter } from "./logins";
 import { crashesRouter, installCrashCapture, noteServerStart } from "./crashes";
@@ -51,7 +51,7 @@ async function start() {
       await new Promise((r) => setTimeout(r, 3000));
     }
   }
-  console.log(`Saving accounts to ${storageName}`);
+  console.log(`Saving accounts to ${storageName} (this is the ${SERVER_NAME} server${SERVER_NAME !== "live" && SERVER_NAME !== "local" ? ": characters and farms are kept apart from live" : ""})`);
   await noteServerStart();
   if (process.env.RENDER && !process.env.DATABASE_URL) {
     console.warn("WARNING: DATABASE_URL isn't set, so accounts and saves will be lost on every redeploy or restart.");

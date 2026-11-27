@@ -3,15 +3,15 @@ import { COIN_KINDS, formatMoney, toPurse } from "../../shared/money";
 import { CraftSkill, DISCIPLINES, DISCIPLINE_IDS, DisciplineId, DisciplineView, MAX_LEVEL, SkillId, SkillXp, emptySkills, findSkill, isCraftSkill, isUnlocked, levelForXp, newDisciplineView, xpForLevel } from "../../shared/disciplines";
 import { buyWithCharisma, maxHealth, maxMana, maxStamina, sellWithCharisma, walkBonus } from "../../shared/stats";
 import { ItemMasteryXp, MasteryId, craftSuccess, masteryValue, masteryIn, masteryLevelForXp, masterySuccess, masteryXpForLevel, percent, speedBonusPercent, valueBonusPercent } from "../../shared/mastery";
-import { FORAGE_FINDS, RESOURCES, forageFindOf, forageXp, resourcesFor } from "../../shared/foraging";
-import { beltBonus, buyPriceFor, masteryIdFor, masteryName, levelGapFactor, recipeFor, sellPriceFor, successFor } from "../../shared/crafting";
+import { FORAGE_FINDS, RESOURCES, forageFindOf, forageXp, gatherSpeed, resourcesFor } from "../../shared/foraging";
+import { beltBonus, buyPriceFor, masteryIdFor, masteryName, levelGapFactor, recipeFor, SMITH_ORDER, SMITH_UNLOCK, smithLevel, sellPriceFor, successFor } from "../../shared/crafting";
 import { RESOURCE_FOR_ITEM } from "../../shared/foraging";
 import { CRAFT_MARKUP } from "../../shared/items";
 import {
   BAR_IDS, Belt, MATERIALS, MATERIAL_IDS, Material, METALS, METAL_IDS, Metal, TOOL_TYPES, TOOL_TYPE_IDS, ToolType, WOODS, WOOD_IDS, Wood, barId, emptyBelt,
   ROD_LOGS, hasHandle, isTool, isWoodTool, maxDurability, metalOfBar, parseTool, toolBonus, toolForSkill, toolId,
 } from "../../shared/tools";
-import { GUIDE_NAME, teacherOf, type ChapterView, type QuestView } from "../../shared/quests";
+import { GUIDE_NAME, chapterById, teacherOf, type ChapterView, type QuestView } from "../../shared/quests";
 import { RANKS as LIGHT_RANKS, STORY_ITEMS, TITHE_MAX, isStoryItem } from "../../shared/story";
 import { SHOPS, SHOP_IDS, sellersOf, type ShopId } from "../../shared/shops";
 import { NPCS, npcById } from "../../shared/npcs";
@@ -19,7 +19,7 @@ import { isBroken, type RepairJob } from "../../shared/repair";
 import { PLAYER_COLORS } from "../../shared/colors";
 import {
   ARMOR, ARMOR_TYPES, METAL_DAMAGE, SOFT_NAMES, ArmorType, GEAR_SLOTS, Gear, GearSlot, SLOT_ICONS, SLOT_NAMES, WEAPONS, WEAPON_TYPES, WeaponType,
-  armorId, emptyGear, isArmor, isGear, isWeapon, parseArmor, parseWeapon, weaponId,
+  armorId, emptyGear, isArmor, isGear, isWeapon, isWooden, parseArmor, parseWeapon, weaponId,
 } from "../../shared/gear";
 import {
   huntingDrops, ARMOR_LEVEL, CombatMasteryId, CombatMasteryXp, MONSTERS, MONSTER_IDS, POTION_HEAL, POTION_ID, SPELLS, SPELL_IDS, SpellId, armorPoints, attackFor,
@@ -41,13 +41,15 @@ import { BAR_SLOT_MASTERY, describeSpell, isSpellBook, SPELL_BOOKS, spellMana } 
 import { isSoulGem, soulCapacity, soulFill } from "../../shared/jewelry";
 import { ENCHANTS, ENCHANT_IDS, EnchantId, INLAYS, Inlay, cappedGem, describeEnchant, enchantForGem, enchantKind, enchantsOf, fits, isSpent, soulPower } from "../../shared/enchanting";
 import {
-  BASE_INGREDIENTS, DISHES, DISH_IDS, DishId, FOOD_KINDS, FUEL_STAMINA, INGREDIENTS, IngredientId, MAX_STAMINA, RAW_FISH_STAMINA, STAMINA_COST,
+  BASE_INGREDIENTS, DISHES, DISH_IDS, DishId, FOOD_KINDS, FUEL_STAMINA, INGREDIENTS, IngredientId, MAX_STAMINA, RAW_FISH_STAMINA, STAMINA_COST, WOOD_COOK_LEVEL,
   fireStamina, fitsDish, foodStamina, ingredientStamina, isFood, isIngredient, isMeal, mealBaseStamina, mealId, mealRichness, parseMeal,
 } from "../../shared/cooking";
 import { ARROW_LEVEL, ARROW_RECOVER, BAITS, BAIT_IDS, BaitId, CLOTH_LEVEL, SOFT_LEVEL, THREAD_LEVEL, WOOD_LEVEL, arrowId, isArrow, isBait } from "../../shared/handicraft";
 import { TreeRanks, treeBonus } from "../../shared/skilltree";
 import { setTreeData, treeButton, treeRanks } from "./tree";
 import { toolSvg } from "./toolIcons";
+import { ICON_INDEX, ICON_SHEET } from "./itemIconIndex";
+import { iconKey } from "../../shared/iconKey";
 import { autoRead, autoSpeak, canSpeak, setAutoRead, speakButton, stopSpeaking } from "./speech";
 import {
   CUT_LEVEL, GEMS, JEWEL_BARS, JEWEL_BAR_IDS, JEWEL_METALS, JEWEL_METAL_IDS, JEWEL_SLOTS, JEWEL_TYPES, JewelMetal, JewelSlot, JewelType, Jewels,
@@ -179,7 +181,7 @@ export function renderJewels(j: Jewels) {
     const slot = el("slot belt-slot" + (on ? " filled" : ""));
     if (on) {
       const item = ITEMS[on];
-      slot.append(icon("", item.icon, item.tint));
+      slot.append(itemIcon("", on));
       slot.title = `${item.name}: ${describeBonus(jewelBonus(on))}. Click to take it off.`;
       slot.onclick = () => onRemoveJewel(s);
     } else {
@@ -207,6 +209,10 @@ type Station = keyof typeof STATION_SKILL;
 
 /** What a skill's tree gives you for one effect (from the ranks you've bought). */
 const tree = (skill: SkillId, effect: Parameters<typeof treeBonus>[2]) => treeBonus(treeRanks(), skill, effect);
+/** Keen eye (version 0.22, Mike's note): only show a skill's numbers once you've bought it in that skill's tree. */
+const knows = (skill: string) => (treeRanks()[`${skill}.insight`] ?? 0) > 0;
+/** A success chance in words, for players without Keen eye. */
+const chanceWords = (c: number) => c >= 0.9 ? "Almost sure to work" : c >= 0.65 ? "Likely to work" : c >= 0.4 ? "Might work" : c >= 0.2 ? "Tricky: often fails" : "Very hard: usually fails";
 /** Your crafting chance with everything counted (Mastery, belt tool, skill tree). */
 const chanceFor = (recipe: NonNullable<ReturnType<typeof recipeFor>>) => successFor(recipe, lastMastery, lastBelt, tree(recipe.skill, "success"), levelForXp(lastSkillXp[recipe.skill as SkillId] ?? 0));
 /** Stamina from eating it, with the Cooking tree's "Hearty meals". */
@@ -255,6 +261,24 @@ function icon(cls: string, glyph: string, tint?: string): HTMLElement {
     box.textContent = glyph;
   }
   if (tint) box.style.filter = tint;
+  return box;
+}
+
+/**
+ * An item's picture (version 0.21): its own 3D model, from the picture sheet tools/make-icons.mjs draws
+ * (client3d/public/icons/items.png). Anything without a picture keeps its emoji.
+ */
+function itemIcon(cls: string, id: ItemId): HTMLElement {
+  const at = ICON_INDEX[iconKey(id)];
+  if (at == null) return icon(cls, ITEMS[id].icon, ITEMS[id].tint);
+  const box = document.createElement("span");
+  box.className = cls;
+  const pic = document.createElement("span");
+  pic.className = "pic-icon";
+  const n = ICON_SHEET.cols;
+  pic.style.backgroundSize = `${n * 100}% ${n * 100}%`;
+  pic.style.backgroundPosition = `${((at % n) / (n - 1)) * 100}% ${(Math.floor(at / n) / (n - 1)) * 100}%`;
+  box.appendChild(pic);
   return box;
 }
 
@@ -365,7 +389,7 @@ function skillDetails(skill: SkillId): HTMLElement {
     const item = ITEMS[r.item];
     const open = level >= r.level;
     const row = el("m-type" + (open ? "" : " locked") + (flashType === id ? " flash" : ""));
-    const ic = icon("m-type-icon", item.icon, item.tint);
+    const ic = itemIcon("m-type-icon", r.item);
     if (!open) {
       row.append(ic, el("m-type-name", item.name), el("m-type-state", `🔒 Lv ${r.level}`));
       row.title = `Reach ${findSkill(skill).def.name} level ${r.level} to gather ${item.name}.`;
@@ -379,10 +403,11 @@ function skillDetails(skill: SkillId): HTMLElement {
       const mFill = document.createElement("div");
       mFill.style.width = `${Math.floor(((mXp - mStart) / (mNext - mStart)) * 100)}%`;
       mBar.appendChild(mFill);
-      const detail = el("t-info", `${speedBonusPercent(m)}% faster · sells for ${formatMoney(price)}`);
+      const faster = Math.round((gatherSpeed(id, m) - 1) * 100);
+      const detail = el("t-info", knows(r.skill) ? `${faster}% faster · sells for ${formatMoney(price)}` : `sells for ${formatMoney(price)}`);
       row.append(mBar, detail);
       row.title = `${item.name} Mastery ${m}: ${(mNext - mXp).toLocaleString()} XP to ${m + 1}. ` +
-        `${speedBonusPercent(m)}% faster to gather, ${valueBonusPercent(m)}% more money (base price ${formatMoney(item.sellPrice)}). ${r.xp} XP each` +
+        `${faster}% faster to gather, ${valueBonusPercent(m)}% more money (base price ${formatMoney(item.sellPrice)}). ${r.xp} XP each` +
         (forageXp(id) !== r.xp ? ` (${forageXp(id)} Foraging XP: fishing is easy on stamina, so it gives Foraging half).` : ".");
     }
     list.appendChild(row);
@@ -412,6 +437,7 @@ function beltLine(skill: CraftSkill) {
   const tool = toolForSkill(skill);
   if (!tool) return el("m-info", "No tool needed");
   const bonus = beltBonus(lastBelt, skill);
+  if (!knows(skill)) return el("m-info", lastBelt[tool] ? `Using ${ITEMS[lastBelt[tool]!.item].name}: it helps a lot` : `A ${TOOL_TYPES[tool].name.toLowerCase()} on your belt helps a lot`);
   return el("m-info", lastBelt[tool] ? `Using ${ITEMS[lastBelt[tool]!.item].name}: ${Math.round(bonus! * 100)}% fewer failures`
     : `No ${TOOL_TYPES[tool].name.toLowerCase()} on your belt: half the success chance`);
 }
@@ -435,7 +461,7 @@ function cookingDetails(level: number, box: HTMLElement) {
     }
     const kinds = Object.entries(d.kinds).map(([k, x]) => `${FOOD_KINDS[k as keyof typeof FOOD_KINDS].toLowerCase()} ×${x}`).join(", ");
     list.appendChild(masteryRow(dish, d.name, d.icon, undefined,
-      (m) => `${percent(1 - (1 - craftSuccess(m, bonus, d.start)) * (1 - tree("cooking", "success")))} success · +${valueBonusPercent(m)}% stamina and value`,
+      (m) => { const c = 1 - (1 - craftSuccess(m, bonus, d.start)) * (1 - tree("cooking", "success")); return knows("cooking") ? `${percent(c)} success · +${valueBonusPercent(m)}% stamina and value` : chanceWords(c); },
       (m) => `${d.note}. Stamina: ${kinds}, fire ×${d.fire}. Every ${d.name.toLowerCase()} shares this Mastery: ${percent(masterySuccess(m, d.start))} base success; they give ${valueBonusPercent(m)}% more stamina and sell for ${valueBonusPercent(m)}% more.`));
   }
   box.appendChild(list);
@@ -459,7 +485,7 @@ function handicraftDetails(level: number, box: HTMLElement) {
       continue;
     }
     list.appendChild(masteryRow(bait, b.name, b.icon, b.tint,
-      (m) => `${percent(1 - (1 - craftSuccess(m, null, b.start, false)) * (1 - tree("handicraft", "success")))} success · ${b.description.split(":")[0]}`,
+      (m) => { const c = 1 - (1 - craftSuccess(m, null, b.start, false)) * (1 - tree("handicraft", "success")); return `${knows("handicraft") ? `${percent(c)} success` : chanceWords(c)} · ${b.description.split(":")[0]}`; },
       (m) => `${b.description}, for ${b.uses} catches. ${percent(masterySuccess(m, b.start))} base success, ${valueBonusPercent(m)}% more money.`));
   }
   box.appendChild(list);
@@ -477,7 +503,7 @@ function forageDetails(level: number, box: HTMLElement) {
   for (const f of FORAGE_FINDS) {
     const item = ITEMS[f.item];
     const row = el("m-type" + (level >= f.level ? "" : " locked"));
-    row.append(icon("m-type-icon", item.icon, item.tint), el("m-type-name", item.name + (f.night ? " 🌙" : "")),
+    row.append(itemIcon("m-type-icon", f.item), el("m-type-name", item.name + (f.night ? " 🌙" : "")),
       el("m-type-state", level >= f.level ? `${f.xp} XP` : `🔒 Lv ${f.level}`));
     row.title = `${item.name}: Foraging level ${f.level}, ${f.xp} XP${f.night ? ". Only at night" : ""}. Sells for ${formatMoney(sellPrice(f.item))}.`;
     list.appendChild(row);
@@ -496,7 +522,9 @@ function huntingDetails(level: number, box: HTMLElement) {
 /** Smelting: each bar's Mastery. Smithing: each kind of tool's Mastery. Shows your success chance with your belt tool. */
 function craftDetails(skill: CraftSkill, level: number, box: HTMLElement) {
   const upcoming = METAL_IDS.find((m) => METALS[m].level > level);
-  if (upcoming) {
+  const nextSmith = skill === "smithing" ? SMITH_ORDER.find((t) => smithLevel(t) > level) : undefined;
+  if (nextSmith) box.append(el("m-info", `Next unlock at the anvil: ${nextSmith === "rod" ? "fishing rods" : nextSmith} at level ${smithLevel(nextSmith)}`));
+  else if (upcoming) {
     const m = METALS[upcoming];
     box.append(el("m-info", `Next unlock: ${skill === "smelting" ? `${m.name} bars` : `${m.name} tools`} at level ${m.level}`));
   }
@@ -514,7 +542,7 @@ function craftDetails(skill: CraftSkill, level: number, box: HTMLElement) {
         continue;
       }
       list.appendChild(masteryRow(bar, ITEMS[bar].name, "🧈", metal.tint,
-        (m) => `${percent(craftSuccess(m, bonus))} success · sells for ${formatMoney(sellPrice(bar))}`,
+        (m) => `${knows(skill) ? `${percent(craftSuccess(m, bonus))} success` : chanceWords(craftSuccess(m, bonus))} · sells for ${formatMoney(sellPrice(bar))}`,
         (m) => `${percent(masterySuccess(m))} base success, ${valueBonusPercent(m)}% more money. ${metal.barXp} XP each.`));
     }
   } else {
@@ -522,7 +550,7 @@ function craftDetails(skill: CraftSkill, level: number, box: HTMLElement) {
       const t = TOOL_TYPES[type];
       if (type === "pot") continue; // pots are made at the anvil, but they help Cooking
       list.appendChild(masteryRow(type, type === "tongs" ? t.name : `${t.name}s`, t.icon, undefined,
-        (m) => `${percent(craftSuccess(m, bonus))} success · +${valueBonusPercent(m)}% value`,
+        (m) => knows(skill) ? `${percent(craftSuccess(m, bonus))} success · +${valueBonusPercent(m)}% value` : chanceWords(craftSuccess(m, bonus)),
         (m) => `Every kind of ${t.name.toLowerCase()} shares this Mastery. ${percent(masterySuccess(m))} base success, ${valueBonusPercent(m)}% more money. Better metal and wood give more XP.`));
     }
   }
@@ -888,6 +916,7 @@ function toolEffect(item: ItemId) {
   const t = TOOL_TYPES[parseTool(item).type];
   const skill = findSkill(t.skill).def.name;
   const bonus = Math.round(toolBonus(item) * 100);
+  if (!knows(t.skill)) return t.helps === "speed" ? `makes ${skill} much faster` : `makes ${skill} work far more often`;
   return t.helps === "speed" ? `+${bonus}% ${skill} speed` : `${bonus}% fewer ${skill} failures`;
 }
 
@@ -918,14 +947,14 @@ export function renderBelt(belt: Belt) {
     const slot = el("slot belt-slot" + (on ? " filled" : ""));
     if (on) {
       const max = maxDurability(on.item);
-      slot.append(icon("", ITEMS[on.item].icon, ITEMS[on.item].tint), durabilityBar(on.durability, max));
-      slot.title = `${ITEMS[on.item].name}: ${toolEffect(on.item)}. ${on.durability} of ${max} uses left. Click for details.`;
+      slot.append(itemIcon("", on.item), durabilityBar(on.durability, max));
+      slot.title = `${ITEMS[on.item].name}: ${toolEffect(on.item)}.${knows(t.skill) ? ` ${on.durability} of ${max} uses left.` : ""} Click for details.`;
       slot.onclick = () => showInfo({ kind: "belt", type });
     } else {
       slot.appendChild(icon("empty-tool", t.icon));
       slot.title = t.helps === "speed"
-        ? `No ${t.name.toLowerCase()}: ${findSkill(t.skill).def.name} is 3 times slower. Click one in your bag to put it here.`
-        : `No ${t.name.toLowerCase()}: half the ${findSkill(t.skill).def.name} success chance. Click one in your bag to put it here.`;
+        ? `No ${t.name.toLowerCase()}: ${findSkill(t.skill).def.name} is much faster with one. Click one in your bag to put it here.`
+        : `No ${t.name.toLowerCase()}: ${findSkill(t.skill).def.name} works far more often with one. Click one in your bag to put it here.`;
     }
     beltEl.appendChild(slot);
   }
@@ -950,7 +979,7 @@ export function renderGear(gear: Gear, spell: BoltSpellId) {
     const box = el("slot belt-slot" + (on ? " filled" : ""));
     if (on) {
       const item = ITEMS[on.item];
-      box.append(icon("", item.icon, item.tint), durabilityBar(on.durability, gearDurability(on.item)));
+      box.append(itemIcon("", on.item), durabilityBar(on.durability, gearDurability(on.item)));
       box.title = `${item.name}: ${gearEffect(on.item)}. ${on.durability} uses left. Click for details.`;
       box.onclick = () => showInfo({ kind: "gear", slot });
     } else {
@@ -1089,7 +1118,7 @@ function onDragMove(e: PointerEvent) {
     if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 8) return; // still a tap
     const id = invItems[entriesIn(bag, drag.from)[0]];
     if (!id) return cancelDrag();
-    drag.ghost = icon("", ITEMS[id].icon, ITEMS[id].tint);
+    drag.ghost = itemIcon("", id);
     drag.ghost.id = "drag-ghost";
     document.body.appendChild(drag.ghost);
     document.body.classList.add("dragging");
@@ -1162,7 +1191,8 @@ export function renderInventory() {
       const kinds = here.length;
       slot.classList.add("filled");
       if (kinds > 1) slot.classList.add("mixed"); // drawn like a little pile of cards
-      slot.appendChild(icon("item-icon", item.icon, item.tint));
+      slot.appendChild(itemIcon("item-icon", id));
+      if (isRobePiece(id)) slot.classList.add("robe-glow");
       if (isTool(id)) slot.appendChild(durabilityBar(durability[top] ?? maxDurability(id), maxDurability(id)));
       if (isGear(id)) slot.appendChild(durabilityBar(durability[top] ?? gearDurability(id), gearDurability(id)));
       if (isBroken(id, durability[top])) {
@@ -1310,27 +1340,32 @@ export function showRepairs(view: { jobs: RepairJob[]; free: boolean; open: bool
   if (!view.jobs.length) {
     repairBody.append(el("", "Nothing needs fixing. Come back when something wears out!"));
   } else {
-    repairBody.append(el("", view.free ? "Your first repair is free (Old Maren's an old friend)." : `About 1 bronze for every 10% worn, more for finer things. You have ${formatMoney(coins)}.`));
+    // Version 0.22: repairs are magic. Everything from the land holds a little ember, so a spare of the same kind gives its ember to the worn one.
+    repairBody.append(el("", "\"Everything that comes from the land holds a little ember, even an old axe. Give me a spare of the same kind and I'll pour its ember into yours. A spare as fine as yours mends it fully; a poorer one only a little.\""));
     const list = el("");
     list.id = "repair-list";
     for (const j of view.jobs) {
       const item = ITEMS[j.item];
       const cost = view.free ? 0 : j.cost;
-      const row = el("buy-row" + (coins < cost ? " poor" : ""));
+      const row = el("buy-row" + (!j.spare || coins < cost ? " poor" : ""));
       const b = document.createElement("button");
       b.className = "buy-btn";
       const state = j.durability <= 0 ? "💔 broken" : `${Math.round((j.durability / j.max) * 100)}% left`;
-      b.append(icon("buy-icon", item.icon, item.tint), el("buy-name", `${item.short ?? item.name} · ${state}`), el("buy-price", cost ? formatMoney(cost) : "Free"));
-      b.title = `Repair your ${item.single} (${where[j.where]}): ${j.durability} of ${j.max} uses left`;
+      const kind = j.kind.split(":")[1];
+      const using = j.spare ? `uses your ${ITEMS[j.spare.item].single}${j.spare.restores < j.max - Math.max(0, j.durability) ? " (mends it a little)" : ""}` : `needs a spare ${kind}`;
+      b.append(itemIcon("buy-icon", j.item), el("buy-name", `${item.short ?? item.name} · ${state} · ${using}`), el("buy-price", !j.spare ? "—" : cost ? formatMoney(cost) : "Free"));
+      b.title = `Repair your ${item.single} (${where[j.where]}). ${j.spare ? `Oswin uses up your ${ITEMS[j.spare.item].single}.` : `Bring any ${kind}: a finer one gives more.`}`;
+      b.disabled = !j.spare;
       b.onclick = () => repairActions.repair(j.where, j.key);
       row.append(b);
       list.append(row);
     }
     repairBody.append(list);
   }
-  const total = view.free ? 0 : view.jobs.reduce((sum, j) => sum + j.cost, 0);
-  repairAllBtn.disabled = !view.jobs.length;
-  repairAllBtn.textContent = view.jobs.length > 1 ? `Repair all (${total ? formatMoney(total) : "free"})` : "Repair all";
+  const ready = view.jobs.filter((j) => j.spare);
+  const total = view.free ? 0 : ready.reduce((sum, j) => sum + j.cost, 0);
+  repairAllBtn.disabled = !ready.length;
+  repairAllBtn.textContent = ready.length > 1 ? `Repair all (${total ? formatMoney(total) : "free"})` : "Repair all";
 }
 
 repairAllBtn.onclick = () => repairActions.repairAll();
@@ -1410,7 +1445,7 @@ function renderShop() {
   const carrying = [...new Set(invItems.filter((id): id is ItemId => !!id && shop.buys(id)))];
   for (const id of carrying) {
     const span = document.createElement("span");
-    span.append(icon("", ITEMS[id].icon, ITEMS[id].tint), ` ${ITEMS[id].name}: ${formatMoney(sellPrice(id))}`);
+    span.append(itemIcon("", id), ` ${ITEMS[id].name}: ${formatMoney(sellPrice(id))}`);
     span.className = "price";
     prices.appendChild(span);
   }
@@ -1440,7 +1475,7 @@ function renderBuy() {
     const item = ITEMS[id];
     const price = buyPrice(id);
     const row = el("buy-row" + (coins < price ? " poor" : ""));
-    const ic = icon("buy-icon", item.icon, item.tint);
+    const ic = itemIcon("buy-icon", id);
     const one = document.createElement("button");
     one.className = "buy-btn";
     one.append(ic, el("buy-name", item.name), el("buy-price", formatMoney(price)));
@@ -1462,7 +1497,7 @@ function renderBuy() {
     const row = el("buy-row" + (!x.ok ? " locked-stock" : coins < price ? " poor" : ""));
     const one = document.createElement("button");
     one.className = "buy-btn";
-    one.append(icon("buy-icon", item.icon, item.tint), el("buy-name", item.name + (x.ok ? "" : ` 🔒 ${x.need}`)), el("buy-price", formatMoney(price)));
+    one.append(itemIcon("buy-icon", x.item), el("buy-name", item.name + (x.ok ? "" : ` 🔒 ${x.need}`)), el("buy-price", formatMoney(price)));
     one.title = x.ok ? `Buy ${item.name.toLowerCase()}` : `Needs ${x.need}`;
     one.disabled = !x.ok;
     const most = Math.max(1, Math.min(BUY_MAX, Math.floor(coins / price)));
@@ -1838,7 +1873,12 @@ function renderCraft() {
   } else {
     const CATS = { tools: { icon: "🪓", name: "Tools" }, weapons: { icon: "🗡️", name: "Weapons" }, armor: { icon: "🛡️", name: "Armor" }, jewelry: { icon: "💍", name: "Jewelry" }, gems: { icon: "💎", name: "Cut gems" } };
     craftBody.append(choices("Make", ["tools", "weapons", "armor", "jewelry", "gems"] as ("tools" | "weapons" | "armor" | "jewelry" | "gems")[], pick.category, (c) => CATS[c], (c) => { pick.category = c; }));
-    const head = () => choices("Head", MATERIAL_IDS, pick.metal, (m) => ({ icon: "🧈", tint: MATERIALS[m].tint, name: MATERIALS[m].name, lockedAt: lockedAt(m) }), (m) => { pick.metal = m; });
+    // Smithing unlocks one thing per level (version 0.22): show what you can make, and the next one (locked). Nothing further.
+    const smithLocked = (t: keyof typeof SMITH_UNLOCK, metal: Material = "bronze") => level < smithLevel(t, MATERIALS[metal].level) ? smithLevel(t, MATERIALS[metal].level) : undefined;
+    const nextUp = SMITH_ORDER.find((t) => level < smithLevel(t));
+    const shown = <T extends keyof typeof SMITH_UNLOCK>(ids: readonly T[]) => ids.filter((t) => !smithLocked(t) || t === nextUp);
+    const smithType = (): keyof typeof SMITH_UNLOCK => pick.category === "weapons" ? pick.weapon : pick.category === "armor" ? pick.armor : pick.type;
+    const head = () => choices("Head", MATERIAL_IDS, pick.metal, (m) => ({ icon: "🧈", tint: MATERIALS[m].tint, name: MATERIALS[m].name, lockedAt: smithLocked(smithType(), m) }), (m) => { pick.metal = m; });
     const handle = () => choices("Handle", WOOD_IDS, pick.wood, (w) => ({ icon: "🪵", tint: ITEMS[`${w}_logs`].tint, name: WOODS[w].name }), (w) => { pick.wood = w; });
     if (pick.category === "gems") {
       renderCutting(level);
@@ -1861,20 +1901,31 @@ function renderCraft() {
       output = jewelId(pick.jewel, pick.jewelMetal, pick.jewelGem as never);
       craftBody.append(el("craft-info", `Gives: ${describeBonus(jewelBonus(output as never))}. A failed try loses the bars but keeps the gem.`));
     } else if (pick.category === "weapons") {
-      craftBody.append(choices("Weapon", WEAPON_TYPES, pick.weapon, (t) => ({ icon: WEAPONS[t].icon, name: WEAPONS[t].name }), (t) => { pick.weapon = t; }), head(), handle());
+      const ws = shown(WEAPON_TYPES.filter((t) => !isWooden(t)));
+      if (!ws.length) { craftBody.append(el("craft-info", `Your first weapon (a dagger) unlocks at Smithing ${smithLevel("dagger")}.`)); craftOne.disabled = craftAll.disabled = true; return; }
+      if (!(ws as WeaponType[]).includes(pick.weapon)) pick.weapon = ws[0];
+      craftBody.append(choices("Weapon", ws, pick.weapon, (t) => ({ icon: WEAPONS[t].icon, name: WEAPONS[t].name, lockedAt: smithLocked(t) }), (t) => { pick.weapon = t; }), head(), handle());
       output = weaponId(pick.weapon, pick.metal, pick.wood);
     } else if (pick.category === "armor") {
       craftBody.append(
-        choices("Armor", ARMOR_TYPES, pick.armor, (t) => ({ icon: ARMOR[t].icon, name: `${ARMOR[t].name} (${ARMOR[t].bars})` }), (t) => { pick.armor = t; }),
-        choices("Metal", METAL_IDS, pick.armorMetal, (m) => ({ icon: "🧈", tint: METALS[m].tint, name: METALS[m].name, lockedAt: lockedAt(m) }), (m) => { pick.armorMetal = m; }),
+        ...(() => {
+          const as = shown(ARMOR_TYPES);
+          if (!as.length) return [el("craft-info", `Your first armor (a helmet) unlocks at Smithing ${smithLevel("helmet")}.`)];
+          if (!as.includes(pick.armor)) pick.armor = as[0];
+          return [choices("Armor", as, pick.armor, (t) => ({ icon: ARMOR[t].icon, name: `${ARMOR[t].name} (${ARMOR[t].bars})`, lockedAt: smithLocked(t) }), (t) => { pick.armor = t; }),
+            choices("Metal", METAL_IDS, pick.armorMetal, (m) => ({ icon: "🧈", tint: METALS[m].tint, name: METALS[m].name, lockedAt: smithLocked(pick.armor, m) }), (m) => { pick.armorMetal = m; })];
+        })(),
       );
+      if (!shown(ARMOR_TYPES).length) { craftOne.disabled = craftAll.disabled = true; return; }
       output = armorId(pick.armor, pick.armorMetal);
     } else {
-      craftBody.append(choices("Tool", TOOL_TYPE_IDS, pick.type, (t) => ({ icon: TOOL_TYPES[t].icon, name: TOOL_TYPES[t].name }), (t) => { pick.type = t; }));
+      const ts = shown(TOOL_TYPE_IDS);
+      if (!ts.includes(pick.type)) pick.type = ts[0];
+      craftBody.append(choices("Tool", ts, pick.type, (t) => ({ icon: TOOL_TYPES[t].icon, name: TOOL_TYPES[t].name, lockedAt: smithLocked(t) }), (t) => { pick.type = t; }));
       if (isWoodTool(pick.type)) {
         // Fishing rods are all wood: pick which logs to carve it from.
         craftBody.append(choices(`Wood (${ROD_LOGS} logs)`, WOOD_IDS, pick.wood, (w) => ({ icon: "🪵", tint: ITEMS[`${w}_logs`].tint, name: WOODS[w].name,
-          lockedAt: level < RESOURCES[w].level ? RESOURCES[w].level : undefined }), (w) => { pick.wood = w; }));
+          lockedAt: level < Math.max(RESOURCES[w].level, smithLevel("rod")) ? Math.max(RESOURCES[w].level, smithLevel("rod")) : undefined }), (w) => { pick.wood = w; }));
       } else {
         craftBody.append(head());
         if (hasHandle(pick.type)) craftBody.append(handle());
@@ -1916,12 +1967,13 @@ function renderCraft() {
   const tool = toolForSkill(skill);
   const m = masteryIn(lastMastery, recipe.mastery);
   const steady = tree(skill, "success");
-  detail.append(el("craft-chance", `${percent(chance)} success`),
+  const sees = knows(skill);
+  detail.append(el("craft-chance", sees ? `${percent(chance)} success` : chanceWords(chance)),
     el("craft-info", `Mastery ${m}` + (!tool ? " · no tool needed" : lastBelt[tool] ? ` · ${ITEMS[lastBelt[tool]!.item].name} on your belt`
-      : recipe.needsTool ? ` · no ${TOOL_TYPES[tool].name.toLowerCase()} on your belt (half chance)` : ` · no ${TOOL_TYPES[tool].name.toLowerCase()} needed`) +
-      (steady ? ` · skill tree: ${Math.round(steady * 100)}% fewer failures` : "")));
-  const facts = secret ? [`costs ${STAMINA_COST[skill]} stamina`] : [`Sells for ${formatMoney(sellPrice(made))}${recipe.makes ? " each" : ""}`, `${recipe.xp} XP`, `costs ${STAMINA_COST[skill]} stamina`];
-  if (isTool(output)) facts.unshift(`${toolEffect(output)}, ${maxDurability(output)} uses`);
+      : recipe.needsTool ? ` · a ${TOOL_TYPES[tool].name.toLowerCase()} on your belt would help a lot` : ` · no ${TOOL_TYPES[tool].name.toLowerCase()} needed`) +
+      (steady && sees ? ` · skill tree: ${Math.round(steady * 100)}% fewer failures` : "")));
+  const facts = secret ? [`costs ${STAMINA_COST[skill]} stamina`] : [`Sells for ${formatMoney(sellPrice(made))}${recipe.makes ? " each" : ""}`, ...(sees ? [`${recipe.xp} XP`, `costs ${STAMINA_COST[skill]} stamina`] : [])];
+  if (isTool(output)) facts.unshift(sees ? `${toolEffect(output)}, ${maxDurability(output)} uses` : toolEffect(output));
   if (isGear(output)) {
     const needs = gearNeeds(output)!;
     facts.unshift(`${gearEffect(output)}, ${gearDurability(output)} uses, to use: ${findSkill(needs.skill).def.name} ${needs.level}`);
@@ -1967,9 +2019,11 @@ function renderStove(level: number): ItemId | null {
   const inPot = (i: IngredientId) => pick.pot.filter((x) => x === i).length;
   pick.pot = pick.pot.filter((i, n) => pick.pot.slice(0, n + 1).filter((x) => x === i).length <= haveUnlocked(i));
 
-  craftBody.append(choices("Dish", DISH_IDS, pick.dish, (d) => ({ icon: DISHES[d].icon, name: DISHES[d].name, lockedAt: level < DISHES[d].level ? DISHES[d].level : undefined }), (d) => { pick.dish = d; }));
+  // Only what you can cook (version 0.22, Mike's note): the dishes you know, and the next one to come.
+  const nextDish = DISH_IDS.filter((d) => DISHES[d].level > level).sort((a, b) => DISHES[a].level - DISHES[b].level)[0];
+  craftBody.append(choices("Dish", DISH_IDS.filter((d) => DISHES[d].level <= level || d === nextDish), pick.dish, (d) => ({ icon: DISHES[d].icon, name: DISHES[d].name, lockedAt: level < DISHES[d].level ? DISHES[d].level : undefined }), (d) => { pick.dish = d; }));
   const kinds = Object.entries(dish.kinds).map(([k, x]) => `${FOOD_KINDS[k as keyof typeof FOOD_KINDS].toLowerCase()} ×${x}`).join(", ");
-  craftBody.append(el("craft-info", `${dish.note}. Stamina: ${kinds}, fire ×${dish.fire}.`));
+  craftBody.append(el("craft-info", knows("cooking") ? `${dish.note}. Stamina: ${kinds}, fire ×${dish.fire}.` : `${dish.note}.`));
 
   // The pot: what's in it (tap to take out), and empty spaces.
   const potRow = el("pick-row");
@@ -1977,7 +2031,7 @@ function renderStove(level: number): ItemId | null {
   pick.pot.forEach((i, n) => {
     const b = document.createElement("button");
     b.className = "pick active";
-    b.append(icon("pick-icon", ITEMS[i].icon, ITEMS[i].tint), el("pick-name", ITEMS[i].single));
+    b.append(itemIcon("pick-icon", i), el("pick-name", ITEMS[i].single));
     b.title = `Take the ${ITEMS[i].single} out`;
     b.onclick = () => { pick.pot.splice(n, 1); renderCraft(); };
     potRow.appendChild(b);
@@ -1995,10 +2049,10 @@ function renderStove(level: number): ItemId | null {
   const bagRow = el("pick-row");
   bagRow.append(el("pick-label", "Your bag: tap to add"));
   const seen = new Set<ItemId>();
-  const mine = invItems.filter((it, i): it is ItemId => !!it && !locked[i] && !seen.has(it) && !!seen.add(it));
-  mine.sort((a, b) => Number(isIngredient(b) && fitsDish(pick.dish, b)) - Number(isIngredient(a) && fitsDish(pick.dish, a)));
+  // Only things you could put in this dish at your level: no "can't cook" clutter.
+  const mine = invItems.filter((it, i): it is ItemId => !!it && !locked[i] && !seen.has(it) && !!seen.add(it))
+    .filter((it) => isIngredient(it) && fitsDish(pick.dish, it) && INGREDIENTS[it].level <= level);
   for (const it of mine) {
-    if (/_logs$/.test(it)) continue; // logs are fuel, picked below
     const b = document.createElement("button");
     const fits = fitsDish(pick.dish, it);
     const tooHard = fits && INGREDIENTS[it].level > level;
@@ -2006,8 +2060,8 @@ function renderStove(level: number): ItemId | null {
     const full = pick.pot.length >= slots;
     const usable = fits && !tooHard && left > 0 && !full;
     b.className = "pick" + (usable ? "" : " locked");
-    const label = !isIngredient(it) ? "can't cook" : !fits ? `not in ${dish.name.toLowerCase()}` : tooHard ? `🔒${INGREDIENTS[it].level}` : `+${Math.round(ingredientStamina(pick.dish, it))} (${left})`;
-    b.append(icon("pick-icon", ITEMS[it].icon, ITEMS[it].tint), el("pick-name", label));
+    const label = !isIngredient(it) ? "can't cook" : !fits ? `not in ${dish.name.toLowerCase()}` : tooHard ? `🔒${INGREDIENTS[it].level}` : knows("cooking") ? `+${Math.round(ingredientStamina(pick.dish, it))} (${left})` : `${ITEMS[it].single} (${left})`;
+    b.append(itemIcon("pick-icon", it), el("pick-name", label));
     b.title = !isIngredient(it) ? `${ITEMS[it].name} can't be cooked.`
       : !fits ? `${dish.name} can't use ${FOOD_KINDS[INGREDIENTS[it as IngredientId].kind].toLowerCase()}.`
       : tooHard ? `You need Cooking level ${INGREDIENTS[it].level} to cook ${ITEMS[it].name.toLowerCase()}.`
@@ -2017,11 +2071,15 @@ function renderStove(level: number): ItemId | null {
     if (usable) b.onclick = () => { pick.pot.push(it); renderCraft(); };
     bagRow.appendChild(b);
   }
-  if (!mine.some((it) => fitsDish(pick.dish, it))) bagRow.append(el("craft-warn", `Nothing in your bag goes in a ${dish.name.toLowerCase()}. Catch fish, get raw chicken or beef from chickens and cows, or buy vegetables at the General Store.`));
+  if (!mine.length) bagRow.append(el("craft-warn", `Nothing in your bag that you can cook goes in a ${dish.name.toLowerCase()}. Catch fish, get raw chicken or beef from chickens and cows, or buy vegetables at the General Store.`));
   craftBody.append(bagRow);
 
-  craftBody.append(choices("Log to burn (better wood, more stamina)", WOOD_IDS, pick.fuel,
-    (w) => ({ icon: "🪵", tint: ITEMS[`${w}_logs`].tint, name: `${WOODS[w].name} +${fireStamina(pick.dish, w)}` }), (w) => { pick.fuel = w; }));
+  // Only logs you have and can cook over.
+  const fuels = WOOD_IDS.filter((w) => WOOD_COOK_LEVEL[w] <= level && haveUnlocked(`${w}_logs` as ItemId) > 0);
+  if (!fuels.length) { craftBody.append(el("craft-warn", "You need a log to burn. Chop one, or buy pine logs at the General Store.")); return null; }
+  if (!fuels.includes(pick.fuel)) pick.fuel = fuels[fuels.length - 1];
+  craftBody.append(choices("Log to burn (better wood, more stamina)", fuels, pick.fuel,
+    (w) => ({ icon: "🪵", tint: ITEMS[`${w}_logs`].tint, name: knows("cooking") ? `${WOODS[w].name} +${fireStamina(pick.dish, w)}` : WOODS[w].name }), (w) => { pick.fuel = w; }));
 
   if (!pick.pot.length) {
     craftBody.append(el("craft-detail", "Put at least one ingredient in the pot."));
@@ -2047,7 +2105,7 @@ function renderCutting(level: number) {
     const b = document.createElement("button");
     const lockedOut = level < need;
     b.className = "pick" + (lockedOut ? " locked" : "");
-    b.append(icon("pick-icon", ITEMS[it].icon, ITEMS[it].tint), el("pick-name", lockedOut ? `🔒${need}` : `${ITEMS[it].name} (${haveUnlocked(it)})`));
+    b.append(itemIcon("pick-icon", it), el("pick-name", lockedOut ? `🔒${need}` : `${ITEMS[it].name} (${haveUnlocked(it)})`));
     b.title = lockedOut ? `Needs Smithing level ${need} to cut.` : `Cut the ${ITEMS[it].single}.`;
     b.disabled = lockedOut;
     if (!lockedOut) b.onclick = () => onCut(it);
@@ -2089,7 +2147,7 @@ function renderAlchemy(level: number): ItemId | null {
   pick.mix.forEach((i, n) => {
     const b = document.createElement("button");
     b.className = "pick active";
-    b.append(icon("pick-icon", ITEMS[i].icon, ITEMS[i].tint), el("pick-name", ITEMS[i].single));
+    b.append(itemIcon("pick-icon", i), el("pick-name", ITEMS[i].single));
     b.onclick = () => { pick.mix.splice(n, 1); renderCraft(); };
     mixRow.appendChild(b);
   });
@@ -2115,7 +2173,7 @@ function renderAlchemy(level: number): ItemId | null {
     const ok = usable && left > 0 && pick.mix.length < 3 && (!asBonus || (BONUS_IDS as string[]).includes(it));
     const b = document.createElement("button");
     b.className = "pick" + (ok ? "" : " locked");
-    b.append(icon("pick-icon", ITEMS[it].icon, ITEMS[it].tint), el("pick-name", !usable ? "no use" : asBonus && !(BONUS_IDS as string[]).includes(it) ? "not a bonus" : `${ITEMS[it].single} (${left})`));
+    b.append(itemIcon("pick-icon", it), el("pick-name", !usable ? "no use" : asBonus && !(BONUS_IDS as string[]).includes(it) ? "not a bonus" : `${ITEMS[it].single} (${left})`));
     const bonus = BONUSES[it as BonusId];
     b.title = !usable ? `${ITEMS[it].name} can't be used in alchemy.` : bonus ? `${ITEMS[it].name}. As a third ingredient: ${bonus.note}.` : `${ITEMS[it].name}.`;
     b.disabled = !ok;
@@ -2195,7 +2253,7 @@ function renderBounties() {
     btn.title = ready ? `Hand in ${b.count} ${item.name.toLowerCase()}` : `You need ${b.count - have} more`;
     btn.onclick = () => onHandIn(index);
     const unused = isTool(b.item) || isGear(b.item) ? " (unused)" : "";
-    row.append(icon("bounty-icon", item.icon, item.tint), el("bounty-what", `${b.count} × ${item.name}${unused}`), btn,
+    row.append(itemIcon("bounty-icon", b.item), el("bounty-what", `${b.count} × ${item.name}${unused}`), btn,
       el("bounty-have", `You have ${Math.min(have, b.count)} / ${b.count}`),
       el("bounty-reward", `Reward: ${formatMoney(reward.coins)} · +${reward.xp} ${reward.label} XP · +${reward.renown} Renown XP`));
     bountyList.appendChild(row);
@@ -2381,7 +2439,7 @@ function renderChest() {
       const n = slotTotal(chest, i);
       slot.classList.add("filled");
       if (here.length > 1) slot.classList.add("mixed");
-      slot.appendChild(icon("item-icon", item.icon, item.tint));
+      slot.appendChild(itemIcon("item-icon", id));
       if (isTool(id)) slot.appendChild(durabilityBar(chest.durability[top] ?? maxDurability(id), maxDurability(id)));
       if (isGear(id)) slot.appendChild(durabilityBar(chest.durability[top] ?? gearDurability(id), gearDurability(id)));
       if (n > 1) slot.appendChild(countBadge(n));
@@ -2474,7 +2532,7 @@ function renderInfo() {
     infoBody.appendChild(nav);
   }
   const head = el("craft-head");
-  head.append(icon("craft-icon", item.icon, item.tint), el("craft-name", shortName(id) + (isLocked ? " 🔒" : "")));
+  head.append(itemIcon("craft-icon", id), el("craft-name", shortName(id) + (isLocked ? " 🔒" : "")));
   infoBody.appendChild(head);
   const stack = entry >= 0 ? countAt(entry) : 1;
   if (target.kind === "slot") {
@@ -2534,7 +2592,7 @@ function renderInfo() {
     infoBody.append(infoLine("Dug up", `Foraging level ${f.level}`, `from glinting dig patches, ${f.xp} XP${f.night ? ", only at night" : ""}`));
   } else if (recipe) {
     infoBody.append(infoLine("Made with", `${findSkill(recipe.skill).def.name} level ${recipe.level}`,
-      `${percent(chanceFor(recipe))} success for you · ${recipe.xp} XP`));
+      knows(recipe.skill) ? `${percent(chanceFor(recipe))} success for you · ${recipe.xp} XP` : chanceWords(chanceFor(recipe)).toLowerCase() + " for you"));
   }
 
   // Food: how much stamina it gives (meals: what goes into that).
@@ -2614,16 +2672,19 @@ function renderInfo() {
     }
     const broken = isBroken(id, uses);
     if (isTool(id)) infoButton("Equip", () => { onEquip(e); closeInfo(); }, broken);
-    if (isGear(id)) infoButton("Equip", () => { onWear(e); closeInfo(); }, broken);
+    if (isGear(id)) {
+      infoButton("Equip", () => { onWear(e); closeInfo(); }, broken);
+      if (isRobePiece(id)) infoButtons.lastElementChild!.classList.add("robe-glow");
+    }
     if (id === POTION_ID) infoButton(`Drink (+${POTION_HEAL})`, () => { onDrink(e); closeInfo(); });
     if (isPotion(id)) infoButton("Drink", () => { onDrink(e); closeInfo(); });
     if (isJewelry(id)) infoButton("Equip", () => { onWearJewel(e); closeInfo(); });
     if (isSpellBook(id)) infoButton("Read", () => { onRead(e); closeInfo(); });
     if (isStoryItem(id) && STORY_ITEMS[id].use) infoButton(STORY_ITEMS[id].use!, () => { onRead(e); closeInfo(); });
     if (isSeed(id)) infoButton("Plant these first", () => { onSeed(id); closeInfo(); });
-    if (isFood(id)) infoButton(`Eat (+${staminaOf(id)})`, () => { onEat(e); done(); }, staminaNow >= staminaMax);
+    if (isFood(id)) infoButton(`Eat (+${staminaOf(id)})`, () => { onEat(e); done(); }, false);
     infoButton(isLocked ? "Unlock" : "Lock", () => onLock(e, !isLocked));
-    infoButton(stack > 1 ? `Drop all ${stack}` : "Drop", () => { onDrop(e); done(); }, isLocked);
+    infoButton(stack > 1 ? `🗑️ Trash all ${stack}` : "🗑️ Trash", () => { onDrop(e); done(); }, isLocked);
   }
   infoButton("Close", closeInfo);
 }
@@ -2756,9 +2817,67 @@ export function renderTracked(item: ItemId | null) {
 }
 
 export function renderQuest(q: QuestView, flash = false) {
+  const wasLocked = !!lastQuest?.robeLock?.length;
   lastQuest = q;
+  document.body.classList.toggle("robe-lock", !!q.robeLock?.length);
+  document.body.classList.toggle("run-lesson", !!q.runLesson);
   renderTracker(flash);
+  if (wasLocked || q.robeLock?.length) renderInventory(); // the robe pieces glow (or stop glowing)
 }
+
+// ---- The robe step at the very start (version 0.21, Mike's notes): one click at a time ----
+// The screen goes dim except for a spotlight on the one thing to click: the dialog's Next button while Celene
+// talks, then the 🎒 bag, then the robe piece, then its Equip button. Nothing else works (no walking, no camera,
+// no other panels) until that click. The server refuses walking too.
+
+/** Still to put on (item id prefixes), while the very first quest's robe step is on. */
+const robeLeft = () => lastQuest?.robeLock ?? [];
+const isRobePiece = (id: string) => robeLeft().some((pre) => id.startsWith(pre));
+/** The one thing that can be clicked right now, or null (no lesson on, or the opening scene is playing). */
+function lessonTarget(): HTMLElement | null {
+  if (!robeLeft().length || document.body.classList.contains("intro-on") || document.getElementById("creator")) return null;
+  const vis = (q: string) => { const e = document.querySelector<HTMLElement>(q); return e && e.offsetParent ? e : null; };
+  if (document.body.classList.contains("dialog-open")) return vis("#dialog-next");
+  if (document.body.classList.contains("info-open")) return vis("#info-buttons .robe-glow") ?? vis("#info-buttons button:last-child");
+  if (document.body.dataset.panel === "inventory") return vis("#slots .slot.robe-glow") ?? vis("#bag-tab");
+  return vis("#bag-tab");
+}
+function robeBlock(e: Event) {
+  if (!robeLeft().length) return;
+  const t = e.target as Element | null;
+  if (t?.closest?.("#intro-skip, #creator")) return;
+  const target = lessonTarget();
+  if (target && t && target.contains(t)) return;
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  if (target && (e.type === "pointerdown" || e.type === "keydown")) {
+    target.classList.remove("wobble");
+    void target.offsetWidth;
+    target.classList.add("wobble");
+  }
+}
+for (const type of ["pointerdown", "pointerup", "pointermove", "click", "dblclick", "wheel", "touchstart", "touchmove", "contextmenu"]) window.addEventListener(type, robeBlock, { capture: true, passive: false });
+for (const type of ["keydown", "keyup"]) window.addEventListener(type, (e) => {
+  const k = e as KeyboardEvent;
+  if (!robeLeft().length || (k.target as Element | null)?.closest?.("input, textarea, #creator")) return;
+  // Enter and Space still turn the dialog's pages; every other key waits (and letting go of a key is always fine).
+  if (type === "keyup" || (document.body.classList.contains("dialog-open") && (k.key === "Enter" || k.key === " "))) return;
+  robeBlock(e);
+}, { capture: true });
+// The dim screen with its spotlight, following the target as panels open and close.
+const spot = document.createElement("div");
+spot.id = "lesson-spot";
+document.body.appendChild(spot);
+(function followSpot() {
+  const t = lessonTarget();
+  document.body.classList.toggle("lesson-dim", !!t);
+  if (t) {
+    const r = t.getBoundingClientRect();
+    spot.style.left = `${r.left - 6}px`; spot.style.top = `${r.top - 6}px`;
+    spot.style.width = `${r.width + 12}px`; spot.style.height = `${r.height + 12}px`;
+  }
+  requestAnimationFrame(followSpot);
+})();
 
 function bar(fraction: number) {
   const b = el("q-bar");
@@ -2771,7 +2890,8 @@ function bar(fraction: number) {
 /** The quest said in words: what to do, and what's wrong first. */
 function questWords(q: QuestView) {
   const who = q.giver ? `${q.quest}, from ${q.giver}.` : `${q.quest}.`;
-  return [who, q.warning ?? "", `${q.task}.`, q.progress ? `${q.progress}.` : ""].filter(Boolean).join(" ").replace(/\.\./g, ".");
+  const left = q.checklist?.filter((c) => !c.done).map((c) => c.label);
+  return [who, q.warning ?? "", `${q.task}.`, left?.length ? `Still to do: ${left.join(", ")}.` : q.progress ? `${q.progress}.` : ""].filter(Boolean).join(" ").replace(/\.\./g, ".");
 }
 let spokenQuest: string | null = null;
 
@@ -2805,7 +2925,12 @@ function renderTracker(flash = false) {
     title.prepend(speakButton(() => questWords(q), "Read the quest out loud"));
     questEl.append(title, el("q-task", (q.talk ? "❗ " : "") + q.task));
     if (q.warning) questEl.append(el("q-warn", `⚠️ ${q.warning}`));
-    if (q.need?.length) questEl.append(needPictures(q.need));
+    // Steps done in any order show a checklist, ticked as you go (version 0.21).
+    if (q.checklist?.length) {
+      const box = el("q-check");
+      for (const c of q.checklist) box.append(el(c.done ? "done" : "", c.label));
+      questEl.append(box);
+    } else if (q.need?.length) questEl.append(needPictures(q.need));
     else if (q.progress) questEl.append(el("q-progress", q.progress));
     if (q.fraction != null) questEl.append(bar(q.fraction));
     // A new step (or a new warning) is read out by itself.
@@ -2823,14 +2948,16 @@ function renderTracker(flash = false) {
   }
 }
 
-/** Which 📜 sections are folded shut (kept while the tab re-renders). */
-const questFolded = new Set<string>(["done-story"]);
+/** Which 📜 tab is open (version 0.22, Mike's note): the main quest, side quests, or finished ones. */
+let questTabAt: "main" | "side" | "done" = "main";
+/** Which finished quest's recap is open in the ✅ tab. */
+let questRecap: string | null = null;
 
 /**
- * The 📜 tab, top to bottom:
- * 📍 what you're on now, 🧭 what you can start next (who, and where),
- * 🎓 Training (the master quest: every skill's lesson), ✨ the story,
- * ⭐ side quests, then 📋 the board's bounties. Tap a heading to fold it.
+ * The 📜 tab (version 0.22, Mike's note: it was bigger than a phone screen and too busy).
+ * Three tabs: 📍 Main quest (what you're on, and the story), ⭐ Side quests (trainers'
+ * lessons, side quests and bounties) and ✅ Done (tap one for a recap, like a little wiki).
+ * Quests you haven't found yet stay hidden: people with a ❗ over their heads have them.
  */
 function renderQuestTab() {
   questListEl.replaceChildren();
@@ -2841,119 +2968,90 @@ function renderQuestTab() {
     r.onclick = onclick;
     return r;
   };
-  /** A heading you can tap to fold its rows away. Returns the box to put rows in. */
-  const section = (key: string, title: string, frac?: number) => {
-    const head = el("qt-head qt-fold" + (questFolded.has(key) ? " folded" : ""), title);
-    if (frac != null) head.append(bar(frac));
-    const box = el("qt-box");
-    box.hidden = questFolded.has(key);
-    head.onclick = () => {
-      if (questFolded.has(key)) questFolded.delete(key); else questFolded.add(key);
-      renderQuestTab();
-    };
-    questListEl.append(head, box);
-    return box;
-  };
   const tb = trackedBounty();
   const q = lastQuest;
   const glyph: Record<ChapterView["state"], string> = { done: "✅", active: "📍", started: "⏸️", open: "❗", locked: "🔒" };
-  const skillNames = (c: ChapterView) => (c.skills ?? []).map((id) => { const d = findSkill(id).def; return `${d.icon} ${d.name}`; }).join(" · ");
   const subOf = (c: ChapterView) =>
-    c.state === "done" ? "✓ Done"
-      : c.state === "locked" ? `🔒 ${c.needs ? `Needs ${c.needs}` : c.opens || `Opens after ${GUIDE_NAME}'s lessons`}`
-        : c.task ? `${c.task} (step ${c.step + 1} of ${c.of})`
-          : `❗ Talk to ${c.name}, ${c.where}`;
-  const chapterRow = (c: ChapterView, withSkills = false) => {
+    c.state === "done" ? "Tap for a recap"
+      : c.task ? `${c.task} (step ${c.step + 1} of ${c.of})`
+        : `❗ Talk to ${c.name}, ${c.where}`;
+  const chapterRow = (c: ChapterView) => {
     const sub = subOf(c);
-    const r = el("qt-row qt-chapter" + (c.state === "done" ? " done" : c.state === "locked" ? " locked" : c.state === "open" ? " open" : ""));
-    const title = el("qt-title", `${c.title} · ${c.name}`);
-    r.append(speakButton(() => `${c.title}, from ${c.name}. ${sub}.`), el("qt-icon", glyph[c.state]), title);
-    if (withSkills && c.skills?.length) r.append(el("qt-skills", skillNames(c)));
-    r.append(el("qt-sub", sub));
+    const r = el("qt-row qt-chapter" + (c.state === "done" ? " done" : c.state === "open" ? " open" : ""));
+    r.append(speakButton(() => `${c.title}, from ${c.name}. ${sub}.`), el("qt-icon", glyph[c.state]), el("qt-title", `${c.title} · ${c.name}`), el("qt-sub", sub));
     return r;
   };
-  if (q) {
-    // 📍 Now: what you're on (tap to show it by your health again).
-    questListEl.append(el("qt-head", "📍 Now"));
+
+  // The tabs.
+  const chapters = q?.chapters ?? [];
+  const found = (c: ChapterView) => c.state === "active" || c.state === "started";
+  const sideNow = chapters.filter((c) => !c.act && found(c));
+  const doneAll = chapters.filter((c) => c.state === "done");
+  const tabs = el("qt-tabs");
+  const tabBtn = (id: typeof questTabAt, label: string) => {
+    const b = document.createElement("button");
+    b.className = "qt-tab" + (questTabAt === id ? " on" : "");
+    b.textContent = label;
+    b.onclick = () => { questTabAt = id; questRecap = null; renderQuestTab(); };
+    tabs.append(b);
+  };
+  tabBtn("main", "📍 Main");
+  tabBtn("side", `⭐ Side${sideNow.length + bounties.length ? ` (${sideNow.length + bounties.length})` : ""}`);
+  tabBtn("done", `✅ Done${doneAll.length ? ` (${doneAll.length})` : ""}`);
+  questListEl.append(tabs);
+
+  if (questTabAt === "main") {
+    if (!q) return;
+    // What you're on (tap to show it by your health again).
     questListEl.append(row("📜", undefined, q.giver ? `${q.quest} · ${q.giver}` : q.quest, q.task, q.progress ?? (q.done ? "" : "Tap to track"), !tb, () => onTrack(null)));
-
-    // 🧭 Up next: everything you could start or go back to right now, with who and where.
-    const next = q.chapters.filter((c) => c.state === "open" || c.state === "started");
-    if (next.length) {
-      const box = section("next", `🧭 You can start (${next.length})`);
-      for (const c of next) box.append(chapterRow(c, true));
-    }
-
-    // 🎓 Training: the master quest. Every skill has a lesson; finish them all to learn every trade.
-    const lessons = q.chapters.filter((c) => !c.act && !c.side);
-    const lessonsDoneN = lessons.filter((c) => c.state === "done").length;
-    const box = section("training", `🎓 Training: learn every skill (${lessonsDoneN} of ${lessons.length})`, lessonsDoneN / Math.max(1, lessons.length));
-    if (lessonsDoneN < lessons.length) box.append(el("qt-note", lessons[0]?.state === "done"
-      ? "Each trainer teaches a skill or two. Talk to anyone with a ❗ over their head to start their lesson."
-      : `Start with ${GUIDE_NAME}'s lessons: they open up every other trainer.`));
-    // Ones you can do now first, finished ones last. Locked ones are hidden (Mike's note #12): just a count.
-    const order: Record<ChapterView["state"], number> = { active: 0, started: 1, open: 2, locked: 3, done: 4 };
-    const sorted = [...lessons].filter((c) => c.state !== "locked").sort((a, b) => order[a.state] - order[b.state]);
-    const lockedLessons = lessons.filter((c) => c.state === "locked").length;
-    // Before Maren's lessons are done, the trainers are all shut: show Maren, then just name the rest.
-    const marenRow = lessons.find((c) => c.id === "maren");
-    if (marenRow && marenRow.state !== "done") {
-      box.append(chapterRow(marenRow, true));
-      const rest = sorted.filter((c) => c !== marenRow);
-      box.append(el("qt-note", `🔒 Then ${rest.length} more trainers open up.`));
-    } else {
-      for (const c of sorted) box.append(chapterRow(c, true));
-      if (lockedLessons) box.append(el("qt-note", `🔒 ${lockedLessons} more lesson${lockedLessons === 1 ? "" : "s"} open up as you go.`));
-    }
-
-    // ✨ The story: the Prologue, then Act 1 (once it's in sight). Finished chapters fold into one line.
-    const prologue = q.chapters.filter((c) => c.act === "prologue");
-    const act1 = q.chapters.filter((c) => c.act === "act1");
+    // The story: chapters you're on, and the next one (the main quest always shows the way).
+    const story = chapters.filter((c) => c.act && c.state !== "done" && c.state !== "locked");
     const rank = LIGHT_RANKS[q.rank ?? 0];
-    const showAct1 = prologue.every((c) => c.state === "done") || act1.some((c) => c.state !== "locked");
-    const story = [...prologue, ...(showAct1 ? act1 : [])];
-    const storyDone = story.filter((c) => c.state === "done");
-    const sbox = section("story", `✨ Story · ${rank} (${storyDone.length} of ${showAct1 ? prologue.length + act1.length : prologue.length})`);
-    if (storyDone.length) {
-      const fold = el("qt-note qt-fold-line", `${questFolded.has("done-story") ? "▸" : "▾"} ✅ ${storyDone.length} finished chapter${storyDone.length === 1 ? "" : "s"}`);
-      fold.onclick = () => { if (questFolded.has("done-story")) questFolded.delete("done-story"); else questFolded.add("done-story"); renderQuestTab(); };
-      sbox.append(fold);
-      if (!questFolded.has("done-story")) for (const c of storyDone) sbox.append(chapterRow(c));
-    }
-    for (const act of [prologue, showAct1 ? act1 : []]) {
-      const left = act.filter((c) => c.state !== "done");
-      if (!left.length) continue;
-      const open = left.filter((c) => c.state !== "locked");
-      if (!open.length) continue;
-      sbox.append(el("qt-sub qt-act", act === prologue ? "Prologue: Awakening" : "Act 1: The First Trial"));
-      for (const c of open) sbox.append(chapterRow(c));
-    }
-    const lockedStory = story.filter((c) => c.state === "locked").length;
-    if (lockedStory) sbox.append(el("qt-note", `🔒 ${lockedStory} more chapter${lockedStory === 1 ? "" : "s"} of the story open up as you go.`));
-
-    // ⭐ Side quests: extras, for later.
-    const side = q.chapters.filter((c) => c.side);
-    const sideOpen = side.filter((c) => c.state !== "locked");
-    if (sideOpen.length) {
-      const xbox = section("side", `⭐ Side quests (${side.filter((c) => c.state === "done").length} of ${side.length})`);
-      for (const c of sideOpen) xbox.append(chapterRow(c));
-      const sideLocked = side.length - sideOpen.length;
-      if (sideLocked) xbox.append(el("qt-note", `🔒 ${sideLocked} more side quest${sideLocked === 1 ? "" : "s"} open up as you go.`));
-    }
-  }
-  const bbox = section("bounties", `📋 Bounties${bounties.length ? ` (${bounties.length})` : ""}`);
-  if (!bounties.length) {
-    bbox.append(el("qt-note", "Captain Bryn opens the bounty board for you in one of the lessons."));
+    questListEl.append(el("qt-head", `✨ The story · ${rank}`));
+    for (const c of story) questListEl.append(chapterRow(c));
+    if (!story.length) questListEl.append(el("qt-note", "More of the story opens up as you go."));
     return;
   }
-  bounties.forEach((b, i) => {
-    const item = ITEMS[b.item];
-    const have = bountyHave(b);
-    const reward = bountyReward(b, lastMastery, renownLv());
-    bbox.append(row(item.icon, item.tint, `${b.count} × ${item.name}`, `${formatMoney(reward.coins)} · +${reward.xp} ${reward.label} XP · +${reward.renown} Renown`,
-      have >= b.count ? "✓ Ready to hand in" : `You have ${have} / ${b.count}`, tb === b, () => onTrack(i)));
-  });
-  bbox.append(el("qt-note", "Hand bounties in at the board in the town square, next to Captain Bryn."));
+
+  if (questTabAt === "side") {
+    // Only what you've found: lessons and side quests you've started.
+    for (const c of sideNow) questListEl.append(chapterRow(c));
+    if (bounties.length) {
+      questListEl.append(el("qt-head", "📋 Bounties"));
+      bounties.forEach((b, i) => {
+        const item = ITEMS[b.item];
+        const have = bountyHave(b);
+        const reward = bountyReward(b, lastMastery, renownLv());
+        questListEl.append(row(item.icon, item.tint, `${b.count} × ${item.name}`, `${formatMoney(reward.coins)} · +${reward.renown} Renown`,
+          have >= b.count ? "✓ Ready to hand in" : `You have ${have} / ${b.count}`, tb === b, () => onTrack(i)));
+      });
+      questListEl.append(el("qt-note", "Hand bounties in at the board in the town square, next to Captain Bryn."));
+    }
+    if (!sideNow.length && !bounties.length) questListEl.append(el("qt-note", "No side quests yet."));
+    questListEl.append(el("qt-note", "Look for people with a ❗ over their heads: they have something for you."));
+    return;
+  }
+
+  // ✅ Done: tap one to read back what happened.
+  if (!doneAll.length) { questListEl.append(el("qt-note", "Nothing finished yet. Quests you finish go here, so you can look back at them.")); return; }
+  for (const c of [...doneAll].reverse()) {
+    const r = chapterRow(c);
+    r.classList.add("qt-recap-row");
+    r.onclick = () => { questRecap = questRecap === c.id ? null : c.id; renderQuestTab(); };
+    questListEl.append(r);
+    if (questRecap !== c.id) continue;
+    const ch = chapterById(c.id);
+    const box = el("qt-recap");
+    box.append(el("qt-recap-where", `${ch.name}, ${ch.where}`));
+    const list = el("qt-recap-steps");
+    for (const st of ch.steps) {
+      list.append(el("qt-recap-step", `✓ ${st.task}`));
+      const said = [...(st.lines ?? []), ...Object.values(st.visitLines ?? {}).flat()];
+      if (said.length) list.append(el("qt-recap-said", `“${said.join(" ")}”`));
+    }
+    box.append(list);
+    questListEl.append(box);
+  }
 }
 
 const dialogName = document.getElementById("dialog-name")!;

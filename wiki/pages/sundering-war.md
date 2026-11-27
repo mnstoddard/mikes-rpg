@@ -13,7 +13,7 @@ infobox.Result: Vale's side wins; Frostfell freezes
 
 [[Wick]] turned Ivy and Reed against the rest of the Circle and tried to tear the shrines down, which would have let the Emberfall loose again and made the king's sacrifice for nothing. [[Archmage Vale]] led the loyal Circle against him and won, and died doing it. Ivy and Reed were defeated. Wick fled, and his curse froze [[Frostfell]].
 
-[[Brother Oren]] tells this version on his tour of [[The Extinguished]], ending at Wick's empty plinth.
+[[Keeper Oren]] tells this version on his tour of [[The Extinguished]], ending at Wick's empty plinth.
 
 ::: secret
 ## What really happened

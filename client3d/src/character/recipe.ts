@@ -20,7 +20,8 @@ export interface CharacterRecipe {
   hairColor: string; bangs: number; hairLength: number;
   beard: "none" | "stubble" | "mustache" | "goatee" | "full" | "wizard";
   // Clothes
-  top: "tshirt" | "long" | "tank" | "tunic" | "robe"; bottom: "pants" | "shorts" | "skirt"; shoes: "boots" | "shoes" | "bare";
+  // "under": plain undergarments (what every new hero starts in; clothes come from armor you wear).
+  top: "tshirt" | "long" | "tank" | "tunic" | "robe" | "under"; bottom: "pants" | "shorts" | "skirt" | "under"; shoes: "boots" | "shoes" | "bare";
   belt: "off" | "on"; hat: "none" | "beanie" | "wizard" | "headband" | "crown"; glasses: "none" | "round" | "square";
   shirtColor: string; pantsColor: string; shoeColor: string; accentColor: string;
 }
@@ -46,6 +47,14 @@ export const CHARACTER_PRESETS: { role: string; recipe: Partial<CharacterRecipe>
   { role: "Orc guard", recipe: { name: "Grukk", frame: 0, height: 1.1, build: 0.6, muscle: 1, shoulders: 1.2, head: 0.95, skin: "#86b064", faceWidth: 1.12, jaw: 1.15, chin: 0.95, square: 0.85, cheeks: 0.1, nose: "round", noseSize: 1.25, mouth: "frown", mouthWidth: 1.3, ears: "pointy", earSize: 1.1, eyeStyle: "dots", eyeSize: 0.8, eyeTilt: 0.4, browThick: 1.9, browTilt: 1, hairStyle: "mohawk", hairColor: "#1b1613", hairLength: 0.6, beard: "none", top: "tank", bottom: "pants", shoes: "boots", belt: "on", hat: "none", shirtColor: "#3b3f44", pantsColor: "#5c4636", shoeColor: "#1f2124", accentColor: "#c0392b" } },
   { role: "Queen", recipe: { name: "Isolde", frame: 1, height: 1.02, build: 0.2, muscle: 0.15, head: 1.02, skin: "#714528", faceLength: 1.05, jaw: 0.8, chin: 1.05, cheeks: 0.8, nose: "small", mouth: "neutral", eyeStyle: "classic", eyeColor: "#d08d1a", lashes: "on", eyeTilt: 0.3, browThick: 0.8, browTilt: 0.2, hairStyle: "afro", hairColor: "#1b1613", hairLength: 0.4, beard: "none", top: "robe", bottom: "skirt", shoes: "shoes", belt: "on", hat: "crown", shirtColor: "#a44a6e", pantsColor: "#a44a6e", shoeColor: "#e8c547", accentColor: "#e8c547" } },
 ];
+
+/** The colour of plain linen undergarments. */
+export const LINEN = "#e6dcc6";
+
+/** The same character in nothing but simple undergarments (players: what they wear shows as armor). */
+export function undress(r: CharacterRecipe): CharacterRecipe {
+  return { ...r, top: "under", bottom: "under", shoes: "bare", belt: "off", hat: "none", shirtColor: LINEN, pantsColor: LINEN };
+}
 
 /** A full recipe from a partial one (missing settings use the defaults). */
 export function makeRecipe(p: Partial<CharacterRecipe> = {}): CharacterRecipe {
