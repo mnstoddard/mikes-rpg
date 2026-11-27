@@ -11,7 +11,7 @@ infobox.Buried: No one knows where
 **Archmage Vale** was one of the two highest members of [[The Ember Circle]], beside [[Wick]], under [[King Aldemar XVIII]]. Every child is taught that he held the land together after Wick's betrayal caused [[The Emberfall (disaster)|the Emberfall]], raised [[The Heart Shrine]], led [[The Rebuilding]], and created the [[Radiance Ceremony]] so weary heroes could rest with honour. He died at the end of the [[Sundering War]], defeating Wick. No one knows where he's buried. The gentle [[Enchanter Vale]] in the Emberhall is said to be named after him.
 
 ::: secret
-Vale is the one who killed the king. As the Circle's working concluded, he struck Aldemar down and twisted the working so its power poured into the Circle, and most of all into himself. The rest of the Circle never knew. He took the [[Ember Crown]] from the king's body; half of it is set in his staff.
+Vale caused the Emberfall. As the Circle's working concluded, he twisted it so its power poured into the Circle, and most of all into himself. It broke loose, and the king died holding it back. The rest of the Circle never knew. Vale took the [[Ember Crown]] from where the king fell; half of it is set in his staff.
 
 He's the most powerful being in the land, and he wants more. Around year 200 he created the Radiance Ceremony to siphon the ember of the brightest Emberborn into himself. When Wick found out, Vale won the war that followed, framed Wick for the Emberfall as well, and faked his own death around year 500.
 

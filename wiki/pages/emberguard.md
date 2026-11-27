@@ -8,7 +8,7 @@ infobox.Leader: The hooded High Keeper
 infobox.Runs: [[The shrines]]
 infobox.Old_name: The Lightkeepers
 ---
-**The Emberguard** keep [[The shrines]] lit across the land. They describe themselves as "keepers of the shrines that saved us after the Emberfall". [[The Ember Circle]] founded the order around year 50, during [[The Rebuilding]]. Their temple is [[The Emberhall]] in [[Emberhold]], built right over the place the Emberfall began. Embers drift through its great hall, one for every hero honoured with a Ceremony. Only the worthy are let in: new [[Emberborn]] start as [[Hopefuls]] and have to earn their way through the Emberguard's trials.
+**The Emberguard** keep [[The shrines]] lit across the land. They describe themselves as "keepers of the shrines that saved us after the Emberfall". [[The Ember Circle]] founded the order around year 50, during [[The Rebuilding]]. Their temple is [[The Emberhall]] in [[Emberhold]], built right over the place the Emberfall began. Embers drift through its great hall, one for every hero honoured with a Ceremony. Only the worthy are let in: new [[Emberborn]] start as [[Initiates]] and have to earn their way through the Emberguard's trials.
 
 Most members are honest and believe every word of it.
 

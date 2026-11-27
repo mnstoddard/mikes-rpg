@@ -16,7 +16,7 @@ They used to be called the Radiants, and their statues had a room of their own, 
 
 ## The official story
 
-This is what the Emberguard teach, and what every Hopeful hears on their first day.
+This is what the Emberguard teach, and what every Initiate hears on their first day.
 
 - **Every Emberborn fades.** After a few hundred years, every fall and every rebirth has worn them thin (see [[The Fading]]). Everyone has watched an old champion grow grey and forgetful.
 - **The Ceremony is rest.** When a champion has carried the flame long enough, the Emberguard invite them to lay it down. They lay their hands on the Heart Shrine, blaze up one last time, and go out gently, *"like falling asleep by the fire"*, with their friends watching.
@@ -37,7 +37,7 @@ The Extinguished chose the Ceremony, believed in it, and went in peace. That's w
 - **The floating embers aren't tributes.** They're scraps of sparks the Ceremony couldn't fully drain, still drifting in the hall. Some sparks are trapped in old refined emberstones too, and the ghosts in [[The Graveyard]] are the oldest of them.
 - **Tilda knew.** Tilda Ashwalker found out the truth before her Ceremony. She went anyway, because she believed nobody would listen, but her last cairn in the Barrens says *"Don't go down the stair."*
 
-Why it matters: every Hopeful is being raised to become one of the Extinguished. The more a player levels up, the brighter they burn, and the closer they are to their own invitation. That's what the player realises at their Joining (see [[Main story]]).
+Why it matters: every Initiate is being raised to become one of the Extinguished. The more a player levels up, the brighter they burn, and the closer they are to their own invitation. That's what the player realises at their Joining (see [[Main story]]).
 :::
 
 ## The statues

@@ -65,6 +65,8 @@ const RENAMES: [RegExp, string][] = [
   [/Lightkeeper/g, "Emberguard"],
   [/Lightwardens?/g, "Emberwarden"],
   [/Kindled/g, "Emberborn"],
+  [/Hopefuls/g, "Initiates"],
+  [/Hopeful/g, "Initiate"],
   [/Elderra/g, "Embervale"],
   [/Wellspring/g, "Emberheart"],
   [/Aurelite/g, "Embersteel"],
@@ -93,7 +95,7 @@ let renamedOnPage = false;
 function canon(text: string): string {
   let out = text;
   for (const [re, to] of RENAMES) out = out.replace(re, () => { renamedOnPage = true; return to; });
-  return out.replace(/\b([Aa]) ember\b/g, "$1n ember").replace(/\bthe the\b/g, "the").replace(/\bThe the\b/g, "The").replace(/^the Old/, "The Old");
+  return out.replace(/\b([Aa]) ember\b/g, "$1n ember").replace(/\b([Aa]) Initiate/g, "$1n Initiate").replace(/\bthe the\b/g, "the").replace(/\bThe the\b/g, "The").replace(/^the Old/, "The Old");
 }
 
 // ---------------------------------------------------------------- pages
@@ -563,6 +565,10 @@ function walkStep(c: Chapter, s: QuestStep, i: number): string {
   if (s.fightWith) facts.push(`**Fight with:** ${s.fightWith === "weapon" ? "any weapon" : s.fightWith}.`);
   if (s.need) facts.push(`**Needs:** ${canon(s.need.line)}`);
   out.push(facts.map((f) => "- " + f).join("\n"));
+  // Any-order goals show as a checklist in the quest log (planned for every quest; Mike's note).
+  const g = s.goal as any;
+  if (g?.npcs?.length > 1) out.push("**Checklist (any order):**\n\n" + g.npcs.map((n: string) => "- ☐ " + npcName(n)).join("\n"));
+  else if (g?.spots?.length > 1) out.push("**Checklist (any order):**\n\n" + g.spots.map((_: string, k: number) => `- ☐ ${canon(g.names ? g.names.replace(/s$/, "") : "Place")} ${k + 1}`).join("\n"));
   const speaker = s.speaker ?? (s.who ? npcName(s.who) : npcName(c.giver));
   if (s.lines?.length) out.push(`**${canon(speaker)}:**\n\n` + s.lines.map((l) => "> " + canon(l)).join("\n>\n"));
   if (s.spotLines) out.push("**What you find:**\n\n" + Object.values(s.spotLines).map((l) => "- " + canon(l)).join("\n"));
