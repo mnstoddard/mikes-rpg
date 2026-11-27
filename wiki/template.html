@@ -191,6 +191,28 @@ body.no-secrets .secret-only { display: none; }
 .note-card .reply { font-size: 14px; border-left: 3px solid var(--ember); padding-left: 8px; color: var(--muted); }
 .tag { font-size: 12px; padding: 1px 8px; border-radius: 99px; background: var(--soft); }
 .tag.open { background: var(--ember-soft); color: var(--ember); }
+
+/* Main questline view */
+.ql-controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; align-items: end; }
+.ql-controls label { display: grid; gap: 2px; font-size: 12px; color: var(--muted); }
+.ql-controls select, .ql-controls input { font: inherit; font-size: 14px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+.ql-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ql-item { display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: start; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--paper); }
+.ql-item.planned { background: var(--soft); }
+.ql-item.moved { border-color: var(--ember); box-shadow: 0 0 0 2px var(--ember-soft); }
+.ql-num { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 14px; padding-top: 2px; text-align: right; }
+.ql-title { font-weight: 600; }
+.ql-meta { font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 2px; }
+.ql-what { font-size: 14px; margin-top: 4px; }
+.ql-move { display: flex; flex-direction: column; gap: 4px; }
+.ql-move button { font: inherit; font-size: 13px; line-height: 1; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--soft); color: var(--ink); cursor: pointer; }
+.ql-move button:disabled { opacity: .35; cursor: default; }
+.ql-act { font-size: 12px; padding: 1px 8px; border-radius: 99px; background: var(--ember-soft); color: var(--ember); }
+.ql-built { font-size: 12px; padding: 1px 8px; border-radius: 99px; background: #e5f4ea; color: #1f6b3a; }
+.ql-plan { font-size: 12px; padding: 1px 8px; border-radius: 99px; background: var(--soft); color: var(--muted); border: 1px dashed var(--line); }
+.ql-save { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; padding: 10px; border: 1px solid var(--ember); border-radius: 10px; background: var(--ember-soft); }
+.ql-save input { flex: 1 1 220px; font: inherit; font-size: 14px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--ink); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .ql-built { background: #183a26; color: #8fd6a7; } }
 </style>
 
 <header class="top">
@@ -237,7 +259,7 @@ const textOf = new Map(WIKI.pages.map((p) => [p.s, (p.t + " " + p.a.join(" ") + 
 const side = document.getElementById("side");
 function drawSide(current) {
   const counts = {}; for (const p of WIKI.pages) counts[p.c] = (counts[p.c] || 0) + 1;
-  side.innerHTML = `<h3>Start</h3><a href="#main-page" class="${current === "main-page" ? "on" : ""}"><span>Main page</span></a><a href="#maps" class="${current === "maps" ? "on" : ""}"><span>🗺️ Maps</span></a><a href="#random"><span>Random page</span></a>` +
+  side.innerHTML = `<h3>Start</h3><a href="#main-page" class="${current === "main-page" ? "on" : ""}"><span>Main page</span></a><a href="#maps" class="${current === "maps" ? "on" : ""}"><span>🗺️ Maps</span></a><a href="#main-questline" class="${current === "main-questline" ? "on" : ""}"><span>🧭 Main questline</span></a><a href="#random"><span>Random page</span></a>` +
     `<h3>Categories</h3>` + WIKI.categories.map((c) => `<a href="#${catSlug(c)}" class="${current === catSlug(c) ? "on" : ""}"><span>${CAT_ICONS[c] || ""} ${esc(c)}</span><span>${counts[c]}</span></a>`).join("") +
     `<h3>This wiki</h3>${notesDb ? `<a href="#notes" class="${current === "notes" ? "on" : ""}"><span>📝 Change notes</span><span>${openCount() || ""}</span></a>` : ""}<a href="#how-to-update-the-wiki"><span>How to update it</span></a><a href="#names"><span>Names</span></a><a href="#version-history"><span>Game version ${esc(WIKI.version)}</span></a>`;
 }
@@ -268,6 +290,7 @@ function showPage(p) {
     `<div class="chips">Category: <a class="chip" href="#${catSlug(p.c)}">${esc(p.c)}</a></div>` +
     (links.length ? `<div><b>What links here:</b> ${links.map((l) => `<a href="#${l.s}">${esc(l.t)}</a>`).join(", ")}</div>` : "") + `</div>`;
   document.title = p.s === "main-page" ? "Emberfall Wiki" : `${p.t} · Emberfall Wiki`;
+  if (p.s === "main-questline") drawQuestline();
 }
 function mainExtras() {
   const counts = {}; for (const p of WIKI.pages) counts[p.c] = (counts[p.c] || 0) + 1;
@@ -411,6 +434,72 @@ const applySecrets = () => { document.body.classList.toggle("no-secrets", !secre
 secrets.addEventListener("change", applySecrets);
 applySecrets();
 route();
+// ---- main questline: filter, sort, and try a new order (saved as a change note) ----
+var qlOrder, qlState;
+function qlInit() { if (!qlOrder) qlOrder = WIKI.questline.map((_, i) => i); if (!qlState) qlState = { act: "", kind: "", status: "", giver: "", sort: "story", q: "" }; }
+function drawQuestline() {
+  qlInit();
+  const host = view.querySelector(".content .ql") || view.querySelector(".content .tw"); if (!host) return;
+  const QL = WIKI.questline;
+  const acts = [...new Set(QL.map((x) => x.act))], kinds = [...new Set(QL.map((x) => x.kind))];
+  const givers = [...new Set(QL.map((x) => strip(x.giver)).filter(Boolean))].sort();
+  const opt = (v, label, cur) => `<option value="${esc(v)}" ${v === cur ? "selected" : ""}>${esc(label)}</option>`;
+  const st = qlState;
+  const changed = qlOrder.some((v, i) => v !== i);
+  const pos = new Map(qlOrder.map((v, i) => [v, i]));
+  let rows = qlOrder.map((i) => ({ i, x: QL[i] })).filter(({ x }) =>
+    (!st.act || x.act === st.act) && (!st.kind || x.kind === st.kind) && (!st.status || (st.status === "built") === x.built) &&
+    (!st.giver || strip(x.giver) === st.giver) && (!st.q || (x.t + " " + strip(x.where) + " " + strip(x.what)).toLowerCase().includes(st.q.toLowerCase())));
+  const actRank = (a) => acts.indexOf(a);
+  if (st.sort === "act") rows.sort((a, b) => actRank(a.x.act) - actRank(b.x.act) || pos.get(a.i) - pos.get(b.i));
+  if (st.sort === "giver") rows.sort((a, b) => strip(a.x.giver || "~").localeCompare(strip(b.x.giver || "~")) || pos.get(a.i) - pos.get(b.i));
+  if (st.sort === "status") rows.sort((a, b) => (b.x.built - a.x.built) || pos.get(a.i) - pos.get(b.i));
+  if (st.sort === "name") rows.sort((a, b) => a.x.t.localeCompare(b.x.t));
+  const canMove = st.sort === "story";
+  const box = document.createElement("div"); box.className = "ql";
+  box.innerHTML = `<div class="ql-controls">` +
+    `<label>Act<select data-ql="act">${opt("", "All acts", st.act)}${acts.map((a) => opt(a, a, st.act)).join("")}</select></label>` +
+    `<label>Kind<select data-ql="kind">${opt("", "Everything", st.kind)}${kinds.map((k) => opt(k, k + "s", st.kind)).join("")}</select></label>` +
+    `<label>Status<select data-ql="status">${opt("", "Built and planned", st.status)}${opt("built", "Built (in the game)", st.status)}${opt("planned", "Planned", st.status)}</select></label>` +
+    `<label>Giver<select data-ql="giver">${opt("", "Anyone", st.giver)}${givers.map((g) => opt(g, g, st.giver)).join("")}</select></label>` +
+    `<label>Sort<select data-ql="sort">${opt("story", "Story order", st.sort)}${opt("act", "By act", st.sort)}${opt("giver", "By giver", st.sort)}${opt("status", "Built first", st.sort)}${opt("name", "A to Z", st.sort)}</select></label>` +
+    `<label>Find<input data-ql="q" type="search" value="${esc(st.q)}" placeholder="Name or place"></label></div>` +
+    `<p class="note-count">${rows.length} of ${QL.length} shown. ${canMove ? "Use ▲ ▼ to try a new order." : "Switch Sort back to Story order to move quests."}</p>` +
+    (changed ? `<div class="ql-save"><b>You've changed the order.</b><input data-ql-why placeholder="Why? (optional)">` +
+      (notesDb ? `<button class="btn-go" data-ql-save>Save order as a note</button>` : `<span class="note-count">Notes only save on claude.ai.</span>`) +
+      `<button class="btn-plain" data-ql-reset>Undo all</button><span class="msg note-count"></span></div>` : "") +
+    `<ol class="ql-list">` + rows.map(({ i, x }, k) => `<li class="ql-item ${x.built ? "" : "planned"} ${pos.get(i) !== i ? "moved" : ""} ${x.secret ? "secret-only" : ""}">` +
+      `<div class="ql-num">${pos.get(i) + 1}</div><div><div class="ql-title">${x.s ? `<a href="#${x.s}">${esc(x.t)}</a>` : esc(x.t)}</div>` +
+      `<div class="ql-meta"><span class="ql-act">${esc(x.act)}</span>${x.built ? `<span class="ql-built">Built</span>` : `<span class="ql-plan">Planned</span>`}<span>${esc(x.kind)}</span>${x.secret ? "<span>🔒</span>" : ""}${x.giver ? `<span>· ${x.giver}</span>` : ""}${x.where ? `<span>· ${x.where}</span>` : ""}</div>` +
+      (x.what ? `<div class="ql-what">${x.what}</div>` : "") + `</div>` +
+      `<div class="ql-move"><button data-ql-up="${i}" ${!canMove || k === 0 ? "disabled" : ""} aria-label="Move up">▲</button><button data-ql-down="${i}" ${!canMove || k === rows.length - 1 ? "disabled" : ""} aria-label="Move down">▼</button></div></li>`).join("") + `</ol>`;
+  host.replaceWith(box);
+  box._rows = rows.map((r) => r.i);
+}
+view.addEventListener("change", (e) => { const k = e.target.dataset && e.target.dataset.ql; if (k && k !== "q") { qlInit(); qlState[k] = e.target.value; drawQuestline(); } });
+view.addEventListener("input", (e) => { if (e.target.dataset && e.target.dataset.ql === "q") { qlInit(); qlState.q = e.target.value; const c = e.target.selectionStart; drawQuestline(); const n = view.querySelector('[data-ql="q"]'); if (n) { n.focus(); n.setSelectionRange(c, c); } } });
+view.addEventListener("click", async (e) => {
+  const up = e.target.closest("[data-ql-up]"), dn = e.target.closest("[data-ql-down]");
+  if (up || dn) {
+    const i = +(up || dn).dataset[up ? "qlUp" : "qlDown"], vis = view.querySelector(".ql")._rows, k = vis.indexOf(i);
+    const j = vis[up ? k - 1 : k + 1]; if (j === undefined) return;
+    const a = qlOrder.indexOf(i), b = qlOrder.indexOf(j); qlOrder.splice(a, 1); qlOrder.splice(b, 0, i);
+    drawQuestline(); return;
+  }
+  if (e.target.closest("[data-ql-reset]")) { qlOrder = null; drawQuestline(); return; }
+  const sv = e.target.closest("[data-ql-save]");
+  if (sv && notesDb) {
+    const QL = WIKI.questline, msg = view.querySelector(".ql-save .msg"), why = (view.querySelector("[data-ql-why]") || {}).value || "";
+    const moves = qlOrder.map((v, n) => ({ v, n })).filter(({ v, n }) => v !== n).map(({ v, n }) => `${QL[v].t}: ${v + 1} → ${n + 1}`);
+    const text = (why ? why + "\n\n" : "") + "Moved:\n" + moves.join("\n") + "\n\nNew order:\n" + qlOrder.map((v, n) => `${n + 1}. ${QL[v].act} · ${QL[v].t}`).join("\n");
+    sv.disabled = true; msg.textContent = "Saving…";
+    try {
+      await notesDb.collection("notes").add({ page: "main-questline", title: "Main questline", part: "Quest order", text: text.slice(0, 3800), status: "open", reply: "", created: new Date().toISOString() });
+      msg.innerHTML = 'Saved to <a href="#notes">Change notes</a>.';
+    } catch (err) { sv.disabled = false; msg.textContent = "Couldn't save (" + (err && err.code || "error") + "). Try again."; }
+  }
+});
+
 // ---- change notes (saved in the artifact's shared store, so Claude can read them) ----
 var notesDb = null, notes = [], notesErr = "";
 var NOTE_KEY = "wiki-note-draft";
@@ -491,6 +580,7 @@ view.addEventListener("click", async (e) => {
 function refreshBar() {
   const h = decodeURIComponent(location.hash.slice(1)) || "main-page";
   const p = bySlug.get(h); if (!p || !notesDb) return;
+  if (h === "main-questline") drawQuestline();
   const tmp = document.createElement("div"); tmp.innerHTML = noteBar(p);
   const nb = view.querySelector(".notebar");
   if (nb) nb.replaceWith(tmp.firstElementChild);

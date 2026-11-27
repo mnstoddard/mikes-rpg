@@ -598,7 +598,7 @@ function questPages() {
     ].filter(Boolean).join("\n\n"));
   }
   gamePage({ title: "Quests", category: "Quests", icon: "📜", sources: ["shared/quests.ts", "shared/story.ts"], summary: "Every quest built so far." }, () => [
-    "Every quest in the game today, in the order they're listed. The story's plan for later acts is on [[Main story]] and [[Side quests]].",
+    "Every quest in the game today, in the order they're listed. For the main story in order, built and planned, see [[Main questline]]. The story's plan for later acts is on [[Main story]] and [[Side quests]].",
     ...["Prologue", "Lessons", "Side quest", "Act 1"].map((k) => `## ${k === "Side quest" ? "Side quests" : k}\n\n` + table(["Quest", "From", "Steps"], CHAPTERS.filter((c) => kind(c) === k).map((c) => [link(canon(c.title)), link(npcName(c.giver)), c.steps.length]))),
   ].join("\n\n"));
 }
@@ -857,7 +857,17 @@ const out = [...pages.values()].map((p) => {
   };
 }).sort((a, b) => a.t.localeCompare(b.t));
 
-const data = { maps: MAPS, built: new Date().toISOString().slice(0, 10), version: GAME_VERSION, categories: CATEGORY_ORDER.filter((c) => out.some((p) => p.c === c)), pages: out };
+// The main questline: hand-written order in pages/main-questline.md, filled in from the game for built quests.
+const questline = readFileSync(path.join(HERE, "pages", "main-questline.md"), "utf8").split("\n")
+  .filter((l) => l.startsWith("| ") && !l.startsWith("| Act |"))
+  .map((l) => {
+    const [act, kind, title, where, giver, what] = l.replace(/^\||\|$/g, "").split("|").map((x) => x.trim());
+    const ch = CHAPTERS.find((c) => canon(c.title) === title);
+    const slug = ch ? slugify(title) : "";
+    return { act, kind: kind.replace(" 🔒", ""), secret: kind.includes("🔒"), t: title, s: pages.has(slug) ? slug : "", built: !!ch,
+      where: ch ? inline(canon(ch.where)) : inline(where), giver: ch ? inline(link(npcName(ch.giver))) : inline(giver), what: inline(what) };
+  });
+const data = { questline, maps: MAPS, built: new Date().toISOString().slice(0, 10), version: GAME_VERSION, categories: CATEGORY_ORDER.filter((c) => out.some((p) => p.c === c)), pages: out };
 const template = readFileSync(path.join(HERE, "template.html"), "utf8");
 const html = template.replace("/*WIKI_DATA*/null", JSON.stringify(data).replace(/</g, "\\u003c"));
 writeFileSync(path.join(HERE, "emberfall-wiki.html"), html);
