@@ -1100,6 +1100,8 @@ export interface QuestView {
   chapters: ChapterView[];
   /** Places the current step sends you (for the map): where, and what. */
   spots?: { x: number; y: number; label: string }[];
+  /** True when the step is "go to these places": the game marks each one on the ground. */
+  reach?: boolean;
   /** Lanterns you've lit (story stations drawn lit). */
   lit?: NpcId[];
   /** Your Emberguard rank (shared/story.ts RANKS). */
@@ -1181,8 +1183,10 @@ export function teacherOf(skill: SkillId): Chapter | null {
  * Rev 7 (version 0.18, Emberhold): Maren's chapter is shorter (23 steps to 19):
  * the "sell a fish to Tam" step and the Fishing 3 / Cooking 3 tail are gone,
  * and one last talk sends you round the Training Ground's trainers.
+ * Rev 8 (version 0.18): Awakening gained Celene's walking lesson after the robe. Anyone
+ * past the robe step moves one step along.
  */
-export const QUEST_REV = 7;
+export const QUEST_REV = 8;
 /** Maren's old step (rev 6 and before) to her new step (rev 7). */
 const MAREN_REV7 = (old: number) => (old <= 16 ? old : old === 17 ? 16 : old === 18 ? 17 : old <= 22 ? 18 : 19);
 const OLD_MAREN_STEPS = 23;
@@ -1197,6 +1201,7 @@ export function migrateQuest(saved: unknown, rev: number | undefined): QuestProg
     }
   }
   if ((rev ?? 1) < 6 && q.ch.awakening && q.ch.awakening.step >= 1) q.ch.awakening.step = Math.min(q.ch.awakening.step + 1, chapterById("awakening").steps.length);
+  if ((rev ?? 1) < 8 && q.ch.awakening && q.ch.awakening.step >= 2) q.ch.awakening.step = Math.min(q.ch.awakening.step + 1, chapterById("awakening").steps.length);
   if ((rev ?? 1) < 7 && q.ch.maren) {
     const old = q.ch.maren.step, now = Math.min(MAREN_REV7(old), chapterById("maren").steps.length);
     if (now !== old) q.ch.maren = { ...q.ch.maren, step: now, count: 0 };

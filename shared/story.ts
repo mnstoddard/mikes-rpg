@@ -72,6 +72,7 @@ export const isStoryItem = (item: string | null | undefined): item is StoryItemI
 
 export const SPOT_NAMES: Record<string, string> = {
   "spot.fieldNorth": "Odo's north field", "spot.fieldMid": "Odo's middle field", "spot.fieldSouth": "Odo's south field",
+  "spot.hallLeft": "the first glowing mark", "spot.hallRight": "the second glowing mark",
   "spot.nearLighthall": "the Emberhall's garden", "spot.nearWestShrine": "the trees by the Westroad shrine", "spot.nearGate": "the trees by the Thornwood gate",
   "spot.farLake": "the woods north of the lake", "spot.farPeaks": "the Greyspine foothills", "spot.farCoast": "the woods by the north coast",
   "spot.thornEdge": "the Thornwood shrine's clearing",
@@ -95,19 +96,35 @@ export const PROLOGUE_START: Chapter[] = [
           "Easy, easy. Take my hand. Up you come. There you are.",
           "You've just woken on the steps of the Heart Shrine. Its flame flared up, the embers gathered, and there you were. That's how all of you come to us: made by the Emberheart itself.",
           "Do you remember your name? Anything at all? No? Don't be frightened. None of you ever do.",
-          "Now, you can't go about in nothing but your shirt. Here's a robe. Let's get it on you before anything else.",
+          "Now, you can't go about in nothing but your underthings. Here's a robe top and a robe skirt. Let's get you dressed before anything else.",
         ],
-        give: [{ item: "platebody_cloth" }],
+        give: [{ item: "platebody_cloth" }, { item: "platelegs_cloth" }],
       },
       {
-        // Celene walks you through it; the story waits until the robe is on, and you can't leave the Emberhall without it.
-        task: "Put on your robe: open your 🎒 bag, click the robe, then press Equip", goal: { kind: "gear", items: ["platebody_cloth"], names: "robe" },
-        hint: "Let's get you dressed first. Open your 🎒 bag (the button at the bottom right), click the robe, then press Equip. I'll wait.",
-        ensure: [{ item: "platebody_cloth" }],
+        // Celene walks you through it; the story waits until both are on, and you can't leave the Emberhall without them.
+        task: "Put on your robe: open your 🎒 bag, click each robe piece, then press Equip", goal: { kind: "gear", items: ["platebody_cloth", "platelegs_cloth"], names: "robe top and skirt" },
+        hint: "Let's get you dressed first. Open your 🎒 bag (the button at the bottom right), click the robe top and press Equip, then do the same with the robe skirt. Whatever you wear shows on you. I'll wait.",
+        ensure: [{ item: "platebody_cloth" }, { item: "platelegs_cloth" }],
         doneSpeaker: CELENE,
         doneLines: [
           "There! It suits you. Now you look like one of the Emberborn.",
-          "Come and meet Keeper Aldric, just across the shrine from me. He'll want to welcome you himself.",
+          "Let's see you walk; your legs will feel new for a while. See the two glowing marks on the floor, down the hall? Walk to each of them.",
+          "On a computer, click the floor where you want to go, or walk with the W A S D keys. W walks the way the camera faces; Q and E turn the camera.",
+          "On a tablet or phone, tap the floor where you want to go, or put your thumb on the round pad in the bottom left corner and push it the way you want to walk.",
+        ],
+      },
+      {
+        // The walking lesson: the client shows the way to move for your device (see client3d moveHelp).
+        task: "Walk to the two glowing marks in the hall", goal: { kind: "reach", spots: ["spot.hallLeft", "spot.hallRight"], names: "marks" },
+        hint: "Walk to both glowing marks. Click or tap the floor to walk there, use W A S D on a keyboard, or the round pad in the bottom left on a touch screen.",
+        spotLines: {
+          "spot.hallLeft": "That's one. Now the other mark!",
+          "spot.hallRight": "There you go.",
+        },
+        doneSpeaker: CELENE,
+        doneLines: [
+          "Look at you, walking like you've done it all your life!",
+          "Come and meet Keeper Aldric, beside the Heart Shrine. He'll want to welcome you himself.",
         ],
       },
       {

@@ -14,6 +14,8 @@ function page3d(): Plugin {
         let html = readFileSync(resolve(__dirname, "../client/index.html"), "utf8");
         const css = readFileSync(resolve(__dirname, "src/game/game.css"), "utf8");
         html = html.replace(/<title>.*?<\/title>/, "<title>Emberfall</title>");
+        // Add to Home Screen: opens full screen with no browser bars (iPhone, iPad and Android).
+        html = html.replace("</head>", `<link rel="manifest" href="/manifest.webmanifest" />\n<link rel="apple-touch-icon" href="/apple-touch-icon.png" />\n<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />\n<meta name="apple-mobile-web-app-title" content="Emberfall" />\n</head>`);
         html = html.replace("</head>", `<style>\n${css}\n</style>\n</head>`);
         html = html.replace('<div id="game"></div>', '<div id="game"></div>\n  <div id="loading3d"><div>Building the world…</div></div>\n  <div id="flash3d"></div>');
         html = html.replace('<button id="map-btn"', '<button id="rotate3d" class="panel btn" aria-label="Turn the camera" title="Turn the camera (or drag with the right mouse button, one finger, or press Q / E). Walk with W A S D, or click where to go.">⟳</button><button id="run3d" class="panel btn" aria-label="Run" title="Run (or hold Shift): faster, but it tires you out. Your breath comes back a few seconds after you stop.">🏃</button><button id="map-btn"');

@@ -6,6 +6,7 @@
 // The message handling below follows client/src/WorldScene.ts closely, so a
 // new server message added there is easy to add here too.
 import * as THREE from "three";
+import { undress } from "../character";
 import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { getStateCallbacks, Room } from "colyseus.js";
@@ -60,6 +61,8 @@ import * as sfx from "./sfx";
 import { AutoQuality } from "./quality";
 import { Townsfolk } from "./townsfolk";
 import { setMusicPlace, setupMusicSettings, updateMusic } from "./music";
+import { createJoystick, type Stick } from "./joystick";
+import { setupFullscreen } from "./fullscreen";
 
 const MIN_DIST = 7;
 const MAX_DIST = 42;
@@ -71,6 +74,9 @@ const WALK_KEYS = ["KeyW", "KeyA", "KeyS", "KeyD"];
 const CULL_M = 60;
 /** At most this many lamps light the scene at once (the nearest ones), so it stays fast. */
 const MAX_LAMPS = 6;
+
+/** When Sister Celene starts talking in the opening scene (seconds), once you're on your feet. */
+const INTRO_TALK = 6.4;
 
 export class World3D {
   private renderer: THREE.WebGLRenderer;
@@ -124,6 +130,8 @@ export class World3D {
   private lightTimer = 0;
   // Walking with the keyboard (WASD).
   private keys = new Set<string>();
+  /** The touch-screen walking pad (all zero on a computer). */
+  private stick: Stick = { fwd: 0, right: 0 };
   private walkSent = "0,0"; // the direction we last told the server ("dx,dy")
   private walkSentAt = 0; // when we told it (ms)
   private lastStepAt = new THREE.Vector3(); // where we last played a footstep
@@ -301,6 +309,7 @@ export class World3D {
     };
     for (const p of this.players.values()) { near(p.root); p.update(dt, this.time); }
     this.updateIntro(dt, me);
+    this.updateSpotRings();
     for (const p of this.npcs.values()) if (near(p.root)) p.update(dt, this.time);
     const worldMs = Date.now() + this.clockOffset;
     this.folk.update(dt, this.time, worldMs, this.here.id);
@@ -388,6 +397,8 @@ export class World3D {
   // ---------------------------------------------------------------- input
 
   private setupInput() {
+    this.stick = createJoystick(() => { this.walkPaused = false; });
+    setupFullscreen();
     const el = this.renderer.domElement;
     el.style.touchAction = "none";
     const pointers = new Map<number, { x: number; y: number; sx: number; sy: number; button: number }>();
@@ -481,8 +492,8 @@ export class World3D {
   /** Which way (dx, dy) the held keys point, turned to match the camera: any angle, not just 8 ways. */
   private keyDirection(): { dx: number; dy: number } {
     const k = this.keys;
-    const fwd = (k.has("KeyW") ? 1 : 0) - (k.has("KeyS") ? 1 : 0);
-    const right = (k.has("KeyD") ? 1 : 0) - (k.has("KeyA") ? 1 : 0);
+    const fwd = (k.has("KeyW") ? 1 : 0) - (k.has("KeyS") ? 1 : 0) + this.stick.fwd;
+    const right = (k.has("KeyD") ? 1 : 0) - (k.has("KeyA") ? 1 : 0) + this.stick.right;
     // Not while making your character (its window covers the game).
     if (this.walkPaused || (!fwd && !right) || document.getElementById("creator") || this.intro) return { dx: 0, dy: 0 };
     // The camera sits at (sin yaw, cos yaw) from you, so it looks along -(sin yaw, cos yaw).
@@ -705,6 +716,7 @@ export class World3D {
       this.npcs.forEach((p, id) => { if (p.alert) p.alert.obj.visible = q.marks.includes(id as never); });
       this.stations.forEach((s, id) => { if (s.alert) s.alert.obj.visible = q.marks.includes(id as never); });
       setWorldMapMarks(q.marks, q.spots);
+      this.showSpotRings(q.reach ? q.spots ?? [] : []);
       renderQuest(q);
       this.showStory(q);
     });
@@ -836,6 +848,37 @@ export class World3D {
     this.skillXpSeen = false;
   }
 
+  // ---------------------------------------------------------------- places to go (a "reach" quest step)
+
+  private spotRings: THREE.Group[] = [];
+  /** A glowing ring and a soft beam of light on each place the quest wants you to walk to. */
+  private showSpotRings(spots: { x: number; y: number }[]) {
+    for (const r of this.spotRings) { this.scene.remove(r); r.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) { m.geometry.dispose(); (m.material as THREE.Material).dispose(); } }); }
+    this.spotRings = spots.map((s) => {
+      const g = new THREE.Group();
+      g.position.copy(tileCenter(s.x, s.y));
+      const ring = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.78, 40), new THREE.MeshBasicMaterial({ color: 0xffc04a, transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false }));
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = 0.06;
+      const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.62, 3.2, 24, 1, true), new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0.18, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }));
+      beam.position.y = 1.6;
+      g.add(ring, beam);
+      g.userData.x = s.x; g.userData.y = s.y;
+      this.scene.add(g);
+      return g;
+    });
+  }
+  private updateSpotRings() {
+    if (!this.spotRings.length) return;
+    const t = performance.now() / 1000;
+    for (const g of this.spotRings) {
+      const a = this.here ? areaAt(g.userData.x, g.userData.y) === this.here : true;
+      g.visible = a;
+      const k = 1 + 0.12 * Math.sin(t * 3);
+      g.children[0].scale.set(k, k, 1);
+    }
+  }
+
   // ---------------------------------------------------------------- the opening scene
 
   /** A new character's first moments: wait for the character maker to close, then play the scene. */
@@ -852,19 +895,20 @@ export class World3D {
     const wake = { x: Math.floor(me.root.position.x / TILE), y: Math.floor(me.root.position.z / TILE) };
     // Lying still while the character maker is open.
     if (it.t < 0) {
-      me.lying = 1;
+      me.stage = 0;
       me.faceYaw(0, true);
       // (A brand-new character makes their look first: the character maker opens a moment after logging in.)
       const mine = this.room?.state.players.get(this.room.sessionId);
       it.wait = (it.wait ?? 0) + dt;
       if (document.getElementById("creator") || (!mine?.look && it.wait < 3)) return;
       it.t = 0;
+      document.body.classList.add("intro-on"); // the messages and quest box would give the scene away
       this.yaw = 0.35; this.pitch = 0.55; this.dist = 10;
       const skip = document.createElement("button");
       skip.id = "intro-skip";
       skip.className = "shop-btn";
       skip.textContent = "Skip ▸";
-      skip.onclick = () => { if (this.intro) this.intro.t = Math.max(this.intro.t, 4.4); };
+      skip.onclick = () => { if (this.intro) this.intro.t = Math.max(this.intro.t, INTRO_TALK); };
       document.body.append(skip);
       it.skip = skip;
       // Embers gather where the new hero is being formed.
@@ -893,20 +937,24 @@ export class World3D {
       if (t > 2.7) { this.scene.remove(it.sparks); it.sparks.geometry.dispose(); (it.sparks.material as THREE.Material).dispose(); it.sparks = undefined; }
     }
     me.setFaded(Math.min(1, Math.max(0, (t - 0.3) / 1.6)));
-    // 1.2 s: Sister Celene hurries over to the left of you.
+    const ramp = (a: number, b: number) => Math.max(0, Math.min(1, (t - a) / (b - a)));
+    // 1.2 s: Sister Celene hurries over to your side, kneels beside you and holds out her hand.
     if (celene) {
       if (passed(1.2)) celene.walkTo(home.x + 1, home.y - 1, 650);
       if (passed(1.85)) celene.walkTo(wake.x - 1, wake.y, 650);
-      if (t > 2.5 && t < 4.6) celene.faceYaw(Math.PI / 2);
+      if (t > 2.5 && t < INTRO_TALK) celene.faceYaw(Math.PI / 2);
+      celene.stage = 3 - ramp(2.5, 3.1) + ramp(5.2, 6.2); // down on one knee, then up again with you
+      celene.reach = Math.min(ramp(3.0, 3.5), 1 - ramp(5.6, 6.2));
     }
-    // 2.8 - 4 s: she takes your hand and helps you up.
-    me.lying = t < 2.8 ? 1 : Math.max(0, 1 - (t - 2.8) / 1.2);
-    if (t > 3.6) me.faceYaw(-Math.PI / 2);
-    // 4.4 s: she talks.
-    if (t >= 4.4 && !it.talked) {
+    // You sit up, take her hand, get up onto one knee, then stand.
+    me.stage = ramp(3.3, 4.3) + ramp(4.5, 5.3) + ramp(5.3, 6.2);
+    // 6.4 s: she talks.
+    if (t >= INTRO_TALK && !it.talked) {
       it.talked = true;
       if (celene && t - before > 0.5) celene.walkTo(wake.x - 1, wake.y, 10); // skipped: be there already
-      me.lying = 0;
+      if (celene) { celene.stage = 3; celene.reach = 0; }
+      me.faceYaw(-Math.PI / 2);
+      me.stage = 3;
       me.setFaded(1);
       it.skip?.remove();
       openDialog(it.name, it.lines);
@@ -918,6 +966,7 @@ export class World3D {
         setTimeout(() => celene.walkTo(home.x, home.y, 650), 700);
       }
       this.yaw = it.cam.yaw; this.pitch = it.cam.pitch; this.dist = it.cam.dist;
+      document.body.classList.remove("intro-on");
       this.intro = null;
     }
   }
@@ -944,7 +993,7 @@ export class World3D {
 
     $(room.state).players.onAdd((player: any, sessionId: string) => {
       const isMe = sessionId === room.sessionId;
-      const view = new Person(playerRecipe(player.look, player.name, player.color), { name: player.name, me: isMe });
+      const view = new Person(undress(playerRecipe(player.look, player.name, player.color)), { name: player.name, me: isMe });
       view.place(player.x, player.y);
       view.onHit = (x, y) => this.terrain.hitNode(x, y);
       if (isMe) view.onBeat = (phase, action) => (phase === "swing" ? sfx.onSwing(action) : sfx.onToolHit(action));
@@ -980,8 +1029,10 @@ export class World3D {
       $(player).listen("maxHp", () => { view.bar.set(player.hp, player.maxHp); this.refreshParty(); });
       $(player).listen("party", () => this.refreshParty());
       $(player).listen("partyLead", () => this.refreshParty());
-      $(player).listen("color", (color: number) => { if (!player.look) view.setLook(playerRecipe("", player.name, color)); if (isMe) renderMe(player.name, color); });
-      $(player).listen("look", (look: string) => { if (look) view.setLook(lookToRecipe(look) ?? playerRecipe("", player.name, player.color)); });
+      // Players start in plain undergarments: clothes are the armor they wear.
+      $(player).listen("color", (color: number) => { if (!player.look) view.setLook(undress(playerRecipe("", player.name, color))); if (isMe) renderMe(player.name, color); });
+      $(player).listen("look", (look: string) => { if (look) view.setLook(undress(lookToRecipe(look) ?? playerRecipe("", player.name, player.color))); });
+      $(player).listen("worn", (worn: string) => view.setWorn(worn ? worn.split(",") : []));
       $(player).listen("invisible", (inv: boolean) => view.setFaded(inv ? (isMe ? 0.4 : 0.12) : 1));
       $(player).listen("title", (t: string) => view.setTitle(t));
       $(player).listen("rank", (r: number) => view.setRank(r));

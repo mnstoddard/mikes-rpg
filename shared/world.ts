@@ -923,6 +923,8 @@ function insides(): Inside[] {
         oren: { x: 13, y: 14 }, plinth: { x: 25, y: 21 },
         lisette: { x: 7, y: 8 }, ledgerDoor: { x: 2, y: 18 }, tomas: { x: 4, y: 21 }, vale: { x: 3, y: 23 },
         wynne: { x: 28, y: 10 },
+        // Sister Celene's walking lesson: two glowing marks down the hall.
+        walkLeft: { x: 13, y: 18 }, walkRight: { x: 23, y: 18 },
         // The four statues on Brother Oren's tour.
         radiant_1: { x: 11, y: 10 }, radiant_2: { x: 25, y: 10 }, radiant_3: { x: 11, y: 15 }, radiant_4: { x: 25, y: 16 },
       },
@@ -1090,6 +1092,8 @@ function assemble() {
   doors.push({ x: sc.x, y: sc.y, to: inward(cc), area: "crystal_cave", label: "Go deeper: the crystal cave" });
   doors.push({ x: cc.x, y: cc.y, to: inward(sc), area: "spider_cave", label: "Back to the spider cave" });
   places.wake = places["lighthall.wake"];
+  places["spot.hallLeft"] = places["lighthall.walkLeft"];
+  places["spot.hallRight"] = places["lighthall.walkRight"];
   return grid;
 }
 

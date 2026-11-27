@@ -183,6 +183,7 @@ export class Player extends Schema {
   @type("number") tithe = 0; // Tithe marks (Ember Debt): others see the gold links by your health bar
   @type("string") held = ""; // the weapon in your hand (item id, "" for bare fists), so others see what you fight with
   @type("boolean") running = false; // running (shared/stats.ts RUN_SPEED): others see you run
+  @type("string") worn = ""; // the armor you have on, comma separated item ids (helmet_bronze,platebody_cloth), so others see it on you
   @type("string") look = ""; // how your 3D character looks: the Character Workshop's recipe as JSON (shared/look.ts), "" until you make one
 
   // Server-only (not synced to everyone):
@@ -3387,6 +3388,8 @@ export class WorldRoom extends Room<WorldState> {
 
   private sendGear(client: Client, p: Player) {
     p.held = p.gear.weapon?.item ?? "";
+    // The armor everyone sees you wearing (the weapon is `held`; a shield is armor too).
+    p.worn = (["head", "body", "legs", "feet", "offhand"] as const).map((sl) => p.gear[sl]?.item ?? "").filter((id) => id && !isWeapon(id)).join(",");
     client.send("gear", { gear: p.gear, spell: p.spell });
   }
 
@@ -3924,7 +3927,7 @@ export class WorldRoom extends Room<WorldState> {
       : step ? stepSpots(step, p, this.levelOf(p), [...this.state.monsters.values()], (it) => this.countOf(p, it)) : undefined;
     const lessons = chapters.filter((c) => !c.act);
     const base = { number: lessons.filter((c) => c.state === "done").length, of: lessons.length, marks: questMarks(p.quest, this.levelOf(p)), chapters,
-      spots, lit: litLanterns(p.quest), rank: rankOf(p.quest) };
+      spots, reach: step?.goal.kind === "reach" || undefined, lit: litLanterns(p.quest), rank: rankOf(p.quest) };
     if (!step) {
       return tutorialDone(p.quest)
         ? { ...base, done: true, quest: "All lessons done", giver: "", task: "Tap 📜 Quests to track a bounty from the board.", talk: false }

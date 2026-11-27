@@ -3,7 +3,7 @@
 // turn on a stand, and save. The look is saved with your character on the
 // server, and everyone sees it.
 import * as THREE from "three";
-import { CHARACTER_PRESETS, createCharacter, makeRecipe, type Character, type CharacterRecipe } from "../character";
+import { CHARACTER_PRESETS, createCharacter, makeRecipe, undress, type Character, type CharacterRecipe } from "../character";
 import { recipeToLook } from "./look";
 
 type Key = keyof CharacterRecipe;
@@ -62,18 +62,10 @@ const SCHEMA: Ctl[] = [
   R("Hair", "Hair", "bangs", "Bangs", 0, 1, ["Off the face", "Over the brow"]),
   R("Hair", "Hair", "hairLength", "Length", 0, 1, ["Shorter", "Longer"]),
   C("Hair", "Facial hair", "beard", "Facial hair", [["none", "None"], ["stubble", "Stubble"], ["mustache", "Mustache"], ["goatee", "Goatee"], ["full", "Full beard"], ["wizard", "Wizard beard"]]),
-  C("Outfit", "Clothes", "top", "Top", [["tshirt", "T-shirt"], ["long", "Long sleeves"], ["tank", "Tank"], ["tunic", "Tunic"], ["robe", "Robe"]]),
-  C("Outfit", "Clothes", "bottom", "Bottom", [["pants", "Pants"], ["shorts", "Shorts"], ["skirt", "Skirt"]]),
-  C("Outfit", "Clothes", "shoes", "Feet", [["boots", "Boots"], ["shoes", "Shoes"], ["bare", "Bare"]]),
-  C("Outfit", "Clothes", "belt", "Belt", [["off", "None"], ["on", "Belt"]]),
-  C("Outfit", "Accessories", "hat", "Hat", [["none", "None"], ["beanie", "Beanie"], ["wizard", "Wizard hat"], ["headband", "Headband"], ["crown", "Crown"]]),
-  C("Outfit", "Accessories", "glasses", "Glasses", [["none", "None"], ["round", "Round"], ["square", "Square"]]),
-  K("Outfit", "Colors", "shirtColor", "Top color", "cloth"),
-  K("Outfit", "Colors", "pantsColor", "Bottom color", "cloth"),
-  K("Outfit", "Colors", "shoeColor", "Shoe color", "cloth"),
-  K("Outfit", "Colors", "accentColor", "Belt and hat color", "cloth"),
+  C("Face", "Extras", "glasses", "Glasses", [["none", "None"], ["round", "Round"], ["square", "Square"]]),
 ];
-const TABS = ["Body", "Face", "Eyes", "Hair", "Outfit"];
+// No clothes here: every new hero starts in plain undergarments, and what they wear comes from the armor they put on.
+const TABS = ["Body", "Face", "Eyes", "Hair"];
 
 let open = false;
 
@@ -135,7 +127,7 @@ export function openCreator(start: CharacterRecipe, mode: "new" | "edit", onSave
   const camLook = new THREE.Vector3();
   const rebuild = () => {
     if (hero) { turn.remove(hero.object); hero.dispose(); }
-    hero = createCharacter(P);
+    hero = createCharacter(undress(P));
     hero.object.traverse((o) => { if ((o as THREE.Mesh).isMesh) o.castShadow = true; });
     hero.setAnim("idle");
     turn.add(hero.object);

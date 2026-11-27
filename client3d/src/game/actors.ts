@@ -4,6 +4,7 @@
 //
 // Names, health bars and the ❗ over people float above them as HTML labels
 // (CSS2DObject), so they stay crisp at any zoom.
+import { ARMOR_BY_ID, coversOf, dressFor, wearArmor } from "../armor";
 import * as THREE from "three";
 import { CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { TICK_MS } from "../../../shared/map";
@@ -121,8 +122,14 @@ export class Person {
   private weapon = "";
   /** Running (they move faster and the legs go quicker). */
   running = false;
-  /** 1 = lying on their back (head to the north), 0 = standing: the opening scene, where a new hero wakes by the shrine. */
-  lying = 0;
+  /**
+   * Getting up off the floor (the opening scene): 0 = lying on their back (head to the north),
+   * 1 = sitting up, 2 = down on one knee, 3 = standing (the normal animations). Anything in
+   * between blends smoothly. Sister Celene kneels beside a new hero at 2.
+   */
+  stage = 3;
+  /** 0..1: reaching out a hand (Celene helping a new hero up). */
+  reach = 0;
   /** A fish being pulled out of the water (fishing). */
   private catching?: { fish: THREE.Object3D; t: number; from: THREE.Vector3; dispose: () => void };
   private rodTip?: THREE.Object3D;
@@ -130,6 +137,7 @@ export class Person {
 
   constructor(recipe: CharacterRecipe, opts: { name: string; me?: boolean; npc?: boolean; badge?: string }) {
     this.hero = createCharacter(recipe);
+    this.baseRecipe = recipe;
     this.prepHero();
     this.root.add(this.hero.object);
     this.name = label("name3d" + (opts.me ? " me" : "") + (opts.npc ? " npc" : ""));
@@ -164,12 +172,34 @@ export class Person {
     const text = JSON.stringify(recipe);
     if (text === this.recipeText) return;
     this.recipeText = text;
+    this.baseRecipe = recipe;
+    this.rebuild();
+  }
+
+  /** The armor they have on (item ids: helmet_bronze, platebody_cloth...), drawn on the body. */
+  setWorn(ids: string[]) {
+    const list = ids.filter((id) => ARMOR_BY_ID[id]);
+    if (list.join(",") === this.worn.join(",")) return;
+    this.worn = list;
+    this.rebuild();
+  }
+
+  private baseRecipe: CharacterRecipe | null = null;
+  private worn: string[] = [];
+  private rankNow = 0;
+  private rebuild() {
+    if (!this.baseRecipe) return;
+    const covers = this.worn.flatMap((id) => coversOf(ARMOR_BY_ID[id]));
+    const dressed = dressFor(this.baseRecipe, covers);
     this.dropHeld();
     this.root.remove(this.hero.object);
     this.hero.dispose();
-    this.hero = createCharacter(recipe);
+    this.hero = createCharacter({ ...this.baseRecipe, ...dressed.recipe });
+    for (const id of this.worn) wearArmor(this.hero, id);
+    if (dressed.hideHair) for (const h of this.hero.joints.hair) h.visible = false;
     this.prepHero();
     this.root.add(this.hero.object);
+    if (this.rankNow) { this.cloak = undefined; this.setRank(this.rankNow); }
     const a = this.action;
     this.action = "";
     this.setAction(a, this.faceTile.x, this.faceTile.y);
@@ -177,6 +207,7 @@ export class Person {
 
   /** An Emberguard's cloak (Ember orange, Flame gold) on the back. */
   setRank(rank: number) {
+    this.rankNow = rank;
     const col = RANK_CLOAK[rank] ?? 0;
     if (this.cloak) { this.cloak.parent?.remove(this.cloak); this.cloak.geometry.dispose(); this.cloak = undefined; }
     if (!col) return;
@@ -363,6 +394,48 @@ export class Person {
     }
   }
 
+  /** Lying, sitting, kneeling (see `stage`): poses the joints on top of the normal animation. */
+  private poseGetUp() {
+    const o = this.hero.object, J = this.hero.joints, f = this.hero.fit;
+    const s = Math.max(0, Math.min(3, this.stage));
+    if (s >= 3 && this.reach <= 0) {
+      if (o.rotation.x || o.position.y || o.position.z || o.position.x) { o.rotation.x = 0; o.position.set(0, 0, 0); }
+      return;
+    }
+    // Keyframes: how the body is tipped and lowered, and each joint's forward bend (radians).
+    type K = { rx: number; y: number; back: number; hips: number; spine: number; head: number; hipL: number; kneeL: number; ankL: number; hipR: number; kneeR: number; ankR: number; shL: number; elL: number; shR: number; elR: number };
+    const hy = J.hipsY;
+    const lie: K = { rx: -Math.PI / 2, y: 0.16, back: 0, hips: 0, spine: 0, head: 0, hipL: 0, kneeL: 0, ankL: 0, hipR: 0, kneeR: 0, ankR: 0, shL: 0, elL: -0.14, shR: 0, elR: -0.14 };
+    // Sitting on the floor, legs out in front, leaning on both hands behind.
+    const sit: K = { rx: 0, y: 0, back: hy * 0.92, hips: f.thighR + 0.03 - hy, spine: 0.32, head: -0.15, hipL: -1.45, kneeL: 0.2, ankL: 0.25, hipR: -1.35, kneeR: 0.45, ankR: 0.2, shL: 0.55, elL: -0.15, shR: 0.55, elR: -0.15 };
+    // Down on the right knee, left foot planted, a hand on the left knee.
+    const kh = f.shinL + f.footH * 0.9;
+    const kneel: K = { rx: 0, y: 0, back: hy * 0.25, hips: kh - hy, spine: 0.22, head: 0.1, hipL: -1.45, kneeL: 1.45, ankL: 0.05, hipR: -0.05, kneeR: 1.55, ankR: 0.55, shL: -0.45, elL: -0.7, shR: 0.1, elR: -0.3 };
+    const now: K = { rx: 0, y: 0, back: 0, hips: J.hips.position.y - hy, spine: J.spine.rotation.x, head: J.head.rotation.x, hipL: J.hipL.rotation.x, kneeL: J.kneeL.rotation.x, ankL: J.ankL.rotation.x, hipR: J.hipR.rotation.x, kneeR: J.kneeR.rotation.x, ankR: J.ankR.rotation.x, shL: J.shL.rotation.x, elL: J.elL.rotation.x, shR: J.shR.rotation.x, elR: J.elR.rotation.x };
+    const keys = [lie, sit, kneel, now];
+    const i = Math.min(2, Math.floor(s)), u = s - i, e = u * u * (3 - 2 * u);
+    const a = keys[i], b = keys[i + 1];
+    const m = (k: keyof K) => a[k] + (b[k] - a[k]) * e;
+    o.rotation.x = m("rx");
+    // Lying and sitting sit back from the feet (the body lay with its head to the north).
+    const back = m("back");
+    o.position.set(-Math.sin(this.yaw) * back, m("y"), -Math.cos(this.yaw) * back);
+    J.hips.position.y = hy + m("hips");
+    J.spine.rotation.x = m("spine");
+    J.head.rotation.x = m("head");
+    J.hipL.rotation.x = m("hipL"); J.kneeL.rotation.x = m("kneeL"); J.ankL.rotation.x = m("ankL");
+    J.hipR.rotation.x = m("hipR"); J.kneeR.rotation.x = m("kneeR"); J.ankR.rotation.x = m("ankR");
+    J.shL.rotation.x = m("shL"); J.elL.rotation.x = m("elL");
+    J.shR.rotation.x = m("shR"); J.elR.rotation.x = m("elR");
+    // Reaching out the right hand.
+    if (this.reach > 0) {
+      const r = this.reach * this.reach * (3 - 2 * this.reach);
+      J.shR.rotation.x += (-1.25 - J.shR.rotation.x) * r;
+      J.shR.rotation.z += (-0.05 - J.shR.rotation.z) * r;
+      J.elR.rotation.x += (-0.25 - J.elR.rotation.x) * r;
+    }
+  }
+
   update(dt: number, time: number) {
     if (this.t < 1) {
       this.t = Math.min(1, this.t + dt / this.dur);
@@ -376,11 +449,7 @@ export class Person {
     const walking = this.moving;
     this.hero.setAnim(walking ? (this.running ? "run" : "walk") : "idle");
     this.hero.update(dt, time);
-    // Lying down (the opening scene): tip over backwards from the feet, lifted a little off the floor.
-    const lie = Math.max(0, Math.min(1, this.lying));
-    const ease = lie * lie * (3 - 2 * lie);
-    this.hero.object.rotation.x = -ease * Math.PI / 2;
-    this.hero.object.position.y = ease * 0.16;
+    this.poseGetUp();
     const fists = this.action === "fighting" && !isWeapon(this.weapon);
     const a = fists ? { move: "punch" as Move, hits: false } : ACTIONS[this.action];
     if (a && !walking) {
