@@ -1,4 +1,4 @@
-// Emberhold, the walled capital (version 0.18), in 3D.
+// Emberhold, the walled capital (version 0.20), in 3D.
 //
 // The city has hundreds of buildings, so it's drawn the light way (Mike plays on
 // an iPad): every backdrop building is made from the same few kit pieces (a
@@ -261,7 +261,7 @@ export function rampartBlock(kind: "rampart" | "tower" | "citygate" | "gateway",
   const stoneCol = mix(0x9a917f, 0xb3a994, hash2(x, y, 51));
   const cx = (x + 0.5) * TILE, cz = (y + 0.5) * TILE;
   if (kind === "gateway") {
-    // An open gate (version 0.18): the wall's top as a lintel high over the road, with the great doors swung open.
+    // An open gate (version 0.20): the wall's top as a lintel high over the road, with the great doors swung open.
     out.push(box(TILE, 1.2, TILE, cx, h - 0.6, cz, stoneCol));
     out.push(box(TILE, 0.25, TILE, cx, h - 1.3, cz, mix(stoneCol, 0x4a4238, 0.35)));
   } else if (kind === "citygate") {

@@ -13,7 +13,7 @@ export interface GameUpdate { version: string; date: string; title: string; chan
 
 export const UPDATES: GameUpdate[] = [
   {
-    version: "0.18",
+    version: "0.20",
     date: "2026-11-27",
     title: "Emberhold, the walled city, and Heartvale outside it",
     changes: [
@@ -38,6 +38,15 @@ export const UPDATES: GameUpdate[] = [
       { text: "When someone has a quest gift for you but your bag is full, it's now that person who tells you (it used to say Keeper Aldric, whoever you were talking to)." },
       { text: "In the opening scene you no longer sink into the floor while getting up: sitting, kneeling and standing all rest on the ground, and so does Sister Celene when she kneels." },
       { text: "Saves from before move along: anyone in the middle of Maren's lessons keeps their place in the shorter list, and everyone starts in Emberhold's plaza." },
+    ],
+  },
+  {
+    version: "0.19",
+    date: "2026-11-27",
+    title: "Walls out of the way",
+    changes: [
+      { text: "Walking along a wall inside no longer pulls the camera in close. Walls between the camera and you now dip down to a low stub (with a soft speckled edge) so you can see yourself and the room, and pop back up once you've passed.", reports: [35] },
+      { text: "The yellow guide arrow is drawn on top of everything, so a wall can't hide it any more.", reports: [36] },
     ],
   },
   {

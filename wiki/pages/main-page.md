@@ -20,6 +20,6 @@ Red links are pages that don't exist yet. Secrets (the twists players shouldn't 
 - [[World map]]: all the regions of Embervale, and how to travel between them.
 - [[Maps]]: the game world today and every building, drawn from the game.
 - [[History]]: 800 years, as it happened and as people tell it.
-- [[Main story]]: the acts, from waking up as a Hopeful to the fall of Vale and the endgame.
+- [[Main story]]: the acts, from waking up as an Initiate to the fall of Vale and the endgame.
 - [[Version history]]: what changed in each game update.
 - [[How to update the wiki]]: keeping it current.

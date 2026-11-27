@@ -25,7 +25,7 @@ export const SAVE_VERSION = 3; // 3 = the five Disciplines (Strength, Endurance,
  * map aren't used (those characters start in the town square instead).
  * Missing = the first small island map. 2 = the big map of Embervale, with insides.
  */
-export const MAP_REV = 3; // 3: version 0.18, the town moved inside Emberhold's walls
+export const MAP_REV = 3; // 3: version 0.20, the town moved inside Emberhold's walls
 
 /**
  * Which game server this is: "live" (Render, main branch), "dev" (Render, the dev branch),

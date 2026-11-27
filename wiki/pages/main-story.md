@@ -2,9 +2,9 @@ title: Main story
 category: Story
 icon: 🎭
 aliases: Main quest, Acts
-summary: From waking as a Hopeful to the fall of Vale and the search for the Ember Seed: the acts of the main quest.
+summary: From waking as an Initiate to the fall of Vale and the search for the Ember Seed: the acts of the main quest.
 ---
-You start as a [[Hopefuls|Hopeful]], not a member. [[The Emberguard]]'s trials take you across the land, and each act ends with a new trial mark: Ember, Flame, Blaze, Radiant. When you've earned Radiant, the Emberguard invite you to join, and that's when you learn the truth. There is no choosing sides: every player ends up fighting the Undying beside [[Wick]] and [[The Ashbound]].
+You start as an [[Initiates|Initiate]], not a member. [[The Emberguard]]'s trials take you across the land, and each act ends with a new trial mark: Ember, Flame, Blaze, Radiant. When you've earned Radiant, the Emberguard invite you to join, and that's when you learn the truth. There is no choosing sides: every player ends up fighting the Undying beside [[Wick]] and [[The Ashbound]].
 
 | Act | Where, levels | What happens | Trial mark |
 |---|---|---|---|
@@ -19,7 +19,7 @@ The Prologue and Act 1 are in the game: see [[Quests]] for every built quest, st
 
 ## Act 1 in detail (Heartvale only)
 
-Act 1 stays inside [[Heartvale]]. Keeper Aldric gives most of it. These are the quests in the game today. Since version 0.18 (on the dev test server first), every one of them happens in Heartvale, out of Emberhold's gates, and follows the new story: the shrines are good, and the land dies farthest from them. *A Flame at the Valley's Edge* replaced *A Flame in the Thornwood*.
+Act 1 stays inside [[Heartvale]]. Keeper Aldric gives most of it. These are the quests in the game today. Since version 0.20 (on the dev test server first), every one of them happens in Heartvale, out of Emberhold's gates, and follows the new story: the shrines are good, and the land dies farthest from them. *A Flame at the Valley's Edge* replaced *A Flame in the Thornwood*.
 
 | Quest | Giver | What you do | Story beat |
 |---|---|---|---|
@@ -67,7 +67,7 @@ After Rhys is drained, Sable takes you to meet Wick, and you hear the true histo
 
 ## Act 4: The Truth
 
-- **Cut free:** Wick cuts your thread from the Heart Shrine so the Undying can't drain you. Ash starts to creep up your hands, the Tithe ends, and you rise at Ashbound hearths until you've freed a shrine of your own.
+- **Cut free:** Wick breaks your Oath of the Flame, the spell that ties you to the Heart Shrine, so the Undying can't drain you. Ash starts to creep up your hands, the Tithe ends, and you rise at Ashbound hearths until you've freed a shrine of your own.
 - **The Emberwardens:** you hunt down all six, in any order. Each time one falls, Wick shows you how to **free** their great shrine: cut its thread to the Heart Shrine, so everything it draws goes back out to the land. The warmth spreads outward from the shrine, and the region's edges start to heal. Unmasking Ivy and Reed as impostors is part of it.
 - **Frostfell:** the last stop before Vale. You thaw Wick's frozen shrine and free it, which gives Wick back enough strength to face Vale beside you.
 - **Vale:** you unmask [[Enchanter Vale]] and fight him in [[The Hollow Heart]], at the Emberheart.
@@ -87,10 +87,13 @@ Alongside the story, every region has repeatable quests at every level to fight 
 
 ## How the ash marks work in play
 
-After Wick cuts your thread in Act 4, grey ash marks slowly spread up your character's hands, Ember Debt ends, and you rise at Ashbound hearths, then at the great shrines you've freed. You never actually crumble away.
+After Wick breaks your Oath in Act 4, grey ash marks slowly spread up your character's hands, Ember Debt ends, and you rise at Ashbound hearths, then at the great shrines you've freed. You never actually crumble away.
 
 ## Changes still to make in the game
 
+- **Checklists in the quest log:** any step that can be done in any order (meeting several people, visiting several places, lighting several lanterns) shows each one with a ☐ that ticks as you go. Steps where the order matters show one at a time. This applies to every quest.
+- **The opening:** the first quest locks the screen to the glowing bag button while you equip each robe piece yourself ([[Awakening]]); Lisette, Tomas and Wynne each teach part of the game, and Lisette's [[The Four Books]] is the first side quest ([[The Hall of Embers]]); Hopeful becomes Initiate everywhere.
+- **The Emberhall's west-south wing:** Brother Tomas and Enchanter Vale's corner move into the great hall, and the old stores and ledger room become [[The Restricted Section]]: a barred door, a grille at the back of the library, and Lisette's excuses.
 - The Oath of the Flame today says you join and become an Ember. It should become an oath to *try* for the Emberguard, with Ember, Flame, Blaze and Radiant as trial marks, not ranks (see [[Trial marks]]).
 - Act 1's title, "The Light Welcomes You", should become "The First Trial".
 - The Act 1 changes in the table above.

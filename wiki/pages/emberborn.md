@@ -12,7 +12,7 @@ infobox.Old_name: Kindled
 
 Every Emberborn wakes holding a pebble of emberstone.
 
-New Emberborn start as [[Hopefuls]]: they aren't members of [[The Emberguard]], and have to prove themselves worthy through the Emberguard's trials.
+New Emberborn start as [[Initiates]]: they aren't members of [[The Emberguard]], and have to prove themselves worthy through the Emberguard's trials.
 
 The ordinary folk who can't come back from death are called [[The Rooted]].
 
@@ -28,4 +28,4 @@ The Emberborn were made for a good reason, and are used for a bad one. Each time
 
 ## How it looks in play
 
-In Act 4, Wick cuts the player's thread from the Heart Shrine. Grey ash marks slowly spread up their hands, the Tithe ends, and they rise at Ashbound hearths, then at the great shrines they've freed. (Planned; not in the game yet.)
+In Act 4, Wick breaks the player's Oath, the spell that ties them to the Heart Shrine (see [[Oath of the Flame]]). Grey ash marks slowly spread up their hands, the Tithe ends, and they rise at Ashbound hearths, then at the great shrines they've freed. (Planned; not in the game yet.)

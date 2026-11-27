@@ -54,6 +54,7 @@ On claude.ai you can filter this list, and move quests up and down to try a new 
 | Act 3 | Quest | Wilds: Saltmere Coast | [[Saltmere Coast]] | Warden Merrow | Go into the withering lands far from the city and deal with the tides. Any order. |
 | Act 3 | Quest | Wilds: Ashen Barrens | [[The Ashen Barrens]] | Warden Dunn | Go into the withering lands far from the city and deal with the glass. Any order. |
 | Act 3 | Quest | Wilds: Blackfen | [[Blackfen]] | Warden Reed | Go into the withering lands far from the city and deal with the fog. Any order. |
+| Act 3 | Quest 🔒 | The Restricted Section | [[The Emberhall]] | | Sneak into the library's locked restricted section at night and read what the Keepers hide. |
 | Act 3 | Story beat 🔒 | The shrine's thread |  |  | After any 2 Trials: a relit shrine's warmth is pulled back down a thread toward Heartvale. |
 | Act 3 | Quest | Trial: Thornwood | [[The Thornwood]] | Warden Crowe | The Emberwarden's trial: reach the heart of the region, beat its boss and relight the great shrine. |
 | Act 3 | Quest | Trial: Greyspine Peaks | [[Greyspine Peaks]] | Warden Flint | The Emberwarden's trial: reach the heart of the region, beat its boss and relight the great shrine. |
@@ -63,7 +64,7 @@ On claude.ai you can filter this list, and move quests up and down to try a new 
 | Act 3 | Quest | Trial: Blackfen | [[Blackfen]] | Warden Reed | The Emberwarden's trial: reach the heart of the region, beat its boss and relight the great shrine. |
 | Act 3 | Story beat 🔒 | Rhys comes back grey | [[Emberhold]] |  | After any 4 Trials. You find him with the Ashbound, and Sable takes you to meet [[Wick]]. |
 | Act 3 | Quest 🔒 | The Joining | [[The Emberhall]] | [[Enchanter Vale]] | After all 6 Trials and Radiant. Go down the stair, refuse Vale, and escape with Sable. |
-| Act 4 | Quest 🔒 | Cut Free | Ashbound camp | [[Wick]] | Wick cuts your thread from the Heart Shrine. |
+| Act 4 | Quest 🔒 | Cut Free | Ashbound camp | [[Wick]] | Wick breaks your Oath, the spell that ties you to the Heart Shrine. |
 | Act 4 | Quest 🔒 | Free the Thornwood shrine | [[The Thornwood]] | [[Wick]] | Bring down Warden Crowe and free the great shrine. Any order. |
 | Act 4 | Quest 🔒 | Free the Greyspine Peaks shrine | [[Greyspine Peaks]] | [[Wick]] | Bring down Warden Flint and free the great shrine. Any order. |
 | Act 4 | Quest 🔒 | Free the Tangle shrine | [[The Tangle]] | [[Wick]] | Bring down Warden Ivy and free the great shrine. Any order. |

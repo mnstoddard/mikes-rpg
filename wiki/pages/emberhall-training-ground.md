@@ -4,11 +4,11 @@ icon: 🎯
 aliases: Training Ground, The Training Ground
 summary: The yard beside the Emberhall where every trainer teaches new Emberborn their skills.
 infobox.Where: [[Emberhold]], just east of [[The Emberhall]]
-infobox.Built: Version 0.18
+infobox.Built: Version 0.20
 ---
 The **Emberhall Training Ground** is a hedged yard just east of [[The Emberhall]], in [[Emberhold]]. [[The Emberguard]] pay every trainer in the city to teach the new [[Emberborn]] here, so every lesson is a gift from the Emberhall.
 
-It was added in version 0.18 to make the Prologue shorter and take every player through every skill in one place.
+It was added in version 0.20 to make the Prologue shorter and take every player through every skill in one place.
 
 ## What's there
 

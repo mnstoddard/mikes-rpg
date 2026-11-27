@@ -6,7 +6,7 @@ in `shared/version.ts` (the game reads it from there), so update both together.
 Each update adds 0.1 to the number. Version 1.0 is saved for the finished game on Steam
 (see docs/VERSION-1.0-PLAN.md).
 
-## 0.18 · 27 November 2026 · Emberhold, the walled city, and Heartvale outside it
+## 0.20 · 27 November 2026 · Emberhold, the walled city, and Heartvale outside it
 
 - Emberhold, the walled capital, is built (on the dev test server first). A great stone wall with towers runs round the whole city, with four gates: the North Gate, the West Gate, the Saltmere Gate and the River Gate. The gates stay shut until you've sworn the Oath of the Flame, then open onto Heartvale.
 - The Emberhall now stands on Ember Hill in the middle of the city, with a spire and a flame you can see from everywhere. Below it is a plaza, then Market Square with stalls, the well, the bell tower, the General Store and the bounty board.
@@ -29,6 +29,11 @@ Each update adds 0.1 to the number. Version 1.0 is saved for the finished game o
 - When someone has a quest gift for you but your bag is full, it's now that person who tells you (it used to say Keeper Aldric, whoever you were talking to).
 - In the opening scene you no longer sink into the floor while getting up: sitting, kneeling and standing all rest on the ground, and so does Sister Celene when she kneels.
 - Saves from before move along: anyone in the middle of Maren's lessons keeps their place in the shorter list, and everyone starts in Emberhold's plaza.
+
+## 0.19 · 27 November 2026 · Walls out of the way
+
+- Walking along a wall inside no longer pulls the camera in close. Walls between the camera and you now dip down to a low stub (with a soft speckled edge) so you can see yourself and the room, and pop back up once you've passed. (#35)
+- The yellow guide arrow is drawn on top of everything, so a wall can't hide it any more. (#36)
 
 ## 0.17 · 27 November 2026 · Automatic crash reports
 

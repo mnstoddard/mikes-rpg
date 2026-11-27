@@ -8,7 +8,7 @@ infobox.Gates: North, West, Saltmere and River (open after the Oath)
 ---
 **Emberhold** is the capital: a walled city on the edge of [[Heartvale]], built around [[The Heart Shrine]] during [[The Rebuilding]]. A great stone wall with towers runs all the way round it. [[The Emberhall]] stands on Ember Hill in the middle, its spire and flame visible from every street.
 
-Since version 0.18 (on the dev test server first) the Prologue happens inside the walls. The four gates stay shut until you've sworn the Oath of the Flame; then they open onto [[Heartvale]], where Act 1 takes place. From outside you see the city's walls, towers and rooftops, with the Emberhall's spire in the middle. Later, homes in the city will be enterable too.
+Since version 0.20 (on the dev test server first) the Prologue happens inside the walls. The four gates stay shut until you've sworn the Oath of the Flame; then they open onto [[Heartvale]], where Act 1 takes place. From outside you see the city's walls, towers and rooftops, with the Emberhall's spire in the middle. Later, homes in the city will be enterable too.
 
 ## Districts
 

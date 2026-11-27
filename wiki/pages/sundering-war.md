@@ -11,7 +11,7 @@ infobox.Result: Vale's side wins; Frostfell freezes
 
 ## What everyone is taught
 
-[[Wick]] had hidden his crime, the murder of [[King Aldemar XVIII]], for four hundred years. When the Circle finally found him out, he turned Ivy and Reed against the rest and tried to tear the shrines down, which would have let the Emberfall loose again. [[Archmage Vale]] led the loyal Circle against him and won, and died doing it. Ivy and Reed were defeated. Wick fled, and his curse froze [[Frostfell]].
+[[Wick]] turned Ivy and Reed against the rest of the Circle and tried to tear the shrines down, which would have let the Emberfall loose again and made the king's sacrifice for nothing. [[Archmage Vale]] led the loyal Circle against him and won, and died doing it. Ivy and Reed were defeated. Wick fled, and his curse froze [[Frostfell]].
 
 [[Brother Oren]] tells this version on his tour of [[The Extinguished]], ending at Wick's empty plinth.
 

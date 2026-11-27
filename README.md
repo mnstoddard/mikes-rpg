@@ -51,7 +51,7 @@ number of logins and total time played. Anyone playing right now is listed at th
 Lines older than a year are cleared out when the server starts. The JSON version is at
 `/admin/api/logins`. See `server/src/logins.ts`.
 
-## Emberhold, the Training Ground and Heartvale (version 0.18)
+## Emberhold, the Training Ground and Heartvale (version 0.20)
 
 The Prologue takes place inside **Emberhold**, a walled city (`buildEmberhold` in
 `shared/world.ts`, drawn in 3D by `client3d/src/game/city.ts`). New characters wake in

@@ -9,7 +9,7 @@ infobox.Home_of: The starter tier of every gathering skill, and the best farming
 
 It's round because the ground fell in at [[The Emberfall (disaster)|the Emberfall]]. [[The Emberheart]] burns far below it, in [[The Hollow Heart]], the main story's final area. Out at the valley's edges, far from the Heart Shrine, the grass is turning to grey dust.
 
-Heartvale is the big outdoor map. Since version 0.18 (on the dev test server first), the walls of [[Emberhold]] stand in the middle of it, where the old village used to be, and players start inside them. Its four gates open onto the valley once you've sworn the Oath of the Flame, and a road leads out of each:
+Heartvale is the big outdoor map. Since version 0.20 (on the dev test server first), the walls of [[Emberhold]] stand in the middle of it, where the old village used to be, and players start inside them. Its four gates open onto the valley once you've sworn the Oath of the Flame, and a road leads out of each:
 
 - **North Gate**: the road north to the quarry (copper, tin, iron and coal) under [[Greyspine Peaks]], and a track east through the foothills to the **valley's edge shrine**, lit at the end of Act 1.
 - **West Gate**: the Westroad, past the lake, to the [[Westroad]] shrine. South of the road is the pasture, and west of it the **grey dust**, where the valley's edge is dying. The road on to [[The Ashen Barrens]] is closed.

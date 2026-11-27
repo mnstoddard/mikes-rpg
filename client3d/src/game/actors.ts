@@ -803,7 +803,7 @@ export function makeStation(npc: NpcDef): StationView {
     const box = new THREE.Box3().setFromObject(item.object);
     tag.obj.position.y = box.max.y + 0.4;
   } else if (STATUES[npc.id]) {
-    // A statue (version 0.18): the Ember Circle in the great hall, the Extinguished in the garden. Each is a real
+    // A statue (version 0.20): the Ember Circle in the great hall, the Extinguished in the garden. Each is a real
     // character, posed and carved in white stone, on a plinth.
     const st = makeStatue(STATUES[npc.id]);
     root.add(st.object);

@@ -2338,7 +2338,7 @@ export class WorldRoom extends Room<WorldState> {
       if (client) this.say(client, this.notReady());
       return;
     }
-    // Emberhold's gates (version 0.18): Hopefuls stay inside the walls until they've sworn the Oath of the Flame.
+    // Emberhold's gates (version 0.20): Hopefuls stay inside the walls until they've sworn the Oath of the Flame.
     if (door.gate && !chapterDone(p.quest, "oath")) {
       if (client) this.dialog(client, ["Halt there, Hopeful! Nobody goes out into the valley until they've sworn the Oath of the Flame at the Emberhall. Finish your training first: open 📜 Quests to see what's next."], "Gate guard");
       return;

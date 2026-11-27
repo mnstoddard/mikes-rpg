@@ -144,7 +144,7 @@ const doors: Door[] = [];
 /** Outside door tiles waiting to be linked to their area's inside door. */
 const pendingDoors: { x: number; y: number; out: Point; area: string; sign?: string; label: string; from?: string }[] = [];
 /**
- * Version 0.18: the town moved inside Emberhold's walls. Heartvale's old village
+ * Version 0.20: the town moved inside Emberhold's walls. Heartvale's old village
  * buildings are still drawn (it's where the gates will lead one day), but their
  * doors don't go anywhere now: the same shops and houses are in the city.
  */
@@ -152,7 +152,7 @@ const oldTown = (_d: { x: number; y: number; out: Point; area: string; sign?: st
 const oldLots: Point[] = [];
 
 /**
- * Emberhold's walls as Heartvale sees them (version 0.18): a walled block where the old village was. The city itself
+ * Emberhold's walls as Heartvale sees them (version 0.20): a walled block where the old village was. The city itself
  * is its own area (buildEmberhold); these walls, towers, rooftops and gates are what you see from out in the valley.
  */
 export const HV_WALL = { X0: 66, X1: 170, Y0: 40, Y1: 97 };
@@ -311,7 +311,7 @@ function buildOverworld(): Canvas {
     c.fill(x, y, x + 2, y, "~");
   }
 
-  // ---- Emberhold's walls (version 0.18): the city stands where the old village was ----
+  // ---- Emberhold's walls (version 0.20): the city stands where the old village was ----
   // From out here you see its walls, towers and rooftops, with the Emberhall's spire in the middle. Each of its
   // four gates is a way in: step into the archway and you're inside the city (the doors are made in assemble()).
   const { X0, X1, Y0, Y1 } = HV_WALL;
@@ -573,7 +573,7 @@ function buildOverworld(): Canvas {
   return c;
 }
 
-// ---------------------------------------------------------------- Emberhold, the walled capital (version 0.18)
+// ---------------------------------------------------------------- Emberhold, the walled capital (version 0.20)
 //
 // Emberhold is its own outdoor area, below the inside places on the grid. A ring
 // of stone walls with towers, and four gates (all shut for now). Inside:
@@ -685,7 +685,7 @@ function buildEmberhold(o: Point): Canvas {
       if (ch === " ") continue;
       if (ch === "%" || ch === "&") {
         if (!gate) continue;
-        c.set(x, y, "}"); // an open archway (version 0.18: the gates lead out into Heartvale)
+        c.set(x, y, "}"); // an open archway (version 0.20: the gates lead out into Heartvale)
         let g = gates.find((q) => q.name === gate);
         if (!g) gates.push(g = { name: gate, tiles: [] });
         g.tiles.push({ x, y });
@@ -975,7 +975,7 @@ function insides(): Inside[] {
     for (const [x, y] of [[14, 4], [22, 4], [14, 23], [22, 23]] as const) c.set(x, y, "F"); // braziers
     for (const [x, y] of [[13, 12], [23, 12], [13, 19], [23, 19]] as const) c.set(x, y, "A"); // pillars
     // The Ember Circle: statues along both walls (Brother Oren's tour), and Wick's empty plinth.
-    // The Ember Circle (Mike's note, version 0.18): Vale behind the Heart Shrine, King Aldemar and the six who raised the other
+    // The Ember Circle (Mike's note, version 0.20): Vale behind the Heart Shrine, King Aldemar and the six who raised the other
     // great shrines along the walls, and Wick's empty plinth by the doors. "S" keeps the tile solid; the client draws each statue.
     for (const [x, y] of [[18, 1], [11, 4], [11, 10], [11, 15], [11, 23], [25, 4], [25, 10], [25, 16]] as const) c.set(x, y, "S");
     c.fill(17, 8, 19, 25, "z");
@@ -1153,7 +1153,7 @@ function assemble() {
     doors.push({ x: p.x, y: p.y, to: inward(inner), area: p.area, label: p.label, sign: p.sign });
     doors.push({ x: inner.x, y: inner.y, to: p.out, area: p.from ?? "heartvale", label: "Leave" });
   }
-  // Emberhold's gates (version 0.18): step into a gate's archway out in Heartvale and you're just inside that gate in
+  // Emberhold's gates (version 0.20): step into a gate's archway out in Heartvale and you're just inside that gate in
   // the city; walk out through a gate in the city and you're just outside it in the valley.
   for (const hv of HV_GATES) {
     const cg = cityGates.find((g) => g.name === hv.name);
@@ -1221,7 +1221,7 @@ export const MAP_LABELS: readonly { x: number; y: number; text: string; big?: bo
   { x: 187, y: 132, text: "Graveyard" },
 ];
 
-/** The farm's lots (top-left tile of each 6 × 6 lot). Since version 0.18 they're all in Emberhold. */
+/** The farm's lots (top-left tile of each 6 × 6 lot). Since version 0.20 they're all in Emberhold. */
 export const WORLD_LOTS: readonly Point[] = lots;
 /** Where each lot is ("in the Lower Town allotments"), by lot number. */
 export const LOT_PLACES: readonly string[] = lotPlaces;

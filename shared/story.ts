@@ -150,7 +150,7 @@ export const PROLOGUE_START: Chapter[] = [
         ],
       },
       {
-        // Brother Oren's tour of the great hall: the statues of the Ember Circle (version 0.18, Mike's note), told the way the
+        // Brother Oren's tour of the great hall: the statues of the Ember Circle (version 0.20, Mike's note), told the way the
         // Emberguard teach it (the official story on the wiki's Emberfall page), and the embers drifting overhead.
         task: "Take Brother Oren's tour: the king, Archmage Vale and the empty plinth", goal: { kind: "visit", npcs: ["oren", "circle_aldemar", "circle_vale", "plinth"], names: "stops on Oren's tour" },
         hint: "Brother Oren is by the statues on the west side of the great hall. Talk to him, then click King Aldemar's statue (west wall, by the shrine), Archmage Vale's statue (behind the Heart Shrine) and the empty plinth near the doors (east side). Each has a ❗.",
