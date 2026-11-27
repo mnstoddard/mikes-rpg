@@ -6,6 +6,13 @@ in `shared/version.ts` (the game reads it from there), so update both together.
 Each update adds 0.1 to the number. Version 1.0 is saved for the finished game on Steam
 (see docs/VERSION-1.0-PLAN.md).
 
+## 0.17 · 27 November 2026 · Automatic crash reports
+
+- Automatic crash reports. When the game breaks, it now tells the server by itself, with no button to press: a JavaScript error, the 3D drawing being lost (often the device running out of memory), losing the server and not getting back in, or the page stopping without closing (on an iPad that's usually Safari reloading the page because it ran out of memory; it's noticed the next time the game opens).
+- Each report has the error and where in the code it happened, the game version, the device, how much memory the game was using, how much it was drawing, where the player was, and the last things that happened before it broke.
+- The server writes down its own errors too, and keeps running instead of stopping. Every time it starts it notes it, and flags a restart that wasn't a new deploy (that usually means it crashed or ran out of memory).
+- Only the admin can see them, at /admin/crashes on the game's address (the same password as the bug report page and the login log). Each report says which server it came from (live or dev), since they can share a database.
+
 ## 0.16 · 26 November 2026 · A login log for the admin
 
 - The server now keeps a login log: who logged in and when, new accounts, wrong passwords, what kind of device they used, and when they logged out (so you can see how long they played).

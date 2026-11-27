@@ -87,6 +87,7 @@ import {
 import { SHOPS, SHOP_IDS, ShopId, isShop } from "../../shared/shops";
 import { RepairJob, isBroken, isRepairable, maxUses, repairCost } from "../../shared/repair";
 import { BOUNTY_COUNT, Bounty, bountyChoices, bountyName, bountyReward, newBoard, newBounty, slotCounts, validBounty } from "../../shared/bounties";
+import { roomError } from "./crashes";
 import { Account, MAP_REV, SAVE_VERSION, SaveData, checkPassword, hashPassword, store, usernameKey } from "./storage";
 import { PLAYER_COLORS, isPlayerColor } from "../../shared/colors";
 import { RENOWN_RANKS, RenownView, earnedTitles, rankForRenown } from "../../shared/renown";
@@ -381,6 +382,11 @@ export class WorldRoom extends Room<WorldState> {
     if (!p) return null;
     const area = areaAt(p.x, p.y);
     return { username: p.name, x: p.x, y: p.y, area: area?.name ?? null, action: p.action, hp: p.hp, maxHp: p.maxHp, save: this.snapshot(p) };
+  }
+
+  /** An error in a message handler or timer: written down as a crash report, and the game keeps going. */
+  onUncaughtException(error: unknown, methodName: string) {
+    roomError(error, methodName);
   }
 
   onCreate() {
