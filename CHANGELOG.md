@@ -6,6 +6,11 @@ in `shared/version.ts` (the game reads it from there), so update both together.
 Each update adds 0.1 to the number. Version 1.0 is saved for the finished game on Steam
 (see docs/VERSION-1.0-PLAN.md).
 
+## 0.23 · 27 November 2026 · Behind the scenes: the game's code tidied up
+
+- Nothing in the game should look or play differently: this update only reorganises the code so it's easier to change safely. The game server's main file (4,600 lines) is now one file per feature (walking, gathering, crafting, combat, quests, shops, the guild, parties, farming, magic, repairs, saving). The windows and panels (3,300 lines) are now one file per window, and the 3D game is split into camera, controls, server messages, effects, story and daylight.
+- If anything does behave differently from 0.22, please report it with the 🐞 button: that would be a mistake from the tidy-up.
+
 ## 0.22 · 27 November 2026 · Ember Hill, your room in the tower, and the first lessons reworked
 
 - Everyone starts fresh: with 0.22 going live, every account and character (and everyone's farm plots) was erased, so all players begin again with the new opening and lessons. A copy was saved first, in case anything needs bringing back. Bug reports are kept.

@@ -13,6 +13,15 @@ export interface GameUpdate { version: string; date: string; title: string; chan
 
 export const UPDATES: GameUpdate[] = [
   {
+    version: "0.23",
+    date: "2026-11-27",
+    title: "Behind the scenes: the game's code tidied up",
+    changes: [
+      { text: "Nothing in the game should look or play differently: this update only reorganises the code so it's easier to change safely. The game server's main file (4,600 lines) is now one file per feature (walking, gathering, crafting, combat, quests, shops, the guild, parties, farming, magic, repairs, saving). The windows and panels (3,300 lines) are now one file per window, and the 3D game is split into camera, controls, server messages, effects, story and daylight." },
+      { text: "If anything does behave differently from 0.22, please report it with the 🐞 button: that would be a mistake from the tidy-up." },
+    ],
+  },
+  {
     version: "0.22",
     date: "2026-11-27",
     title: "Ember Hill, your room in the tower, and the first lessons reworked",

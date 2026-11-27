@@ -6,171 +6,117 @@
 // The message handling below follows client/src/WorldScene.ts closely, so a
 // new server message added there is easy to add here too.
 import * as THREE from "three";
-import { undress } from "../character";
-import { wallCut } from "./wallcut";
 import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
-import { getStateCallbacks, Room } from "colyseus.js";
-import { AreaDef, MAP, OUTDOORS, TICK_MS, TOWN_SPOT, areaAt, doorAt, isWalkable } from "../../../shared/map";
-import { PLACES, groundHeight, groundHeightAt } from "../../../shared/world";
-import { bookAt } from "../../../shared/lore";
-import { Minimap, nextGoal } from "./minimap";
-import { CombatMasteryId, CombatMasteryXp, MONSTERS, MonsterId, SpellId, combatMasteryName } from "../../../shared/combat";
-import type { Gear } from "../../../shared/gear";
-import { RESOURCES, ResourceId, fishAt, isFishingSpot, nodeAt, treeKey } from "../../../shared/foraging";
-import { ITEMS, ItemId } from "../../../shared/items";
-import { Bag, emptyBag } from "../../../shared/bag";
-import type { GuildView } from "../../../shared/guild";
-import type { Bounty } from "../../../shared/bounties";
-import { masteryName } from "../../../shared/crafting";
-import type { Belt, ToolType } from "../../../shared/tools";
-import { NPCS, npcAt } from "../../../shared/npcs";
-import { DISCIPLINES, DisciplineId, DisciplineView, SkillId, SkillXp, emptySkills, findSkill, isUnlocked, levelForXp } from "../../../shared/disciplines";
-import { ItemMasteryXp, MasteryId } from "../../../shared/mastery";
-import type { TreeRanks } from "../../../shared/skilltree";
-import type { QuestView } from "../../../shared/quests";
-import type { ShopId } from "../../../shared/shops";
-import type { RepairJob } from "../../../shared/repair";
-import type { Buffs, PotionType } from "../../../shared/alchemy";
-import type { Jewels } from "../../../shared/jewelry";
-import type { BoltSpellId } from "../../../shared/combat";
-import { TRAP_BLINK_SECONDS } from "../../../shared/spells";
-import { CROPS, LOTS, LOT_SIZE, decodeCrop, growth, inPlot, lotAt, tileOf, timeLeft } from "../../../shared/farming";
-import type { FarmView } from "../../../shared/farming";
-import type { RenownView } from "../../../shared/renown";
-import { darkness, isNight, minutesUntilChange } from "../../../shared/daynight";
-import { joinWorld, rejoinWorld } from "../../../client/src/network";
+import { Room } from "colyseus.js";
+import { AreaDef, OUTDOORS, TOWN_SPOT, areaAt } from "../../../shared/map";
+import { Minimap } from "./minimap";
+import { emptyBag } from "../../../shared/bag";
+import { DisciplineView, SkillXp, emptySkills } from "../../../shared/disciplines";
+import { joinWorld } from "../../../client/src/network";
 import { showLogin } from "../../../client/src/login";
-import { setReportRoom, setReportSource } from "../../../client/src/report";
-import { crumb, reportCrash, setCrashSource, watchCanvas } from "../../../client/src/crash";
-import { setTreeActions } from "../../../client/src/tree";
-import { setWorldMapActions, setWorldMapMarks, setWorldMapPlayers, updateWorldMap } from "../../../client/src/worldmap";
-import {
-  accountResult, closeBounties, renderMe, renderTracked, resetForSignOut, setAccountActions, setBountyActions, setQuestActions, showBounties, closeGuild, closeChest, setGuildActions, showChest, showGuild,
-  closeRepair, setRepairActions, showRepairs, closeDialog, openDialog, renderQuest, renderStamina, renderVitals, renderGear, renderCombatMastery, flashCombatMastery, closeCraft, closeInfo, closeShop, flashDiscipline, flashMastery, flashSkillRow, openCraft, renderBelt, renderMastery, renderSkillXp, openShop, renderBag, renderCoins, renderDisciplines, setHoverText, setInventoryActions, showMessage,
-  nightSightOn, renderTreeRanks, setBuffs, setDiscovered, setServerOffset, tickBuffs, setTithe,
-  renderJewels, setGemActions, setSpellbook, castSlot, setAltarActions,
-  serverNow, setFarm, setFarmActions,
-  setRenown, setRenownActions, renderParty, setPartyActions, showPartyInvite, addPartyChat, PartyMember,
-} from "../../../client/src/ui";
-import { createSkyDome, SKY_TIMES, TILE, type SkyDome } from "../environment";
+import { setReportSource } from "../../../client/src/report";
+import { crumb, setCrashSource, watchCanvas } from "../../../client/src/crash";
+import { setWorldMapActions, setWorldMapPlayers } from "../../../client/src/worldmap";
+import { renderBag, showMessage } from "../../../client/src/ui";
+import { createSkyDome, TILE, type SkyDome } from "../environment";
 import { setRockEnvironment } from "../rocks";
-import { Terrain, tileCenter, tileUp } from "./terrain";
-import { MonsterView, Person, label, makeStation, npcRecipe, playerRecipe, type StationView } from "./actors";
-import { openCreator } from "./creator";
-import { lookToRecipe } from "./look";
+import { Terrain } from "./terrain";
+import { MonsterView, Person, type StationView } from "./actors";
 import * as sfx from "./sfx";
 import { AutoQuality } from "./quality";
 import { Townsfolk } from "./townsfolk";
 import { setMusicPlace, setupMusicSettings, updateMusic } from "./music";
-import { createJoystick, type Stick } from "./joystick";
-import { setupFullscreen } from "./fullscreen";
+import { type Stick } from "./joystick";
+import { CAM_KEY, CULL_M } from "./world/common";
+import { cameraMethods } from "./world/camera";
+import { inputMethods } from "./world/input";
+import { networkMethods } from "./world/network";
+import { effectsMethods } from "./world/effects";
+import { storyMethods } from "./world/story";
+import { daylightMethods } from "./world/daylight";
+import { farmMethods } from "./world/farm";
 
-const MIN_DIST = 7;
-const MAX_DIST = 42;
-const CAM_KEY = "rpg3d.camera";
-const TAP_SLOP = 10;
-/** The keys that walk you: forward, left, back and right (by position, so other keyboard layouts work too). */
-const WALK_KEYS = ["KeyW", "KeyA", "KeyS", "KeyD"];
-/** People, monsters and stations further than this (metres, each way) aren't drawn. */
-const CULL_M = 60;
-/** At most this many lamps light the scene at once (the nearest ones), so it stays fast. */
-const MAX_LAMPS = 6;
-
-/** When Keeper Celene starts talking in the opening scene (seconds), once you're on your feet. */
-/** The opening scene (version 0.21): when Keeper Celene starts talking, in seconds. */
-const INTRO_TALK = 12.2;
-
+/**
+ * The 3D game. The class holds the scene and the frame loop; most of what it does
+ * lives in files under client3d/src/game/world/, added to this class at the bottom
+ * (the interface below declares them).
+ */
 export class World3D {
-  private renderer: THREE.WebGLRenderer;
-  private labels: CSS2DRenderer;
-  private scene = new THREE.Scene();
-  private camera = new THREE.PerspectiveCamera(45, 1, 0.3, 700);
-  private hemi = new THREE.HemisphereLight(0xcfe8ff, 0x5b6b3a, 1.1);
-  private sun = new THREE.DirectionalLight(0xfff1d6, 2.4);
-  private sky: SkyDome = createSkyDome();
-  private terrain = new Terrain();
-  private clock = new THREE.Clock();
-  private quality: AutoQuality;
-  private time = 0;
-  private raycaster = new THREE.Raycaster();
-  private ground = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  renderer: THREE.WebGLRenderer;
+  labels: CSS2DRenderer;
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(45, 1, 0.3, 700);
+  hemi = new THREE.HemisphereLight(0xcfe8ff, 0x5b6b3a, 1.1);
+  sun = new THREE.DirectionalLight(0xfff1d6, 2.4);
+  sky: SkyDome = createSkyDome();
+  terrain = new Terrain();
+  clock = new THREE.Clock();
+  quality: AutoQuality;
+  time = 0;
+  raycaster = new THREE.Raycaster();
+  ground = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
   // Camera: it orbits round you. Yaw 0 looks north (the map's "up").
-  private yaw = 0;
-  private pitch = 0.95;
-  private dist = 24;
-  private camDist = 24; // how far the camera really is (closer when a wall is in the way)
-  private focus = new THREE.Vector3();
+  yaw = 0;
+  pitch = 0.95;
+  dist = 24;
+  camDist = 24; // how far the camera really is (closer when a wall is in the way)
+  focus = new THREE.Vector3();
 
-  private room?: Room;
-  private players = new Map<string, Person>();
-  private monsters = new Map<string, MonsterView>();
-  private npcs = new Map<string, Person>();
-  private stations = new Map<string, StationView>();
-  private marker: THREE.Mesh;
+  room?: Room;
+  players = new Map<string, Person>();
+  monsters = new Map<string, MonsterView>();
+  npcs = new Map<string, Person>();
+  stations = new Map<string, StationView>();
+  marker: THREE.Mesh;
   /** The gold arrow on the ground by your feet, pointing the way to your quest's next ❗ or 📍. */
-  private guide = new THREE.Group();
-  private hud = document.getElementById("hud")!;
-  private lastDisciplines?: DisciplineView;
-  private skillXpSeen = false;
-  private skillXp: SkillXp = emptySkills();
-  private hasLantern = false;
+  guide = new THREE.Group();
+  hud = document.getElementById("hud")!;
+  lastDisciplines?: DisciplineView;
+  skillXpSeen = false;
+  skillXp: SkillXp = emptySkills();
+  hasLantern = false;
   /** For sound effects: what you're doing, how full your bag is, and the monster you last hit. */
-  private myAction = "idle";
-  private bagTotal = -1;
-  private lastTarget = { id: "", at: 0 };
-  private clockOffset = 0;
-  private wasNight: boolean | null = null;
-  private here: AreaDef = OUTDOORS;
-  private spotMarks: THREE.Object3D[] = [];
-  private signLabels: CSS2DObject[] = [];
-  private effects: { obj: THREE.Object3D; t: number; life: number; step: (f: number) => void }[] = [];
-  private plots = new Map<string, any>();
-  private plotViews = new Map<string, { group: THREE.Group; sign: CSS2DObject; crops: CSS2DObject[] }>();
-  private lastHover = 0;
-  private loading = document.getElementById("loading3d");
-  private lightTimer = 0;
+  myAction = "idle";
+  bagTotal = -1;
+  lastTarget = { id: "", at: 0 };
+  clockOffset = 0;
+  wasNight: boolean | null = null;
+  here: AreaDef = OUTDOORS;
+  spotMarks: THREE.Object3D[] = [];
+  signLabels: CSS2DObject[] = [];
+  effects: { obj: THREE.Object3D; t: number; life: number; step: (f: number) => void }[] = [];
+  plots = new Map<string, any>();
+  plotViews = new Map<string, { group: THREE.Group; sign: CSS2DObject; crops: CSS2DObject[] }>();
+  lastHover = 0;
+  loading = document.getElementById("loading3d");
+  lightTimer = 0;
   // Walking with the keyboard (WASD).
-  private keys = new Set<string>();
+  keys = new Set<string>();
   /** The touch-screen walking pad (all zero on a computer). */
-  private stick: Stick = { fwd: 0, right: 0 };
-  private walkSent = "0,0"; // the direction we last told the server ("dx,dy")
-  private walkSentAt = 0; // when we told it (ms)
-  private lastStepAt = new THREE.Vector3(); // where we last played a footstep
-  private pendingBook: { x: number; y: number } | null = null; // a shelf we're walking to, to read
-  private walkPaused = false;
-  private runToggle = false; // the 🏃 button
-  private runShift = false; // holding Shift
-  private minimap = new Minimap();
-  private areaSwitch: (() => void) | null = null;
-  private areaHold = 0;
-  private mapPlayersTimer = 0; // how soon to tell the 🗺️ map where other players are
+  stick: Stick = { fwd: 0, right: 0 };
+  walkSent = "0,0"; // the direction we last told the server ("dx,dy")
+  walkSentAt = 0; // when we told it (ms)
+  lastStepAt = new THREE.Vector3(); // where we last played a footstep
+  pendingBook: { x: number; y: number } | null = null; // a shelf we're walking to, to read
+  walkPaused = false;
+  runToggle = false; // the 🏃 button
+  runShift = false; // holding Shift
+  minimap = new Minimap();
+  areaSwitch: (() => void) | null = null;
+  areaHold = 0;
+  mapPlayersTimer = 0; // how soon to tell the 🗺️ map where other players are
   /** Ordinary people walking round town and the Emberhall (shared/townsfolk.ts). */
-  private folk: Townsfolk;
+  folk: Townsfolk;
   /**
    * The opening scene for a new character (Mike's note #1): they're formed lying by
    * the Heart Shrine, Keeper Celene walks over and helps them up, then she talks.
    */
-  private intro: { t: number; wait?: number; name: string; lines: string[]; talked: boolean; cam: { yaw: number; pitch: number; dist: number }; skip?: HTMLButtonElement; sparks?: THREE.Points } | null = null;
+  intro: { t: number; wait?: number; name: string; lines: string[]; talked: boolean; cam: { yaw: number; pitch: number; dist: number }; skip?: HTMLButtonElement; sparks?: THREE.Points } | null = null;
 
-  /** Turn on only the nearest few lamps (every point light costs on every pixel). */
-  private pickLights() {
-    const lights: THREE.PointLight[] = [];
-    const p = new THREE.Vector3();
-    this.scene.traverse((o) => { if ((o as THREE.PointLight).isPointLight) lights.push(o as THREE.PointLight); });
-    const d = new Map<THREE.PointLight, number>();
-    for (const l of lights) {
-      let shown = true;
-      for (let a: THREE.Object3D | null = l.parent; a; a = a.parent) if (a.userData.show === false) shown = false;
-      l.getWorldPosition(p);
-      d.set(l, shown ? p.distanceToSquared(this.focus) : Infinity);
-    }
-    lights.sort((a, b) => d.get(a)! - d.get(b)!);
-    lights.forEach((l, i) => { l.visible = i < MAX_LAMPS; });
-  }
 
-  constructor(private host: HTMLElement) {
+  constructor(public host: HTMLElement) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     this.quality = new AutoQuality(this.renderer); // sharpness: drawn a little softer if frames get slow
     this.renderer.shadowMap.enabled = true;
@@ -264,23 +210,10 @@ export class World3D {
     this.attach(await showLogin(joinWorld));
   }
 
-  /** Point the camera at a tile without being logged in (the ?at= preview, and tests). */
-  lookAt(x: number, y: number, hour?: "day" | "sunset" | "night") {
-    const a = areaAt(x, y) ?? OUTDOORS;
-    this.showArea(a, x, y);
-    this.focus.copy(tileCenter(x, y));
-    if (hour) {
-      // Shift our clock so it's that time of day (only on this screen).
-      const want = hour === "day" ? 10 * 60_000 : hour === "sunset" ? 29 * 60_000 : 35 * 60_000;
-      const now = Date.now();
-      this.clockOffset = want - (now % (40 * 60_000));
-      this.updateDaylight();
-    }
-  }
 
   // ---------------------------------------------------------------- the frame loop
 
-  private loop = () => {
+  loop = () => {
     requestAnimationFrame(this.loop);
     // Going through a door: wait until the loading sign has been drawn, then switch places.
     if (this.areaSwitch) {
@@ -351,1269 +284,79 @@ export class World3D {
     this.labels.render(this.scene, this.camera);
   };
 
-  /** Point the guide arrow at the nearest ❗ or 📍 (or the door that leads there). It hides once you're close, or while a box is open. */
-  private updateGuide(me: { root: THREE.Object3D } | undefined) {
-    const busy = document.body.classList.contains("dialog-open") || document.body.classList.contains("shop-open") || document.body.classList.contains("craft-open");
-    const goal = me && !busy ? nextGoal(me.root.position.x / TILE, me.root.position.z / TILE, this.here) : null;
-    if (!me || !goal) { this.guide.visible = false; return; }
-    const to = tileCenter(goal.x, goal.y);
-    const dx = to.x - me.root.position.x, dz = to.z - me.root.position.z;
-    const d = Math.hypot(dx, dz);
-    if (d < TILE * 2.5) { this.guide.visible = false; return; }
-    this.guide.visible = true;
-    const bob = 1.5 + Math.sin(this.time * 4) * 0.2;
-    this.guide.position.set(me.root.position.x + (dx / d) * bob, me.root.position.y + 0.15, me.root.position.z + (dz / d) * bob);
-    this.guide.rotation.y = Math.atan2(-dz, dx);
-  }
 
-  private placeCamera(dt = 0) {
-    const f = this.focus;
-    const dir = new THREE.Vector3(Math.sin(this.yaw) * Math.cos(this.pitch), Math.sin(this.pitch), Math.cos(this.yaw) * Math.cos(this.pitch));
-    // Don't go through buildings or walls: come in closer, in front of the first one in the way.
-    const free = this.freeDist(dir);
-    this.camDist = dt ? Math.min(free, this.camDist + (free - this.camDist) * Math.min(1, dt * 4)) : free;
-    const off = dir.multiplyScalar(this.camDist);
-    this.camera.position.copy(f).add(off);
-    this.camera.lookAt(f.x, f.y + 1, f.z);
-    // Inside, walls between the camera and you are cut away instead (wallcut.ts).
-    wallCut.uCam.value.copy(this.camera.position);
-    wallCut.uFocus.value.set(f.x, f.y + 1, f.z);
-    wallCut.uCutOn.value = this.here.kind === "outdoor" ? 0 : 1;
-    // The sun's shadow box follows you.
-    this.sun.target.position.copy(f);
-  }
 
-  /** How far the camera can sit from you along this direction before a wall or building is in the way. */
-  private freeDist(dir: THREE.Vector3): number {
-    const f = this.focus;
-    const fx = Math.floor(f.x / TILE), fy = Math.floor(f.z / TILE);
-    const step = 0.25;
-    for (let d = 1; d < this.dist; d += step) {
-      const x = f.x + dir.x * d, y = f.y + 1 + dir.y * d, z = f.z + dir.z * d;
-      const tx = Math.floor(x / TILE), ty = Math.floor(z / TILE);
-      if (tx === fx && ty === fy) continue;
-      if (this.terrain.blockHeight(tx, ty) > y - 0.3) return Math.max(MIN_DIST * 0.5, d - 0.6);
-    }
-    return this.dist;
-  }
 
-  private resize() {
-    const w = this.host.clientWidth || window.innerWidth, h = this.host.clientHeight || window.innerHeight;
-    this.renderer.setSize(w, h);
-    this.labels.setSize(w, h);
-    this.camera.aspect = w / h;
-    this.camera.updateProjectionMatrix();
-  }
 
-  private saveCamera() {
-    try { localStorage.setItem(CAM_KEY, JSON.stringify({ yaw: this.yaw, dist: this.dist, pitch: this.pitch })); } catch { /* ignore */ }
-  }
 
-  // ---------------------------------------------------------------- input
 
-  private setupInput() {
-    this.stick = createJoystick(() => { this.walkPaused = false; if (this.tour) this.endTour(); });
-    setupFullscreen();
-    const el = this.renderer.domElement;
-    el.style.touchAction = "none";
-    const pointers = new Map<number, { x: number; y: number; sx: number; sy: number; button: number }>();
-    let pinch = 0, pinchDist = 0, dragged = false;
-    el.addEventListener("contextmenu", (e) => e.preventDefault());
-    el.addEventListener("pointerdown", (e) => {
-      el.setPointerCapture(e.pointerId);
-      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, button: e.button });
-      dragged = false;
-      if (pointers.size === 2) {
-        const [a, b] = [...pointers.values()];
-        pinch = Math.hypot(a.x - b.x, a.y - b.y);
-        pinchDist = this.dist;
-      }
-    });
-    el.addEventListener("pointermove", (e) => {
-      const p = pointers.get(e.pointerId);
-      if (!p) { if (e.pointerType === "mouse") this.onHover(e.clientX, e.clientY); return; }
-      const dx = e.clientX - p.x, dy = e.clientY - p.y;
-      p.x = e.clientX; p.y = e.clientY;
-      if (Math.hypot(p.x - p.sx, p.y - p.sy) > TAP_SLOP) dragged = true;
-      if (pointers.size === 2) {
-        const [a, b] = [...pointers.values()];
-        const d = Math.hypot(a.x - b.x, a.y - b.y);
-        if (pinch > 0) this.setDist(pinchDist * pinch / Math.max(1, d));
-        return;
-      }
-      // Drag (right or middle mouse, or one finger) turns the camera round you.
-      const rotating = e.pointerType !== "mouse" || p.button !== 0 || e.shiftKey;
-      if (rotating && dragged) {
-        this.yaw -= dx * 0.008;
-        this.pitch = Math.min(1.35, Math.max(0.35, this.pitch + dy * 0.005));
-        this.saveCamera();
-      }
-    });
-    const up = (e: PointerEvent) => {
-      const p = pointers.get(e.pointerId);
-      pointers.delete(e.pointerId);
-      if (pointers.size < 2) pinch = 0;
-      if (!p || dragged || pointers.size > 0) return;
-      // A tap or a left click (without dragging) acts on the tile.
-      if (e.pointerType === "mouse" && p.button !== 0) return;
-      this.onClick(e.clientX, e.clientY);
-    };
-    el.addEventListener("pointerup", up);
-    el.addEventListener("pointercancel", (e) => { pointers.delete(e.pointerId); pinch = 0; });
-    el.addEventListener("pointerleave", () => setHoverText(null));
-    el.addEventListener("wheel", (e) => { e.preventDefault(); this.setDist(this.dist * (e.deltaY > 0 ? 1.1 : 0.9)); }, { passive: false });
-    window.addEventListener("keydown", (e) => {
-      const t = e.target as HTMLElement | null;
-      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
-      // W A S D walk (forward is the way the camera faces).
-      if (e.key === "Shift" && !this.runShift) { this.runShift = true; this.sendRun(); }
-      if (WALK_KEYS.includes(e.code) && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        e.preventDefault();
-        if (!this.keys.has(e.code)) { this.keys.add(e.code); this.walkPaused = false; if (this.tour) this.endTour(); }
-        return;
-      }
-      if (e.key === "ArrowLeft" || e.key === "q" || e.key === "Q") { this.yaw += 0.12; this.saveCamera(); }
-      else if (e.key === "ArrowRight" || e.key === "e" || e.key === "E") { this.yaw -= 0.12; this.saveCamera(); }
-      else if (e.key === "ArrowUp") { this.pitch = Math.min(1.35, this.pitch + 0.06); this.saveCamera(); }
-      else if (e.key === "ArrowDown") { this.pitch = Math.max(0.35, this.pitch - 0.06); this.saveCamera(); }
-      // Number keys 1-8 cast the spell in that slot of the spell bar.
-      else if (e.key >= "1" && e.key <= "8" && !e.ctrlKey && !e.metaKey && !e.altKey) castSlot(Number(e.key) - 1);
-    });
-    window.addEventListener("keyup", (e) => {
-      if (this.keys.delete(e.code)) this.walkPaused = false;
-      if (e.key === "Shift" && this.runShift) { this.runShift = false; this.sendRun(); }
-    });
-    // Switching to another window would miss the key being let go: stop walking.
-    window.addEventListener("blur", () => { this.keys.clear(); if (this.runShift) { this.runShift = false; this.sendRun(); } });
-    document.getElementById("zoom-in")!.onclick = () => this.setDist(this.dist / 1.25);
-    document.getElementById("zoom-out")!.onclick = () => this.setDist(this.dist * 1.25);
-    const rot = document.getElementById("rotate3d");
-    if (rot) rot.onclick = () => { this.yaw += Math.PI / 4; this.saveCamera(); };
-    const run = document.getElementById("run3d");
-    if (run) run.onclick = () => { this.runToggle = !this.runToggle; this.sendRun(); };
-  }
 
-  /** Running: the 🏃 button turns it on and off, and holding Shift runs too. */
-  private sendRun() {
-    const on = this.runToggle || this.runShift;
-    this.showRun(on);
-    this.room?.send("run", { on });
-  }
 
-  private showRun(on: boolean) {
-    document.getElementById("run3d")?.classList.toggle("on", on);
-  }
 
-  /** Which way (dx, dy) the held keys point, turned to match the camera: any angle, not just 8 ways. */
-  private keyDirection(): { dx: number; dy: number } {
-    const k = this.keys;
-    const fwd = (k.has("KeyW") ? 1 : 0) - (k.has("KeyS") ? 1 : 0) + this.stick.fwd;
-    const right = (k.has("KeyD") ? 1 : 0) - (k.has("KeyA") ? 1 : 0) + this.stick.right;
-    // Not while making your character (its window covers the game).
-    if (this.walkPaused || (!fwd && !right) || document.getElementById("creator") || this.intro) return { dx: 0, dy: 0 };
-    // The camera sits at (sin yaw, cos yaw) from you, so it looks along -(sin yaw, cos yaw).
-    const s = Math.sin(this.yaw), c = Math.cos(this.yaw);
-    const vx = -s * fwd + c * right, vz = -c * fwd - s * right;
-    const len = Math.hypot(vx, vz) || 1;
-    return { dx: vx / len, dy: vz / len };
-  }
 
-  /** Each frame: tell the server when the keyboard direction changes (or stops). */
-  private updateWalk() {
-    if (!this.room) return;
-    const { dx, dy } = this.keyDirection();
-    const key = !dx && !dy ? "0,0" : `${dx.toFixed(3)},${dy.toFixed(3)}`;
-    if (key === this.walkSent) return;
-    if (key !== "0,0" && this.walkSent !== "0,0") {
-      // Turning the camera while you walk: send the new way, but not every single frame.
-      const [ox, oy] = this.walkSent.split(",").map(Number);
-      if (ox * dx + oy * dy > 0.9995 || performance.now() - this.walkSentAt < 80) return;
-    }
-    this.walkSentAt = performance.now();
-    if (this.walkSent === "0,0") { this.closePanels(); this.marker.visible = false; }
-    this.walkSent = key;
-    this.room.send("walk", { dx, dy });
-  }
 
-  private closePanels() {
-    closeShop();
-    closeRepair();
-    closeCraft();
-    closeBounties();
-    closeGuild();
-    closeChest();
-    closeInfo();
-    closeDialog();
-  }
 
-  private setDist(d: number) {
-    this.dist = Math.min(MAX_DIST, Math.max(MIN_DIST, d));
-    this.saveCamera();
-  }
 
-  /** The tile under a point on the screen: trees, rocks and people first, then the ground. */
-  private tileAt(sx: number, sy: number): { x: number; y: number } | null {
-    const rect = this.renderer.domElement.getBoundingClientRect();
-    const ndc = new THREE.Vector2(((sx - rect.left) / rect.width) * 2 - 1, -((sy - rect.top) / rect.height) * 2 + 1);
-    this.raycaster.setFromCamera(ndc, this.camera);
-    // People and monsters (their tile is where they stand).
-    const actors: THREE.Object3D[] = [];
-    for (const m of this.monsters.values()) if (m.root.visible) actors.push(m.root);
-    for (const p of this.npcs.values()) actors.push(p.root);
-    for (const s of this.stations.values()) actors.push(s.root);
-    for (const [id, p] of this.players) if (id !== this.room?.sessionId) actors.push(p.root);
-    const hits = this.raycaster.intersectObjects([...actors, ...this.terrain.pickables()], true);
-    for (const h of hits) {
-      const t = this.terrain.tileOfHit(h);
-      if (t) return t;
-      for (let o: THREE.Object3D | null = h.object; o; o = o.parent) {
-        if (actors.includes(o)) {
-          return { x: Math.floor(o.position.x / TILE), y: Math.floor(o.position.z / TILE) };
-        }
-      }
-    }
-    const p = this.groundHit();
-    if (!p) return null;
-    return { x: Math.floor(p.x / TILE), y: Math.floor(p.z / TILE) };
-  }
 
-  /** Where the last click's ray meets the ground, Ember Hill's terrace and stairway included (version 0.22). */
-  private groundHit(): THREE.Vector3 | null {
-    const p = new THREE.Vector3();
-    const ray = this.raycaster.ray;
-    const top = new THREE.Plane(new THREE.Vector3(0, 1, 0), -4);
-    if (this.here.kind !== "outdoor" || !ray.intersectPlane(top, p)) return ray.intersectPlane(this.ground, p);
-    // Step down the ray from 4 m up until it's under the ground.
-    for (let i = 0; i < 80; i++) {
-      if (p.y <= groundHeightAt(p.x / TILE, p.z / TILE)) return p;
-      p.addScaledVector(ray.direction, 0.25);
-    }
-    return ray.intersectPlane(this.ground, p);
-  }
 
-  /** Where the last click's ray meets the ground, if that's inside tile (x, y). */
-  private groundSpot(x: number, y: number): THREE.Vector3 | null {
-    const p = this.groundHit();
-    if (!p) return null;
-    return Math.floor(p.x / TILE) === x && Math.floor(p.z / TILE) === y ? p : null;
-  }
 
-  private onHover(sx: number, sy: number) {
-    if (!this.room) return;
-    const now = performance.now();
-    if (now - this.lastHover < 60) return;
-    this.lastHover = now;
-    const t = this.tileAt(sx, sy);
-    if (!t) { setHoverText(null); return; }
-    this.hoverText(t.x, t.y, sx, sy);
-  }
 
-  private onClick(sx: number, sy: number) {
-    if (!this.room || this.intro) return;
-    if (this.tour) this.endTour(); // walking off on your own ends the tour
-    const t = this.tileAt(sx, sy);
-    // Townsfolk: they just say something (they aren't part of any quest).
-    const folkHit = this.raycaster.intersectObjects(this.folk.roots(), true)[0];
-    if (folkHit) {
-      for (let o: THREE.Object3D | null = folkHit.object; o; o = o.parent) {
-        if (!o.userData.folk) continue;
-        const said = this.folk.lineFor(o.userData.folk, Date.now() + this.clockOffset);
-        if (said) { this.closePanels(); openDialog(said.name, [said.line]); }
-        return;
-      }
-    }
-    if (!t) return;
-    const { x, y } = t;
-    this.closePanels();
-    this.pendingBook = null;
-    // Clicking takes over from the keys (until you press or let go of one).
-    if (this.walkSent !== "0,0") {
-      this.room.send("walk", { dx: 0, dy: 0 });
-      this.walkSent = "0,0";
-      this.walkPaused = true;
-    }
-    if (areaAt(x, y) !== this.here) return;
-    const npc = npcAt(x, y);
-    const monster = this.monsterAt(x, y);
-    const other = this.otherPlayerAt(x, y);
-    if (monster) { this.room.send("attack", { id: monster }); return; }
-    else if (other && !npc) { this.room.send("partyInvite", { id: other }); return; }
-    else if (npc) this.room.send("talk", { id: npc.id });
-    else if (MAP[y]?.[x] === "shelf") { this.readShelf(x, y); return; }
-    else if (this.isStandingTree(x, y)) this.room.send("chop", { x, y });
-    else if (this.isFullRock(x, y)) this.room.send("mine", { x, y });
-    else if (this.isFullPatch(x, y)) this.room.send("dig", { x, y });
-    else if (isFishingSpot(x, y)) this.room.send("fish", { x, y });
-    else if (lotAt(x, y) && this.plots.has(String(lotAt(x, y)!.lot))) this.room.send("farm", { x, y });
-    else if (isWalkable(x, y)) {
-      // Walk right to the spot you clicked (not just the middle of its tile).
-      const spot = this.groundSpot(x, y);
-      this.room.send("move", spot ? { x, y, fx: spot.x / TILE, fy: spot.z / TILE } : { x, y });
-      this.marker.position.copy(spot ? spot.clone().setY(groundHeight(x, y) + 0.08) : tileUp(x, y, 0.08));
-      this.marker.visible = true;
-      return;
-    } else return;
-    this.marker.position.copy(tileUp(x, y, 0.08));
-    this.marker.visible = true;
-  }
 
-  // ---------------------------------------------------------------- joining the server
 
-  private attach(room: Room, reconnected = false) {
-    this.walkSent = "0,0";
-    this.room = room;
-    setReportRoom(room);
-    crumb(reconnected ? "reconnected to the server" : "joined the game");
-    room.onMessage("message", (text: string) => showMessage(text));
-    // Carrying too much (version 0.22, Mike's note): running switches off and the 🏃 button greys out.
-    room.onMessage("heavy", (heavy: boolean) => {
-      document.getElementById("run3d")?.classList.toggle("heavy", !!heavy);
-      if (heavy) { this.runToggle = false; this.runShift = false; this.showRun(false); }
-    });
-    // Once per browser: tell them about walking with the keyboard.
-    try {
-      if (!localStorage.getItem("rpg3d.wasdTip")) {
-        localStorage.setItem("rpg3d.wasdTip", "1");
-        setTimeout(() => showMessage("Tip: walk with W A S D (forward is the way the camera faces), or click where to go. Q / E turn the camera."), 1500);
-      }
-    } catch { /* ignore */ }
-    room.onMessage("disciplines", (disciplines: DisciplineView) => { this.lastDisciplines = disciplines; renderDisciplines(disciplines); });
-    room.onMessage("levelup", (msg: { discipline: DisciplineId; level: number }) => { sfx.onLevelUp(); this.celebrateLevelUp(msg.discipline); });
-    room.onMessage("skillxp", (skillXp: SkillXp) => {
-      if (this.skillXpSeen) {
-        for (const id of Object.keys(skillXp) as SkillId[]) {
-          const gained = skillXp[id] - (this.skillXp[id] ?? 0);
-          if (gained > 0) this.floatText(`+${gained} ${findSkill(id).def.name} XP`, "#9be28a");
-        }
-      }
-      this.skillXpSeen = true;
-      this.skillXp = skillXp;
-      renderSkillXp(skillXp);
-    });
-    room.onMessage("mastery", (mastery: ItemMasteryXp) => renderMastery(mastery));
-    room.onMessage("skillup", (msg: { skill: SkillId; level: number }) => { sfx.onLevelUp(); this.celebrateSkill(msg.skill, msg.level); });
-    room.onMessage("masteryup", (msg: { resource: MasteryId; level: number }) => { sfx.onLevelUp(); this.celebrateMastery(msg.resource, msg.level); });
-    setInventoryActions({
-      drop: (slot) => room.send("drop", { slot }),
-      sell: (slot, count) => room.send("sell", { slot, count }),
-      sellAll: () => room.send("sellAll"),
-      lock: (slot, locked) => room.send("lock", { slot, locked }),
-      equip: (slot) => room.send("equip", { slot }),
-      unequip: (type: ToolType) => room.send("unequip", { type }),
-      buy: (item, count) => room.send("buy", { item, count }),
-      craft: (item, all) => room.send("craft", { item, all }),
-      eat: (slot) => room.send("eat", { slot }),
-      wear: (slot) => room.send("wear", { slot }),
-      remove: (slot) => room.send("remove", { slot }),
-      drink: (slot) => room.send("drink", { slot }),
-      spell: (id) => room.send("spell", { id }),
-      cast: (id) => room.send("cast", { id }),
-      spellBar: (bar) => room.send("spellBar", { bar }),
-      read: (slot) => room.send("read", { slot }),
-      sort: () => room.send("sortInventory"),
-      move: (from, to) => room.send("moveItem", { from, to }),
-    });
-    setTreeActions({
-      buy: (node) => room.send("treeBuy", { node }),
-      reset: (skill) => room.send("treeReset", { skill }),
-    });
-    room.onMessage("tree", (ranks: TreeRanks) => renderTreeRanks(ranks));
-    room.onMessage("discovered", (list: PotionType[]) => setDiscovered(list));
-    room.onMessage("buffs", (b: Buffs) => { setBuffs(b); this.updateDaylight(); });
-    room.onMessage("jewels", (j: Jewels) => renderJewels(j));
-    setAltarActions({
-      enchant: (msg) => room.send("enchant", msg),
-      disenchant: (slot) => room.send("disenchant", { slot }),
-    });
-    setGemActions({
-      cut: (item) => room.send("cut", { item }),
-      wearJewel: (slot) => room.send("wearJewel", { slot }),
-      removeJewel: (slot) => room.send("removeJewel", { slot }),
-    });
-    setQuestActions({ track: (bounty) => room.send("track", bounty == null ? {} : { bounty }) });
-    setAccountActions({
-      rename: (name) => room.send("rename", { name }),
-      password: (current, next) => room.send("setPassword", { current, next }),
-      color: (color) => room.send("setColor", { color }),
-      signOut: () => void this.signOut(),
-    });
-    room.onMessage("tracked", (msg: { item: ItemId | null }) => renderTracked(msg.item));
-    room.onMessage("account", (msg: { ok: boolean; text: string; name: string }) => accountResult(msg.ok, msg.text, msg.name));
-    setBountyActions({
-      handIn: (index) => room.send("handIn", { index }),
-      refresh: () => room.send("refreshBounties"),
-    });
-    room.onMessage("bounties", (msg: { bounties: Bounty[]; open: boolean }) => {
-      if (msg.open) this.marker.visible = false;
-      showBounties(msg.bounties, msg.open);
-    });
-    room.onMessage("quest", (q: QuestView) => {
-      this.npcs.forEach((p, id) => { if (p.alert) p.alert.obj.visible = q.marks.includes(id as never); });
-      this.stations.forEach((s, id) => { if (s.alert) s.alert.obj.visible = q.marks.includes(id as never); });
-      setWorldMapMarks(q.marks, q.spots);
-      this.showSpotRings(q.reach ? q.spots ?? [] : []);
-      renderQuest(q);
-      this.showStory(q);
-    });
-    room.onMessage("clock", (msg: { now: number }) => {
-      this.clockOffset = msg.now - Date.now();
-      setServerOffset(this.clockOffset);
-      this.wasNight = null;
-      this.updateDaylight();
-    });
-    room.onMessage("questDone", () => { sfx.onQuestDone(); this.floatText("Quest complete!", "#ffd84a", true); });
-    room.onMessage("vitals", (v: { hp: number; maxHp: number; mana: number; maxMana: number }) => renderVitals(v.hp, v.maxHp, v.mana, v.maxMana));
-    room.onMessage("gear", (msg: { gear: Gear; spell: BoltSpellId }) => renderGear(msg.gear, msg.spell));
-    room.onMessage("spellbook", (b: Parameters<typeof setSpellbook>[0]) => setSpellbook(b));
-    room.onMessage("partyInvite", (msg: { from: string }) => showPartyInvite(msg.from));
-    room.onMessage("partyChat", (msg: { from: string; text: string }) => addPartyChat(msg.from, msg.text));
-    setPartyActions({
-      answer: (yes) => room.send("partyAnswer", { yes }),
-      leave: () => room.send("partyLeave"),
-      kick: (id) => room.send("partyKick", { id }),
-      chat: (text) => room.send("partyChat", { text }),
-    });
-    room.onMessage("combatmastery", (m: CombatMasteryXp) => renderCombatMastery(m));
-    room.onMessage("combatmasteryup", (msg: { id: CombatMasteryId; level: number }) => {
-      sfx.onLevelUp();
-      setTimeout(() => this.floatText(`${combatMasteryName(msg.id)} Mastery ${msg.level}!`, "#7fd0ff"), 700);
-      flashCombatMastery(msg.id);
-    });
-    room.onMessage("hit", (h: { on: "monster" | "player"; id: string; damage: number; miss: boolean; spell: SpellId | null; from: string }) => {
-      if (h.on === "monster" && h.from === room.sessionId) { sfx.onFightHit(h.miss); this.lastTarget = { id: h.id, at: performance.now() }; }
-      if (h.on === "player" && h.id === room.sessionId && !h.miss) sfx.onPlayerHurt();
-      this.showHit(h);
-    });
-    room.onMessage("died", () => this.showDeath());
-    room.onMessage("dialog", (msg: { name: string; lines: string[] }) => {
-      this.marker.visible = false;
-      openDialog(msg.name, msg.lines);
-      // On a tour, this is the stop we were walking to: on to the next once it's read.
-      if (this.tour?.sent) { this.tour.stops.shift(); this.tour.sent = false; this.tour.wait = 0.6; }
-    });
-    // Keeper Oren walks you round the statues (version 0.22, Mike's note): no clicking each one.
-    room.onMessage("tour", (msg: { guide: string; stops: string[] }) => { this.tour = { guide: msg.guide, stops: [...msg.stops], sent: false, wait: 0.6, follow: 0 }; });
-    room.onMessage("intro", (msg: { name: string; lines: string[] }) => this.startIntro(msg.name, msg.lines));
-    room.onMessage("stamina", (msg: { stamina: number; max: number; winded?: number }) => renderStamina(msg.stamina, msg.max, msg.winded ?? 0));
-    room.onMessage("reward", (msg: { text: string }) => this.floatText(msg.text, "#ffd84a", true));
-    room.onMessage("caught", (msg: { id: string; item: string }) => this.players.get(msg.id)?.catchFish(msg.item));
-    room.onMessage("belt", (belt: Belt) => renderBelt(belt));
-    room.onMessage("station", (msg: { npc: string }) => { this.marker.visible = false; openCraft(msg.npc); });
-    setGuildActions({
-      buySpace: () => room.send("buyChestSpace"),
-      deposit: (slot, count) => room.send("deposit", { slot, count }),
-      withdraw: (slot, count) => room.send("withdraw", { slot, count }),
-      handIn: (index) => room.send("guildHandIn", { index }),
-      refresh: () => room.send("refreshGuild"),
-    });
-    room.onMessage("guild", (g: GuildView & { open: boolean }) => { if (g.open) this.marker.visible = false; showGuild(g, g.open); });
-    room.onMessage("chest", (c: Bag & { open: boolean }) => { if (c.open) this.marker.visible = false; showChest(c, c.open); });
-    room.onMessage("guildRank", (msg: { rank: string }) => this.floatText(`Guild ${msg.rank}!`, "#c9a2ff", true));
-    room.onMessage("bag", (bag: Bag) => {
-      renderBag(bag);
-      const total = bag.inventory.reduce((n, item, i) => n + (item ? bag.counts[i] || 1 : 0), 0);
-      if (this.bagTotal >= 0 && total > this.bagTotal) sfx.onGot(this.myAction);
-      this.bagTotal = total;
-      const lantern = bag.inventory.includes("lantern");
-      if (lantern !== this.hasLantern) { this.hasLantern = lantern; this.updateDaylight(); }
-    });
-    room.onMessage("coins", (coins: number) => renderCoins(coins));
-    room.onMessage("repair", (view: { jobs: RepairJob[]; free: boolean; open: boolean }) => { if (view.open) this.marker.visible = false; showRepairs(view); });
-    setRepairActions({
-      repair: (where, key) => this.room?.send("repair", { where, key }),
-      repairAll: () => this.room?.send("repairAll"),
-    });
-    room.onMessage("farm", (view: FarmView) => setFarm(view));
-    room.onMessage("renown", (view: RenownView) => setRenown(view));
-    setRenownActions({ title: (title) => room.send("title", { title }) });
-    setFarmActions({
-      buy: () => room.send("farmBuy"),
-      chest: () => room.send("farmChest"),
-      seed: (item) => room.send("seed", { item }),
-    });
-    room.onMessage("shop", (msg: { npc: ShopId }) => { this.marker.visible = false; openShop(msg.npc); });
-    // Messages the 2D game doesn't know about yet are fine to ignore here too.
-    room.onMessage("*", () => {});
-    const lookBtn = document.getElementById("look-btn");
-    if (lookBtn) lookBtn.onclick = () => this.editLook();
-    this.listenToState(room);
-    room.send("ready", { reconnected });
-    room.onLeave((code: number) => {
-      if (this.room !== room) return;
-      this.room = undefined;
-      crumb(`connection closed (code ${code})`);
-      if (code === 1000) this.hud.textContent = "Disconnected from server.";
-      else void this.recover(room.reconnectionToken);
-    });
-  }
 
-  private async recover(token: string) {
-    closeShop(); closeRepair(); closeCraft(); closeInfo(); closeDialog();
-    const started = Date.now();
-    for (let wait = 500; Date.now() - started < 110_000; wait = Math.min(wait * 2, 8000)) {
-      this.hud.textContent = "Reconnecting…";
-      try {
-        const room = await rejoinWorld(token);
-        this.clearWorld();
-        this.attach(room, true);
-        return;
-      } catch {
-        await new Promise((r) => setTimeout(r, wait));
-      }
-    }
-    // Couldn't get back in for almost two minutes: the server probably restarted or crashed.
-    reportCrash("disconnect", "Lost the connection to the game server and couldn't reconnect");
-    this.clearWorld();
-    this.hud.textContent = "Log in to play";
-    this.attach(await showLogin(joinWorld));
-  }
-
-  private async signOut() {
-    const room = this.room;
-    if (!room) return;
-    this.room = undefined;
-    try { await room.leave(true); } catch { /* already gone */ }
-    this.clearWorld();
-    resetForSignOut();
-    this.hud.textContent = "Log in to play";
-    this.attach(await showLogin(joinWorld));
-  }
-
-  private clearWorld() {
-    this.players.forEach((v) => v.dispose());
-    this.players.clear();
-    this.monsters.forEach((v) => v.dispose());
-    this.monsters.clear();
-    this.terrain.clearDepleted();
-    this.marker.visible = false;
-    this.lastDisciplines = undefined;
-    this.skillXpSeen = false;
-  }
 
   // ---------------------------------------------------------------- places to go (a "reach" quest step)
 
-  private spotRings: THREE.Group[] = [];
+  spotRings: THREE.Group[] = [];
   /** Embers drifting up through the Emberhall's great hall (only while you're inside). */
-  private hallEmbers: THREE.Points | null = null;
+  hallEmbers: THREE.Points | null = null;
 
-  private setHallEmbers(on: boolean) {
-    if (!on) {
-      if (this.hallEmbers) { this.scene.remove(this.hallEmbers); this.hallEmbers.geometry.dispose(); (this.hallEmbers.material as THREE.Material).dispose(); this.hallEmbers = null; }
-      return;
-    }
-    if (this.hallEmbers) return;
-    const shrine = PLACES["lighthall.heartShrine"];
-    const n = 140, pos = new Float32Array(n * 3), seed = new Float32Array(n);
-    for (let i = 0; i < n; i++) seed[i] = Math.random();
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-    const pts = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffa040, size: 0.16, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false }));
-    pts.frustumCulled = false;
-    // The great hall: 7 tiles either side of the shrine, from the north wall down to the doors.
-    pts.userData = { x0: (shrine.x - 7) * TILE, x1: (shrine.x + 8) * TILE, z0: (shrine.y - 4) * TILE, z1: (shrine.y + 21) * TILE, seed };
-    this.scene.add(pts);
-    this.hallEmbers = pts;
-  }
 
-  private updateHallEmbers() {
-    const e = this.hallEmbers;
-    if (!e) return;
-    const { x0, x1, z0, z1, seed } = e.userData as { x0: number; x1: number; z0: number; z1: number; seed: Float32Array };
-    const pos = e.geometry.attributes.position as THREE.BufferAttribute;
-    const t = this.time;
-    for (let i = 0; i < pos.count; i++) {
-      const s = seed[i], s2 = (s * 7.31) % 1, s3 = (s * 13.7) % 1;
-      // Each one rises slowly from the floor to the roof and starts again, wandering side to side as it goes.
-      const life = (t * (0.035 + s3 * 0.03) + s) % 1;
-      pos.setXYZ(i,
-        x0 + s2 * (x1 - x0) + Math.sin(t * 0.6 + s * 40) * 0.6,
-        0.3 + life * 6.5,
-        z0 + s3 * (z1 - z0) + Math.cos(t * 0.5 + s * 23) * 0.6);
-    }
-    pos.needsUpdate = true;
-    (e.material as THREE.PointsMaterial).size = 0.14 + 0.04 * Math.sin(t * 3);
-  }
-  /** A glowing ring and a soft beam of light on each place the quest wants you to walk to. */
-  private showSpotRings(spots: { x: number; y: number }[]) {
-    for (const r of this.spotRings) { this.scene.remove(r); r.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) { m.geometry.dispose(); (m.material as THREE.Material).dispose(); } }); }
-    this.spotRings = spots.map((s) => {
-      const g = new THREE.Group();
-      g.position.copy(tileCenter(s.x, s.y));
-      const ring = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.78, 40), new THREE.MeshBasicMaterial({ color: 0xffc04a, transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false }));
-      ring.rotation.x = -Math.PI / 2;
-      ring.position.y = 0.06;
-      const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.62, 3.2, 24, 1, true), new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0.18, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }));
-      beam.position.y = 1.6;
-      g.add(ring, beam);
-      g.userData.x = s.x; g.userData.y = s.y;
-      this.scene.add(g);
-      return g;
-    });
-  }
-  private updateSpotRings() {
-    if (!this.spotRings.length) return;
-    const t = performance.now() / 1000;
-    for (const g of this.spotRings) {
-      const a = this.here ? areaAt(g.userData.x, g.userData.y) === this.here : true;
-      g.visible = a;
-      const k = 1 + 0.12 * Math.sin(t * 3);
-      g.children[0].scale.set(k, k, 1);
-    }
-  }
 
-  // ---------------------------------------------------------------- the opening scene
 
-  /** A new character's first moments: wait for the character maker to close, then play the scene. */
-  private startIntro(name: string, lines: string[]) {
-    if (this.intro) return;
-    this.intro = { t: -1, name, lines, talked: false, cam: { yaw: this.yaw, pitch: this.pitch, dist: this.dist } };
-  }
 
-  private updateIntro(dt: number, me: Person | undefined) {
-    const it = this.intro;
-    if (!it || !me) return;
-    const celene = this.npcs.get("celene");
-    const home = NPCS.find((n) => n.id === "celene")!;
-    const wake = { x: Math.floor(me.root.position.x / TILE), y: Math.floor(me.root.position.z / TILE) };
-    // Lying still while the character maker is open.
-    if (it.t < 0) {
-      me.stage = 0;
-      me.faceYaw(0, true);
-      // (A brand-new character makes their look first: the character maker opens a moment after logging in.)
-      const mine = this.room?.state.players.get(this.room.sessionId);
-      it.wait = (it.wait ?? 0) + dt;
-      if (document.getElementById("creator") || (!mine?.look && it.wait < 3)) return;
-      it.t = 0;
-      document.body.classList.add("intro-on"); // the messages and quest box would give the scene away
-      // A wide shot of the Heart Shrine first.
-      this.yaw = 0.2; this.pitch = 0.85; this.dist = 24;
-      const skip = document.createElement("button");
-      skip.id = "intro-skip";
-      skip.className = "shop-btn";
-      skip.textContent = "Skip ▸";
-      skip.onclick = () => { if (this.intro) this.intro.t = Math.max(this.intro.t, INTRO_TALK); };
-      document.body.append(skip);
-      it.skip = skip;
-      // Lots of embers: they burst out of the shrine's flame, then circle the place the new hero will be.
-      const n = 240, pos = new Float32Array(n * 3);
-      const geo = new THREE.BufferGeometry();
-      geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-      it.sparks = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffb048, size: 0.3, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
-      it.sparks.frustumCulled = false;
-      this.scene.add(it.sparks);
-      me.setFaded(0);
-      me.setGlow(1);
-    }
-    const before = it.t;
-    it.t += dt;
-    const t = it.t;
-    const passed = (s: number) => before < s && t >= s;
-    const ramp = (a: number, b: number) => Math.max(0, Math.min(1, (t - a) / (b - a)));
-    const ease = (k: number) => k * k * (3 - 2 * k);
-    // The camera comes slowly down from the wide shot to you.
-    if (t < INTRO_TALK) {
-      const k = ease(ramp(1.5, 8.5));
-      this.dist = 24 + (10 - 24) * k; this.pitch = 0.85 + (0.55 - 0.85) * k; this.yaw = 0.2 + (0.35 - 0.2) * k;
-    }
-    // 0.4 - 2.4 s: the embers burst out of the flame and fly wide. 2.4 - 3.8 s: they gather into a ring round you.
-    // Then they circle, faster and tighter, and fade away by about 6 s.
-    if (it.sparks) {
-      const shrine = NPCS.find((n) => n.id === "heart_shrine")!;
-      const sx = (shrine.x + 0.5) * TILE, sz = (shrine.y + 0.5) * TILE;
-      const wx = me.root.position.x, wz = me.root.position.z;
-      const pos = it.sparks.geometry.attributes.position as THREE.BufferAttribute;
-      const burst = ease(ramp(0.4, 2.4)), gather = ease(ramp(2.4, 3.8));
-      for (let i = 0; i < pos.count; i++) {
-        const h1 = (i * 0.6180339) % 1, h2 = (i * 0.4142135) % 1, h3 = (i * 0.7320508) % 1;
-        // Out of the flame: up, then out and down in an arc.
-        const ang = h1 * Math.PI * 2, far = 2.5 + h2 * 4.5;
-        const bx = sx + Math.cos(ang) * far * burst, bz = sz + Math.sin(ang) * far * burst * 0.8;
-        const by = 2.2 + Math.sin(burst * Math.PI) * (1.5 + h3 * 2.5) + burst * (h3 * 1.2 - 0.6);
-        // Into the ring: round and round where you lie.
-        const spin = t * (1.6 + h2 * 1.2) * (1 + ramp(3.8, 5.8)) + ang;
-        const r = (1.15 + h3 * 0.5) * (1 - 0.45 * ramp(3.8, 5.8));
-        const rx = wx + Math.cos(spin) * r, rz = wz + Math.sin(spin) * r * 0.85;
-        const ry = 0.25 + h1 * 1.7 + Math.sin(t * 3 + i) * 0.08;
-        pos.setXYZ(i, bx + (rx - bx) * gather, by + (ry - by) * gather, bz + (rz - bz) * gather);
-      }
-      pos.needsUpdate = true;
-      (it.sparks.material as THREE.PointsMaterial).opacity = ramp(0.2, 0.6) * (1 - ramp(4.8, 6.2));
-      if (t > 6.3) { this.scene.remove(it.sparks); it.sparks.geometry.dispose(); (it.sparks.material as THREE.Material).dispose(); it.sparks = undefined; }
-    }
-    // 4.2 s: as the embers fade, a body of light forms in the ring, then slowly turns from glowing gold into you.
-    me.setFaded(ramp(4.2, 5.6));
-    me.setGlow(1 - ease(ramp(6.0, 8.6)));
-    // 7.6 s: Keeper Celene walks up close, reaches out her hand, and helps you up.
-    if (celene) {
-      if (passed(7.6)) celene.walkTo(home.x + 1, home.y - 1, 700);
-      if (passed(8.3)) celene.walkTo(wake.x - 1, wake.y, 700);
-      if (t > 9.0 && t < INTRO_TALK) celene.faceYaw(Math.PI / 2);
-      celene.stage = 3 - 0.35 * (ramp(9.0, 9.5) - ramp(11.0, 11.8)); // she leans down to you, then straightens with you
-      celene.reach = Math.min(ramp(9.1, 9.6), 1 - ramp(11.2, 11.9));
-    }
-    // You sit up, take her hand, get up onto one knee, then stand.
-    me.stage = ramp(9.5, 10.3) + ramp(10.4, 11.0) + ramp(11.0, 11.8);
-    // She talks.
-    if (t >= INTRO_TALK && !it.talked) {
-      it.talked = true;
-      if (celene && t - before > 0.5) celene.walkTo(wake.x - 1, wake.y, 10); // skipped: be there already
-      if (celene) { celene.stage = 3; celene.reach = 0; }
-      me.faceYaw(-Math.PI / 2);
-      me.stage = 3;
-      me.setFaded(1);
-      me.setGlow(0);
-      if (it.sparks) { this.scene.remove(it.sparks); it.sparks.geometry.dispose(); (it.sparks.material as THREE.Material).dispose(); it.sparks = undefined; }
-      it.skip?.remove();
-      openDialog(it.name, it.lines);
-    }
-    // Once you've read what she says, she goes back to her place by the shrine and the game is yours.
-    if (it.talked && !document.body.classList.contains("dialog-open")) {
-      if (celene) {
-        celene.walkTo(home.x + 1, home.y - 1, 650);
-        setTimeout(() => celene.walkTo(home.x, home.y, 650), 700);
-      }
-      this.yaw = it.cam.yaw; this.pitch = it.cam.pitch; this.dist = it.cam.dist;
-      document.body.classList.remove("intro-on");
-      this.intro = null;
-    }
-  }
 
-  private onResume() {
-    const room = this.room;
-    if (!room) return;
-    room.state.players.forEach((player: any, sessionId: string) => this.players.get(sessionId)?.place(player.x, player.y));
-  }
 
-  /** ⚙️ Settings > Change my look: the character creator. */
-  private editLook() {
-    const room = this.room;
-    const me = room?.state.players.get(room.sessionId);
-    if (!room || !me) return;
-    const current = playerRecipe(me.look, me.name, me.color);
-    openCreator(current, me.look ? "edit" : "new", (look) => room.send("setLook", { look }));
-  }
 
-  private listenToState(room: Room) {
-    const $ = getStateCallbacks(room);
-    $(room.state).depleted.onAdd((_at: number, key: string) => this.terrain.setDepleted(key, true));
-    $(room.state).depleted.onRemove((_at: number, key: string) => this.terrain.setDepleted(key, false));
 
-    $(room.state).players.onAdd((player: any, sessionId: string) => {
-      const isMe = sessionId === room.sessionId;
-      const view = new Person(undress(playerRecipe(player.look, player.name, player.color)), { name: player.name, me: isMe });
-      view.place(player.x, player.y);
-      view.onHit = (x, y) => this.terrain.hitNode(x, y);
-      if (isMe) view.onBeat = (phase, action) => (phase === "swing" ? sfx.onSwing(action) : sfx.onToolHit(action));
-      this.scene.add(view.root);
-      this.players.set(sessionId, view);
-      view.setTitle(player.title);
-      view.setRank(player.rank ?? 0);
-      if (isMe) {
-        this.focus.copy(view.root.position);
-        const a = areaAt(player.x, player.y) ?? OUTDOORS;
-        this.showArea(a, player.x, player.y);
-        updateWorldMap({ x: player.x, y: player.y }, a);
-        // First time in 3D: make your character.
-        if (!player.look) setTimeout(() => { if (this.room === room) this.editLook(); }, 800);
-      }
-      $(player).listen("x", () => this.moveTo(view, player, isMe));
-      $(player).listen("y", () => this.moveTo(view, player, isMe));
-      // Where exactly they stand (smooth movement: anywhere, not just mid-tile).
-      $(player).listen("fx", () => view.glide(player.fx, player.fy));
-      $(player).listen("fy", () => view.glide(player.fx, player.fy));
-      $(player).listen("action", (action: string) => {
-        view.setAction(action, player.faceX, player.faceY);
-        if (isMe) this.myAction = action;
-        if (isMe && action !== "idle") this.marker.visible = false;
-      });
-      $(player).listen("held", (item: string) => view.setWeapon(item || ""));
-      $(player).listen("running", (on: boolean) => {
-        view.running = !!on;
-        if (isMe) { if (!on && !this.runShift) this.runToggle = false; this.showRun(!!on); }
-      });
-      $(player).listen("faceX", () => view.setAction(player.action, player.faceX, player.faceY));
-      $(player).listen("hp", () => { view.bar.set(player.hp, player.maxHp); this.refreshParty(); });
-      $(player).listen("maxHp", () => { view.bar.set(player.hp, player.maxHp); this.refreshParty(); });
-      $(player).listen("party", () => this.refreshParty());
-      $(player).listen("partyLead", () => this.refreshParty());
-      // Players start in plain undergarments: clothes are the armor they wear.
-      $(player).listen("color", (color: number) => { if (!player.look) view.setLook(undress(playerRecipe("", player.name, color))); if (isMe) renderMe(player.name, color); });
-      $(player).listen("look", (look: string) => { if (look) view.setLook(undress(lookToRecipe(look) ?? playerRecipe("", player.name, player.color))); });
-      $(player).listen("worn", (worn: string) => view.setWorn(worn ? worn.split(",") : []));
-      $(player).listen("invisible", (inv: boolean) => view.setFaded(inv ? (isMe ? 0.4 : 0.12) : 1));
-      $(player).listen("title", (t: string) => view.setTitle(t));
-      $(player).listen("rank", (r: number) => view.setRank(r));
-      $(player).listen("tithe", () => { if (isMe) setTithe(player.tithe); });
-      $(player).listen("name", (name: string) => { view.setName(name); this.refreshParty(); if (isMe) { renderMe(name, player.color); this.updateHud(); } });
-      this.updateHud();
-    });
 
-    $(room.state).monsters.onAdd((m: any, id: string) => this.addMonster(m, id, $));
-    $(room.state).monsters.onRemove((_m: any, id: string) => { this.monsters.get(id)?.dispose(); this.monsters.delete(id); });
-
-    $(room.state).plots.onAdd((plot: any, key: string) => {
-      this.plots.set(key, plot);
-      const redraw = () => this.drawPlot(key);
-      $(plot).listen("w", redraw);
-      $(plot).listen("h", redraw);
-      $(plot).listen("owner", redraw);
-      $(plot).crops.onChange(redraw);
-      redraw();
-    });
-    $(room.state).plots.onRemove((_plot: any, key: string) => { this.plots.delete(key); this.drawPlot(key); });
-
-    $(room.state).players.onRemove((_player: any, sessionId: string) => {
-      this.players.get(sessionId)?.dispose();
-      this.players.delete(sessionId);
-      this.updateHud();
-      this.refreshParty();
-    });
-  }
-
-  /** A footstep for every tile's length you walk (in any direction), on whatever ground is under you. */
-  private footsteps(me: Person) {
-    const p = me.root.position;
-    const d = Math.hypot(p.x - this.lastStepAt.x, p.z - this.lastStepAt.z);
-    if (d > TILE * 3) this.lastStepAt.copy(p); // through a door: no step
-    else if (d >= TILE * 0.95) {
-      this.lastStepAt.copy(p);
-      sfx.onStep(Math.floor(p.x / TILE), Math.floor(p.z / TILE));
-    }
-  }
-
-  private moveTo(view: Person, player: any, isMe: boolean) {
-    const a = areaAt(player.x, player.y) ?? OUTDOORS;
-    view.root.userData.show = a === this.here || isMe;
-    if (!isMe) return;
-    if (this.pendingBook && Math.max(Math.abs(this.pendingBook.x - player.x), Math.abs(this.pendingBook.y - player.y)) <= 1) {
-      const b = this.pendingBook; this.pendingBook = null;
-      this.openBook(b.x, b.y);
-    }
-    if (this.marker.visible && Math.floor(this.marker.position.x / TILE) === player.x && Math.floor(this.marker.position.z / TILE) === player.y) this.marker.visible = false;
-    if (a !== this.here) {
-      // Through a door: the server stopped your keyboard walk, so wait for a fresh key press.
-      if (this.walkSent !== "0,0") { this.walkSent = "0,0"; this.walkPaused = true; }
-      // Building a new place can take a moment (the first time outside most of all), so put up
-      // "Building the world…" first and swap places a couple of frames later, once it's on screen.
-      if (this.loading) this.loading.style.display = "flex";
-      this.areaHold = 2;
-      this.areaSwitch = () => {
-        this.showArea(a, player.x, player.y);
-        this.marker.visible = false;
-        this.focus.copy(tileCenter(player.x, player.y));
-        view.place(player.x, player.y);
-        this.floatText(a.name, a.danger ? "#ff9a8a" : "#ffe9a8", true);
-        updateWorldMap({ x: player.x, y: player.y }, a);
-      };
-    } else if (!this.areaSwitch) {
-      this.terrain.setCenter(player.x, player.y);
-      if ((player.x + player.y) % 3 === 0) updateWorldMap({ x: player.x, y: player.y }, a);
-    }
-  }
-
-  // ---------------------------------------------------------------- areas, NPCs and lighting
-
-  private showArea(a: AreaDef, x: number, y: number) {
-    if (this.here !== a) crumb(`entered ${a.name ?? a.id}`);
-    this.here = a;
-    this.terrain.setArea(a);
-    this.terrain.setCenter(x, y);
-    for (const s of this.signLabels) { s.parent?.remove(s); s.element.remove(); }
-    this.signLabels = [];
-    for (const s of this.terrain.signs) {
-      const l = label("sign3d", s.text);
-      l.obj.position.copy(s.at);
-      this.scene.add(l.obj);
-      this.signLabels.push(l.obj);
-    }
-    const inArea = (px: number, py: number) => areaAt(px, py) === a;
-    this.npcs.forEach((p, id) => { const n = NPCS.find((d) => d.id === id)!; p.root.userData.show = inArea(n.x, n.y); });
-    this.stations.forEach((s, id) => { const n = NPCS.find((d) => d.id === id)!; s.root.userData.show = inArea(n.x, n.y); });
-    this.room?.state.players.forEach((pl: any, id: string) => { const v = this.players.get(id); if (v) v.root.userData.show = inArea(pl.x, pl.y) || id === this.room!.sessionId; });
-    this.room?.state.monsters?.forEach((m: any, id: string) => { const v = this.monsters.get(id); if (v) v.root.userData.show = m.alive && inArea(m.x, m.y); });
-    this.plotViews.forEach((v, key) => { const lot = LOTS[Number(key)]; v.group.visible = !!lot && a === areaAt(lot.x, lot.y); });
-    this.setHallEmbers(a.id === "lighthall");
-    this.sky.object.visible = a.kind === "outdoor";
-    this.scene.background = a.kind === "outdoor" ? null : new THREE.Color(0x000000);
-    this.updateDaylight();
-  }
 
   /** Keeper Oren's tour: where we're going next, and the guide walking beside you. */
-  private tour: { guide: string; stops: string[]; sent: boolean; wait: number; follow: number } | null = null;
+  tour: { guide: string; stops: string[]; sent: boolean; wait: number; follow: number } | null = null;
 
-  private updateTour(dt: number) {
-    const t = this.tour;
-    if (!t || !this.room) return;
-    const guide = this.npcs.get(t.guide);
-    const me = this.players.get(this.room.sessionId);
-    // The guide keeps beside you (a step behind and to the side), walking at your pace.
-    if (guide && me && (t.follow -= dt) <= 0) {
-      t.follow = 0.4;
-      const px = Math.round(me.root.position.x / TILE - 0.5), py = Math.round(me.root.position.z / TILE - 0.5);
-      const spots = [[1, 1], [-1, 1], [1, 0], [-1, 0], [0, 1], [1, -1], [-1, -1]].map(([dx, dy]) => ({ x: px + dx, y: py + dy })).filter((c) => isWalkable(c.x, c.y) && !npcAt(c.x, c.y));
-      const g = { x: guide.root.position.x / TILE - 0.5, y: guide.root.position.z / TILE - 0.5 };
-      const best = spots.sort((a, b) => Math.hypot(a.x - g.x, a.y - g.y) - Math.hypot(b.x - g.x, b.y - g.y))[0];
-      if (best && Math.hypot(best.x - g.x, best.y - g.y) > 0.5) guide.walkTo(best.x, best.y, TICK_MS);
-    }
-    if (document.body.classList.contains("dialog-open")) return;
-    if ((t.wait -= dt) > 0) return;
-    if (!t.stops.length) return this.endTour();
-    if (!t.sent) { t.sent = true; this.room.send("talk", { id: t.stops[0] }); }
-  }
 
-  /** The tour's over (or you walked off): the guide goes back to their spot. */
-  private endTour() {
-    const t = this.tour;
-    this.tour = null;
-    const def = t && NPCS.find((n) => n.id === t.guide);
-    if (def) this.npcs.get(def.id)?.walkTo(def.x, def.y, TICK_MS * 1.5);
-  }
 
-  private drawNpcs() {
-    for (const npc of NPCS) {
-      if (npc.kind === "station") {
-        const s = makeStation(npc);
-        this.scene.add(s.root);
-        this.stations.set(npc.id, s);
-        continue;
-      }
-      const p = new Person(npcRecipe(npc), { name: npc.name, npc: true, badge: npc.badge });
-      p.place(npc.x, npc.y);
-      this.scene.add(p.root);
-      this.npcs.set(npc.id, p);
-    }
-  }
 
-  /** 0 in the day, 1 at night (what lanterns and windows light up with). */
-  private nightLevel(): number {
-    if (this.here.kind !== "outdoor") return this.here.kind === "cave" ? 1 : 0.6;
-    return darkness(Date.now() + this.clockOffset);
-  }
 
-  private updateDaylight() {
-    const now = Date.now() + this.clockOffset;
-    const fog = this.scene.fog as THREE.Fog;
-    if (this.here.kind === "outdoor") {
-      // Blend between the gallery's day, sunset and night lighting.
-      let d = darkness(now) * (this.hasLantern ? 0.75 : 1);
-      if (nightSightOn()) d = Math.min(d, 0.15);
-      const a = d < 0.5 ? SKY_TIMES.day : SKY_TIMES.sunset, b = d < 0.5 ? SKY_TIMES.sunset : SKY_TIMES.night;
-      const k = d < 0.5 ? d * 2 : (d - 0.5) * 2;
-      const c = (x: number, y: number) => new THREE.Color(x).lerp(new THREE.Color(y), k);
-      this.hemi.color.copy(c(a.hemi[0] as number, b.hemi[0] as number));
-      this.hemi.groundColor.copy(c(a.hemi[1] as number, b.hemi[1] as number));
-      this.hemi.intensity = (a.hemi[2] as number) * (1 - k) + (b.hemi[2] as number) * k;
-      this.sun.color.copy(c(a.sun[0] as number, b.sun[0] as number));
-      this.sun.intensity = (a.sun[1] as number) * (1 - k) + (b.sun[1] as number) * k;
-      const dir = new THREE.Vector3(...(a.dir as unknown as [number, number, number])).lerp(new THREE.Vector3(...(b.dir as unknown as [number, number, number])), k).normalize();
-      this.sun.position.copy(this.focus).addScaledVector(dir, 60);
-      this.renderer.toneMappingExposure = a.exposure * (1 - k) + b.exposure * k;
-      fog.color.copy(c(a.fog, b.fog));
-      fog.near = 40; fog.far = 95;
-      this.sky.setTime(d < 0.25 ? "day" : d < 0.75 ? "sunset" : "night");
-    } else {
-      const cave = this.here.kind === "cave";
-      // The Emberhall glows warm, like firelight (version 0.14).
-      const ember = this.here.id === "lighthall";
-      this.hemi.color.setHex(cave ? 0x8a8ab0 : ember ? 0xffdcb0 : 0xfff0d8);
-      this.hemi.groundColor.setHex(cave ? 0x1a1814 : ember ? 0x6a3a20 : 0x5a4a38);
-      this.hemi.intensity = cave ? 0.7 : ember ? 1.15 : 1.3;
-      this.sun.color.setHex(cave ? 0xffb070 : ember ? 0xffc890 : 0xfff1d6);
-      this.sun.intensity = cave ? 0.7 : 1.4;
-      this.sun.position.copy(this.focus).add(new THREE.Vector3(10, 40, 20));
-      this.renderer.toneMappingExposure = 1.05;
-      fog.color.setHex(0x000000);
-      fog.near = 30; fog.far = 80;
-    }
-    tickBuffs();
-    const night = isNight(now);
-    if (this.wasNight !== null && night !== this.wasNight && this.room) showMessage(night ? "🌙 Night falls over the town." : "☀️ The sun comes up.");
-    this.wasNight = night;
-    const clock = document.getElementById("clock");
-    if (clock) {
-      const mins = minutesUntilChange(now);
-      clock.textContent = night ? "🌙" : "☀️";
-      clock.title = night ? `Night. The sun comes up in about ${mins} minute${mins === 1 ? "" : "s"}.` : `Day. Night falls in about ${mins} minute${mins === 1 ? "" : "s"}.`;
-    }
-  }
 
-  /** Lit lanterns and shrines, and 📍 where your quest sends you. */
-  private showStory(q: QuestView) {
-    const lit = new Set<string>(q.lit ?? []);
-    this.stations.forEach((s, id) => s.setLit?.(lit.has(id)));
-    for (const o of this.spotMarks) { o.parent?.remove(o); if (o instanceof CSS2DObject) o.element.remove(); }
-    this.spotMarks = [];
-    for (const s of q.spots ?? []) {
-      const ring = new THREE.Mesh(new THREE.RingGeometry(0.7, 0.95, 32), new THREE.MeshBasicMaterial({ color: 0xffd84a, transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide }));
-      ring.rotation.x = -Math.PI / 2;
-      ring.position.copy(tileUp(s.x, s.y, 0.1));
-      const pin = label("pin3d", "📍");
-      pin.obj.position.copy(tileUp(s.x, s.y, 2));
-      this.scene.add(ring, pin.obj);
-      this.spotMarks.push(ring, pin.obj);
-    }
-  }
 
-  /** Click a bookshelf: walk up to it, then take a book down and read it. */
-  private readShelf(x: number, y: number) {
-    const me = this.room && this.room.state.players.get(this.room.sessionId);
-    if (!me) return;
-    // The restricted section's shelves (version 0.21): behind the grille, out of reach.
-    const g = PLACES["lighthall.grille"];
-    if (this.here.id === "lighthall" && g && y > g.y + 1 && x < g.x + 6) { showMessage("Those shelves are behind the restricted section's iron grille. It's locked."); return; }
-    if (Math.max(Math.abs(me.x - x), Math.abs(me.y - y)) <= 1) { this.openBook(x, y); return; }
-    // The free tile next to the shelf that's closest to us.
-    let best: { x: number; y: number } | null = null, bd = Infinity;
-    for (const [dx, dy] of [[0, 1], [0, -1], [1, 0], [-1, 0], [1, 1], [-1, 1], [1, -1], [-1, -1]]) {
-      const nx = x + dx, ny = y + dy;
-      if (!isWalkable(nx, ny) || areaAt(nx, ny) !== this.here) continue;
-      const d = Math.hypot(nx - me.x, ny - me.y);
-      if (d < bd) { bd = d; best = { x: nx, y: ny }; }
-    }
-    if (!best) { this.openBook(x, y); return; }
-    this.pendingBook = { x, y };
-    this.room!.send("move", best);
-    this.marker.position.copy(tileUp(best.x, best.y, 0.08));
-    this.marker.visible = true;
-  }
 
-  private openBook(x: number, y: number) {
-    const book = bookAt(this.here.id, x, y);
-    this.marker.visible = false;
-    openDialog(`📖 ${book.title}`, book.pages);
-  }
 
-  // ---------------------------------------------------------------- floating text and effects
 
-  private floatText(text: string, color: string, big = false) {
-    const me = this.room && this.players.get(this.room.sessionId);
-    if (!me) return;
-    const l = label("float3d" + (big ? " big" : ""), "");
-    l.el.textContent = text;
-    l.el.style.color = color;
-    const start = me.root.position.clone().setY(2.6);
-    l.obj.position.copy(start);
-    this.scene.add(l.obj);
-    this.effects.push({ obj: l.obj, t: 0, life: big ? 2.5 : 1.4, step: (f) => { l.obj.position.y = start.y + f * (big ? 2.2 : 1.4); l.el.style.opacity = String(1 - f * f); } });
-  }
 
-  private celebrateLevelUp(discipline: DisciplineId) {
-    setTimeout(() => this.floatText(`${DISCIPLINES[discipline].name} level up!`, "#ffd84a", true), 350);
-    flashDiscipline(discipline);
-    const me = this.room && this.players.get(this.room.sessionId);
-    if (!me) return;
-    const ring = new THREE.Mesh(new THREE.RingGeometry(0.5, 0.7, 32), new THREE.MeshBasicMaterial({ color: 0xffd84a, transparent: true, depthWrite: false, side: THREE.DoubleSide }));
-    ring.rotation.x = -Math.PI / 2;
-    ring.position.copy(me.root.position).setY(0.15);
-    this.scene.add(ring);
-    this.effects.push({ obj: ring, t: 0, life: 0.9, step: (f) => { ring.scale.setScalar(1 + f * 4); (ring.material as THREE.MeshBasicMaterial).opacity = 1 - f; } });
-  }
 
-  private celebrateSkill(skill: SkillId, level: number) {
-    setTimeout(() => this.floatText(`${findSkill(skill).def.name} level ${level}!`, "#ffd84a", true), 350);
-    flashSkillRow(skill);
-  }
 
-  private celebrateMastery(type: MasteryId, level: number) {
-    setTimeout(() => this.floatText(`${masteryName(type)} Mastery ${level}!`, "#7fd0ff"), 700);
-    flashMastery(type);
-  }
 
-  private showHit(h: { on: "monster" | "player"; id: string; damage: number; miss: boolean; spell: SpellId | null; from: string }) {
-    const target = h.on === "monster" ? this.monsters.get(h.id) : this.players.get(h.id);
-    if (!target || !target.root.visible) return;
-    if (h.on === "monster" && !h.miss) (target as MonsterView).hit();
-    if (h.on === "player") this.monsters.get(h.from)?.attack();
-    const icon = h.spell === "fire_blast" ? "🔥" : h.spell === "frost_bolt" ? "❄️" : h.spell === "sleep" ? "💤" : h.spell === "frost_nova" ? "🌨️" : (h.spell as string) === "poison" ? "☠️" : (h.spell as string) === "lightning" ? "⚡" : "";
-    const at = target.root.position.clone().setY(1.4);
-    if (icon && !h.miss) {
-      const fx = label("splash3d", icon);
-      fx.obj.position.copy(at);
-      this.scene.add(fx.obj);
-      this.effects.push({ obj: fx.obj, t: 0, life: 0.5, step: (f) => { fx.el.style.transform = `scale(${1 + f})`; fx.el.style.opacity = String(1 - f); } });
-    }
-    if (h.spell === "sleep" && !h.miss) return;
-    const t = label("splat3d " + (h.miss ? "miss" : h.on === "player" ? "hurt" : "dmg"), h.miss ? "0" : String(h.damage));
-    const start = at.clone().add(new THREE.Vector3((Math.random() - 0.5) * 0.4, 0, 0));
-    t.obj.position.copy(start);
-    this.scene.add(t.obj);
-    this.effects.push({ obj: t.obj, t: 0, life: 0.9, step: (f) => { t.obj.position.y = start.y + f * 0.9; t.el.style.opacity = String(1 - f * f); } });
-  }
 
-  private showDeath() {
-    const flash = document.getElementById("flash3d");
-    if (flash) { flash.classList.remove("on"); void flash.offsetWidth; flash.classList.add("on"); }
-    setTimeout(() => this.floatText("You were knocked out!", "#ff7a6a", true), 300);
-  }
 
-  // ---------------------------------------------------------------- monsters
 
-  private addMonster(m: any, id: string, $: ReturnType<typeof getStateCallbacks>) {
-    const def = MONSTERS[m.kind as MonsterId];
-    const view = new MonsterView(m.kind, id.length * 7 + (m.x ?? 0), def?.name ?? m.kind, !!def?.aggressive);
-    view.place(m.x, m.y);
-    this.scene.add(view.root);
-    this.monsters.set(id, view);
-    const inArea = () => areaAt(m.x, m.y) === this.here;
-    view.root.userData.show = m.alive && inArea();
-    view.alive = m.alive;
-    const move = () => { view.walkTo(m.x, m.y); if (m.alive) view.root.userData.show = inArea(); };
-    $(m).listen("x", move);
-    $(m).listen("y", move);
-    $(m).listen("hp", () => view.bar.set(m.hp, m.maxHp));
-    $(m).listen("alive", (alive: boolean) => {
-      if (alive) { view.place(m.x, m.y); view.setAlive(true); view.root.userData.show = inArea(); }
-      else {
-        view.setAlive(false);
-        if (this.lastTarget.id === id && performance.now() - this.lastTarget.at < 4000) sfx.onMonsterDefeated();
-      }
-    });
-    $(m).listen("status", (st: string) => view.setStatus(st));
-  }
 
-  private updateTrapGlows() {
-    const state = this.room?.state;
-    if (!state?.monsters) return;
-    const tick = state.tick as number;
-    const blinkTicks = Math.round(TRAP_BLINK_SECONDS * 1000 / TICK_MS);
-    const on = Math.floor(Date.now() / 200) % 2 === 0;
-    state.monsters.forEach((m: any, id: string) => {
-      const left = m.alive && m.trappedUntil ? m.trappedUntil - tick : 0;
-      this.monsters.get(id)?.setTrapped(left > 0 && (left > blinkTicks || on));
-    });
-  }
 
-  private monsterAt(x: number, y: number): string | null {
-    let found: string | null = null;
-    this.room?.state.monsters?.forEach((m: any, id: string) => { if (m.alive && m.x === x && m.y === y) found = id; });
-    return found;
-  }
 
-  private otherPlayerAt(x: number, y: number): string | null {
-    const room = this.room;
-    if (!room) return null;
-    const me = room.state.players.get(room.sessionId);
-    let found: string | null = null;
-    room.state.players.forEach((pl: any, id: string) => {
-      if (id !== room.sessionId && pl.x === x && pl.y === y && !pl.invisible && !(me?.party && pl.party === me.party)) found = id;
-    });
-    return found;
-  }
 
-  private refreshParty() {
-    const room = this.room;
-    if (!room) return;
-    const me = room.state.players.get(room.sessionId);
-    const mine = me?.party ?? "";
-    const members: PartyMember[] = [];
-    room.state.players.forEach((pl: any, id: string) => {
-      const view = this.players.get(id);
-      const mate = !!mine && pl.party === mine;
-      if (view && id !== room.sessionId) view.setNameColor(mate ? "#7dff8a" : null);
-      if (mate) members.push({ id, name: pl.name, hp: pl.hp, maxHp: pl.maxHp, lead: pl.partyLead, me: id === room.sessionId });
-    });
-    members.sort((a, b) => Number(b.lead) - Number(a.lead) || a.name.localeCompare(b.name));
-    renderParty(members, !!me?.partyLead);
-  }
 
-  // ---------------------------------------------------------------- what's where (same rules as the 2D game)
 
-  private isStandingTree(x: number, y: number) { return MAP[y]?.[x] === "tree" && !this.terrain.isDepleted(treeKey(x, y)); }
-  private isFullRock(x: number, y: number) { return MAP[y]?.[x] === "rock" && !this.terrain.isDepleted(treeKey(x, y)); }
-  private isFullPatch(x: number, y: number) { return MAP[y]?.[x] === "dig" && !this.terrain.isDepleted(treeKey(x, y)); }
 
-  private lockNote(type: ResourceId) {
-    const r = RESOURCES[type];
-    const { def } = findSkill(r.skill);
-    if (!isUnlocked(this.lastDisciplines?.unlocked ?? [], r.skill)) return ` (learn ${def.name} first)`;
-    return levelForXp(this.skillXp[r.skill] ?? 0) < r.level ? ` (${def.name} level ${r.level})` : "";
-  }
 
-  private myName(): string { return this.room?.state.players.get(this.room.sessionId)?.name ?? ""; }
 
-  private hoverText(x: number, y: number, px: number, py: number) {
-    const el = this.renderer.domElement;
-    if (areaAt(x, y) !== this.here) { setHoverText(null); el.style.cursor = "default"; return; }
-    const door = doorAt(x, y);
-    const npc = npcAt(x, y);
-    const monster = this.monsterAt(x, y);
-    const other = this.otherPlayerAt(x, y);
-    const t = MAP[y]?.[x];
-    if (other && !monster && !npc) setHoverText("Invite", `${this.room!.state.players.get(other).name} to your party`, px, py);
-    else if (monster) {
-      const m = this.room!.state.monsters.get(monster);
-      const def = MONSTERS[m.kind as MonsterId];
-      setHoverText("Attack", `${def.name} (level ${def.level})${def.aggressive ? " ⚠" : ""}`, px, py);
-    } else if (npc) setHoverText(npc.id.startsWith("lantern_") || npc.id.startsWith("round_") ? "Light" : npc.id === "board" || npc.id === "guildboard" ? "Read" : npc.name === "Enchanted chest" ? "Open" : npc.kind === "station" ? "Use" : "Talk-to", npc.name, px, py);
-    else if (this.isStandingTree(x, y)) { const type = nodeAt(x, y)!; setHoverText("Chop down", RESOURCES[type].node + this.lockNote(type), px, py); }
-    else if (t === "tree") setHoverText("Examine", `${RESOURCES[nodeAt(x, y)!].node} stump`, px, py);
-    else if (this.isFullRock(x, y)) { const type = nodeAt(x, y)!; setHoverText("Mine", RESOURCES[type].node + this.lockNote(type), px, py); }
-    else if (t === "rock") setHoverText("Examine", `Empty ${RESOURCES[nodeAt(x, y)!].node.toLowerCase()}`, px, py);
-    else if (this.isFullPatch(x, y)) setHoverText("Dig", "Dig patch" + this.lockNote("dig"), px, py);
-    else if (t === "dig") setHoverText("Examine", "Dug-out patch (it glints again soon)", px, py);
-    else if (door) setHoverText(door.label.startsWith("Leave") || door.label.startsWith("Back") || door.label.startsWith("Go") ? door.label : "Enter", door.label.replace(/^Enter /, ""), px, py);
-    else if (this.here.danger && (t === "cave" || t === "crystal")) setHoverText(`⚠ ${this.here.name}:`, "monsters here attack on sight!", px, py);
-    else if (t === "lockeddoor") setHoverText("Locked", this.here.id === "lighthall" ? "the restricted section: barred" : "a heavy door with a gold lock", px, py);
-    else if (t === "grille") setHoverText("Iron grille", "the restricted section, locked", px, py);
-    else if (t === "barricade") setHoverText("Road closed:", "the Ashen Barrens lie beyond. The Watch has shut the road.", px, py);
-    else if (lotAt(x, y)) {
-      const at = lotAt(x, y)!;
-      const plot = this.plots.get(String(at.lot));
-      const c = plot && inPlot(at.index, plot.w, plot.h) ? decodeCrop(plot.crops[at.index]) : null;
-      const now = serverNow();
-      if (!plot) setHoverText("Walk here", "Free farm lot (Farmer Odo sells plots)", px, py);
-      else if (!inPlot(at.index, plot.w, plot.h)) setHoverText("Examine", `${plot.owner}'s lot (not planted yet)`, px, py);
-      else if (!c) setHoverText(plot.owner === this.myName() ? "Plant" : "Examine", `Empty soil in ${plot.owner}'s farm`, px, py);
-      else if (now >= c.ripeAt) setHoverText(plot.owner === this.myName() ? "Harvest" : "Examine", `Ripe ${ITEMS[CROPS[c.crop].produce].name.toLowerCase()}`, px, py);
-      else setHoverText("Examine", `${ITEMS[CROPS[c.crop].produce].name}, ripe in ${timeLeft(c.ripeAt - now)}`, px, py);
-    } else if (isFishingSpot(x, y)) { const type = fishAt(x, y)!; setHoverText("Fish", RESOURCES[type].node + this.lockNote(type), px, py); }
-    else if (t === "sign") {
-      if (y < 90) setHoverText("⚠ Road closed:", "the Ashen Barrens lie beyond, where the Withering began.", px, py);
-      else setHoverText("⚠ Danger:", "the Dark Forest. Monsters attack on sight!", px, py);
-    } else if (t === "gate") setHoverText("Walk into", "the Dark Forest ⚠", px, py);
-    else if (isWalkable(x, y)) setHoverText("Walk here", "", px, py);
-    else setHoverText(null);
-    el.style.cursor = npc || monster || door || this.isStandingTree(x, y) || this.isFullRock(x, y) || this.isFullPatch(x, y) || isFishingSpot(x, y) ? "pointer" : "default";
-  }
-
-  // ---------------------------------------------------------------- farm plots
-
-  private drawPlot(key: string) {
-    const lot = LOTS[Number(key)];
-    if (!lot) return;
-    let view = this.plotViews.get(key);
-    if (view) { this.scene.remove(view.group); view.sign.element.remove(); view.crops.forEach((c) => c.element.remove()); }
-    const group = new THREE.Group();
-    group.visible = this.here === areaAt(lot.x, lot.y);
-    const plot = this.plots.get(key);
-    const sign = label("sign3d small", plot ? `${plot.owner}'s farm` : "Free lot: ask Farmer Odo");
-    sign.obj.position.copy(tileCenter(lot.x, lot.y)).add(new THREE.Vector3(LOT_SIZE * TILE / 2 - TILE / 2, 1.2, -TILE / 2));
-    group.add(sign.obj);
-    const crops: CSS2DObject[] = [];
-    const now = serverNow();
-    const soilMat = new THREE.MeshStandardMaterial({ color: 0x6b4423, roughness: 1 });
-    for (let i = 0; i < LOT_SIZE * LOT_SIZE; i++) {
-      if (!plot || !inPlot(i, plot.w, plot.h)) continue;
-      const t = tileOf(Number(key), i);
-      const soil = new THREE.Mesh(new THREE.BoxGeometry(TILE * 0.92, 0.12, TILE * 0.92), soilMat);
-      soil.position.copy(tileUp(t.x, t.y, 0.06));
-      soil.receiveShadow = true;
-      group.add(soil);
-      const c = decodeCrop(plot.crops[i]);
-      if (!c) continue;
-      const g = growth(c, now);
-      const l = label("crop3d", g >= 1 ? ITEMS[CROPS[c.crop].produce].icon : g < 0.34 ? "🌱" : "🌿");
-      l.el.style.fontSize = `${Math.round(14 + g * 12)}px`;
-      l.obj.position.copy(tileUp(t.x, t.y, 0.5));
-      group.add(l.obj);
-      crops.push(l.obj);
-    }
-    this.scene.add(group);
-    view = { group, sign: sign.obj, crops };
-    this.plotViews.set(key, view);
-  }
-
-  private redrawPlots() { for (const key of this.plotViews.keys()) this.drawPlot(key); }
-
-  private updateHud() { this.hud.textContent = `${this.players.size} player(s) online`; }
 }
+
+type CameraMethods = typeof cameraMethods;
+type InputMethods = typeof inputMethods;
+type NetworkMethods = typeof networkMethods;
+type EffectsMethods = typeof effectsMethods;
+type StoryMethods = typeof storyMethods;
+type DaylightMethods = typeof daylightMethods;
+type FarmMethods = typeof farmMethods;
+export interface World3D extends CameraMethods, InputMethods, NetworkMethods, EffectsMethods, StoryMethods, DaylightMethods, FarmMethods {}
+Object.assign(World3D.prototype, cameraMethods, inputMethods, networkMethods, effectsMethods, storyMethods, daylightMethods, farmMethods);

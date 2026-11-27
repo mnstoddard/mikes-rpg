@@ -422,13 +422,17 @@ Rules live in `shared/tools.ts` (metals, woods, bonuses, uses), `shared/crafting
 |---|---|
 | `shared/map.ts` | The map (drawn as text for now), tile rules, tick length |
 | `shared/pathfinding.ts` | A* pathfinding used by the server |
-| `server/src/WorldRoom.ts` | The game room: players joining/leaving, the tick loop, move requests |
+| `server/src/WorldRoom.ts` | The game room: players joining/leaving, the tick loop, autosave |
+| `server/src/room/` | The game room's features, one file each: movement, gathering, crafting, combat, quests, shops, guild, party, farming, magic, repair, bag, stats, saves, settings (plus `schema.ts` for the synced state and `common.ts` for shared helpers) |
 | `server/src/index.ts` | Starts the Colyseus game server on port 2567 |
 | `server/src/storage.ts` | Accounts, password hashing, and saving to Postgres or a local file |
 | `client/src/login.ts` | The login / create account box |
 | `client/src/WorldScene.ts` | Phaser scene: draws the map and players, handles clicks |
 | `client/src/network.ts` | Connects to the game server |
-| `client/src/ui.ts` | Inventory panel, message box, hover text |
+| `client/src/ui.ts` | Gathers the windows and panels (used by both the 2D and 3D game) |
+| `client/src/ui/` | One file per window: bag, skills, messages, shop, craft, guild, info card, vitals, quests, repair, settings, party (`core.ts` holds what they share) |
+| `client3d/src/game/world.ts` | The 3D game: the scene and the frame loop |
+| `client3d/src/game/world/` | The 3D game's parts: camera, input, network (server messages), effects, story, daylight, farm |
 | `shared/foraging.ts` | Chop chance, tree fall chance, regrow time |
 | `shared/items.ts` | Every item (gathered, bars, tools) and inventory size |
 | `shared/tools.ts` | Metals, woods, tool bonuses and how long tools last |
