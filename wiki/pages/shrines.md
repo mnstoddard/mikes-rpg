@@ -21,7 +21,7 @@ Right after the Fall, each member of [[The Ember Circle]] raised a **great shrin
 | The Blackfen great shrine | [[Blackfen]] | Reed |
 | The frozen shrine | [[Frostfell]] | [[Wick]]. Frozen since the [[Sundering War]] |
 
-Over the centuries the Emberguard built **small shrines** along every road, so an Emberborn is never far from one. In [[Heartvale]] there's the Westroad shrine, rebuilt in Act 1, and a new shrine at the valley's edge, lit at the end of Act 1 (the game today puts it at the Thornwood's edge). Each region's great shrine is kept by an [[Emberwardens|Emberwarden]].
+Over the centuries the Emberguard built **small shrines** along every road, so an Emberborn is never far from one. In [[Heartvale]] there's the Westroad shrine, rebuilt in Act 1, and a new shrine at the valley's edge in the north-east foothills, lit at the end of Act 1. Each region's great shrine is kept by an [[Emberwardens|Emberwarden]].
 
 The Drowned Shrine off [[Saltmere Coast]], one of the oldest small shrines, sank with a carving that still reads: *"The shrines shall close when the land is healed."*
 

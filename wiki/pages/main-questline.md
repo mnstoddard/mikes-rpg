@@ -39,8 +39,7 @@ On claude.ai you can filter this list, and move quests up and down to try a new 
 | Act 1 | Quest | Odo's Stubborn Field |  |  |  |
 | Act 1 | Quest | The Hollow Wolves |  |  |  |
 | Act 1 | Quest | Maren's Question |  |  |  |
-| Act 1 | Quest | A Flame in the Thornwood |  |  | To be replaced by A Flame at the Valley's Edge. |
-| Act 1 | Quest | A Flame at the Valley's Edge | [[Heartvale]] | Keeper Aldric | Escort two Emberguard to the valley's edge and light a new roadside shrine. You meet [[Rhys]]. You become a Flame. |
+| Act 1 | Quest | A Flame at the Valley's Edge |  |  |  |
 | Act 2 | Quest | Arrival: Thornwood | [[The Thornwood]] | Warden Crowe | Walk the King's Road, reach the city, meet the Emberwarden, help the town and learn the local trouble. Any order. |
 | Act 2 | Quest | Arrival: Greyspine Peaks | [[Greyspine Peaks]] | Warden Flint | Walk the King's Road, reach the city, meet the Emberwarden, help the town and learn the local trouble. Any order. |
 | Act 2 | Quest | Arrival: Tangle | [[The Tangle]] | Warden Ivy | Walk the King's Road, reach the city, meet the Emberwarden, help the town and learn the local trouble. Any order. |

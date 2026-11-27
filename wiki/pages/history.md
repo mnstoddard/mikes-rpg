@@ -31,10 +31,6 @@ The game takes place in **year 800 After the Fall**. Oldest first. For the offic
 
 ## What the game still says
 
-This timeline was settled after the latest game update. Until Mike's next update, the game's own text still follows the older story:
+The game's books, the Emberhall and Act 1 now follow this timeline: the year is 800, the old kingdom is Aldmera, the books blame Wick for the Fall, the empty plinth shows a **W**, embers drift through the Emberhall, and the Act 1 clues show the land dying farthest from the shrines. One thing still follows the older story:
 
-- The books and quest text say the game is set **500 years** after the Fall, and talk about the "Old Kingdom" and a war over shards.
-- The empty plinth in the Emberhall shows the letter **S**. In the new story it's Wick's plinth, so it will become a **W**.
 - [[Old Maren]] is the fishing teacher. In the new story she's a kindly old woman who helps the Emberborn, and not an Emberborn herself.
-- There are no floating embers in the Emberhall yet.
-- The Act 1 clues still say the shrines kill the land near them: Holt counts 28 dead trees near shrines and 2 far away, the rebuilt Westroad shrine browns the grass, Kael says the Blight is worst downhill of a shrine, and Odo says the ground got tired once the shrines came. Two books say the same (*The Withering: notes from the Barrens* and *Herbs of the Valley*). In the new story the shrines are good, and the land dies far from them because Vale drains them (see [[The shrines]]).

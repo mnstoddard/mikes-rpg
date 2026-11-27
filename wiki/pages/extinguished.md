@@ -8,7 +8,7 @@ infobox.How: A [[Radiance Ceremony]], every few decades since about year 200
 infobox.Statues: In [[The Emberhall]]
 infobox.Old_name: The Radiants
 ---
-**The Extinguished** are the greatest [[Emberborn]] heroes of the past. Each one was honoured with a [[Radiance Ceremony]], where they burned brighter than ever and then went out like a candle. Their statues line the walls of the great hall in [[The Emberhall]], where [[Brother Oren]] tells their stories, and small embers drift through the hall in their honour. One plinth near the doors stands empty: [[Wick]]'s.
+**The Extinguished** are the greatest [[Emberborn]] heroes of the past. Each one was honoured with a [[Radiance Ceremony]], where they burned brighter than ever and then went out like a candle. Their statues stand in the garden of [[The Emberhall]] (Halric the Dawnbringer, Ida of the Saltmere, Tilda Ashwalker and Orla the Kind), and small embers drift through the great hall in their honour. Inside, the hall's statues are of [[The Ember Circle]], where [[Brother Oren]] gives his tour, and one plinth near the doors stands empty: [[Wick]]'s.
 
 Every one of the Extinguished went through a Radiance Ceremony: that's what makes someone one of them. None of them died any other way.
 
@@ -49,5 +49,3 @@ Why it matters: every Hopeful is being raised to become one of the Extinguished.
 | Tilda Ashwalker | Walked into the Withering around year 650 and led two hundred people home. | Learned the truth and left warnings in stone piles across the Barrens. Went to her Ceremony anyway. |
 | [[Orla the Kind]] | Nursed the sick through the Grey Fever, rising nine times. Honoured in year 761. | Each rising wore her thin, and the Emberguard made sure of it; by the end she was "almost see-through". |
 | (the empty plinth) | Not one of the Extinguished. It's [[Wick]]'s: his statue was pulled down after the [[Sundering War]], and his name scratched off. One letter is left under the dust: W. | Wick was framed (see [[The Emberfall (disaster)]]). |
-
-In the game today the plinth's letter is still an S, from the older story where it was Sable's.

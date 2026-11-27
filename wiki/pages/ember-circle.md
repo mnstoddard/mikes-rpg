@@ -13,6 +13,8 @@ The surviving members came out of the Fall filled with power and no longer agein
 
 Their mark is a ring of fire, the ring they stood in around the pit. It's on a ruined mage tower in the Barrens, and carved over [[The Emberhall]]'s front door.
 
+Their statues line the great hall of [[The Emberhall]]: the king, Vale, Crowe, Flint, Ivy, Merrow, Dunn and Reed, carved in white stone, and Wick's empty plinth near the doors. [[Brother Oren]] gives the tour.
+
 ## The members
 
 | Member | Great shrine | What everyone is taught | 🔒 The truth |

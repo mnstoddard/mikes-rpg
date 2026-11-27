@@ -51,14 +51,20 @@ number of logins and total time played. Anyone playing right now is listed at th
 Lines older than a year are cleared out when the server starts. The JSON version is at
 `/admin/api/logins`. See `server/src/logins.ts`.
 
-## Emberhold and the Training Ground (version 0.18)
+## Emberhold, the Training Ground and Heartvale (version 0.18)
 
-The game now takes place inside **Emberhold**, a walled city (`buildEmberhold` in
-`shared/world.ts`, drawn in 3D by `client3d/src/game/city.ts`). Its four gates are shut
-for now. New characters wake in the Emberhall on Ember Hill; Keeper Aldric sends them to
-the **Emberhall Training Ground** just east of the hall, where every trainer teaches
-(their spots are the `tg.*` places in `shared/world.ts`). The Oath of the Flame opens once
-every trainer's lesson is done. The older Heartvale map is still there, past the gates.
+The Prologue takes place inside **Emberhold**, a walled city (`buildEmberhold` in
+`shared/world.ts`, drawn in 3D by `client3d/src/game/city.ts`). New characters wake in
+the Emberhall on Ember Hill; Keeper Aldric sends them to the **Emberhall Training Ground**
+just east of the hall, where every trainer teaches (their spots are the `tg.*` places in
+`shared/world.ts`). The Oath of the Flame opens once every trainer's lesson is done.
+
+The city's four gates (`cityGates` in `shared/world.ts`, `Door.gate`) stay shut until the
+Oath (the server checks in `goThrough`), then lead out into **Heartvale**, where Act 1
+happens. In Heartvale the city is a walled block (`HV_WALL`, `HV_GATES`) where the old
+village stood, drawn from outside as walls, towers and rooftops (`hvCityBackdrop`, and
+`cityBackdrop` in `city.ts`). The minimap's `wayTo` routes quest targets through the right
+gate. Falling in Heartvale wakes you at the nearest lit shrine (`respawnShrine`).
 Some of the text below still describes the old village.
 ## 💥 Crash reports (admin only)
 

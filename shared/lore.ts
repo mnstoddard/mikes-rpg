@@ -14,17 +14,17 @@ const LIGHTHALL: Book[] = [
   {
     title: "The Emberfall",
     pages: [
-      "Five hundred years ago the land's fire burst up out of the earth under Heartvale, in anger. Embers rained down across the Old Kingdom for a whole year, and the ground fell in where the valley is now. We count the years from it: this is the five hundredth year After the Fall.",
-      "No one was to blame. The land's fire is wild, as all fire is. The shrines keep it calm now, and the Emberguard keep the shrines.",
+      "Eight hundred years ago the land's fire burst up out of the earth under Heartvale. Embers rained down across Aldmera for a whole year, and the ground fell in where the valley is now. We count the years from it: this is the eight hundredth year After the Fall.",
+      "Wick did it. He stood in the Ember Circle beside King Aldemar for the great working, and in the middle of it he murdered the king and broke the work loose. The rest of the Circle pinned the fire down with their shrines, and the Emberguard have kept the shrines ever since.",
       "Pressed between the last pages, a dry leaf and a note in an old hand: \"Fire does not burst up on its own. Ask what was dug.\"",
     ],
   },
   {
     title: "The Sundering War (a short history for new Emberborn)",
     pages: [
-      "Before the war, Embervale was the Old Kingdom: green from the Greyspine to the sea, ruled from a city of white stone in what is now the Barrens.",
-      "No one now living remembers how the war began. It ended with the Old Kingdom's crown lost, its city in ruins, and barely enough people left to bury the dead.",
-      "It was then that the Archmage Vale built the first shrines, and the first Emberborn woke. The Emberguard have kept his shrines lit ever since.",
+      "Before the Fall, Embervale was Aldmera: green from the Greyspine to the sea, ruled from Whitestone, the city of white stone in what is now the Barrens.",
+      "Four hundred years after the Fall, Wick came back. He turned half the Circle against the rest and tried to tear the shrines down. The war lasted a hundred years, and when it ended there were barely enough people left to bury the dead.",
+      "The Archmage Vale won it, and died winning it. Wick was driven out, and his shrine in the north went cold. The Emberwardens carry the old Circle names as titles now, and the Emberguard keep the shrines lit.",
     ],
   },
   {
@@ -61,9 +61,9 @@ const LIGHTHALL: Book[] = [
   {
     title: "The Withering: notes from the Barrens",
     pages: [
-      "It began in the far west, where the Old Kingdom's city stood. Grass greys, then crumbles. Animals grow thin and angry. Wells taste of ash.",
-      "The Ashbound blame the shrines. This is, of course, nonsense. The shrines are the only warmth the Barrens have left.",
-      "Note in the margin, in pencil: \"Then why is it worst where the shrines are brightest?\" It has been rubbed half out.",
+      "It begins at the far edges of things, wherever a place lies farthest from a shrine. Grass greys, then crumbles. Animals grow thin and angry. Wells taste of ash.",
+      "The Ashbound are said to poison it. Whatever the cause, the shrines are the only warmth the Barrens have left.",
+      "Note in the margin, in pencil: \"If the shrines keep the land alive, why does their warmth reach a little less far every year?\" It has been rubbed half out.",
     ],
   },
   {
@@ -141,7 +141,7 @@ const TOWN: Book[] = [
     title: "Herbs of the Valley",
     pages: [
       "Wild root: dig it near the lake. Red cap: find it under oaks. Moonpetal: only at night, and only if you're lucky.",
-      "Herbalist Wren adds, in her own hand: the plants by the shrines are dying first. Why?",
+      "Herbalist Wren adds, in her own hand: the plants at the valley's edge, farthest from the shrines, are dying first. They never used to. Why?",
     ],
   },
   {

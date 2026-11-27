@@ -62,7 +62,7 @@ export const TOWNSFOLK: TownsfolkDef[] = [
   {
     id: "jory", name: "Farmhand Jory", badge: "🌾", about: "Works for Farmer Odo, and walks between the training ground and the Lower Town allotments all day.",
     area: "emberhold", route: [{ x: 92, y: 58 }, { x: 92, y: 79 }], speed: 1.5, pause: 3,
-    lines: ["Odo says the crops grow better far from the shrines. Don't tell the Emberguard I said that.", "Off to market. Again."],
+    lines: ["Odo says the far fields, out past the shrine's warmth, are going grey first. The Emberguard say it's just tired soil.", "Off to market. Again."],
   },
   {
     id: "cole", name: "Fisher Cole", badge: "🎣", about: "Fishes off the docks, like Old Maren used to. He walks the wharf all day.",

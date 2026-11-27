@@ -178,8 +178,10 @@ export class Bot {
     for (let n = 0; n < 200 && !done(); n++) {
       if (this.log.slice(-10).some((l) => l.includes("bag is full") || l.includes("too heavy"))) { this.dropJunk(); this.log.push("(made room)"); await sleep(1000); }
       await this.eatIfTired();
-      const spot = this.nearestNode(resource, kind, near);
-      if (!spot) throw new Error(`${this.name}: no ${resource} near ${near.x},${near.y}`);
+      let spot = this.nearestNode(resource, kind, near);
+      // All used up: wait for them to grow back (the Training Ground only has a few of each).
+      for (let w = 0; !spot && w < 40; w++) { await sleep(3000); spot = this.nearestNode(resource, kind, near); }
+      if (!spot) throw new Error(`${this.name}: no ${resource ?? kind} near ${near.x},${near.y}`);
       this.room.send(kind, spot);
       const k = treeKey(spot.x, spot.y);
       // Work it until it's used up (or we have what we need).
@@ -284,7 +286,7 @@ async function story(name: string) {
   };
   await b.until(() => !!b.quest, 10000, "the quest tracker");
   const quarry = { x: 90, y: 24 };
-  const digSome = async (until: () => boolean) => b.gather("dig", null, until, town);
+  const digSome = async (until: () => boolean) => b.gather("dig", null, until, PLACES["tg.greta"]);
 
   // P.7 A Blessing: dig 20 patches (that also finds the herbs for Moss's tonics).
   if (!isDone("blessing")) {
@@ -363,7 +365,7 @@ async function story(name: string) {
   // 1.5 The Totem.
   if (!isDone("totem")) {
     await b.talkUntilNew("rook");
-    await b.gather("chop", "oak", () => b.count("oak_logs") >= 5, town);
+    await b.gather("chop", "oak", () => b.count("oak_logs") >= 5, PLACES["tg.holt"]);
     await b.talkUntilNew("rook");
     await b.talkUntilNew("aldric");
     await b.talkUntilNew("rook");
@@ -401,7 +403,7 @@ async function story(name: string) {
     }
     // Oak logs for the shrine's frame: keep them when making room. Chop until the task moves on.
     b.keep = ["oak_logs"];
-    await b.gather("chop", "oak", () => b.task.startsWith("Pick up"), town);
+    await b.gather("chop", "oak", () => b.task.startsWith("Pick up"), PLACES["tg.holt"]);
     await b.until(() => b.task.startsWith("Pick up"), 5000, "oak logs and bars");
     await b.talkUntilNew("rook");
     await b.talkUntilNew("west_shrine");
