@@ -64,7 +64,7 @@ On claude.ai you can filter this list, and move quests up and down to try a new 
 | Act 3 | Quest | Trial: Blackfen | [[Blackfen]] | Warden Reed | The Emberwarden's trial: reach the heart of the region, beat its boss and relight the great shrine. |
 | Act 3 | Story beat 🔒 | Rhys comes back grey | [[Emberhold]] |  | After any 4 Trials. You find him with the Ashbound, and Sable takes you to meet [[Wick]]. |
 | Act 3 | Quest 🔒 | The Joining | [[The Emberhall]] | [[Enchanter Vale]] | After all 6 Trials and Radiant. Go down the stair, refuse Vale, and escape with Sable. |
-| Act 4 | Quest 🔒 | Cut Free | Ashbound camp | [[Wick]] | Wick cuts your thread from the Heart Shrine. |
+| Act 4 | Quest 🔒 | Cut Free | Ashbound camp | [[Wick]] | Wick breaks your Oath, the spell that ties you to the Heart Shrine. |
 | Act 4 | Quest 🔒 | Free the Thornwood shrine | [[The Thornwood]] | [[Wick]] | Bring down Warden Crowe and free the great shrine. Any order. |
 | Act 4 | Quest 🔒 | Free the Greyspine Peaks shrine | [[Greyspine Peaks]] | [[Wick]] | Bring down Warden Flint and free the great shrine. Any order. |
 | Act 4 | Quest 🔒 | Free the Tangle shrine | [[The Tangle]] | [[Wick]] | Bring down Warden Ivy and free the great shrine. Any order. |
