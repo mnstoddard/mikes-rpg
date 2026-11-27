@@ -27,6 +27,7 @@ Each update adds 0.1 to the number. Version 1.0 is saved for the finished game o
 - The Emberhall's books now match the story: it's the year 800 After the Fall, the old kingdom was Aldmera, and the Emberguard's histories blame Wick for the Fall and the Sundering War.
 - The story's keepsakes (Rook's note, the scout's note, Holt's notes, Maren's charm and the lantern) now share one bag slot, so the bag doesn't fill up with letters during Act 1.
 - When someone has a quest gift for you but your bag is full, it's now that person who tells you (it used to say Keeper Aldric, whoever you were talking to).
+- In the opening scene you no longer sink into the floor while getting up: sitting, kneeling and standing all rest on the ground, and so does Sister Celene when she kneels.
 - Saves from before move along: anyone in the middle of Maren's lessons keeps their place in the shorter list, and everyone starts in Emberhold's plaza.
 
 ## 0.17 · 27 November 2026 · Automatic crash reports

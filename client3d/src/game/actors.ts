@@ -130,6 +130,7 @@ export class Person {
   stage = 3;
   /** 0..1: reaching out a hand (Celene helping a new hero up). */
   reach = 0;
+  private groundBox = new THREE.Box3();
   /** A fish being pulled out of the water (fishing). */
   private catching?: { fish: THREE.Object3D; t: number; from: THREE.Vector3; dispose: () => void };
   private rodTip?: THREE.Object3D;
@@ -407,10 +408,10 @@ export class Person {
     const hy = J.hipsY;
     const lie: K = { rx: -Math.PI / 2, y: 0.16, back: 0, hips: 0, spine: 0, head: 0, hipL: 0, kneeL: 0, ankL: 0, hipR: 0, kneeR: 0, ankR: 0, shL: 0, elL: -0.14, shR: 0, elR: -0.14 };
     // Sitting on the floor, legs out in front, leaning on both hands behind.
-    const sit: K = { rx: 0, y: 0, back: hy * 0.92, hips: f.thighR + 0.03 - hy, spine: 0.32, head: -0.15, hipL: -1.45, kneeL: 0.2, ankL: 0.25, hipR: -1.35, kneeR: 0.45, ankR: 0.2, shL: 0.55, elL: -0.15, shR: 0.55, elR: -0.15 };
+    const sit: K = { rx: 0, y: 0, back: hy * 0.92, hips: f.thighR + 0.03 - hy, spine: 0.32, head: -0.15, hipL: -1.7, kneeL: 0.3, ankL: 0.25, hipR: -1.8, kneeR: 0.7, ankR: 0.2, shL: 0.55, elL: -0.15, shR: 0.55, elR: -0.15 };
     // Down on the right knee, left foot planted, a hand on the left knee.
     const kh = f.shinL + f.footH * 0.9;
-    const kneel: K = { rx: 0, y: 0, back: hy * 0.25, hips: kh - hy, spine: 0.22, head: 0.1, hipL: -1.45, kneeL: 1.45, ankL: 0.05, hipR: -0.05, kneeR: 1.55, ankR: 0.55, shL: -0.45, elL: -0.7, shR: 0.1, elR: -0.3 };
+    const kneel: K = { rx: 0, y: 0, back: hy * 0.25, hips: kh - hy, spine: 0.22, head: 0.1, hipL: -1.45, kneeL: 1.45, ankL: 0.05, hipR: -0.05, kneeR: 1.55, ankR: 1.0, shL: -0.45, elL: -0.7, shR: 0.1, elR: -0.3 };
     const now: K = { rx: 0, y: 0, back: 0, hips: J.hips.position.y - hy, spine: J.spine.rotation.x, head: J.head.rotation.x, hipL: J.hipL.rotation.x, kneeL: J.kneeL.rotation.x, ankL: J.ankL.rotation.x, hipR: J.hipR.rotation.x, kneeR: J.kneeR.rotation.x, ankR: J.ankR.rotation.x, shL: J.shL.rotation.x, elL: J.elL.rotation.x, shR: J.shR.rotation.x, elR: J.elR.rotation.x };
     const keys = [lie, sit, kneel, now];
     const i = Math.min(2, Math.floor(s)), u = s - i, e = u * u * (3 - 2 * u);
@@ -427,6 +428,13 @@ export class Person {
     J.hipR.rotation.x = m("hipR"); J.kneeR.rotation.x = m("kneeR"); J.ankR.rotation.x = m("ankR");
     J.shL.rotation.x = m("shL"); J.elL.rotation.x = m("elL");
     J.shR.rotation.x = m("shR"); J.elR.rotation.x = m("elR");
+    // Rest on the floor: whatever the blend, the lowest part of the body (a heel, a knee, the seat) just touches the ground,
+    // so nothing sinks into it or hovers over it (Mike's note: the new hero stepped into the ground getting up).
+    if (s < 3) {
+      o.updateMatrixWorld(true);
+      const low = this.groundBox.setFromObject(o).min.y;
+      if (Number.isFinite(low)) o.position.y += this.root.position.y - low;
+    }
     // Reaching out the right hand.
     if (this.reach > 0) {
       const r = this.reach * this.reach * (3 - 2 * this.reach);
