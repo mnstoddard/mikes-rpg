@@ -208,8 +208,8 @@ export class Terrain {
   get here() { return this.area; }
 
   /** Show a different area (outdoors, or inside a building or cave). */
-  setArea(a: AreaDef) {
-    if (a === this.area && this.areaObjects.length) return;
+  setArea(a: AreaDef, force = false) {
+    if (!force && a === this.area && this.areaObjects.length) return;
     this.wantArea = null;
     for (const c of [...this.chunks.values()]) this.dropChunk(c);
     for (const o of this.areaObjects) { this.root.remove(o.object); o.dispose?.(); }
@@ -218,6 +218,19 @@ export class Terrain {
     this.signs.length = 0;
     this.area = a;
     this.buildAreaWide(a);
+  }
+
+  /**
+   * Build everything here again from scratch. The merged ground, walls and city
+   * keep no copy in memory once they're on the graphics card (gpuOnly, to save
+   * memory on phones), so if the phone throws the card's memory away (a lost
+   * WebGL context, which iPhones do when memory runs short) they can't come back
+   * by themselves: Mike's cobblestones and city walls vanished for good after
+   * leaving the Emberhall. Called when the context comes back.
+   */
+  rebuild() {
+    this.setArea(this.area, true);
+    this.setCenter(this.center.x, this.center.y);
   }
 
   /** Where you are now (tile): load the chunks round you and wake the trees next to you. */
@@ -459,7 +472,7 @@ export class Terrain {
       yield;
     }
     for (const [mat, geos] of byMat) {
-      const keep = ["position", "normal", "color"].filter((n) => geos.every((g) => g.attributes[n]));
+      const keep = ["position", "normal", "color", "uv"].filter((n) => geos.every((g) => g.attributes[n]));
       for (const g of geos) for (const n of Object.keys(g.attributes)) if (!keep.includes(n)) g.deleteAttribute(n);
       const merged = mergeGeometries(geos, false);
       geos.forEach((g) => g.dispose());

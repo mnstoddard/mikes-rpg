@@ -178,6 +178,10 @@ export class World3D {
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
     host.appendChild(this.renderer.domElement);
+    // A phone short of memory can throw away everything on the graphics card. Three.js
+    // puts most of it back, but the merged ground and walls keep no spare copy: build them again.
+    this.renderer.domElement.addEventListener("webglcontextlost", (e) => { e.preventDefault(); crumb("graphics lost"); });
+    this.renderer.domElement.addEventListener("webglcontextrestored", () => { crumb("graphics back"); this.terrain.rebuild(); });
     this.labels = new CSS2DRenderer();
     this.labels.domElement.className = "labels3d";
     host.appendChild(this.labels.domElement);
