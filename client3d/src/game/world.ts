@@ -6,6 +6,7 @@
 // The message handling below follows client/src/WorldScene.ts closely, so a
 // new server message added there is easy to add here too.
 import * as THREE from "three";
+import { wallCut } from "./wallcut";
 import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { getStateCallbacks, Room } from "colyseus.js";
@@ -189,11 +190,13 @@ export class World3D {
     const arrow = new THREE.Shape();
     arrow.moveTo(0.75, 0); arrow.lineTo(0.05, 0.5); arrow.lineTo(0.05, 0.2); arrow.lineTo(-0.55, 0.2);
     arrow.lineTo(-0.55, -0.2); arrow.lineTo(0.05, -0.2); arrow.lineTo(0.05, -0.5); arrow.closePath();
-    const arrowMesh = new THREE.Mesh(new THREE.ShapeGeometry(arrow), new THREE.MeshBasicMaterial({ color: 0xffd84a, transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide }));
-    const edge = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(arrow.getPoints().map((p) => new THREE.Vector3(p.x, p.y, 0.01))), new THREE.LineBasicMaterial({ color: 0x5a3d00 }));
+    // Drawn on top of everything, so a wall or a tree never hides it.
+    const arrowMesh = new THREE.Mesh(new THREE.ShapeGeometry(arrow), new THREE.MeshBasicMaterial({ color: 0xffd84a, transparent: true, opacity: 0.9, depthWrite: false, depthTest: false, side: THREE.DoubleSide }));
+    const edge = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(arrow.getPoints().map((p) => new THREE.Vector3(p.x, p.y, 0.01))), new THREE.LineBasicMaterial({ color: 0x5a3d00, depthTest: false }));
+    edge.renderOrder = 1001;
     arrowMesh.add(edge);
     arrowMesh.rotation.x = -Math.PI / 2;
-    arrowMesh.renderOrder = 5;
+    arrowMesh.renderOrder = 1000;
     arrowMesh.scale.setScalar(1.3);
     this.guide.add(arrowMesh);
     this.guide.visible = false;
@@ -354,6 +357,10 @@ export class World3D {
     const off = dir.multiplyScalar(this.camDist);
     this.camera.position.copy(f).add(off);
     this.camera.lookAt(f.x, f.y + 1, f.z);
+    // Inside, walls between the camera and you are cut away instead (wallcut.ts).
+    wallCut.uCam.value.copy(this.camera.position);
+    wallCut.uFocus.value.set(f.x, f.y + 1, f.z);
+    wallCut.uCutOn.value = this.here.kind === "outdoor" ? 0 : 1;
     // The sun's shadow box follows you.
     this.sun.target.position.copy(f);
   }
