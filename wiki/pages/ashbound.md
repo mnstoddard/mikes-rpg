@@ -14,7 +14,7 @@ They pass messages hidden inside the bases of [[Woodworker Rook]]'s shrine totem
 
 ## What the Emberguard say
 
-The Ashbound have been around for about twenty years. They're led by [[Sable]], the champion who ran from her own Ceremony the night before it and went mad with shame. For years they were just "bandits in the woods". Lately the Emberguard teach that they're the ones killing the land: poisoning the ground round the shrines, spreading [[The Withering]] and the grey sickness through the trees. Every dead field gets blamed on them. Some Keepers whisper that they serve [[Wick]].
+The Ashbound have been around for about twenty years. They're led by [[Sable]], the champion who ran from her own Ceremony the night before it and went mad with shame. For years they were just "bandits in the woods". Lately the Emberguard teach that they're the ones killing the land: poisoning the far fields, smashing shrines, spreading [[The Withering]] and the grey sickness through the trees. Every dead field gets blamed on them. Some Keepers whisper that they serve [[Wick]].
 
 ::: secret
 ## How they were founded
@@ -23,15 +23,17 @@ The Ashbound have been around for about twenty years. They're led by [[Sable]], 
 
 Wick chooses who to approach: champions close to their Ceremony, Emberborn with doubts, Rooted families who lost someone to one. Sable leads in public. Wick stays hidden; almost no one in the Ashbound has met him.
 
-The Withering began centuries before the Ashbound existed. Blaming them is the Emberguard's cover-up for what the shrines are doing.
+The Withering began centuries before the Ashbound existed. Blaming them is the Emberguard's cover-up for what Vale is taking.
 :::
 
 ## Why they're called the Ashbound
 
-[[Emberborn]] only exist because the shrines hold them together. If every shrine goes dark, every Emberborn crumbles to ash, the Ashbound's own fighters included. The Ashbound know this, and they fight the shrines anyway, so the land can live. They are bound for ash, and they chose it. Their saying is *"Better ash than a thief."*
+[[Emberborn]] only exist because the shrines hold them together. Every Emberborn is tied to the Heart Shrine by a thread, and that thread is how the Tithe is taken. The Ashbound have had theirs cut. Without it, grey ash slowly creeps up their hands, and they rise at Ashbound hearths instead of shrines. They are bound for ash, and they chose it rather than feed the thief. Their saying is *"Better ash than a thief."*
 
 ::: secret
-Wick has found something better than breaking the shrines: a way to **turn** a great shrine so it gives ember back to the land instead of taking it. But only someone who can get past an Emberwarden can try it. That's what the player does in Act 4 (see [[Main story]]).
+The Ashbound don't smash shrines. When they can reach a small shrine unseen, they cut its thread, so its warmth stays in the land around it. The shrine flickers and goes dark for a day, which is what the Emberguard call smashing. Then it comes back brighter, and the land around it slowly greens.
+
+Wick knows how to do the same for a great shrine: **free** it, so everything it draws goes back out to the land. But only someone who can get past an Emberwarden can try it. That's what the player does in Act 4 (see [[Main story]]).
 :::
 
 ::: secret
