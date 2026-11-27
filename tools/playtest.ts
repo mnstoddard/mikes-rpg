@@ -16,7 +16,7 @@ import { MAP, isWalkable } from "../shared/map";
 import { treeKey } from "../shared/foraging";
 import { nodeAt } from "../shared/foraging";
 import { tileOf } from "../shared/farming";
-import { isFood } from "../shared/cooking";
+import { isFood, SHOP_STEW } from "../shared/cooking";
 
 const URL = process.env.RPG_URL ?? "ws://localhost:2567";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -126,17 +126,36 @@ export class Bot {
   /** Things the current chapter needs, so dropJunk leaves them alone. */
   keep: string[] = [];
   dropJunk() {
-    const junk = ["axe_bronze_oak", "red_cap", "wild_root", "oak_logs", "worm", "mushroom", "sage", "honey", "old_bone", "minnow", "pine_logs", "ginseng", "food_scraps"];
+    const junk = ["axe_bronze_oak", "copper_ore", "tin_ore", "red_cap", "wild_root", "oak_logs", "worm", "mushroom", "sage", "honey", "old_bone", "minnow", "pine_logs", "ginseng", "food_scraps"];
     this.bag.inventory.forEach((it: string | null, i: number) => { if (it && junk.includes(it) && !this.keep.includes(it)) this.room.send("drop", { slot: i }); });
     this.note("🗑️ dropped junk to make room");
   }
   /** Eat a meal or a fish when stamina runs low, like a player would. */
   async eatIfTired() {
-    if (this.me.stamina >= 25) return;
-    const i = this.bag?.inventory.findIndex((it: string | null) => isFood(it as any)) ?? -1;
+    if (this.stamina >= 25) return;
+    let i = this.bag?.inventory.findIndex((it: string | null) => isFood(it as any)) ?? -1;
+    // Out of food and nearly worn out: buy stew from Tam, like a player would (resting is 1 stamina every 30 seconds).
+    if (i < 0 && this.stamina < 12 && !this.shopping && Date.now() - this.shoppedAt > 120000) {
+      this.shopping = true; this.shoppedAt = Date.now();
+      try {
+        const back = { ...this.pos };
+        await this.talk("tam");
+        this.room.send("buy", { item: SHOP_STEW, count: 6 });
+        await sleep(1000);
+        this.note("🍲 bought stew from Tam");
+        await this.enter(back.x, back.y);
+      } finally { this.shopping = false; }
+      i = this.bag?.inventory.findIndex((it: string | null) => isFood(it as any)) ?? -1;
+    }
     if (i >= 0) { this.room.send("eat", { slot: i }); await sleep(600); }
   }
-  watchBag() { this.room.onMessage("bag", (b: any) => { this.bag = b; }); }
+  shopping = false;
+  shoppedAt = 0;
+  watchBag() {
+    this.room.onMessage("bag", (b: any) => { this.bag = b; });
+    this.room.onMessage("stamina", (m: any) => { this.stamina = m.stamina; });
+  }
+  stamina = 100;
   slotOf(item: string) { return this.bag?.inventory.indexOf(item) ?? -1; }
 
   /** Fight monsters of one kind until the task changes. */
@@ -285,6 +304,8 @@ async function story(name: string) {
     return tileOf(at, 0);
   };
   await b.until(() => !!b.quest, 10000, "the quest tracker");
+  // Every minute (with PLAYTEST_TRACE set): where the bot is and what it's on, to spot where it gets stuck.
+  if (process.env.PLAYTEST_TRACE) setInterval(() => console.log(`  · ${b.minutes()} min at ${b.pos.x},${b.pos.y} (${areaAt(b.pos.x, b.pos.y)?.id}) · ${b.task} · last: ${b.log.slice(-2).join(" | ").slice(0, 160)}`), 60000).unref();
   const quarry = { x: 90, y: 24 };
   const digSome = async (until: () => boolean) => b.gather("dig", null, until, PLACES["tg.greta"]);
 
@@ -347,12 +368,15 @@ async function story(name: string) {
   }
   // 1.4 Tithe Tonics.
   if (!isDone("tonics")) {
+    b.keep = ["red_cap", "wild_root"];
     await b.talkUntilNew("moss");
     if (b.count("red_cap") < 5 || b.count("wild_root") < 5) await digSome(() => b.count("red_cap") >= 5 && b.count("wild_root") >= 5);
     const table = npcById("alchemy_table")!;
     await b.enter(table.x, table.y);
     t = b.task;
-    for (let n = 0; n < 5 && b.task === t; n++) {
+    for (let n = 0; n < 15 && b.task === t; n++) {
+      // A failed brew uses up the herbs: dig for more.
+      if (b.count("red_cap") < 1 || b.count("wild_root") < 1) { await digSome(() => b.count("red_cap") >= 2 && b.count("wild_root") >= 2); await b.enter(table.x, table.y); }
       await b.talk("alchemy_table");
       const had = b.count("potion_tithe");
       b.room.send("craft", { item: "potion_tithe" });
@@ -360,15 +384,18 @@ async function story(name: string) {
       await sleep(500);
     }
     await b.talkUntilNew("moss");
+    b.keep = [];
     done("1.4 Tithe Tonics");
   }
   // 1.5 The Totem.
   if (!isDone("totem")) {
+    b.keep = ["oak_logs"];
     await b.talkUntilNew("rook");
     await b.gather("chop", "oak", () => b.count("oak_logs") >= 5, PLACES["tg.holt"]);
     await b.talkUntilNew("rook");
     await b.talkUntilNew("aldric");
     await b.talkUntilNew("rook");
+    b.keep = [];
     done("1.5 The Totem");
   }
   // 1.6 Ash on the Road.
@@ -384,9 +411,14 @@ async function story(name: string) {
   }
   // 1.7 Rebuild the Shrine.
   if (!isDone("rebuild")) {
+    b.keep = ["oak_logs", "bronze_bar", "copper_ore", "tin_ore"];
     await b.talkUntilNew("aldric");
-    await b.gather("mine", "copper", () => b.count("copper_ore") >= 3, quarry);
-    await b.gather("mine", "tin", () => b.count("tin_ore") >= 3, quarry);
+    // Back for another go after a stop: the logs or bars might have gone (the shrine checks again).
+    if (b.task.startsWith("Rebuild") && (b.count("oak_logs") < 6 || b.count("bronze_bar") < 2)) await b.gather("chop", "oak", () => b.count("oak_logs") >= 6, PLACES["tg.holt"]);
+    if (b.count("bronze_bar") < 2) {
+      await b.gather("mine", "copper", () => b.count("copper_ore") >= 3, quarry);
+      await b.gather("mine", "tin", () => b.count("tin_ore") >= 3, quarry);
+    }
     const furnace = npcById("furnace")!;
     await b.enter(furnace.x, furnace.y);
     for (let n = 0; n < 10 && b.count("bronze_bar") < 2; n++) {
@@ -403,8 +435,8 @@ async function story(name: string) {
     }
     // Oak logs for the shrine's frame: keep them when making room. Chop until the task moves on.
     b.keep = ["oak_logs"];
-    await b.gather("chop", "oak", () => b.task.startsWith("Pick up"), PLACES["tg.holt"]);
-    await b.until(() => b.task.startsWith("Pick up"), 5000, "oak logs and bars");
+    await b.gather("chop", "oak", () => !b.task.startsWith("Get") && b.count("oak_logs") >= 6, PLACES["tg.holt"]);
+    await b.until(() => !b.task.startsWith("Get"), 5000, "oak logs and bars");
     await b.talkUntilNew("rook");
     await b.talkUntilNew("west_shrine");
     b.keep = [];
@@ -423,7 +455,9 @@ async function story(name: string) {
     await b.talk("odo");
     await b.until(() => (b.room.state.serverNow ?? 0) >= 0 && !(b.quest?.task ?? "").startsWith("Plant"), 2000, "harvest step").catch(() => {});
     t = b.task;
+    b.dropJunk();
     for (let n = 0; n < 60 && b.task === t; n++) {
+      if (b.log.slice(-3).some((l) => l.includes("bag is full"))) b.dropJunk();
       b.room.send("farm", plotTile());
       await sleep(20000);
     }

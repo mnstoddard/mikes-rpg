@@ -25,6 +25,8 @@ Each update adds 0.1 to the number. Version 1.0 is saved for the finished game o
 - A Flame at the Valley's Edge replaces A Flame in the Thornwood: lead two Emberguard out of the North Gate to the north-east foothills, keep the wolves off them, and light a new shrine where the green gives way to grey. You meet Rhys there. Progress in the old quest carries over.
 - If you fall out in Heartvale you wake at the nearest lit shrine. The minimap's arrow and the 📍 marks lead you to the right gate when your goal is outside the walls.
 - The Emberhall's books now match the story: it's the year 800 After the Fall, the old kingdom was Aldmera, and the Emberguard's histories blame Wick for the Fall and the Sundering War.
+- The story's keepsakes (Rook's note, the scout's note, Holt's notes, Maren's charm and the lantern) now share one bag slot, so the bag doesn't fill up with letters during Act 1.
+- When someone has a quest gift for you but your bag is full, it's now that person who tells you (it used to say Keeper Aldric, whoever you were talking to).
 - Saves from before move along: anyone in the middle of Maren's lessons keeps their place in the shorter list, and everyone starts in Emberhold's plaza.
 
 ## 0.17 · 27 November 2026 · Automatic crash reports

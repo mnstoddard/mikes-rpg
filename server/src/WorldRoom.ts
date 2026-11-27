@@ -3656,7 +3656,7 @@ export class WorldRoom extends Room<WorldState> {
     }
     const gifts = giftItems(step.give);
     if (!roomForAll(p, gifts.map((g) => g.item))) {
-      this.dialog(client, [`I've got ${gifts.length === 1 ? "something" : `${gifts.length} things`} for you, but your bag is too full. Make some room and come back.`], chapter.name);
+      this.dialog(client, [`I've got ${gifts.length === 1 ? "something" : `${gifts.length} things`} for you, but your bag is too full. Make some room and come back.`], speaker);
       return true;
     }
     for (const [item, n] of take) takeItem(p, item, n);

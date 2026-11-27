@@ -5,6 +5,7 @@
 //   - all tools of one kind (a bronze axe and an iron axe), up to STACK_LIMITS.gear
 //   - all weapons of one kind, or all armor of one kind (every helmet together)
 //   - all meals of one dish (every stew together, whatever went into it)
+//   - all the story's keepsakes (notes, Maren's charm, the lantern) together
 // Tap a slot to see what's in it: the item card cycles through each different
 // thing in the pile, so you can pick which axe to use or which stew to eat.
 //
@@ -58,8 +59,12 @@ export function groupOf(item: ItemId): string {
   }
   const meal = parseMeal(item);
   if (meal) return `meal:${meal.dish}`;
+  // The story's keepsakes (Rook's note, the scout's note, Holt's notes, Maren's charm, the lantern) share one slot,
+  // so a small bag doesn't fill up with letters during Act 1.
+  if (KEEPSAKES.has(item)) return "keepsake";
   return item;
 }
+const KEEPSAKES = new Set<string>(["lantern", "rooks_note", "ashbound_note", "marens_charm", "holts_notes"]);
 
 /** How many of this kind of thing fit in one slot. */
 export function stackLimit(item: ItemId): number {
