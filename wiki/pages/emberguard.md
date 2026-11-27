@@ -33,5 +33,7 @@ Their order's rule (from a book in the Emberhall library):
 
 ::: secret
 The Emberguard's leaders are what's left of [[The Ember Circle]]. They never passed into legend: they became [[The Undying]], living on ember the shrines pull from the land and from every Emberborn. [[Archmage Vale]], who caused the Emberfall, leads them as the hooded High Keeper. After the [[Sundering War]] they rewrote the history books and took [[The Mages' Guild]]'s old records, until everyone believed Wick was the villain.
+
+**Every Keeper is in on it.** Keepers officiate the [[Radiance Ceremony]], so they all know what it does, and they're paid for their silence with a share of the drain and a life without ageing. [[Keeper Aldric]] is one of them. The brothers and sisters below them, like Oren, Lisette, Tomas and Wynne, are honest and know nothing.
 :::
 

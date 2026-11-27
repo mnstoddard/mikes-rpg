@@ -13,5 +13,5 @@ Most champions ask for it themselves. Refusing is allowed, but shameful.
 ::: secret
 The champion's ember goes to Vale. The Ceremony is how he became, and stays, the most powerful being in the land. [[Wick]] found this out around year 400, and it started the [[Sundering War]].
 
-The Emberguard decide who's ready, and quietly speed up the brightest champions' Fading so they ask sooner. A few sparks never fully drain: they're the embers drifting in the Emberhall, and some are trapped in old refined emberstones.
+The Keepers decide who's ready and officiate every Ceremony, so every Keeper knows exactly what it does (see [[The Undying]]). They also quietly speed up the brightest champions' Fading so they ask sooner. A few sparks never fully drain: they're the embers drifting in the Emberhall, and some are trapped in old refined emberstones.
 :::
