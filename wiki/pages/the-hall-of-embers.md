@@ -66,7 +66,7 @@ Talk to Keeper Oren and he walks you round himself (version 0.22, Mike's note): 
 
 The quest log shows a checklist, ticked as you go. The order doesn't matter.
 
-- ☐ Keeper Lisette, in the library: read her four books (her side quest, [[The Four Books]])
+- ☐ Keeper Lisette, in the library: read her four books on the library shelves (her side quest, [[The Four Books]])
 - ☐ Keeper Tomas, in the great hall
 - ☐ Keeper Wynne, in the infirmary
 
@@ -90,7 +90,7 @@ Lisette's tick only appears once you've finished her side quest, so the main que
 
 Tomas is a true believer: strict, proud of the Emberguard, and fond of the word "flame".
 
-> Keeper Tomas. I keep the keys: every key in this hall is on this ring. That barred door over there? The restricted section. Keepers only. Very dull.
+> Keeper Tomas. I keep the keys: every key in this hall is on this ring. That iron grille at the back of the library? The restricted section. Keepers only. Very dull.
 >
 > Now listen closely, Initiate, because this is the most important thing anyone will tell you today.
 >

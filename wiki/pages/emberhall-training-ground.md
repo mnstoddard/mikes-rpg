@@ -25,7 +25,7 @@ It was added in version 0.20 to make the Prologue shorter and take every player 
 
 ## In the Prologue
 
-After "Light the Way", High Keeper Aldric sends you here ("The Training Ground" chapter). Old Maren's lessons come first; then the other trainers open up, one skill leading to the next (Brann after Greta, Rook after Holt, Moss after Wren, Rowan after Kael). The Oath of the Flame opens once you've learned from every trainer.
+After "Light the Way", High Keeper Aldric sends you here ("The Training Ground" chapter). Old Maren's lessons come first; then the other trainers open up, one skill leading to the next (since version 0.22 Smith Brann comes first, then Holt and Greta after him; Rook after Holt, Moss after Wren, Rowan after Kael). The Oath of the Flame opens once you've learned from every trainer.
 
 ## Later: skill challenges (planned)
 

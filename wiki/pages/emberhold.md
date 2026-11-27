@@ -12,7 +12,7 @@ Since version 0.20 (on the dev test server first) the Prologue happens inside th
 
 ## Districts
 
-- **Ember Hill**: [[The Emberhall]] and its garden, with a plaza below the great steps (the six lanterns of the Prologue's "Light the Way" stand on the steps and round the plaza).
+- **Ember Hill**: [[The Emberhall]] and its garden on a raised stone terrace with battlements (version 0.22), and a wide white stairway down to the plaza. The six lanterns of the Prologue's "Light the Way" stand on the stairway's side walls.
 - **The [[Emberhall Training Ground]]**, just east of the Emberhall behind a hedge, where every trainer teaches.
 - **Market Square**: market stalls, the warm well (heated from below), the bell tower, [[The General Store]] ([[Shopkeeper Tam]]) and Captain Bryn's bounty board.
 - **Forge Row**, to the west: Forester Holt's and Miner Greta's houses, [[Smith Brann's smithy]] and [[Woodworker Rook's workshop]].

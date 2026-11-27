@@ -137,7 +137,7 @@ export const NPCS: NpcDef[] = [
   {
     // Fixes worn and broken tools, weapons and armor (shared/repair.ts), for anyone.
     id: "repairer", name: "Repairer Oswin", kind: "person", ...at("guild.repairer"), color: 0x7d6608, badge: "🔧",
-    greeting: "Worn out? Broken? I'll make it good as new, for a few coins.",
+    greeting: "Worn out? Broken? Everything comes from the land, you know, and holds a little ember. Bring me a spare of the same kind, any axe for an axe, and I'll coax its ember into your worn one for a few coins. A plain one only gives a little to a fine one, mind.",
   },
   {
     // Magic jobs that raise your guild rank. Opens once Old Maren's tutorial is done.

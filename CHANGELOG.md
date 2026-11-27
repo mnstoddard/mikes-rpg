@@ -6,6 +6,32 @@ in `shared/version.ts` (the game reads it from there), so update both together.
 Each update adds 0.1 to the number. Version 1.0 is saved for the finished game on Steam
 (see docs/VERSION-1.0-PLAN.md).
 
+## 0.22 · 27 November 2026 · Ember Hill, your room in the tower, and the first lessons reworked
+
+- Fixed: the cobblestones and the city walls vanishing for good after you left the Emberhall. When a phone or iPad runs short of memory it throws away the game's pictures on the graphics chip; the game now notices and builds them again.
+- The cobblestones are simpler: one flat painted stone pattern instead of thousands of separate stones, much lighter for an iPad.
+- The Emberhall now stands on Ember Hill: a raised stone terrace with battlements, and a wide white stairway down to the plaza. The six Light the Way lanterns stand on the stairway's side walls, three each side.
+- The Emberhall looks like a castle: round towers with gold roofs at the corners, two gate towers with red banners either side of the entrance, and battlements along the walls. The front door is now a pair of tall arched oak doors with gold bands, in a carved stone arch, and they swing open as you walk up.
+- Your room: a door in the north-east corner of the great hall climbs the Emberhall's tall tower to your own room at the top, with a bed, a fire, books and an enchanted chest. It's the same storage as every other enchanted chest, and you can buy more space in it.
+- Robes and skirts cover your legs properly when you stride: a leg lifted forward used to poke out through the cloth.
+- Standing trees no longer show a line where they'll be cut.
+- Inside doors dip out of the way along with the walls, and a door out of a building shows daylight behind it instead of a black hole. Walls only fade when they're actually between the camera and you, not just because they're near you.
+- Keeper Lisette's Four Books are on the library shelves now, not on lecterns. The one you're on glows on its shelf and you walk over to take it down.
+- The restricted section is packed with shelves, row after row, and the only way in is the iron grille gate from the library (no more door off the great hall).
+- Old Maren's lesson: when your first rod breaks she explains that every tool wears down, and shows you how to throw a broken one away (🗑️ Trash in your bag). Then she lends you her good oak rod: catch her 10 more fish with it and it's yours to keep.
+- Eating your first stew with full stamina: the game now tells you to catch a few fish first, to use some stamina up.
+- One tool per quest: every quest gives you one tool, at full durability. Maren gives one pot, Holt and Greta no longer give spare tools, and Brann doesn't hand out tools at all (you make your own).
+- Smithing: Smith Brann teaches first now (Holt and Greta come after him). At Smithing level 1 the only thing you can make is the hammer; every level unlocks one more thing, in this order: tongs (2), fishing rod (3), axe (4), pickaxe (5), dagger (6), shovel (7), pot (8), sling (9), helmet (10), boots (11), sword (12), platelegs (13), shield (14), darts (15), mace (16), spear (17), platebody (18), greatsword (20). The anvil shows what you can make, plus the next thing and the level it unlocks at.
+- Woodcutting is slower to start with and steadier: no more two trees in a flash and then a long wait. Your log's Mastery matters much more: about twice as fast by Mastery 50, and a little faster again by 99.
+- Tool hints say what helps instead of what hurts, with no numbers: "Chopping a tree is much faster with a hatchet."
+- New Mastery upgrade in every skill's tree: 🔍 Keen eye. It shows that skill's exact odds, speeds and XP (cooking's burn chance, for example). Without it the game describes them in words.
+- Running turns off when you're carrying too much, and the run button greys out until you put something down.
+- Repairing works by kind now, and it's magic: everything comes from the land and holds a little ember. Any axe can mend an axe, any pickaxe a pickaxe, and so on, but a plainer one only mends a little of a better one (a bronze axe barely helps a mithril one). Mend and Repairer Oswin both use a spare of the same kind from your bag, so it's worth making extra tools to keep your best ones going.
+- The cooking menu only shows what you can cook at your level, plus the next dish to look forward to. The bag side only shows ingredients that fit, and the fuel list only logs you have and can use.
+- Keeper Oren walks you round the statues himself: you follow him from the king to Archmage Vale to the empty plinth and he tells the story at each one. Walking off on your own pauses the tour; talk to him again to carry on.
+- The quest log has tabs: Main, Side and Completed. Tap a finished quest for a recap of what happened. Quests you haven't found yet stay hidden, and the log fits on a phone screen.
+- The story, all consistent: King Aldemar held the fire back for about forty years (not one) while the Ember Circle built the shrines. Keeper Tomas names the six Emberwardens as the highest rank of all. Enchanter Vale is now Enchanter Corwen.
+
 ## 0.21 · 27 November 2026 · The Four Books, and a better first day
 
 - A new opening scene. It starts on a wide view of the Heart Shrine. A burst of embers flies out of its flame and circles the steps, and as they fade a body of glowing light forms there and slowly turns into your character. Then Sister Celene walks over, reaches out her hand, and helps you stand.

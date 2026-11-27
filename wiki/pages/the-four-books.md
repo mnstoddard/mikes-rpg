@@ -16,7 +16,7 @@ Leave notes on any book with ✏️ Suggest a change.
 
 ## How it works
 
-- Four books sit on lecterns along the library's east wall. **Only the next one glows** (and has a ❗), and only that one can be read.
+- The four books sit on the library's shelves (version 0.22, Mike's note: no lecterns). **Only the next one glows on its shelf** (and has a ❗): you walk over and take it down. Only that one can be read.
 - Clicking a later book first does nothing but a nudge: *(The book won't come off the shelf. Keeper Lisette calls over: "The glowing one first, dear. History only makes sense in order.")*
 - Clicking the glowing one opens it; reading it ticks it off. Books you've read can be read again any time.
 - The quest log shows the books one at a time, because the order matters.

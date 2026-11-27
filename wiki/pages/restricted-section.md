@@ -7,7 +7,7 @@ infobox.Where: The west-south wing of [[The Emberhall]], behind the library
 infobox.Kept_by: The Keepers (Keeper Lisette guards the grille)
 infobox.Status: In the game since 0.21 (the grille and Lisette's excuses); the quest is planned
 ---
-**The restricted section** is the whole west-south wing of [[The Emberhall]]: what used to be the stores and the ledger room, made into one locked area bigger than the library, with tall shelves and glass cases chained shut (a second floor and a spiral stair are planned). [[Keeper Tomas]] moved out into the great hall to make room. Its door off the great hall is barred. From the library you can see into it through a tall iron grille, but the gate is locked, and only the Keepers have the key.
+**The restricted section** is the whole west-south wing of [[The Emberhall]]: what used to be the stores and the ledger room, made into one locked area bigger than the library, packed with tall shelves, row after row, with an aisle down the middle from the gate (version 0.22; a second floor and a spiral stair are planned). [[Keeper Tomas]] moved out into the great hall to make room. There's no door off the great hall (version 0.22, Mike's note): the only way in is the iron grille gate at the back of the library. You can see in through the grille, but the gate is locked, and only the Keepers have the key.
 
 ## Trying the gate
 
