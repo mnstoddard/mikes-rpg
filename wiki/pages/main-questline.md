@@ -55,6 +55,7 @@ On claude.ai you can filter this list, and move quests up and down to try a new 
 | Act 3 | Quest | Wilds: Saltmere Coast | [[Saltmere Coast]] | Warden Merrow | Go into the withering lands far from the city and deal with the tides. Any order. |
 | Act 3 | Quest | Wilds: Ashen Barrens | [[The Ashen Barrens]] | Warden Dunn | Go into the withering lands far from the city and deal with the glass. Any order. |
 | Act 3 | Quest | Wilds: Blackfen | [[Blackfen]] | Warden Reed | Go into the withering lands far from the city and deal with the fog. Any order. |
+| Act 3 | Quest 🔒 | The Restricted Section | [[The Emberhall]] | | Sneak into the library's locked restricted section at night and read what the Keepers hide. |
 | Act 3 | Story beat 🔒 | The shrine's thread |  |  | After any 2 Trials: a relit shrine's warmth is pulled back down a thread toward Heartvale. |
 | Act 3 | Quest | Trial: Thornwood | [[The Thornwood]] | Warden Crowe | The Emberwarden's trial: reach the heart of the region, beat its boss and relight the great shrine. |
 | Act 3 | Quest | Trial: Greyspine Peaks | [[Greyspine Peaks]] | Warden Flint | The Emberwarden's trial: reach the heart of the region, beat its boss and relight the great shrine. |
