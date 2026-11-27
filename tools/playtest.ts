@@ -262,7 +262,12 @@ async function prologue(name: string) {
   await b.until(() => /Walk/.test(b.task), 5000, "the robe to count"); step("robe on");
   // Celene's walking lesson: the two glowing marks down the hall.
   for (const k of ["spot.hallLeft", "spot.hallRight"]) await b.goTo(PLACES[k].x, PLACES[k].y);
-  await b.until(() => /Aldric/.test(b.task), 5000, "the walking lesson to finish"); step("walked to both marks");
+  await b.until(() => /Run to/.test(b.task), 5000, "the walking lesson to finish"); step("walked to both marks");
+  // The running lesson: the mark only counts if you arrive running.
+  b.room.send("run", { on: true });
+  await b.goTo(PLACES["spot.hallRun"].x, PLACES["spot.hallRun"].y);
+  await b.until(() => /Aldric/.test(b.task), 5000, "the running lesson to finish"); step("ran to the mark");
+  b.room.send("run", { on: false });
   // One flowing talk with Aldric: Awakening's end and the start of The Hall of Embers together.
   await b.talkUntilNew("aldric"); step("Aldric (Awakening done, Hall of Embers started)");
   if (!/Oren/.test(b.task)) throw new Error(`expected Oren's tour next, got: ${b.task}`);
@@ -273,7 +278,7 @@ async function prologue(name: string) {
   step("met Tomas and Wynne");
   // Keeper Lisette: her side quest, The Four Books, read in order. Her tick waits for it.
   await b.talk("lisette");
-  if (!/glowing lectern/.test(b.task)) throw new Error(`expected The Four Books, got: ${b.task}`);
+  if (!/glowing shelf/.test(b.task)) throw new Error(`expected The Four Books, got: ${b.task}`);
   if (b.quest!.checklist) throw new Error("one book at a time: no checklist");
   if (!b.quest!.lit?.includes("book_1")) throw new Error("the first book should glow");
   const t1 = b.task;
@@ -285,7 +290,10 @@ async function prologue(name: string) {
   await b.until(() => /Go back to High Keeper Aldric/.test(b.task), 5000, "Lisette's tick to finish the three"); step("The Four Books (side quest), Lisette ticked");
   await b.talkUntilNew("aldric"); step("Hall done, Light the Way started");
   for (let n = 1; n <= 6; n++) await b.talk(`lantern_${n}`);
-  step("lanterns lit");
+  step("lanterns lit (on the stairway down Ember Hill)");
+  // Your room at the top of the tower, with an enchanted chest.
+  await b.talk("chest_room");
+  step("climbed to my room, opened the enchanted chest");
   await b.talkUntilNew("aldric"); step("got the lantern, The Old Sweeper too");
   if (!b.has("lantern")) throw new Error("no lantern");
   await b.until(() => b.quest!.marks.includes("maren"), 5000, "Maren's ❗"); step("The Old Sweeper");
@@ -512,7 +520,106 @@ async function story(name: string) {
   return b;
 }
 
-const SCENARIOS: Record<string, (name: string) => Promise<Bot>> = { prologue, story };
+/**
+ * A new character's first lessons (version 0.22): the prologue, then all of Old Maren's "Living off the land"
+ * (the rod that breaks, trashing it, the borrowed oak rod and 10 fish, a Mastery point, the burned stew, the
+ * pot, eating), then Smith Brann's smithing lesson (hammer first, then tongs), checking the new rules on the way.
+ */
+async function lessons(name: string) {
+  const b = await prologue(name);
+  await b.join(false);
+  b.watchBag();
+  await b.until(() => !!b.quest && !!b.bag, 10000, "the quest tracker and bag");
+  const step = (what: string) => console.log(`[${b.minutes()} min] ${what} -> task: ${b.task}`);
+  const pond = PLACES["tg.maren"];
+  const tools = () => (b.bag?.inventory ?? []).filter((it: string | null) => it && /^(rod|axe|pickaxe|pot|hammer|tongs)_/.test(it));
+  const equip = async (prefix: string) => {
+    const i = b.bag.inventory.findIndex((it: string | null) => it?.startsWith(prefix));
+    if (i < 0) throw new Error(`no ${prefix} in the bag`);
+    b.room.send("equip", { slot: i });
+    await sleep(800);
+  };
+  const t0 = b.task;
+  await b.gather("fish", null, () => b.task !== t0, pond); step("caught a minnow by hand");
+  await b.talkUntilNew("maren"); step("got Maren's old rod");
+  await equip("rod_"); step("equipped the rod");
+  let t = b.task;
+  await b.gather("fish", null, () => b.task !== t, pond); step("fished until the rod broke");
+  await b.talkUntilNew("maren"); step("Maren explains breaking");
+  if (!/Trash/.test(b.task)) throw new Error(`expected the trash step, got: ${b.task}`);
+  b.room.send("drop", { slot: b.slotOf("rod_pine") });
+  await b.until(() => /Talk to/.test(b.task), 5000, "trashing the rod"); step("trashed the broken rod");
+  await b.talkUntilNew("maren");
+  if (!b.has("rod_oak")) throw new Error("no oak rod on loan");
+  step("Maren lends her oak rod");
+  await equip("rod_oak");
+  t = b.task;
+  await b.gather("fish", null, () => b.task !== t, pond); step("caught 10 fish with the oak rod");
+  b.keep = ["minnow"];
+  await b.talkUntilNew("maren"); step("the rod is mine now");
+  b.room.send("treeBuy", { node: "fishing.insight" });
+  await b.until(() => !/Spend/.test(b.task), 8000, "spending a point (Keen eye)"); step("spent a Mastery point on Keen eye");
+  if (!b.has("minnow")) await b.gather("fish", null, () => b.has("minnow"), pond);
+  await b.talkUntilNew("maren"); step("Maren: cook a stew");
+  await b.talk("stove");
+  t = b.task;
+  b.room.send("craft", { item: "meal_stew_pine_minnow" });
+  await b.until(() => b.task !== t, 15000, "the first stew (it burns)"); step("burned the first stew");
+  await b.talkUntilNew("maren");
+  const pots = b.bag.inventory.filter((it: string | null) => it?.startsWith("pot_")).length;
+  if (pots !== 1) throw new Error(`Maren should give exactly one pot, got ${pots}`);
+  step("got one pot");
+  await equip("pot_");
+  await b.talk("stove");
+  t = b.task;
+  b.room.send("craft", { item: "meal_stew_pine_minnow" });
+  await b.until(() => b.task !== t, 15000, "the second stew"); step("cooked a stew");
+  await b.talkUntilNew("maren"); step("showed Maren the stew");
+  const stew = b.bag.inventory.findIndex((it: string | null) => it === "meal_stew_pine_minnow");
+  b.room.send("eat", { slot: stew });
+  await sleep(1200);
+  if (/Eat/.test(b.task)) {
+    // Stamina was full: Maren's hint says catch a few fish first.
+    if (!b.log.slice(-4).some((l) => /fish/i.test(l))) throw new Error("full stamina should say to catch some fish first");
+    step("stamina full: told to fish first");
+    await b.gather("fish", null, () => b.stamina < 100, pond);
+    b.room.send("eat", { slot: b.bag.inventory.findIndex((it: string | null) => it === "meal_stew_pine_minnow") });
+    await b.until(() => !/Eat/.test(b.task), 5000, "eating the stew");
+  }
+  step("ate the stew");
+  while (/Maren/.test(b.task)) await b.talkUntilNew("maren");
+  step("Living off the land done");
+  // Smith Brann: Smithing first. Only the hammer at level 1.
+  await b.talkUntilNew("brann"); step("Brann's first talk");
+  await b.talk("anvil");
+  t = b.task;
+  b.room.send("craft", { item: "tongs_bronze" });
+  await sleep(1200);
+  if (!b.log.slice(-3).some((l) => /level/i.test(l))) throw new Error("tongs should be locked at Smithing level 1");
+  step("tongs are locked at level 1");
+  b.room.send("craft", { item: "hammer_bronze_pine" });
+  await b.until(() => b.task !== t, 15000, "the hammer"); step("made the hammer");
+  await equip("hammer_");
+  await b.until(() => /Go back/.test(b.task), 5000, "equipping the hammer");
+  await b.talkUntilNew("brann"); step("Brann: ore for bars");
+  await b.talk("furnace");
+  t = b.task;
+  for (let n = 0; n < 3; n++) { b.room.send("craft", { item: "bronze_bar" }); await sleep(2500); }
+  await b.until(() => b.task !== t, 20000, "smelting 3 bars"); step("smelted 3 bars");
+  await b.talk("anvil");
+  t = b.task;
+  b.room.send("craft", { item: "tongs_bronze" });
+  await b.until(() => b.task !== t, 15000, "the tongs"); step("made the tongs");
+  await b.talkUntilNew("brann"); step("Brann's lesson done");
+  const counts: Record<string, number> = {};
+  for (const it of tools()) counts[it.split("_")[0]] = (counts[it.split("_")[0]] ?? 0) + 1;
+  console.log(`Tools in the bag: ${JSON.stringify(counts)} (one of each). Deaths: ${b.deaths}. Took ${b.minutes()} minutes.`);
+  if (Object.values(counts).some((n) => n > 1)) throw new Error("a quest gave a second copy of a tool");
+  await b.leave();
+  return b;
+}
+
+const SCENARIOS: Record<string, (name: string) => Promise<Bot>> = { prologue, story, lessons };
 
 if (process.argv[2]) {
   const which = process.argv[2];
