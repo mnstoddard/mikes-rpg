@@ -12,7 +12,7 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { AREAS, AreaDef, DOORS, MAP, MAP_NODES, OUTDOORS, Tile, areaAt, charAt } from "../../../shared/map";
 import { CITY_BUILDINGS, CITY_SIGNS, type CityBuilding } from "../../../shared/world";
-import { cityBackdrop, cityLand, emberhallCrown, rampartBlock, RAMPART_H } from "./city";
+import { cityBackdrop, cityLand, emberhallCrown, gpuOnly, rampartBlock, RAMPART_H } from "./city";
 import { treeKey, type ResourceId } from "../../../shared/foraging";
 import { createEnv, house, TILE, type EnvPiece } from "../environment";
 import type { RoofKind, WallKind } from "../environment/building";
@@ -458,7 +458,7 @@ export class Terrain {
       const merged = mergeGeometries(geos, false);
       geos.forEach((g) => g.dispose());
       if (!merged) continue;
-      const m = new THREE.Mesh(merged, mat);
+      const m = new THREE.Mesh(gpuOnly(merged), mat);
       m.receiveShadow = true;
       c.group.add(m);
     }
@@ -516,7 +516,7 @@ export class Terrain {
       blocks.forEach((g) => g.dispose());
       if (merged) {
         merged.computeVertexNormals();
-        const m = new THREE.Mesh(merged, vcol);
+        const m = new THREE.Mesh(gpuOnly(merged), vcol);
         m.castShadow = true;
         m.receiveShadow = true;
         c.group.add(m);

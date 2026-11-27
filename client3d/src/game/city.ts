@@ -60,6 +60,25 @@ function quad(w: number, h: number, x: number, y: number, z: number, rotY: numbe
   return g;
 }
 
+/**
+ * For a mesh that never changes and is never clicked: once its shape is on the graphics
+ * card, the copy in the browser's memory isn't needed, so it's thrown away. This halves
+ * what big merged meshes cost (iPads run out of memory otherwise).
+ */
+export function gpuOnly(g: THREE.BufferGeometry) {
+  g.computeBoundingSphere();
+  g.computeBoundingBox();
+  const drop = function (this: THREE.BufferAttribute) {
+    this.array = new (this.array.constructor as Float32ArrayConstructor)(0);
+  };
+  for (const a of Object.values(g.attributes)) (a as THREE.BufferAttribute).onUpload(drop);
+  g.index?.onUpload(drop);
+  return g;
+}
+
+/** Backdrop buildings are merged in squares this many tiles wide, so the ones off screen aren't drawn. */
+const SECTOR = 24;
+
 export interface CityPiece { object: THREE.Object3D; update: (dt: number, t: number, night: number) => void; dispose: () => void }
 
 /**
@@ -147,16 +166,26 @@ export function cityBackdrop(setHeight: (x: number, y: number, h: number) => voi
 
   const group = new THREE.Group();
   const meshes: THREE.Mesh[] = [];
-  const add = (list: THREE.BufferGeometry[], mat: THREE.Material, shadow: boolean) => {
-    if (!list.length) return;
-    const g = mergeGeometries(list, false);
-    list.forEach((x) => x.dispose());
-    if (!g) return;
-    const m = new THREE.Mesh(g, mat);
-    m.castShadow = shadow;
-    m.receiveShadow = shadow;
-    group.add(m);
-    meshes.push(m);
+  const add = (all: THREE.BufferGeometry[], mat: THREE.Material, shadow: boolean) => {
+    // One mesh per square of the city, so the camera only draws the squares it can see.
+    const sectors = new Map<string, THREE.BufferGeometry[]>();
+    const c = new THREE.Vector3();
+    for (const geo of all) {
+      geo.computeBoundingBox();
+      geo.boundingBox!.getCenter(c);
+      const k = `${Math.floor(c.x / TILE / SECTOR)},${Math.floor(c.z / TILE / SECTOR)}`;
+      (sectors.get(k) ?? sectors.set(k, []).get(k)!).push(geo);
+    }
+    for (const list of sectors.values()) {
+      const g = mergeGeometries(list, false);
+      list.forEach((x) => x.dispose());
+      if (!g) continue;
+      const m = new THREE.Mesh(gpuOnly(g), mat);
+      m.castShadow = shadow;
+      m.receiveShadow = shadow;
+      group.add(m);
+      meshes.push(m);
+    }
   };
   const litMat = new THREE.MeshStandardMaterial({ color: 0x2c3440, emissive: 0xffbf6a, emissiveIntensity: 0, roughness: 0.35, metalness: 0.1 });
   const darkMat = new THREE.MeshStandardMaterial({ color: 0x2c3440, roughness: 0.35, metalness: 0.1 });
