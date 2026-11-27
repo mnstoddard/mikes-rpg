@@ -27,6 +27,20 @@ export const SAVE_VERSION = 3; // 3 = the five Disciplines (Strength, Endurance,
  */
 export const MAP_REV = 3; // 3: version 0.18, the town moved inside Emberhold's walls
 
+/**
+ * Which game server this is: "live" (Render, main branch), "dev" (Render, the dev branch),
+ * or "local". SERVER_NAME overrides it.
+ */
+export const SERVER_NAME = process.env.SERVER_NAME?.trim()
+  || (process.env.RENDER_GIT_BRANCH ? (process.env.RENDER_GIT_BRANCH === "main" ? "live" : process.env.RENDER_GIT_BRANCH) : "local");
+/**
+ * A test server (anything but live) can share live's database, so you log in with your real
+ * account. Then it keeps its own copy of each character (in test_saves) and its own world
+ * data (keys starting "dev:"), so playing on it never changes anyone's live save or farm.
+ * The first time you log in there, it starts from a copy of your live character.
+ */
+const TEST_COPY = SERVER_NAME !== "live" && SERVER_NAME !== "local" ? SERVER_NAME : null;
+
 /** Everything about a character that survives logging out. */
 export interface SaveData {
   saveVersion?: number; // see SAVE_VERSION
@@ -247,8 +261,19 @@ class PostgresStore implements Store {
         ended    TEXT
       )`);
     // Anyone still "on" from before this start was cut off by a restart or redeploy.
-    await this.pool.query("UPDATE logins SET ended = 'server restarted' WHERE ended IS NULL AND outcome <> 'failed'");
+    // (Not on a test server sharing live's database: that would cut off everyone playing on live.)
+    if (!TEST_COPY) await this.pool.query("UPDATE logins SET ended = 'server restarted' WHERE ended IS NULL AND outcome <> 'failed'");
     await this.pool.query(`DELETE FROM logins WHERE at < now() - interval '${LOGIN_KEEP_DAYS} days'`);
+    if (TEST_COPY) {
+      await this.pool.query(`
+        CREATE TABLE IF NOT EXISTS test_saves (
+          server       TEXT NOT NULL,
+          username_key TEXT NOT NULL,
+          save         JSONB NOT NULL DEFAULT '{}'::jsonb,
+          saved_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+          PRIMARY KEY (server, username_key)
+        )`);
+    }
     await this.pool.query(`
       CREATE TABLE IF NOT EXISTS crashes (
         id       SERIAL PRIMARY KEY,
@@ -316,18 +341,24 @@ class PostgresStore implements Store {
     const res = await this.pool.query("DELETE FROM reports WHERE id = $1", [id]);
     return res.rowCount === 1;
   }
+  /** On a test server, world data has its own keys ("dev:farms"), so live's farms are left alone. */
+  private worldKey(key: string) { return TEST_COPY ? `${TEST_COPY}:${key}` : key; }
   async getWorld(key: string) {
-    const { rows } = await this.pool.query("SELECT data FROM world WHERE key = $1", [key]);
+    const { rows } = await this.pool.query("SELECT data FROM world WHERE key = $1", [this.worldKey(key)]);
     return rows[0]?.data ?? null;
   }
   async setWorld(key: string, data: unknown) {
     await this.pool.query(
       `INSERT INTO world (key, data) VALUES ($1, $2)
-       ON CONFLICT (key) DO UPDATE SET data = $2, updated_at = now()`, [key, JSON.stringify(data)]);
+       ON CONFLICT (key) DO UPDATE SET data = $2, updated_at = now()`, [this.worldKey(key), JSON.stringify(data)]);
   }
   async get(username: string) {
-    const { rows } = await this.pool.query(
-      "SELECT username, password_hash, save FROM accounts WHERE username_key = $1", [usernameKey(username)]);
+    const { rows } = TEST_COPY
+      ? await this.pool.query(
+        `SELECT a.username, a.password_hash, COALESCE(t.save, a.save) AS save FROM accounts a
+         LEFT JOIN test_saves t ON t.server = $2 AND t.username_key = a.username_key WHERE a.username_key = $1`,
+        [usernameKey(username), TEST_COPY])
+      : await this.pool.query("SELECT username, password_hash, save FROM accounts WHERE username_key = $1", [usernameKey(username)]);
     if (!rows.length) return null;
     return { username: rows[0].username, passwordHash: rows[0].password_hash, save: rows[0].save ?? {} };
   }
@@ -338,6 +369,13 @@ class PostgresStore implements Store {
     return res.rowCount === 1;
   }
   async save(username: string, data: SaveData) {
+    if (TEST_COPY) {
+      await this.pool.query(
+        `INSERT INTO test_saves (server, username_key, save) VALUES ($1, $2, $3)
+         ON CONFLICT (server, username_key) DO UPDATE SET save = $3, saved_at = now()`,
+        [TEST_COPY, usernameKey(username), JSON.stringify(data)]);
+      return;
+    }
     await this.pool.query("UPDATE accounts SET save = $2, saved_at = now() WHERE username_key = $1",
       [usernameKey(username), JSON.stringify(data)]);
   }
@@ -348,6 +386,9 @@ class PostgresStore implements Store {
     try {
       const res = await this.pool.query("UPDATE accounts SET username_key = $2, username = $3 WHERE username_key = $1",
         [usernameKey(oldName), usernameKey(newName), newName.trim()]);
+      if (TEST_COPY && res.rowCount === 1) {
+        await this.pool.query("UPDATE test_saves SET username_key = $2 WHERE username_key = $1", [usernameKey(oldName), usernameKey(newName)]);
+      }
       return res.rowCount === 1;
     } catch (err: any) {
       if (err.code === "23505") return false; // that name is someone else's
