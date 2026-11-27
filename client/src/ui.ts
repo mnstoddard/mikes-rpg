@@ -3,8 +3,8 @@ import { COIN_KINDS, formatMoney, toPurse } from "../../shared/money";
 import { CraftSkill, DISCIPLINES, DISCIPLINE_IDS, DisciplineId, DisciplineView, MAX_LEVEL, SkillId, SkillXp, emptySkills, findSkill, isCraftSkill, isUnlocked, levelForXp, newDisciplineView, xpForLevel } from "../../shared/disciplines";
 import { buyWithCharisma, maxHealth, maxMana, maxStamina, sellWithCharisma, walkBonus } from "../../shared/stats";
 import { ItemMasteryXp, MasteryId, craftSuccess, masteryValue, masteryIn, masteryLevelForXp, masterySuccess, masteryXpForLevel, percent, speedBonusPercent, valueBonusPercent } from "../../shared/mastery";
-import { FORAGE_FINDS, RESOURCES, forageFindOf, forageXp, resourcesFor } from "../../shared/foraging";
-import { beltBonus, buyPriceFor, masteryIdFor, masteryName, levelGapFactor, recipeFor, sellPriceFor, successFor } from "../../shared/crafting";
+import { FORAGE_FINDS, RESOURCES, forageFindOf, forageXp, gatherSpeed, resourcesFor } from "../../shared/foraging";
+import { beltBonus, buyPriceFor, masteryIdFor, masteryName, levelGapFactor, recipeFor, SMITH_ORDER, SMITH_UNLOCK, smithLevel, sellPriceFor, successFor } from "../../shared/crafting";
 import { RESOURCE_FOR_ITEM } from "../../shared/foraging";
 import { CRAFT_MARKUP } from "../../shared/items";
 import {
@@ -19,7 +19,7 @@ import { isBroken, type RepairJob } from "../../shared/repair";
 import { PLAYER_COLORS } from "../../shared/colors";
 import {
   ARMOR, ARMOR_TYPES, METAL_DAMAGE, SOFT_NAMES, ArmorType, GEAR_SLOTS, Gear, GearSlot, SLOT_ICONS, SLOT_NAMES, WEAPONS, WEAPON_TYPES, WeaponType,
-  armorId, emptyGear, isArmor, isGear, isWeapon, parseArmor, parseWeapon, weaponId,
+  armorId, emptyGear, isArmor, isGear, isWeapon, isWooden, parseArmor, parseWeapon, weaponId,
 } from "../../shared/gear";
 import {
   huntingDrops, ARMOR_LEVEL, CombatMasteryId, CombatMasteryXp, MONSTERS, MONSTER_IDS, POTION_HEAL, POTION_ID, SPELLS, SPELL_IDS, SpellId, armorPoints, attackFor,
@@ -209,6 +209,10 @@ type Station = keyof typeof STATION_SKILL;
 
 /** What a skill's tree gives you for one effect (from the ranks you've bought). */
 const tree = (skill: SkillId, effect: Parameters<typeof treeBonus>[2]) => treeBonus(treeRanks(), skill, effect);
+/** Keen eye (version 0.22, Mike's note): only show a skill's numbers once you've bought it in that skill's tree. */
+const knows = (skill: string) => (treeRanks()[`${skill}.insight`] ?? 0) > 0;
+/** A success chance in words, for players without Keen eye. */
+const chanceWords = (c: number) => c >= 0.9 ? "Almost sure to work" : c >= 0.65 ? "Likely to work" : c >= 0.4 ? "Might work" : c >= 0.2 ? "Tricky: often fails" : "Very hard: usually fails";
 /** Your crafting chance with everything counted (Mastery, belt tool, skill tree). */
 const chanceFor = (recipe: NonNullable<ReturnType<typeof recipeFor>>) => successFor(recipe, lastMastery, lastBelt, tree(recipe.skill, "success"), levelForXp(lastSkillXp[recipe.skill as SkillId] ?? 0));
 /** Stamina from eating it, with the Cooking tree's "Hearty meals". */
@@ -399,10 +403,11 @@ function skillDetails(skill: SkillId): HTMLElement {
       const mFill = document.createElement("div");
       mFill.style.width = `${Math.floor(((mXp - mStart) / (mNext - mStart)) * 100)}%`;
       mBar.appendChild(mFill);
-      const detail = el("t-info", `${speedBonusPercent(m)}% faster · sells for ${formatMoney(price)}`);
+      const faster = Math.round((gatherSpeed(id, m) - 1) * 100);
+      const detail = el("t-info", knows(r.skill) ? `${faster}% faster · sells for ${formatMoney(price)}` : `sells for ${formatMoney(price)}`);
       row.append(mBar, detail);
       row.title = `${item.name} Mastery ${m}: ${(mNext - mXp).toLocaleString()} XP to ${m + 1}. ` +
-        `${speedBonusPercent(m)}% faster to gather, ${valueBonusPercent(m)}% more money (base price ${formatMoney(item.sellPrice)}). ${r.xp} XP each` +
+        `${faster}% faster to gather, ${valueBonusPercent(m)}% more money (base price ${formatMoney(item.sellPrice)}). ${r.xp} XP each` +
         (forageXp(id) !== r.xp ? ` (${forageXp(id)} Foraging XP: fishing is easy on stamina, so it gives Foraging half).` : ".");
     }
     list.appendChild(row);
@@ -432,6 +437,7 @@ function beltLine(skill: CraftSkill) {
   const tool = toolForSkill(skill);
   if (!tool) return el("m-info", "No tool needed");
   const bonus = beltBonus(lastBelt, skill);
+  if (!knows(skill)) return el("m-info", lastBelt[tool] ? `Using ${ITEMS[lastBelt[tool]!.item].name}: it helps a lot` : `A ${TOOL_TYPES[tool].name.toLowerCase()} on your belt helps a lot`);
   return el("m-info", lastBelt[tool] ? `Using ${ITEMS[lastBelt[tool]!.item].name}: ${Math.round(bonus! * 100)}% fewer failures`
     : `No ${TOOL_TYPES[tool].name.toLowerCase()} on your belt: half the success chance`);
 }
@@ -455,7 +461,7 @@ function cookingDetails(level: number, box: HTMLElement) {
     }
     const kinds = Object.entries(d.kinds).map(([k, x]) => `${FOOD_KINDS[k as keyof typeof FOOD_KINDS].toLowerCase()} ×${x}`).join(", ");
     list.appendChild(masteryRow(dish, d.name, d.icon, undefined,
-      (m) => `${percent(1 - (1 - craftSuccess(m, bonus, d.start)) * (1 - tree("cooking", "success")))} success · +${valueBonusPercent(m)}% stamina and value`,
+      (m) => { const c = 1 - (1 - craftSuccess(m, bonus, d.start)) * (1 - tree("cooking", "success")); return knows("cooking") ? `${percent(c)} success · +${valueBonusPercent(m)}% stamina and value` : chanceWords(c); },
       (m) => `${d.note}. Stamina: ${kinds}, fire ×${d.fire}. Every ${d.name.toLowerCase()} shares this Mastery: ${percent(masterySuccess(m, d.start))} base success; they give ${valueBonusPercent(m)}% more stamina and sell for ${valueBonusPercent(m)}% more.`));
   }
   box.appendChild(list);
@@ -479,7 +485,7 @@ function handicraftDetails(level: number, box: HTMLElement) {
       continue;
     }
     list.appendChild(masteryRow(bait, b.name, b.icon, b.tint,
-      (m) => `${percent(1 - (1 - craftSuccess(m, null, b.start, false)) * (1 - tree("handicraft", "success")))} success · ${b.description.split(":")[0]}`,
+      (m) => { const c = 1 - (1 - craftSuccess(m, null, b.start, false)) * (1 - tree("handicraft", "success")); return `${knows("handicraft") ? `${percent(c)} success` : chanceWords(c)} · ${b.description.split(":")[0]}`; },
       (m) => `${b.description}, for ${b.uses} catches. ${percent(masterySuccess(m, b.start))} base success, ${valueBonusPercent(m)}% more money.`));
   }
   box.appendChild(list);
@@ -516,7 +522,9 @@ function huntingDetails(level: number, box: HTMLElement) {
 /** Smelting: each bar's Mastery. Smithing: each kind of tool's Mastery. Shows your success chance with your belt tool. */
 function craftDetails(skill: CraftSkill, level: number, box: HTMLElement) {
   const upcoming = METAL_IDS.find((m) => METALS[m].level > level);
-  if (upcoming) {
+  const nextSmith = skill === "smithing" ? SMITH_ORDER.find((t) => smithLevel(t) > level) : undefined;
+  if (nextSmith) box.append(el("m-info", `Next unlock at the anvil: ${nextSmith === "rod" ? "fishing rods" : nextSmith} at level ${smithLevel(nextSmith)}`));
+  else if (upcoming) {
     const m = METALS[upcoming];
     box.append(el("m-info", `Next unlock: ${skill === "smelting" ? `${m.name} bars` : `${m.name} tools`} at level ${m.level}`));
   }
@@ -534,7 +542,7 @@ function craftDetails(skill: CraftSkill, level: number, box: HTMLElement) {
         continue;
       }
       list.appendChild(masteryRow(bar, ITEMS[bar].name, "🧈", metal.tint,
-        (m) => `${percent(craftSuccess(m, bonus))} success · sells for ${formatMoney(sellPrice(bar))}`,
+        (m) => `${knows(skill) ? `${percent(craftSuccess(m, bonus))} success` : chanceWords(craftSuccess(m, bonus))} · sells for ${formatMoney(sellPrice(bar))}`,
         (m) => `${percent(masterySuccess(m))} base success, ${valueBonusPercent(m)}% more money. ${metal.barXp} XP each.`));
     }
   } else {
@@ -542,7 +550,7 @@ function craftDetails(skill: CraftSkill, level: number, box: HTMLElement) {
       const t = TOOL_TYPES[type];
       if (type === "pot") continue; // pots are made at the anvil, but they help Cooking
       list.appendChild(masteryRow(type, type === "tongs" ? t.name : `${t.name}s`, t.icon, undefined,
-        (m) => `${percent(craftSuccess(m, bonus))} success · +${valueBonusPercent(m)}% value`,
+        (m) => knows(skill) ? `${percent(craftSuccess(m, bonus))} success · +${valueBonusPercent(m)}% value` : chanceWords(craftSuccess(m, bonus)),
         (m) => `Every kind of ${t.name.toLowerCase()} shares this Mastery. ${percent(masterySuccess(m))} base success, ${valueBonusPercent(m)}% more money. Better metal and wood give more XP.`));
     }
   }
@@ -908,6 +916,7 @@ function toolEffect(item: ItemId) {
   const t = TOOL_TYPES[parseTool(item).type];
   const skill = findSkill(t.skill).def.name;
   const bonus = Math.round(toolBonus(item) * 100);
+  if (!knows(t.skill)) return t.helps === "speed" ? `makes ${skill} much faster` : `makes ${skill} work far more often`;
   return t.helps === "speed" ? `+${bonus}% ${skill} speed` : `${bonus}% fewer ${skill} failures`;
 }
 
@@ -939,13 +948,13 @@ export function renderBelt(belt: Belt) {
     if (on) {
       const max = maxDurability(on.item);
       slot.append(itemIcon("", on.item), durabilityBar(on.durability, max));
-      slot.title = `${ITEMS[on.item].name}: ${toolEffect(on.item)}. ${on.durability} of ${max} uses left. Click for details.`;
+      slot.title = `${ITEMS[on.item].name}: ${toolEffect(on.item)}.${knows(t.skill) ? ` ${on.durability} of ${max} uses left.` : ""} Click for details.`;
       slot.onclick = () => showInfo({ kind: "belt", type });
     } else {
       slot.appendChild(icon("empty-tool", t.icon));
       slot.title = t.helps === "speed"
-        ? `No ${t.name.toLowerCase()}: ${findSkill(t.skill).def.name} is 3 times slower. Click one in your bag to put it here.`
-        : `No ${t.name.toLowerCase()}: half the ${findSkill(t.skill).def.name} success chance. Click one in your bag to put it here.`;
+        ? `No ${t.name.toLowerCase()}: ${findSkill(t.skill).def.name} is much faster with one. Click one in your bag to put it here.`
+        : `No ${t.name.toLowerCase()}: ${findSkill(t.skill).def.name} works far more often with one. Click one in your bag to put it here.`;
     }
     beltEl.appendChild(slot);
   }
@@ -1331,27 +1340,32 @@ export function showRepairs(view: { jobs: RepairJob[]; free: boolean; open: bool
   if (!view.jobs.length) {
     repairBody.append(el("", "Nothing needs fixing. Come back when something wears out!"));
   } else {
-    repairBody.append(el("", view.free ? "Your first repair is free (Old Maren's an old friend)." : `About 1 bronze for every 10% worn, more for finer things. You have ${formatMoney(coins)}.`));
+    // Version 0.22: repairs are magic. Everything from the land holds a little ember, so a spare of the same kind gives its ember to the worn one.
+    repairBody.append(el("", "\"Everything that comes from the land holds a little ember, even an old axe. Give me a spare of the same kind and I'll pour its ember into yours. A spare as fine as yours mends it fully; a poorer one only a little.\""));
     const list = el("");
     list.id = "repair-list";
     for (const j of view.jobs) {
       const item = ITEMS[j.item];
       const cost = view.free ? 0 : j.cost;
-      const row = el("buy-row" + (coins < cost ? " poor" : ""));
+      const row = el("buy-row" + (!j.spare || coins < cost ? " poor" : ""));
       const b = document.createElement("button");
       b.className = "buy-btn";
       const state = j.durability <= 0 ? "💔 broken" : `${Math.round((j.durability / j.max) * 100)}% left`;
-      b.append(itemIcon("buy-icon", j.item), el("buy-name", `${item.short ?? item.name} · ${state}`), el("buy-price", cost ? formatMoney(cost) : "Free"));
-      b.title = `Repair your ${item.single} (${where[j.where]}): ${j.durability} of ${j.max} uses left`;
+      const kind = j.kind.split(":")[1];
+      const using = j.spare ? `uses your ${ITEMS[j.spare.item].single}${j.spare.restores < j.max - Math.max(0, j.durability) ? " (mends it a little)" : ""}` : `needs a spare ${kind}`;
+      b.append(itemIcon("buy-icon", j.item), el("buy-name", `${item.short ?? item.name} · ${state} · ${using}`), el("buy-price", !j.spare ? "—" : cost ? formatMoney(cost) : "Free"));
+      b.title = `Repair your ${item.single} (${where[j.where]}). ${j.spare ? `Oswin uses up your ${ITEMS[j.spare.item].single}.` : `Bring any ${kind}: a finer one gives more.`}`;
+      b.disabled = !j.spare;
       b.onclick = () => repairActions.repair(j.where, j.key);
       row.append(b);
       list.append(row);
     }
     repairBody.append(list);
   }
-  const total = view.free ? 0 : view.jobs.reduce((sum, j) => sum + j.cost, 0);
-  repairAllBtn.disabled = !view.jobs.length;
-  repairAllBtn.textContent = view.jobs.length > 1 ? `Repair all (${total ? formatMoney(total) : "free"})` : "Repair all";
+  const ready = view.jobs.filter((j) => j.spare);
+  const total = view.free ? 0 : ready.reduce((sum, j) => sum + j.cost, 0);
+  repairAllBtn.disabled = !ready.length;
+  repairAllBtn.textContent = ready.length > 1 ? `Repair all (${total ? formatMoney(total) : "free"})` : "Repair all";
 }
 
 repairAllBtn.onclick = () => repairActions.repairAll();
@@ -1859,7 +1873,12 @@ function renderCraft() {
   } else {
     const CATS = { tools: { icon: "🪓", name: "Tools" }, weapons: { icon: "🗡️", name: "Weapons" }, armor: { icon: "🛡️", name: "Armor" }, jewelry: { icon: "💍", name: "Jewelry" }, gems: { icon: "💎", name: "Cut gems" } };
     craftBody.append(choices("Make", ["tools", "weapons", "armor", "jewelry", "gems"] as ("tools" | "weapons" | "armor" | "jewelry" | "gems")[], pick.category, (c) => CATS[c], (c) => { pick.category = c; }));
-    const head = () => choices("Head", MATERIAL_IDS, pick.metal, (m) => ({ icon: "🧈", tint: MATERIALS[m].tint, name: MATERIALS[m].name, lockedAt: lockedAt(m) }), (m) => { pick.metal = m; });
+    // Smithing unlocks one thing per level (version 0.22): show what you can make, and the next one (locked). Nothing further.
+    const smithLocked = (t: keyof typeof SMITH_UNLOCK, metal: Material = "bronze") => level < smithLevel(t, MATERIALS[metal].level) ? smithLevel(t, MATERIALS[metal].level) : undefined;
+    const nextUp = SMITH_ORDER.find((t) => level < smithLevel(t));
+    const shown = <T extends keyof typeof SMITH_UNLOCK>(ids: readonly T[]) => ids.filter((t) => !smithLocked(t) || t === nextUp);
+    const smithType = (): keyof typeof SMITH_UNLOCK => pick.category === "weapons" ? pick.weapon : pick.category === "armor" ? pick.armor : pick.type;
+    const head = () => choices("Head", MATERIAL_IDS, pick.metal, (m) => ({ icon: "🧈", tint: MATERIALS[m].tint, name: MATERIALS[m].name, lockedAt: smithLocked(smithType(), m) }), (m) => { pick.metal = m; });
     const handle = () => choices("Handle", WOOD_IDS, pick.wood, (w) => ({ icon: "🪵", tint: ITEMS[`${w}_logs`].tint, name: WOODS[w].name }), (w) => { pick.wood = w; });
     if (pick.category === "gems") {
       renderCutting(level);
@@ -1882,20 +1901,31 @@ function renderCraft() {
       output = jewelId(pick.jewel, pick.jewelMetal, pick.jewelGem as never);
       craftBody.append(el("craft-info", `Gives: ${describeBonus(jewelBonus(output as never))}. A failed try loses the bars but keeps the gem.`));
     } else if (pick.category === "weapons") {
-      craftBody.append(choices("Weapon", WEAPON_TYPES, pick.weapon, (t) => ({ icon: WEAPONS[t].icon, name: WEAPONS[t].name }), (t) => { pick.weapon = t; }), head(), handle());
+      const ws = shown(WEAPON_TYPES.filter((t) => !isWooden(t)));
+      if (!ws.length) { craftBody.append(el("craft-info", `Your first weapon (a dagger) unlocks at Smithing ${smithLevel("dagger")}.`)); craftOne.disabled = craftAll.disabled = true; return; }
+      if (!(ws as WeaponType[]).includes(pick.weapon)) pick.weapon = ws[0];
+      craftBody.append(choices("Weapon", ws, pick.weapon, (t) => ({ icon: WEAPONS[t].icon, name: WEAPONS[t].name, lockedAt: smithLocked(t) }), (t) => { pick.weapon = t; }), head(), handle());
       output = weaponId(pick.weapon, pick.metal, pick.wood);
     } else if (pick.category === "armor") {
       craftBody.append(
-        choices("Armor", ARMOR_TYPES, pick.armor, (t) => ({ icon: ARMOR[t].icon, name: `${ARMOR[t].name} (${ARMOR[t].bars})` }), (t) => { pick.armor = t; }),
-        choices("Metal", METAL_IDS, pick.armorMetal, (m) => ({ icon: "🧈", tint: METALS[m].tint, name: METALS[m].name, lockedAt: lockedAt(m) }), (m) => { pick.armorMetal = m; }),
+        ...(() => {
+          const as = shown(ARMOR_TYPES);
+          if (!as.length) return [el("craft-info", `Your first armor (a helmet) unlocks at Smithing ${smithLevel("helmet")}.`)];
+          if (!as.includes(pick.armor)) pick.armor = as[0];
+          return [choices("Armor", as, pick.armor, (t) => ({ icon: ARMOR[t].icon, name: `${ARMOR[t].name} (${ARMOR[t].bars})`, lockedAt: smithLocked(t) }), (t) => { pick.armor = t; }),
+            choices("Metal", METAL_IDS, pick.armorMetal, (m) => ({ icon: "🧈", tint: METALS[m].tint, name: METALS[m].name, lockedAt: smithLocked(pick.armor, m) }), (m) => { pick.armorMetal = m; })];
+        })(),
       );
+      if (!shown(ARMOR_TYPES).length) { craftOne.disabled = craftAll.disabled = true; return; }
       output = armorId(pick.armor, pick.armorMetal);
     } else {
-      craftBody.append(choices("Tool", TOOL_TYPE_IDS, pick.type, (t) => ({ icon: TOOL_TYPES[t].icon, name: TOOL_TYPES[t].name }), (t) => { pick.type = t; }));
+      const ts = shown(TOOL_TYPE_IDS);
+      if (!ts.includes(pick.type)) pick.type = ts[0];
+      craftBody.append(choices("Tool", ts, pick.type, (t) => ({ icon: TOOL_TYPES[t].icon, name: TOOL_TYPES[t].name, lockedAt: smithLocked(t) }), (t) => { pick.type = t; }));
       if (isWoodTool(pick.type)) {
         // Fishing rods are all wood: pick which logs to carve it from.
         craftBody.append(choices(`Wood (${ROD_LOGS} logs)`, WOOD_IDS, pick.wood, (w) => ({ icon: "🪵", tint: ITEMS[`${w}_logs`].tint, name: WOODS[w].name,
-          lockedAt: level < RESOURCES[w].level ? RESOURCES[w].level : undefined }), (w) => { pick.wood = w; }));
+          lockedAt: level < Math.max(RESOURCES[w].level, smithLevel("rod")) ? Math.max(RESOURCES[w].level, smithLevel("rod")) : undefined }), (w) => { pick.wood = w; }));
       } else {
         craftBody.append(head());
         if (hasHandle(pick.type)) craftBody.append(handle());
@@ -1937,12 +1967,13 @@ function renderCraft() {
   const tool = toolForSkill(skill);
   const m = masteryIn(lastMastery, recipe.mastery);
   const steady = tree(skill, "success");
-  detail.append(el("craft-chance", `${percent(chance)} success`),
+  const sees = knows(skill);
+  detail.append(el("craft-chance", sees ? `${percent(chance)} success` : chanceWords(chance)),
     el("craft-info", `Mastery ${m}` + (!tool ? " · no tool needed" : lastBelt[tool] ? ` · ${ITEMS[lastBelt[tool]!.item].name} on your belt`
-      : recipe.needsTool ? ` · no ${TOOL_TYPES[tool].name.toLowerCase()} on your belt (half chance)` : ` · no ${TOOL_TYPES[tool].name.toLowerCase()} needed`) +
-      (steady ? ` · skill tree: ${Math.round(steady * 100)}% fewer failures` : "")));
-  const facts = secret ? [`costs ${STAMINA_COST[skill]} stamina`] : [`Sells for ${formatMoney(sellPrice(made))}${recipe.makes ? " each" : ""}`, `${recipe.xp} XP`, `costs ${STAMINA_COST[skill]} stamina`];
-  if (isTool(output)) facts.unshift(`${toolEffect(output)}, ${maxDurability(output)} uses`);
+      : recipe.needsTool ? ` · a ${TOOL_TYPES[tool].name.toLowerCase()} on your belt would help a lot` : ` · no ${TOOL_TYPES[tool].name.toLowerCase()} needed`) +
+      (steady && sees ? ` · skill tree: ${Math.round(steady * 100)}% fewer failures` : "")));
+  const facts = secret ? [`costs ${STAMINA_COST[skill]} stamina`] : [`Sells for ${formatMoney(sellPrice(made))}${recipe.makes ? " each" : ""}`, ...(sees ? [`${recipe.xp} XP`, `costs ${STAMINA_COST[skill]} stamina`] : [])];
+  if (isTool(output)) facts.unshift(sees ? `${toolEffect(output)}, ${maxDurability(output)} uses` : toolEffect(output));
   if (isGear(output)) {
     const needs = gearNeeds(output)!;
     facts.unshift(`${gearEffect(output)}, ${gearDurability(output)} uses, to use: ${findSkill(needs.skill).def.name} ${needs.level}`);
@@ -2555,7 +2586,7 @@ function renderInfo() {
     infoBody.append(infoLine("Dug up", `Foraging level ${f.level}`, `from glinting dig patches, ${f.xp} XP${f.night ? ", only at night" : ""}`));
   } else if (recipe) {
     infoBody.append(infoLine("Made with", `${findSkill(recipe.skill).def.name} level ${recipe.level}`,
-      `${percent(chanceFor(recipe))} success for you · ${recipe.xp} XP`));
+      knows(recipe.skill) ? `${percent(chanceFor(recipe))} success for you · ${recipe.xp} XP` : chanceWords(chanceFor(recipe)).toLowerCase() + " for you"));
   }
 
   // Food: how much stamina it gives (meals: what goes into that).
@@ -2645,9 +2676,9 @@ function renderInfo() {
     if (isSpellBook(id)) infoButton("Read", () => { onRead(e); closeInfo(); });
     if (isStoryItem(id) && STORY_ITEMS[id].use) infoButton(STORY_ITEMS[id].use!, () => { onRead(e); closeInfo(); });
     if (isSeed(id)) infoButton("Plant these first", () => { onSeed(id); closeInfo(); });
-    if (isFood(id)) infoButton(`Eat (+${staminaOf(id)})`, () => { onEat(e); done(); }, staminaNow >= staminaMax);
+    if (isFood(id)) infoButton(`Eat (+${staminaOf(id)})`, () => { onEat(e); done(); }, false);
     infoButton(isLocked ? "Unlock" : "Lock", () => onLock(e, !isLocked));
-    infoButton(stack > 1 ? `Drop all ${stack}` : "Drop", () => { onDrop(e); done(); }, isLocked);
+    infoButton(stack > 1 ? `🗑️ Trash all ${stack}` : "🗑️ Trash", () => { onDrop(e); done(); }, isLocked);
   }
   infoButton("Close", closeInfo);
 }

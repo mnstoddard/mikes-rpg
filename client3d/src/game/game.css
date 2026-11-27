@@ -90,6 +90,7 @@
 /* The 🏃 run button lights up while you run. */
 #run3d { font-size: 20px; }
 #run3d.on { border-color: #ffd84a; background: #7a6338; }
+#run3d.heavy { opacity: 0.4; filter: grayscale(1); }
 
 /* The opening scene's Skip button (version 0.14). */
 #intro-skip { position: fixed; right: 16px; bottom: 90px; z-index: 30; font-size: 15px; padding: 8px 16px; }

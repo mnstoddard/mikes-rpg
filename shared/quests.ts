@@ -76,6 +76,8 @@ export type Goal =
   | { kind: "bounty"; count: number }
   /** Get something fixed by the Repairer. */
   | { kind: "repair" }
+  /** Throw away something whose item id starts with `prefix` (🗑️ Trash in the bag). */
+  | { kind: "trash"; prefix: string; names: string }
   /** Farming: get a plot from Farmer Odo. */
   | { kind: "plot" }
   /** Farming: plant seeds. */
@@ -178,16 +180,16 @@ export type LevelOf = (skill: SkillId) => number;
 export const gateMet = (c: Chapter, levelOf?: LevelOf) => !c.requires || (!!levelOf && levelOf(c.requires.skill) >= c.requires.level);
 
 const WORN_ROD: Gift = { item: "rod_pine", durability: 8 };
-const WORN_PICK: Gift = { item: "pickaxe_bronze_pine", durability: 15 };
+const PICK: Gift = { item: "pickaxe_bronze_pine" }; // one pickaxe, as good as new (version 0.22)
 const LOG: Gift = { item: "pine_logs" };
 const BAR: Gift = { item: "bronze_bar" };
 const MINNOW: Gift = { item: "minnow" };
-const POT: Gift = { item: "pot_bronze", durability: 40 }; // Maren's old, well-used pot
+const POT: Gift = { item: "pot_bronze" }; // yours to keep (version 0.22: one pot, not an old one and then a new one)
 const DAGGER: Gift = { item: "dagger_bronze_pine" };
 const SLING: Gift = { item: "sling_bronze_pine" };
 const STAFF: Gift = { item: "staff_bronze_pine" };
 const POTION: Gift = { item: "health_potion" };
-const AXE: Gift = { item: "axe_bronze_pine", durability: 60 }; // Holt's old, well-used axe
+const AXE: Gift = { item: "axe_bronze_pine" }; // one axe, as good as new (version 0.22)
 const WORM: Gift = { item: "worm" };
 const SHOVEL: Gift = { item: "shovel_bronze_pine" };
 
@@ -249,19 +251,36 @@ const LESSONS: Chapter[] = [
         protect: ["rod_"],
         lines: [
           "Snapped, did it? Every tool wears down a little each time you use it: tools when you use them, weapons when you hit, armor when you get hit. It works just as well right up until it breaks.",
-          "A broken tool isn't gone, though. It's in your bag, and Oswin the Repairer can fix it. He works at the Mages' Guild, the purple hall in Lower Town, in the south-west of the city. Walk onto its door to go in. It's a good walk, so you'll see a bit of Emberhold on the way.",
-          "Take my rod to him. He's an old friend, so this first one's free. After that he charges a few coins, more for finer things.",
+          "A broken tool's no good to anyone, and it takes up room in your bag. Throw it away: click the broken rod in your bag and press 🗑️ Trash.",
         ],
       },
       {
-        task: "Get your rod repaired at the Mages' Guild (Lower Town, south-west of the city)", goal: { kind: "repair" },
-        hint: "Oswin the Repairer is inside the Mages' Guild, the purple hall in Lower Town: go down the hill road to Market Square, take the south street, then turn west along Lower Town's long street. Click him, then Repair. The first one's free.",
-        ensure: [{ item: "rod_pine", durability: 0 }], protect: ["rod_"],
+        task: "Trash the broken rod (click it in your bag, then 🗑️ Trash)", goal: { kind: "trash", prefix: "rod_", names: "broken rod" },
+        hint: "Click the broken rod in your bag and press 🗑️ Trash.",
+        ensure: [{ item: "rod_pine", durability: 0 }],
       },
       {
-        task: `Bring your mended rod back to ${MAREN}`, goal: { kind: "talk" },
+        task: `Talk to ${MAREN}`, goal: { kind: "talk" },
         lines: [
-          "Good as new! Better tools last longer: bronze is where everyone starts, iron lasts twice as long, and the finer metals longer still. A better wooden handle helps too. Fishing rods are all wood, so for those, the better the wood, the better the rod.",
+          "That's the way. Now, you can't fish without a rod, so here's my good one: oak, and hardly used.",
+          "It's only on loan, mind! Catch me 10 more fish with it and it's yours to keep. Equip it first, just like the old one.",
+        ],
+        give: [{ item: "rod_oak" }],
+      },
+      {
+        task: "Equip the oak rod (click it in your bag, then Equip)", goal: { kind: "equip", tools: ["rod_oak"], names: "oak rod" },
+        hint: "Click the oak fishing rod in your bag, then press \"Equip\".",
+        ensure: [{ item: "rod_oak" }], protect: ["rod_"],
+      },
+      {
+        task: `Catch 10 fish for ${MAREN} with the oak rod`, goal: { kind: "gather", skill: "fishing", count: 10, withTool: true },
+        hint: "Fish at the pond with the oak rod on your belt. Ten more and it's yours!",
+        ensure: [{ item: "rod_oak" }], protect: ["rod_"], needsTool: "rod",
+      },
+      {
+        task: `Tell ${MAREN} you caught her 10 fish`, goal: { kind: "talk" },
+        lines: [
+          "Ten! The rod's yours now: look after it. The better the wood, the better the rod, and the longer it lasts.",
           "Look at you, though: all that fishing raised your Minnow Mastery. Every kind of fish, log and ore has its own Mastery, and every time one goes up a level, you earn a Mastery point.",
           "Spend your points on upgrades, like faster fishing or a bigger cooking pot. Open the 📊 panel (bottom right), tap the 🌳 next to any skill, and pick an upgrade. Go on, spend your first point now.",
         ],
@@ -290,7 +309,7 @@ const LESSONS: Chapter[] = [
         lines: [
           "Burned it to a crisp, eh? Don't feel bad: everyone burns their first stew. When you fail, the fish and the log are gone, but you still learn a little.",
           "Here's the secret. Some tools make you faster, others make you succeed more often. Rods, axes and pickaxes are about speed. A pot, a hammer and tongs are about success.",
-          "Cooking without a pot halves your chance. Take my old bronze pot and equip it, just like the rod. It's seen better days, but it'll do. Here's another log.",
+          "A pot helps a great deal. Here's a bronze pot of your own: equip it, just like the rod. And here's another log.",
         ],
         give: [POT, LOG],
       },
@@ -311,34 +330,28 @@ const LESSONS: Chapter[] = [
         lines: [
           "Now that's a stew! Smells like my mother's kitchen.",
           "See the ⚡ bar at the top left? That's your stamina. Everything you do costs some: a fish costs 1, cooking 2, and chopping or mining 10.",
-          "It comes back on its own, 1 every 30 seconds, but food is much faster. A raw minnow gives 2. A stew gives three times what its fish would, plus a bit from the fire. Go on, eat your stew, then come back to me.",
+          "It comes back on its own, slowly, but food is much faster, and a stew far more than a raw fish. Go on, eat your stew, then come back to me.",
         ],
       },
       {
         task: "Eat your stew (click it in your bag, then Eat)", goal: { kind: "eat" },
-        hint: "Click the stew in your bag and press Eat.",
+        hint: "Click the stew in your bag and press Eat. If your stamina's already full, catch a few fish first to use some up.",
         ensure: [{ item: FIRST_STEW }],
       },
       {
         task: `Go back to ${MAREN} for your reward`, goal: { kind: "talk" },
         lines: [
           "You've got the hang of living off the land: fish, cook, eat, and sell what you don't need.",
-          "Here's your reward: an oak fishing rod and a brand new bronze pot. Faster fishing, and they'll last you a good long while. And some coins and a couple of stews for the road.",
-          "Equip them both. My old pot goes back in your bag when you do.",
+          "Here's your reward: some coins and a couple of stews for the road.",
         ],
-        give: [{ item: "rod_oak" }, { item: "pot_bronze" }, { item: SHOP_STEW, count: 2 }],
+        give: [{ item: SHOP_STEW, count: 2 }],
         coins: 50,
-      },
-      {
-        task: "Equip the oak rod and the bronze pot", goal: { kind: "equip", tools: ["rod_oak", "pot_bronze"], names: "oak rod and bronze pot" },
-        hint: "Click the oak fishing rod in your bag and press \"Equip\", then the same for the bronze pot.",
-        protect: ["rod_", "pot_bronze"],
       },
       {
         task: `Talk to ${MAREN}`, goal: { kind: "talk" },
         lines: [
           "There, you've got the hang of living off the land: fish, cook, eat. Every skill belongs to a Discipline. Fishing is part of Endurance, which raises your max stamina, and Cooking is Dexterity, which lets you carry more and walk faster.",
-          "Now meet the others. Every trainer in Emberhold teaches right here in the training ground: Forester Holt by the trees, Miner Greta by the rocks, Smith Brann at the furnace, Woodworker Rook at the workbench, Herbalist Wren by the dig patches, Alchemist Moss and Archmage Rowan by the alchemy table and the altar, Huntmaster Kael by the pens and Farmer Odo by his plots.",
+          "Now meet the others, starting with Smith Brann at the furnace: he'll teach you to make your own tools, so a broken one never leaves you stuck. Every trainer in Emberhold teaches right here in the training ground: Forester Holt by the trees, Miner Greta by the rocks, Woodworker Rook at the workbench, Herbalist Wren by the dig patches, Alchemist Moss and Archmage Rowan by the alchemy table and the altar, Huntmaster Kael by the pens and Farmer Odo by his plots.",
           "Shopkeeper Tam keeps the General Store, at the top of Market Square, just down the hill road. Captain Bryn stands by the bounty board in the square.",
           "Anyone with a ❗ over their head has a lesson for you, and each one ends with a reward. Learn them all, and High Keeper Aldric will want a word. Your 📜 Quests tab keeps track.",
         ],
@@ -380,7 +393,7 @@ const LESSONS: Chapter[] = [
 
   // ---------------- Forester Holt: The woodcutter's start ----------------
   {
-    id: "holt", title: "The woodcutter's start", giver: "holt", name: HOLT, where: "by the practice trees in the Emberhall Training Ground",
+    id: "holt", title: "The woodcutter's start", giver: "holt", name: HOLT, where: "by the practice trees in the Emberhall Training Ground", after: ["brann"],
     steps: [
       {
         task: `Talk to ${HOLT} in the training ground`, goal: { kind: "talk" }, unlocks: ["woodcutting"],
@@ -398,7 +411,7 @@ const LESSONS: Chapter[] = [
         task: `Go back to ${HOLT}`, goal: { kind: "talk" },
         lines: [
           "Sore hands? Good. Now you know why folks use tools.",
-          "Here's my old bronze axe. Equip it and chop 5 logs. Chopping costs 10 stamina a log, so keep some food handy. Logs are heavy too (2 kg each): the ⚖️ bar under your bag shows how much more you can carry.",
+          "Here's a bronze axe of your own. Equip it and chop 5 logs. Chopping costs 10 stamina a log, so keep some food handy. Logs are heavy too (2 kg each): the ⚖️ bar under your bag shows how much more you can carry.",
         ],
         give: [AXE],
       },
@@ -420,9 +433,8 @@ const LESSONS: Chapter[] = [
         task: `Go back to ${HOLT} for your reward`, goal: { kind: "talk" },
         lines: [
           "Look at you, a proper woodcutter!",
-          "Here's a new bronze axe with a good oak handle: it chops faster and lasts longer than my old one. Better trees need a higher Woodcutting level: oaks at 5, and finer woods after that.",
+          "Look after that axe. When it wears out, Smith Brann's anvil will make you another. Better trees need a higher Woodcutting level: oaks at 5, and finer woods after that.",
         ],
-        give: [{ item: "axe_bronze_oak" }],
         coins: 100,
       },
     ],
@@ -430,25 +442,25 @@ const LESSONS: Chapter[] = [
 
   // ---------------- Miner Greta: Into the rocks ----------------
   {
-    id: "greta", title: "Into the rocks", giver: "greta", name: GRETA, where: "by the practice rocks in the Emberhall Training Ground",
+    id: "greta", title: "Into the rocks", giver: "greta", name: GRETA, where: "by the practice rocks in the Emberhall Training Ground", after: ["brann"],
     steps: [
       {
         task: `Talk to ${GRETA} in the training ground`, goal: { kind: "talk" }, unlocks: ["mining"],
         lines: [
           "You want to learn Mining? Good. It's hard work, but rocks don't run away. Mining is part of Endurance.",
-          "These practice rocks were hauled in from the quarry, just for Initiates like you. Here's a worn bronze pickaxe. Equip it, then mine 2 copper ore from the orange-flecked rocks. Eat when you get tired.",
+          "These practice rocks were hauled in from the quarry, just for Initiates like you. Here's a bronze pickaxe. Equip it, then mine 2 copper ore from the orange-flecked rocks. Eat when you get tired.",
         ],
-        give: [WORN_PICK],
+        give: [PICK],
       },
       {
         task: "Equip the pickaxe", goal: { kind: "equip", tools: ["pickaxe_"], names: "pickaxe" },
         hint: "Click the pickaxe in your bag and press \"Equip\".",
-        ensure: [WORN_PICK], protect: ["pickaxe_"],
+        ensure: [PICK], protect: ["pickaxe_"],
       },
       {
         task: "Mine 2 copper ore (the orange-flecked practice rocks)", goal: { kind: "gather", skill: "mining", resource: "copper", count: 2 },
         hint: "Click a copper rock (grey with orange flecks) by Greta in the training ground, with the pickaxe on your belt.",
-        ensure: [WORN_PICK], needsTool: "pickaxe", protect: ["pickaxe_"],
+        ensure: [PICK], needsTool: "pickaxe", protect: ["pickaxe_"],
       },
       {
         task: `Show ${GRETA} your copper ore`, goal: { kind: "talk" },
@@ -466,10 +478,9 @@ const LESSONS: Chapter[] = [
       {
         task: `Go back to ${GRETA} for your reward`, goal: { kind: "talk" },
         lines: [
-          "That's the makings of two bronze bars. Take them to Smith Brann if you haven't learned Smelting yet.",
-          "And here's a new bronze pickaxe of my own making, with an oak handle. Faster mining, and it lasts.",
+          "That's the makings of two bronze bars. Smelt them at Smith Brann's furnace.",
+          "Keep that pickaxe: it's yours. When it wears out, make yourself another at the anvil.",
         ],
-        give: [{ item: "pickaxe_bronze_oak" }],
         coins: 100,
       },
     ],
@@ -477,14 +488,14 @@ const LESSONS: Chapter[] = [
 
   // ---------------- Smith Brann: Hammer and fire ----------------
   {
-    id: "brann", title: "Hammer and fire", giver: "brann", name: BRANN, where: "at the furnace and anvil in the Emberhall Training Ground", after: ["greta"],
+    id: "brann", title: "Hammer and fire", giver: "brann", name: BRANN, where: "at the furnace and anvil in the Emberhall Training Ground",
     steps: [
       {
         task: `Talk to ${BRANN} by the furnace in the training ground`, goal: { kind: "talk" }, unlocks: ["smithing", "smelting"],
         lines: [
           "Mind the sparks! I'm Brann. I'll teach you Smithing at the anvil and Smelting at the furnace. Both are part of Dexterity.",
-          "A tool is a head and a handle: 1 metal bar for the head, and 1 log for the handle. A hammer on your belt helps you smith, the way a pot helps you cook.",
-          "Here's a bronze bar and a log. Make yourself a bronze hammer at the anvil.",
+          "A tool is a head and a handle: a metal bar for the head, and a log for the handle. A hammer on your belt helps you smith, the way a pot helps you cook.",
+          "A new smith only knows how to make a hammer. Every time your Smithing goes up a level, you'll learn one more thing. Here's a bronze bar and a log: make yourself a bronze hammer at the anvil.",
         ],
         give: [BAR, LOG],
       },
@@ -501,30 +512,29 @@ const LESSONS: Chapter[] = [
       {
         task: `Go back to ${BRANN}`, goal: { kind: "talk" },
         lines: [
-          "Now for the fire. Every bar takes 2 ores: a bronze bar is 1 copper and 1 tin. Tongs on your belt help you smelt.",
-          "Here's 2 copper and 2 tin. Smelt 2 bronze bars at the furnace, then make bronze platelegs at the anvil from both bars. I'll guide your hand.",
+          "Feel that? Your Smithing went up a level, so you know how to make tongs now. Tongs on your belt help you smelt.",
+          "Now for the fire. A bronze bar is 1 copper ore and 1 tin ore. Here's 3 of each: smelt 3 bronze bars at the furnace, then make bronze tongs at the anvil. I'll guide your hand.",
         ],
-        give: [{ item: "copper_ore", count: 2 }, { item: "tin_ore", count: 2 }],
+        give: [{ item: "copper_ore", count: 3 }, { item: "tin_ore", count: 3 }],
       },
       {
-        task: "Smelt 2 bronze bars at the furnace", goal: { kind: "craft", skill: "smelting", prefix: "bronze_bar", count: 2 },
+        task: "Smelt 3 bronze bars at the furnace", goal: { kind: "craft", skill: "smelting", prefix: "bronze_bar", count: 3 },
         hint: "Click the furnace, pick Bronze, and press Make all.",
-        ensure: [{ item: "copper_ore", count: 2 }, { item: "tin_ore", count: 2 }], guaranteed: true, protect: ["copper_ore", "tin_ore", "bronze_bar"],
+        ensure: [{ item: "copper_ore", count: 3 }, { item: "tin_ore", count: 3 }], guaranteed: true, protect: ["copper_ore", "tin_ore", "bronze_bar"],
       },
       {
-        task: "Make bronze platelegs at the anvil (2 bars)", goal: { kind: "craft", skill: "smithing", prefix: "platelegs_bronze", count: 1 },
-        hint: "Click the anvil, pick Armor, then Platelegs and Bronze, and press Make 1.",
-        ensure: [{ item: "bronze_bar", count: 2 }], guaranteed: true, protect: ["bronze_bar"],
+        task: "Make bronze tongs at the anvil (3 bars)", goal: { kind: "craft", skill: "smithing", prefix: "tongs_bronze", count: 1 },
+        hint: "Click the anvil, pick Tools, then Tongs and Bronze, and press Make 1.",
+        ensure: [{ item: "bronze_bar", count: 3 }], guaranteed: true, protect: ["bronze_bar"],
       },
       {
-        task: `Show ${BRANN} your platelegs`, goal: { kind: "talk" },
-        need: { prefix: "platelegs_bronze", line: "Where are your platelegs? Make them at the anvil from 2 bronze bars." },
-        protect: ["platelegs_bronze"],
+        task: `Show ${BRANN} your tongs`, goal: { kind: "talk" },
+        need: { prefix: "tongs_bronze", line: "Where are your tongs? Make them at the anvil from 3 bronze bars." },
+        protect: ["tongs_bronze"],
         lines: [
-          "Fine work! Weapons and armor are made just like tools, and they wear out like tools too, so keep a spare.",
-          "Take these bronze tongs and a bronze hammer with a good oak handle. With those on your belt, you'll fail much less at the furnace and the anvil.",
+          "Fine work! Put those tongs on your belt and you'll waste far fewer ores at the furnace.",
+          "Weapons and armor are made just like tools, and everything wears out in the end. Keep smithing: every level teaches you something new, and when a tool breaks, you'll know how to make another.",
         ],
-        give: [{ item: "tongs_bronze" }, { item: "hammer_bronze_oak" }],
         coins: 150,
       },
     ],
@@ -1202,8 +1212,13 @@ export function teacherOf(skill: SkillId): Chapter | null {
  * past the robe step moves one step along.
  * Rev 9 (version 0.21): Awakening gained her running lesson after the walking one (step 3).
  * Anyone past the walking lesson moves one step along.
+ * Rev 10 (version 0.22): Maren's broken rod lesson. No trip to the Repairer: you trash the
+ * broken rod, she lends you her oak rod for 10 fish, and the reward no longer hands out a
+ * second rod and pot (19 steps to 21). See MAREN_REV10.
  */
-export const QUEST_REV = 9;
+export const QUEST_REV = 10;
+/** Maren's step in rev 7-9 to her step in rev 10. */
+const MAREN_REV10 = (old: number) => (old <= 5 ? old : old === 6 ? 7 : old === 7 ? 10 : old <= 16 ? old + 3 : old <= 18 ? 20 : 21);
 /** Maren's old step (rev 6 and before) to her new step (rev 7). */
 const MAREN_REV7 = (old: number) => (old <= 16 ? old : old === 17 ? 16 : old === 18 ? 17 : old <= 22 ? 18 : 19);
 const OLD_MAREN_STEPS = 23;
@@ -1222,6 +1237,10 @@ export function migrateQuest(saved: unknown, rev: number | undefined): QuestProg
   if ((rev ?? 1) < 9 && q.ch.awakening && q.ch.awakening.step >= 3) q.ch.awakening.step = Math.min(q.ch.awakening.step + 1, chapterById("awakening").steps.length);
   if ((rev ?? 1) < 7 && q.ch.maren) {
     const old = q.ch.maren.step, now = Math.min(MAREN_REV7(old), chapterById("maren").steps.length);
+    if (now !== old) q.ch.maren = { ...q.ch.maren, step: now, count: 0 };
+  }
+  if ((rev ?? 1) < 10 && q.ch.maren) {
+    const old = q.ch.maren.step, now = Math.min(MAREN_REV10(old), chapterById("maren").steps.length);
     if (now !== old) q.ch.maren = { ...q.ch.maren, step: now, count: 0 };
   }
   return q;

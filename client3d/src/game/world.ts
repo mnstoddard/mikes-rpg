@@ -649,6 +649,11 @@ export class World3D {
     setReportRoom(room);
     crumb(reconnected ? "reconnected to the server" : "joined the game");
     room.onMessage("message", (text: string) => showMessage(text));
+    // Carrying too much (version 0.22, Mike's note): running switches off and the 🏃 button greys out.
+    room.onMessage("heavy", (heavy: boolean) => {
+      document.getElementById("run3d")?.classList.toggle("heavy", !!heavy);
+      if (heavy) { this.runToggle = false; this.runShift = false; this.showRun(false); }
+    });
     // Once per browser: tell them about walking with the keyboard.
     try {
       if (!localStorage.getItem("rpg3d.wasdTip")) {

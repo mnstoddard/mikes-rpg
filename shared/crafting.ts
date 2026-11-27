@@ -22,7 +22,7 @@ import {
   ARROWS_PER_CRAFT, ARROW_LEVEL, BAITS, BAIT_IDS, BaitId, CLOTH_LEVEL, SOFT_LEVEL, TANNING, THREAD_LEVEL, WOOD_LEVEL, arrowId, isArrow, isBait,
 } from "./handicraft";
 import {
-  ARMOR, ARMOR_TYPES, WEAPONS, WEAPON_TYPES, armorId, gearType, isArmor, isGear, isSoftArmor, isWeapon, isWooden, parseArmor, parseWeapon, weaponId,
+  ARMOR, ARMOR_TYPES, ArmorType, WEAPONS, WEAPON_TYPES, WeaponType, armorId, gearType, isArmor, isGear, isSoftArmor, isWeapon, isWooden, parseArmor, parseWeapon, weaponId,
 } from "./gear";
 
 // ---- Prices ----
@@ -104,6 +104,24 @@ export interface Recipe {
   station?: "tanning_rack" | "spinning_wheel";
 }
 
+/**
+ * Smithing unlocks one thing at a time (version 0.22, Mike's note): at Smithing 1 you can
+ * only make a hammer, and every level after that teaches you one more thing at the anvil.
+ * This is the level a bronze one needs; better metals add their own level on top (an iron
+ * hammer at 15, iron tongs at 16...). Fishing rods are wood, so they also need the wood's level.
+ */
+export const SMITH_UNLOCK: Record<ToolType | WeaponType | ArmorType, number> = {
+  hammer: 1, tongs: 2, rod: 3, axe: 4, pickaxe: 5, dagger: 6, shovel: 7, pot: 8, sling: 9, helmet: 10,
+  boots: 11, sword: 12, platelegs: 13, shield: 14, darts: 15, mace: 16, spear: 17, platebody: 18, greatsword: 20,
+  // Carved at Rook's workbench, not the anvil (Handicraft has its own levels).
+  bow: 1, staff: 1,
+};
+/** Everything the anvil makes, in the order it unlocks (for the anvil's window and level-up messages). */
+export const SMITH_ORDER = (Object.keys(SMITH_UNLOCK) as (keyof typeof SMITH_UNLOCK)[])
+  .filter((t) => t !== "bow" && t !== "staff").sort((a, b) => SMITH_UNLOCK[a] - SMITH_UNLOCK[b]);
+/** The Smithing level a bronze (or for rods, pine) one of these needs. */
+export const smithLevel = (type: keyof typeof SMITH_UNLOCK, metalLevel = 1) => metalLevel + SMITH_UNLOCK[type] - 1;
+
 const RECIPES = new Map<ItemId, Recipe>();
 for (const bar of BAR_IDS) {
   const m = METALS[metalOfBar(bar)];
@@ -115,14 +133,14 @@ for (const tool of ALL_TOOL_IDS) {
     // Fishing rods: carved from 2 logs at the anvil. You can make one from any wood you
     // could chop (same level in Smithing), it's easy (80% at first) and needs no hammer.
     const r = RESOURCES[wood as ResourceId];
-    RECIPES.set(tool, { output: tool, skill: "smithing", inputs: ITEMS[tool].inputs!, level: r.level, xp: r.xp * 2 + 2, mastery: type, start: ROD_START_SUCCESS, needsTool: false });
+    RECIPES.set(tool, { output: tool, skill: "smithing", inputs: ITEMS[tool].inputs!, level: Math.max(r.level, smithLevel(type)), xp: r.xp * 2 + 2, mastery: type, start: ROD_START_SUCCESS, needsTool: false });
     continue;
   }
   // Better materials give more XP (and so more Mastery).
   const mat = MATERIALS[metal];
   // Tongs and the pot use 3 bars, so they give 3 times the XP.
   const xp = mat.toolXp * headCount(type) + (wood ? Math.ceil(RESOURCES[wood as ResourceId].xp / 2) : 0);
-  RECIPES.set(tool, { output: tool, skill: "smithing", inputs: ITEMS[tool].inputs!, level: mat.level, xp, mastery: type, start: mat.startSuccess, needsTool: mat.needsTool });
+  RECIPES.set(tool, { output: tool, skill: "smithing", inputs: ITEMS[tool].inputs!, level: smithLevel(type, mat.level), xp, mastery: type, start: mat.startSuccess, needsTool: mat.needsTool });
 }
 
 // Weapons (1 bar + 1 log) and armor (1 to 3 bars) are smithed at the anvil too.
@@ -135,7 +153,7 @@ for (const type of WEAPON_TYPES) {
       const id = weaponId(type, metal, wood);
       const mat = MATERIALS[metal];
       const xp = mat.toolXp + Math.ceil(RESOURCES[wood as ResourceId].xp / 2);
-      RECIPES.set(id, { output: id, skill: "smithing", inputs: ITEMS[id].inputs!, level: mat.level, xp, mastery: type, start: mat.startSuccess, needsTool: mat.needsTool });
+      RECIPES.set(id, { output: id, skill: "smithing", inputs: ITEMS[id].inputs!, level: smithLevel(type, mat.level), xp, mastery: type, start: mat.startSuccess, needsTool: mat.needsTool });
     }
   }
 }
@@ -143,7 +161,7 @@ for (const type of ARMOR_TYPES) {
   for (const metal of METAL_IDS) {
     const id = armorId(type, metal);
     const mat = METALS[metal];
-    RECIPES.set(id, { output: id, skill: "smithing", inputs: ITEMS[id].inputs!, level: mat.level, xp: mat.toolXp * ARMOR[type].bars, mastery: type, start: mat.startSuccess, needsTool: true });
+    RECIPES.set(id, { output: id, skill: "smithing", inputs: ITEMS[id].inputs!, level: smithLevel(type, mat.level), xp: mat.toolXp * ARMOR[type].bars, mastery: type, start: mat.startSuccess, needsTool: true });
   }
 }
 

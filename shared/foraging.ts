@@ -90,8 +90,31 @@ export const toolSpeed = (toolBonus: number | null) => toolBonus === null ? 1 / 
  * better tool. With no tool for the job it's 3 times slower.
  */
 export function gatherChancePerTick(id: ResourceId, masteryLevel: number, toolBonus: number | null): number {
-  return Math.min(1, (TICK_MS / 1000) * masterySpeed(masteryLevel) * toolSpeed(toolBonus) / RESOURCES[id].seconds);
+  return Math.min(1, (TICK_MS / 1000) * gatherSpeed(id, masteryLevel) * toolSpeed(toolBonus) / gatherSeconds(id));
 }
+
+/**
+ * Woodcutting (version 0.22, Mike's note): slower to start, and Mastery makes a much
+ * bigger difference. A log takes twice as long at Mastery 1 as it used to, and Mastery
+ * speeds you up to 2.5 times as fast (about 1.9 times by Mastery 50), where other
+ * skills top out near 1.5 times.
+ */
+export const WOODCUT_SLOWER = 2;
+export const gatherSeconds = (id: ResourceId) => RESOURCES[id].seconds * (RESOURCES[id].skill === "woodcutting" ? WOODCUT_SLOWER : 1);
+export function gatherSpeed(id: ResourceId, masteryLevel: number): number {
+  if (RESOURCES[id].skill === "woodcutting") return 1 + 1.5 * (masteryLevel - 1) / (masteryLevel + 30);
+  return masterySpeed(masteryLevel);
+}
+/**
+ * Chopping and mining fill up steadily (no more two quick logs and then a long wait):
+ * each swing adds this much toward the next log or ore, and it comes at 1.
+ * Each log needs between 85% and 115% of the usual swings.
+ */
+export function gatherStepPerTick(id: ResourceId, masteryLevel: number, toolBonus: number | null): number {
+  return (TICK_MS / 1000) * gatherSpeed(id, masteryLevel) * toolSpeed(toolBonus) / gatherSeconds(id);
+}
+/** Gathering that fills a bar steadily instead of rolling each tick (fish still bite when they like). */
+export const steadyGather = (id: ResourceId) => RESOURCES[id].skill === "woodcutting" || RESOURCES[id].skill === "mining";
 
 /**
  * Hook for later: chance that a catch actually works out (e.g. the fish gets
