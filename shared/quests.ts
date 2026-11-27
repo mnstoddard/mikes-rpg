@@ -1145,7 +1145,7 @@ export function litLanterns(q: QuestProgress): NpcId[] {
     if (prog.step > at) out.push(...all);
     else if (prog.step === at) out.push(...all.filter((n) => prog.got?.includes(n)));
   }
-  // Keeper Lisette's Four Books: the lectern you're on glows.
+  // Keeper Lisette's Four Books: the book you're on glows on its shelf.
   const fb = q.ch.four_books, book = fb && chapterById("four_books").steps[fb.step]?.goal;
   if (book?.kind === "visit" && book.npcs[0].startsWith("book_")) out.push(book.npcs[0]);
   // The shrines you've lit.

@@ -960,17 +960,16 @@ function insides(): Inside[] {
     c.fill(1, 14, 9, 14, "A");
     c.fill(3, 14, 7, 14, "]"); // the iron grille: you can see in, but not get in
     c.set(10, 7, "d"); // library door
-    c.set(10, 20, "J"); // the restricted section's barred door
+    // (Version 0.22, Mike's note: no door off the great hall; the only way in is the grille gate from the library.)
     // The library: shelves along the north wall, then rows of shelves (books on both sides), and a reading table.
     c.fill(1, 1, 9, 1, "b");
     c.fill(2, 4, 4, 4, "b"); c.fill(6, 4, 8, 4, "b");
     c.fill(2, 7, 4, 7, "b");
     c.fill(2, 10, 4, 10, "b"); c.fill(6, 10, 8, 10, "b");
     c.fill(6, 12, 7, 12, "n");
-    // The restricted section: tall shelves, and glass cases (tables) chained shut.
-    c.fill(2, 17, 8, 17, "b");
-    c.fill(2, 20, 4, 20, "b"); c.fill(6, 20, 8, 20, "b");
-    c.set(3, 23, "n"); c.set(5, 23, "n"); c.set(7, 23, "n");
+    // The restricted section (version 0.22, Mike's note): packed with tall shelves, row after row, an aisle down
+    // the middle from the grille gate.
+    for (const y of [16, 18, 20, 22, 24]) { c.fill(1, y, 4, y, "b"); c.fill(6, y, 9, y, "b"); }
     c.fill(1, 25, 9, 25, "b");
     // ---- East: the infirmary. A hall (Keeper Wynne's) with four bedrooms off it, one bed each.
     c.fill(26, 1, 26, 25, "A");
@@ -995,14 +994,17 @@ function insides(): Inside[] {
     c.fill(17, 8, 19, 25, "z");
     const door = { x: 18, y: 26 };
     c.set(door.x, door.y, "D");
+    // The tower stairs (version 0.22, Mike's note): a door in the north-east corner, up to your room in the tower.
+    const stairs = { x: 24, y: 0 };
+    c.set(stairs.x, stairs.y, "D");
     list.push({
-      id: "lighthall", name: "The Emberhall", kind: "indoor", canvas: c, doors: [door],
+      id: "lighthall", name: "The Emberhall", kind: "indoor", canvas: c, doors: [door, stairs],
       spots: {
         heartShrine: { x: 18, y: 5 }, wake: { x: 18, y: 8 }, aldric: { x: 21, y: 9 }, celene: { x: 15, y: 9 },
         oren: { x: 13, y: 14 }, plinth: { x: 25, y: 21 },
         lisette: { x: 7, y: 8 }, tomas: { x: 13, y: 21 }, vale: { x: 23, y: 7 },
-        // Keeper Lisette's Four Books (version 0.21): four lecterns along the library's east wall, read in order.
-        book_1: { x: 9, y: 3 }, book_2: { x: 9, y: 5 }, book_3: { x: 9, y: 9 }, book_4: { x: 9, y: 11 },
+        // Keeper Lisette's Four Books: on the library's shelves (version 0.22, Mike's note), read in order. The next one glows.
+        book_1: { x: 8, y: 1 }, book_2: { x: 3, y: 4 }, book_3: { x: 7, y: 10 }, book_4: { x: 2, y: 7 },
         // In front of the grille, where Keeper Lisette stops you.
         grille: { x: 5, y: 13 },
         wynne: { x: 28, y: 10 },
@@ -1124,6 +1126,26 @@ function insides(): Inside[] {
   return list;
 }
 
+/**
+ * Your room (version 0.22, Mike's note): at the top of the Emberhall's tall north-east tower, up a long
+ * stair. A round room with a bed, a fire, a window over the city, and an enchanted chest (the same
+ * storage as every other enchanted chest, and you can buy more space in it).
+ */
+function towerRoom(): Inside {
+  const c = new Canvas(11, 11).room("A", "p");
+  // Round it off: fill the corners in with wall.
+  for (const [x, y] of [[1, 1], [9, 1], [1, 9], [9, 9], [2, 1], [1, 2], [8, 1], [9, 2], [1, 8], [2, 9], [8, 9], [9, 8]] as const) c.set(x, y, "A");
+  c.fill(3, 3, 7, 7, "z"); // a round rug
+  c.set(2, 3, "y"); // the bed
+  c.set(2, 5, "n"); // a bedside table
+  c.fill(4, 1, 6, 1, "b"); // books
+  c.set(8, 6, "F"); // the fire
+  c.set(8, 7, "e"); // a trunk of odds and ends
+  const door = { x: 5, y: 10 };
+  c.set(door.x, door.y, "D");
+  return { id: "tower", name: "Your room in the tower", kind: "indoor", canvas: c, doors: [door], spots: { chest_room: { x: 8, y: 3 } } };
+}
+
 // ---------------------------------------------------------------- putting it together
 
 function assemble() {
@@ -1145,7 +1167,13 @@ function assemble() {
   const cityAt = { x: GAP, y: y + rowH + GAP };
   const city = buildEmberhold(cityAt);
   areas.push({ id: "emberhold", name: "Emberhold", x: cityAt.x, y: cityAt.y, w: CITY_W, h: CITY_H, kind: "outdoor" });
-  const H = cityAt.y + CITY_H + GAP;
+  // Your room at the top of the Emberhall's tower (version 0.22), below the city, so nothing else moved.
+  const tower = towerRoom();
+  const towerAt = { x: GAP, y: cityAt.y + CITY_H + GAP };
+  areas.push({ id: tower.id, name: tower.name, x: towerAt.x, y: towerAt.y, w: tower.canvas.w, h: tower.canvas.h, kind: tower.kind });
+  inside.push(tower);
+  pos[tower.id] = towerAt;
+  const H = towerAt.y + tower.canvas.h + GAP;
   const grid = new Canvas(OVER_W, H, " ");
   over.g.forEach((row, yy) => row.forEach((ch, xx) => grid.set(xx, yy, ch)));
   city.g.forEach((row, yy) => row.forEach((ch, xx) => grid.set(cityAt.x + xx, cityAt.y + yy, ch)));
@@ -1196,6 +1224,10 @@ function assemble() {
       doors.push({ x: road.x, y: road.y, to: { x: ho[i].x + dx, y: ho[i].y + dy }, area: "heartvale", label: `Out of the ${hv.name} into Heartvale`, gate: true });
     }
   }
+  // The Emberhall's tower stairs lead up to your room.
+  const hs = inDoor("lighthall", 1), tr = inDoor("tower");
+  doors.push({ x: hs.x, y: hs.y, to: inward(tr), area: "tower", label: "Climb the tower stairs to your room", sign: "🗼 Your room" });
+  doors.push({ x: tr.x, y: tr.y, to: inward(hs), area: "lighthall", label: "Down the stairs to the great hall" });
   // The spider cave goes on through to the crystal cave.
   const sc = inDoor("spider_cave", 1), cc = inDoor("crystal_cave");
   doors.push({ x: sc.x, y: sc.y, to: inward(cc), area: "crystal_cave", label: "Go deeper: the crystal cave" });

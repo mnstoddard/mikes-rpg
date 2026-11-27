@@ -27,7 +27,7 @@ export interface DrapeFit { thighR: number; shinR: number; footH: number; footLe
 export interface DrapeShape { top: number; bottom: number; rTop: number; rBottom: number; zs: number }
 
 /** How far the cloth stands off a leg. */
-const GAP = 0.012;
+const GAP = 0.02;
 /** Softens the edge where the cloth starts to bend out, so there's no sharp crease. */
 const SOFT = 0.03;
 
@@ -72,18 +72,25 @@ export function drape(meshes: THREE.Mesh[], J: DrapeJoints, fit: DrapeFit, shape
     return 1 / Math.hypot(dx / r, dz / (r * shape.zs));
   };
   /** How far out the legs reach at height y in direction (dx, dz). */
+  // Each leg bone is treated as a row of balls along it (version 0.22): a thigh lifted forward lies almost flat,
+  // and one slice through the middle of it (as before) missed the knee end, so it poked out of the robe (Mike's note).
+  const SAMPLES = 7;
   const legReach = (S: Seg[], y: number, dx: number, dz: number) => {
     let best = -Infinity;
     for (const s of S) {
       const dy = s.b.y - s.a.y;
-      const t = Math.abs(dy) < 1e-5 ? 0.5 : Math.min(1, Math.max(0, (y - s.a.y) / dy));
-      const px = s.a.x + (s.b.x - s.a.x) * t, py = s.a.y + dy * t, pz = s.a.z + (s.b.z - s.a.z) * t;
-      const r = s.ra + (s.rb - s.ra) * t + GAP;
-      const off = Math.abs(py - y);
-      if (off >= r) continue;
-      // This height cuts the leg in a circle this wide.
-      const reach = px * dx + pz * dz + Math.sqrt(r * r - off * off);
-      if (reach > best) best = reach;
+      const tc = Math.abs(dy) < 1e-5 ? 0.5 : (y - s.a.y) / dy;
+      for (let k = 0; k <= SAMPLES; k++) {
+        // The point where this height crosses the bone, and points spread along the rest of it.
+        const t = k === SAMPLES ? Math.min(1, Math.max(0, tc)) : k / (SAMPLES - 1);
+        const px = s.a.x + (s.b.x - s.a.x) * t, py = s.a.y + dy * t, pz = s.a.z + (s.b.z - s.a.z) * t;
+        const r = s.ra + (s.rb - s.ra) * t + GAP;
+        const off = Math.abs(py - y);
+        if (off >= r) continue;
+        // This height cuts that ball in a circle this wide.
+        const reach = px * dx + pz * dz + Math.sqrt(r * r - off * off);
+        if (reach > best) best = reach;
+      }
     }
     return best;
   };

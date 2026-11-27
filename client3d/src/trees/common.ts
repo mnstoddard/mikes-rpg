@@ -207,8 +207,39 @@ export function makeTree(shape: TreeShape, rng: Rng): Tree {
   const object = new THREE.Group();
   object.name = "tree";
 
+  // The trunk's bottom ring sits exactly on the stump's top ring (version 0.22): the trunk was a little wider and
+  // lumpy there, so a standing tree showed a line where it would be cut (Mike's note).
+  const ring: number[] = [];
+  shape.top.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (!m.isMesh) return;
+    const pos = m.geometry.attributes.position as THREE.BufferAttribute;
+    let changed = false;
+    for (let i = 0; i < pos.count; i++) {
+      const y = pos.getY(i), x = pos.getX(i), z = pos.getZ(i), rr = Math.hypot(x, z);
+      if (Math.abs(y) > 0.02 || rr > shape.trunkRadius * 1.5 || rr < 1e-4) continue;
+      const k = (shape.trunkRadius * 0.95) / rr;
+      pos.setXYZ(i, x * k, 0, z * k);
+      ring.push(Math.atan2(z, x));
+      changed = true;
+    }
+    if (changed) { pos.needsUpdate = true; m.geometry.computeVertexNormals(); }
+  });
   // The stump: always there. The top sits on it.
-  const stump = makeStump(rng, shape);
+  // How far out the trunk's bottom (a polygon) reaches at each angle: the stump's top follows it exactly.
+  const angles = [...new Set(ring.map((a) => Math.round(a * 1000) / 1000))].sort((a, b) => a - b);
+  const R = shape.trunkRadius * 0.95;
+  const edgeAt = (a: number) => {
+    if (angles.length < 3) return R;
+    for (let i = 0; i < angles.length; i++) {
+      const a0 = angles[i], a1 = i + 1 < angles.length ? angles[i + 1] : angles[0] + Math.PI * 2;
+      let t = a;
+      while (t < a0) t += Math.PI * 2;
+      if (t <= a1) { const mid = (a0 + a1) / 2, half = (a1 - a0) / 2; return (R * Math.cos(half)) / Math.cos(t - mid); }
+    }
+    return R;
+  };
+  const stump = makeStump(rng, shape, edgeAt);
   object.add(stump);
   const cutFace = stump.getObjectByName("cut")!;
   for (const b of shape.base ?? []) object.add(b);
@@ -402,11 +433,11 @@ function easeOutBack(t: number) {
 }
 
 /** The stump: a short trunk with a pale cut top and rings, plus little root flares. */
-function makeStump(rng: Rng, shape: TreeShape): THREE.Group {
+function makeStump(rng: Rng, shape: TreeShape, edgeAt: (a: number) => number = () => shape.trunkRadius * 0.95): THREE.Group {
   const g = new THREE.Group();
   const r = shape.trunkRadius;
   const h = shape.cutHeight;
-  const sides = 7;
+  const sides = 14;
   // A touch narrower at the top than the trunk above it, so the standing tree shows no seam there.
   const side = new THREE.CylinderGeometry(r * 0.95, r * 1.18, h, sides, 1, true);
   side.translate(0, h / 2, 0);
@@ -416,7 +447,8 @@ function makeStump(rng: Rng, shape: TreeShape): THREE.Group {
   for (let i = 0; i < sp.count; i++) {
     if (sp.getY(i) < h - 1e-3) continue;
     const a = Math.atan2(sp.getZ(i), sp.getX(i));
-    sp.setXYZ(i, Math.cos(a) * r * 0.95, h, Math.sin(a) * r * 0.95);
+    const er = edgeAt(a) * 0.995;
+    sp.setXYZ(i, Math.cos(a) * er, h, Math.sin(a) * er);
   }
   jittered.computeVertexNormals();
   const sideMesh = new THREE.Mesh(jittered, mat(shape.bark, shape.barkMat));
@@ -430,7 +462,7 @@ function makeStump(rng: Rng, shape: TreeShape): THREE.Group {
   cut.name = "cut";
   cut.visible = false;
   g.add(cut);
-  const top = new THREE.Mesh(new THREE.CircleGeometry(r * 0.95, sides), mat(shape.heartwood));
+  const top = new THREE.Mesh(new THREE.CircleGeometry(r * 0.9, sides), mat(shape.heartwood));
   top.rotation.x = -Math.PI / 2;
   top.position.y = h + 0.002;
   top.receiveShadow = true;

@@ -7,7 +7,7 @@
 import { ARMOR_BY_ID, coversOf, dressFor, wearArmor } from "../armor";
 import * as THREE from "three";
 import { CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
-import { TICK_MS } from "../../../shared/map";
+import { MAP, TICK_MS, isBlockedTile } from "../../../shared/map";
 import type { NpcDef } from "../../../shared/npcs";
 import { RANK_CLOAK } from "../../../shared/story";
 import { createCharacter, makeRecipe, type Character, type CharacterRecipe } from "../character";
@@ -856,35 +856,38 @@ export function makeStation(npc: NpcDef): StationView {
     parts.push({ update: (dt, t) => flame.update(dt, t), dispose: () => flame.dispose() });
     tag.obj.position.y = 4.2;
   } else if (npc.id.startsWith("book_")) {
-    // Keeper Lisette's Four Books (version 0.21): a lectern with a heavy book open on it. The one you're on glows.
-    const wood = new THREE.MeshStandardMaterial({ color: 0x6a4424, roughness: 0.8 });
-    const cover = new THREE.MeshStandardMaterial({ color: npc.color, roughness: 0.7 });
-    const paper = new THREE.MeshStandardMaterial({ color: 0xf2e6c8, roughness: 0.9, emissive: 0xffc060, emissiveIntensity: 0 });
-    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.08, 0.5), wood);
-    foot.position.y = 0.04;
-    const post = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.0, 0.14), wood);
-    post.position.y = 0.55;
-    const top = new THREE.Group();
-    top.position.y = 1.08;
-    top.rotation.x = 0.45; // tilted toward the reader (south)
-    const desk = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.05, 0.55), wood);
-    const book = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.06, 0.44), cover);
-    book.position.y = 0.05;
-    const pages = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.03, 0.4), paper);
-    pages.position.y = 0.09;
-    top.add(desk, book, pages);
-    root.add(foot, post, top);
-    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.55, 12, 8), new THREE.MeshBasicMaterial({ color: 0xffc860, transparent: true, opacity: 0.18, depthWrite: false }));
-    glow.position.y = 1.15;
+    // Keeper Lisette's Four Books (version 0.22, Mike's note): a heavy book on a library shelf, its spine sticking out
+    // a little. The one you're on glows, so you walk over and take it down.
+    let face = 0;
+    for (const [dx, dy] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
+      const t = MAP[npc.y + dy]?.[npc.x + dx];
+      if (t && !isBlockedTile(t)) { face = Math.atan2(dx, dy); break; }
+    }
+    const holder = new THREE.Group();
+    holder.rotation.y = face;
+    root.add(holder);
+    const cover = new THREE.MeshStandardMaterial({ color: npc.color, roughness: 0.7, emissive: 0xffb040, emissiveIntensity: 0 });
+    const gilt = new THREE.MeshStandardMaterial({ color: 0xd9b44a, roughness: 0.35, metalness: 0.6 });
+    const book = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.42, 0.32), cover);
+    book.position.set(0.1, 1.35, 0.26);
+    const band = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.05, 0.03), gilt);
+    band.position.set(0.1, 1.45, 0.42);
+    holder.add(book, band);
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.42, 12, 8), new THREE.MeshBasicMaterial({ color: 0xffc860, transparent: true, opacity: 0.2, depthWrite: false }));
+    glow.position.set(0.1, 1.35, 0.45);
     glow.userData.noShadow = true;
     glow.visible = false;
-    root.add(glow);
-    setLit = (lit) => { glow.visible = lit; paper.emissiveIntensity = lit ? 0.8 : 0; };
-    parts.push({ update: (_dt, t) => { if (glow.visible) (glow.material as THREE.MeshBasicMaterial).opacity = 0.14 + 0.08 * Math.sin(t * 3); }, dispose: () => {
-      for (const m of [wood, cover, paper, glow.material as THREE.Material]) m.dispose();
-      for (const o of [foot, post, desk, book, pages, glow]) o.geometry.dispose();
+    holder.add(glow);
+    setLit = (lit) => { glow.visible = lit; cover.emissiveIntensity = lit ? 0.9 : 0; };
+    parts.push({ update: (_dt, t) => {
+      if (!glow.visible) return;
+      (glow.material as THREE.MeshBasicMaterial).opacity = 0.16 + 0.1 * Math.sin(t * 3);
+      book.position.z = 0.26 + 0.03 * Math.sin(t * 3);
+    }, dispose: () => {
+      for (const m of [cover, gilt, glow.material as THREE.Material]) m.dispose();
+      for (const o of [book, band, glow]) o.geometry.dispose();
     } });
-    tag.obj.position.y = 1.9;
+    tag.obj.position.y = 2.1;
   } else if (npc.id.startsWith("lantern_") || npc.id.startsWith("round_")) {
     const lamp: EnvPiece = createEnv("decor-lamp", { variant: npc.id.startsWith("round_") ? 0 : 1, seed: 4 });
     root.add(lamp.object);

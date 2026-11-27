@@ -702,17 +702,36 @@ export class Terrain {
     const object = new THREE.Group();
     object.position.copy(tileCenter(x, y));
     const marble = a.id === "lighthall";
+    const geosExtra: THREE.BufferGeometry[] = [];
     // Square-topped (an arched top would poke out over the wall), and no dark panel behind it: open, you see the next room
     // (Mike's notes, version 0.21).
     const piece = makeDoor({ length: TILE, variant: 0, seed: x * 7 + y, hollow: true });
     piece.object.scale.setScalar(0.95);
     piece.object.rotation.y = face;
     object.add(piece.object);
+    // The door dips out of the way with the walls round it (version 0.22, Mike's note): its own materials, cut the same way.
+    const cutMats: THREE.Material[] = [];
+    piece.object.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (!m.isMesh || Array.isArray(m.material)) return;
+      const c = withWallCut(m.material.clone());
+      cutMats.push(c);
+      m.material = c;
+    });
+    // The way out: daylight beyond it when it opens, not a black hole (version 0.22).
+    if (MAP[y][x] === "door") {
+      const light = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 2.2), new THREE.MeshBasicMaterial({ color: 0xdcebf2 }));
+      light.position.set(-Math.sin(face) * 0.5, 1.1, -Math.cos(face) * 0.5);
+      light.rotation.y = face;
+      object.add(light);
+      cutMats.push(light.material as THREE.Material);
+      geosExtra.push(light.geometry);
+    }
     // The wall either side of the door (the doorway is wider than the door). Nothing over it: you look down from above,
     // and a strip over the doorway only hid the door (Mike's note, version 0.21).
     const col = marble ? 0xf2efe8 : a.id === "guild" ? 0x6a4a9a : 0x9c6a42;
     const wallMat = withWallCut(new THREE.MeshStandardMaterial({ color: col, roughness: 0.9 }));
-    const geos: THREE.BufferGeometry[] = [];
+    const geos: THREE.BufferGeometry[] = [...geosExtra];
     const side = (TILE - 1.32) / 2;
     for (const sx of [-1, 1]) {
       const g = new THREE.BoxGeometry(side, 2.2, TILE);
@@ -744,7 +763,7 @@ export class Terrain {
         if (near !== open) { open = near; piece.poke?.(); }
         piece.update(dt, t, { night, wind: 0 });
       },
-      dispose: () => { this.insideDoors.delete(object); piece.dispose(); geos.forEach((g) => g.dispose()); wallMat.dispose(); },
+      dispose: () => { this.insideDoors.delete(object); piece.dispose(); geos.forEach((g) => g.dispose()); wallMat.dispose(); cutMats.forEach((m) => m.dispose()); },
     };
   }
 

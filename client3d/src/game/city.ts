@@ -341,8 +341,17 @@ export function emberhallCastle(b: CityBuilding, wallTop: number): CityPiece {
     return painted(g, color);
   };
   // Corner towers.
-  const TH = wallTop + 5, R = 1.9;
   for (const [x, z] of [[x0, z0], [x1, z0], [x0, z1], [x1, z1]]) {
+    // The north-east one is the tall tower with your room at the top (version 0.22).
+    const tall = x === x1 && z === z0;
+    const TH = wallTop + (tall ? 14 : 5), R = tall ? 2.4 : 1.9;
+    if (tall) for (const a of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
+      const win = new THREE.BoxGeometry(0.5, 1.1, 0.06).toNonIndexed();
+      win.deleteAttribute("uv");
+      win.rotateY(-a + Math.PI / 2);
+      win.translate(x + Math.cos(a) * (R + 0.02), TH - 1.8, z + Math.sin(a) * (R + 0.02));
+      parts.push(painted(win, 0xffc870));
+    }
     parts.push(cyl(R, TH, x, TH / 2, z, marble));
     parts.push(cyl(R + 0.2, 0.5, x, 0.25, z, trim));
     parts.push(cyl(R + 0.25, 0.3, x, TH - 0.15, z, trim));
@@ -369,7 +378,7 @@ export function emberhallCastle(b: CityBuilding, wallTop: number): CityPiece {
       if (i % 2 === 0) parts.push(box(0.7, 0.8, 0.7, x, wallTop + 0.4, z, marble));
     }
   };
-  const o = 0.35;
+  const o = 0.35, R = 1.9;
   parts.push(box(x1 - x0 + 0.9, 0.3, 0.9, (x0 + x1) / 2, wallTop - 0.15, z1 + o, trim));
   parts.push(box(x1 - x0 + 0.9, 0.3, 0.9, (x0 + x1) / 2, wallTop - 0.15, z0 - o, trim));
   parts.push(box(0.9, 0.3, z1 - z0 + 0.9, x0 - o, wallTop - 0.15, (z0 + z1) / 2, trim));

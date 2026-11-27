@@ -12,7 +12,7 @@ const at = (place: string) => {
 
 export type NpcId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "wren" | "moss" | "bryn" | "odo"
   | "furnace" | "anvil" | "stove" | "workbench" | "tanning_rack" | "spinning_wheel" | "board"
-  | "archmage" | "altar" | "guildboard" | "repairer" | "alchemy_table" | "chest" | "chest_east" | "chest_forest" | "chest_farm" | "chest_inn"
+  | "archmage" | "altar" | "guildboard" | "repairer" | "alchemy_table" | "chest" | "chest_east" | "chest_forest" | "chest_farm" | "chest_inn" | "chest_room"
   // The Emberhall (the Emberguard's temple) and its people.
   | "heart_shrine" | "aldric" | "celene" | "vale" | "oren" | "lisette" | "tomas" | "wynne" | "plinth" | "book_1" | "book_2" | "book_3" | "book_4"
   | "extinguished_1" | "extinguished_2" | "extinguished_3" | "extinguished_4"
@@ -166,6 +166,10 @@ export const NPCS: NpcDef[] = [
     id: "chest_inn", name: "Enchanted chest", kind: "station", ...at("inn.chest_inn"), color: 0x6a3fb5,
     greeting: "The chest hums with magic.",
   },
+  {
+    id: "chest_room", name: "Enchanted chest", kind: "station", ...at("tower.chest_room"), color: 0x6a3fb5,
+    greeting: "The chest hums with magic.",
+  },
   // ---- The Emberhall: the Emberguard's great white temple, at the heart of town ----
   {
     // Where new heroes wake (and come back to when they're knocked out).
@@ -204,22 +208,22 @@ export const NPCS: NpcDef[] = [
     id: "plinth", name: "Empty plinth", kind: "station", ...at("lighthall.plinth"), color: 0xbdb6a0,
     greeting: "A plinth with no statue, among the Ember Circle. Someone has scratched the name off the stone, letter by letter. The first letter might have been a W.",
   },
-  // Keeper Lisette's Four Books (version 0.21, shared/story.ts): four lecterns in the library, read in order.
+  // Keeper Lisette's Four Books (shared/story.ts): four books on the library's shelves (version 0.22), read in order.
   {
     id: "book_1", name: "Aldmera, the Old Kingdom", kind: "station", ...at("lighthall.book_1"), color: 0x8a5a2e,
-    greeting: "A heavy history book on a lectern: Aldmera, the Old Kingdom.",
+    greeting: "A heavy history book on the shelf: Aldmera, the Old Kingdom.",
   },
   {
     id: "book_2", name: "The Emberfall", kind: "station", ...at("lighthall.book_2"), color: 0x8a2e1e,
-    greeting: "A heavy history book on a lectern: The Emberfall.",
+    greeting: "A heavy history book on the shelf: The Emberfall.",
   },
   {
     id: "book_3", name: "On the Shrines", kind: "station", ...at("lighthall.book_3"), color: 0xc8a040,
-    greeting: "A heavy history book on a lectern: On the Shrines.",
+    greeting: "A heavy history book on the shelf: On the Shrines.",
   },
   {
     id: "book_4", name: "The Lands of Embervale", kind: "station", ...at("lighthall.book_4"), color: 0x2e6a4a,
-    greeting: "A heavy history book on a lectern: The Lands of Embervale.",
+    greeting: "A heavy history book on the shelf: The Lands of Embervale.",
   },
   // The Extinguished: four statues in the Emberhall's garden, one at each corner. Their plaques:
   {
@@ -296,7 +300,7 @@ export const NPCS: NpcDef[] = [
 ];
 
 /** Every enchanted chest opens the same storage. */
-export const CHEST_IDS: NpcId[] = ["chest", "chest_east", "chest_forest", "chest_farm", "chest_inn"];
+export const CHEST_IDS: NpcId[] = ["chest", "chest_east", "chest_forest", "chest_farm", "chest_inn", "chest_room"];
 export const isChest = (id: string) => (CHEST_IDS as string[]).includes(id);
 
 // Looked up on every step of every path, so keep it quick: one map from tile to NPC.

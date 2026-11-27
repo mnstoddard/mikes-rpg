@@ -3898,7 +3898,7 @@ export class WorldRoom extends Room<WorldState> {
     return false;
   }
 
-  /** A Four Books lectern that isn't the one you're on (version 0.21): not yet, a later one, or one you've read (read it again). */
+  /** One of the Four Books that isn't the one you're on (version 0.21): not yet, a later one, or one you've read (read it again). */
   private bookClick(client: Client, p: Player, npc: NpcDef) {
     const n = Number(npc.id.slice(5)) - 1;
     const book = FOUR_BOOKS[n];
