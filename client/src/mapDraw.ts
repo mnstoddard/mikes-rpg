@@ -19,6 +19,7 @@ export const TILE_COLORS: Record<Tile, number> = {
   glow: 0xfff1b8, carpet: 0xb8862b, statue: 0xf3efe4, table: 0xa47a4c, shelf: 0xa47a4c, crates: 0xa47a4c, bed: 0xc8c0e8, grave: 0x23432a, gravel: 0x7f8a5a,
   brazier: 0xf3efe4, innerdoor: 0x8b5a2b,
   rampart: 0x8e8574, tower: 0x7a7262, citygate: 0x5a3a22, lamp: 0x9a958b, stall: 0xc0392b,
+  gateway: 0x9a958b, cityblock: 0x8e3b2b, citystreet: 0x9a958b,
 };
 /** The Dark Forest's ground is darker and bluer, so you can see where danger starts. */
 const DARK_COLORS: Partial<Record<Tile, number>> = { grass: 0x23432a, path: 0x6b5a42, fence: 0x23432a, gate: 0x6b5a42, dig: 0x23432a, sand: 0x9c8e62, gravel: 0x3f4a32 };

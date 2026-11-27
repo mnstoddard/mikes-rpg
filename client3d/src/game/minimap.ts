@@ -11,11 +11,24 @@ import { outdoorSpot, toggleWorldMap, worldMapMarks } from "../../../client/src/
 const R = 13; // tiles from the middle to the edge
 
 /** Where to head for a target: itself if it's in this area, otherwise the right door. */
-export function wayTo(p: { x: number; y: number }, here: AreaDef): { x: number; y: number } | null {
+export function wayTo(p: { x: number; y: number }, here: AreaDef, from?: { x: number; y: number }): { x: number; y: number } | null {
   const there = areaAt(p.x, p.y);
   if (!there) return null;
   if (there === here) return p;
-  if (here.kind === "outdoor") { const o = outdoorSpot(p); return o && areaAt(o.x, o.y) === here ? o : null; }
+  if (here.kind === "outdoor") {
+    const o = outdoorSpot(p);
+    if (!o) return null;
+    const oa = areaAt(o.x, o.y);
+    if (oa === here) return o;
+    // Somewhere through Emberhold's gates (the city and Heartvale): the gate that gets you there quickest.
+    const gates = DOORS.filter((d) => areaAt(d.x, d.y) === here && d.area === oa?.id);
+    let best: { x: number; y: number } | null = null, bd = Infinity;
+    for (const d of gates) {
+      const cost = (from ? Math.hypot(d.x - from.x, d.y - from.y) : 0) + Math.hypot(d.to.x - o.x, d.to.y - o.y);
+      if (cost < bd) { bd = cost; best = d; }
+    }
+    return best;
+  }
   // Inside: the door to that place if there is one, otherwise the way out.
   const doors = DOORS.filter((d) => areaAt(d.x, d.y) === here);
   return doors.find((d) => d.area === there.id) ?? doors.find((d) => areaById(d.area)?.kind === "outdoor") ?? doors[0] ?? null;
@@ -26,7 +39,7 @@ export function nextGoal(fx: number, fy: number, here: AreaDef): { x: number; y:
   const { marks, spots } = worldMapMarks();
   let best: { x: number; y: number } | null = null, bd = Infinity;
   const consider = (p: { x: number; y: number } | undefined) => {
-    const at = p && wayTo(p, here);
+    const at = p && wayTo(p, here, { x: fx, y: fy });
     if (!at) return;
     const d = Math.hypot(at.x + 0.5 - fx, at.y + 0.5 - fy);
     if (d < bd) { bd = d; best = at; }
@@ -128,11 +141,11 @@ export class Minimap {
     const targets: { at: { x: number; y: number }; icon: string }[] = [];
     for (const id of marks) {
       const npc = NPCS.find((n) => n.id === id);
-      const at = npc && wayTo(npc, here);
+      const at = npc && wayTo(npc, here, me ?? undefined);
       if (at) targets.push({ at, icon: "❗" });
     }
     for (const s of spots) {
-      const at = wayTo(s, here);
+      const at = wayTo(s, here, me ?? undefined);
       if (at) targets.push({ at, icon: "📍" });
     }
     const s = Math.sin(yaw), c = Math.cos(yaw);

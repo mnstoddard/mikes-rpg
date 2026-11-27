@@ -43,7 +43,7 @@ function floorOf(t: Tile, area: AreaDef): Ground | null {
   switch (t) {
     case "grass": return { id: "ground-grass", variant: 0 };
     case "path": return { id: "ground-path", variant: 0 };
-    case "cobble": return { id: "ground-cobble", variant: 0 };
+    case "cobble": case "gateway": case "citystreet": case "cityblock": return { id: "ground-cobble", variant: 0 };
     case "sand": return { id: "ground-sand", variant: 0 };
     case "withered": return { id: "ground-withered", variant: 0 };
     case "gravel": return { id: "ground-gravel", variant: 0 };
@@ -500,7 +500,7 @@ export class Terrain {
         band.deleteAttribute("uv");
         band.translate((x + 0.5) * TILE, h - 0.1, (y + 0.5) * TILE);
         blocks.push(painted(band, t === "marblewall" || a.id === "guild" ? 0xd4a640 : 0x5c3a1a));
-      } else if (t === "rampart" || t === "tower" || t === "citygate") {
+      } else if (t === "rampart" || t === "tower" || t === "citygate" || t === "gateway") {
         blocks.push(...rampartBlock(t, x, y));
       } else if (t === "cavewall") {
         for (let k = 0; k < 3; k++) {
@@ -705,7 +705,9 @@ export class Terrain {
       this.areaObjects.push({ object, update, dispose });
     };
     if (a.kind === "outdoor") {
-      const city = CITY_BUILDINGS.some((b) => areaAt(b.x, b.y) === a);
+      const city = a.id === "emberhold";
+      // Heartvale has Emberhold's rooftops behind its walls (scenery, drawn the same cheap way as the city's backdrop).
+      const backdrop = CITY_BUILDINGS.some((b) => !b.detail && areaAt(b.x, b.y) === a);
       // The sea all round, and the lakes and rivers (land sits on top of it). In the city, just under its river and ponds.
       let [wx0, wy0, wx1, wy1] = [a.x - 225, a.y - 225, a.x + a.w + 225, a.y + a.h + 225];
       if (city) {
@@ -722,10 +724,16 @@ export class Terrain {
       if (city) {
         // Emberhold: land all round instead of sea, the backdrop city, and its buildings you can go into.
         add(cityLand(a.x * TILE, a.y * TILE, a.w * TILE, a.h * TILE));
-        const back = cityBackdrop((x, y, h) => HEIGHTS.set(y * 100000 + x, h));
-        add(back.object, back.update, back.dispose);
-        for (const s of CITY_SIGNS) if (areaAt(s.x, s.y) === a) this.signs.push({ text: s.text, at: tileCenter(s.x, s.y).setY(s.big ? 7 : 6.2) });
       }
+      if (backdrop) {
+        const back = cityBackdrop(a, (x, y, h) => HEIGHTS.set(y * 100000 + x, h));
+        add(back.object, back.update, back.dispose);
+        if (!city) for (const b of CITY_BUILDINGS) if (b.landmark === "emberhall" && !b.detail && areaAt(b.x, b.y) === a) {
+          const crown = emberhallCrown(b, b.floors * 2.5 + 3);
+          add(crown.object, crown.update, crown.dispose);
+        }
+      }
+      for (const s of CITY_SIGNS) if (areaAt(s.x, s.y) === a) this.signs.push({ text: s.text, at: tileCenter(s.x, s.y).setY(s.big ? 7 : 6.2) });
       for (const b of city ? cityDetailed(a) : findBuildings()) {
         const built = makeBuilding(b);
         add(built.object, (dt, t, night) => built.update(dt, t, night), () => built.dispose());

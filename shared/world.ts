@@ -52,6 +52,8 @@ export interface Door {
   label: string;
   /** A name sign drawn over the door (outside doors of shops and trainers). */
   sign?: string;
+  /** One of Emberhold's gates out into Heartvale (open once you've sworn the Oath of the Flame). */
+  gate?: boolean;
 }
 
 // ---------------------------------------------------------------- helpers
@@ -149,6 +151,71 @@ const pendingDoors: { x: number; y: number; out: Point; area: string; sign?: str
 const oldTown = (_d: { x: number; y: number; out: Point; area: string; sign?: string; label: string }) => {};
 const oldLots: Point[] = [];
 
+/**
+ * Emberhold's walls as Heartvale sees them (version 0.18): a walled block where the old village was. The city itself
+ * is its own area (buildEmberhold); these walls, towers, rooftops and gates are what you see from out in the valley.
+ */
+export const HV_WALL = { X0: 66, X1: 170, Y0: 40, Y1: 97 };
+/** The four gates in those walls. `out` is the way out into the valley; the tiles are the archway. */
+export const HV_GATES: { name: string; out: Point; tiles: Point[] }[] = [
+  { name: "North Gate", out: { x: 0, y: -1 }, tiles: [96, 97, 98].flatMap((x) => [{ x, y: 40 }, { x, y: 41 }]) },
+  { name: "West Gate", out: { x: -1, y: 0 }, tiles: [72, 73, 74].flatMap((y) => [{ x: 66, y }, { x: 67, y }]) },
+  { name: "Saltmere Gate", out: { x: 1, y: 0 }, tiles: [72, 73, 74].flatMap((y) => [{ x: 170, y }, { x: 169, y }]) },
+  { name: "River Gate", out: { x: 0, y: 1 }, tiles: [100, 101, 102].flatMap((x) => [{ x, y: 97 }, { x, y: 96 }]) },
+];
+
+/** The city behind the walls, from outside: streets and rooftops, the Emberhall on its hill, the bell tower. */
+function hvCityBackdrop(c: Canvas, r: () => number) {
+  const { X0, X1, Y0, Y1 } = HV_WALL;
+  const riverAt = (y: number) => 163 + Math.round(Math.sin(y / 11) * 1.5);
+  // A building fits where every tile is still unbuilt (">") and no other building ("B") touches it.
+  const free = (x: number, y: number, w: number, h: number) => {
+    for (let yy = y - 1; yy <= y + h; yy++) for (let xx = x - 1; xx <= x + w; xx++) {
+      const edge = yy === y - 1 || yy === y + h || xx === x - 1 || xx === x + w;
+      if (xx <= X0 + 1 || xx >= X1 - 1 || yy <= Y0 + 1 || yy >= Y1 - 1) return false;
+      const ch = c.get(xx, yy);
+      if (edge ? ch === "B" : ch !== ">") return false;
+    }
+    return true;
+  };
+  const street = (x0: number, y0: number, x1: number, y1: number) => c.fill(x0, y0, x1, y1, "<", ">");
+  // Main streets from each gate to the middle, and a lane inside the wall.
+  street(X0 + 2, 72, X1 - 2, 74); street(96, Y0 + 2, 98, Y1 - 2); street(100, 75, 102, Y1 - 2);
+  street(X0 + 2, Y0 + 2, X1 - 2, Y0 + 3); street(X0 + 2, Y1 - 3, X1 - 2, Y1 - 2);
+  street(X0 + 2, Y0 + 2, X0 + 3, Y1 - 2); street(X1 - 3, Y0 + 2, X1 - 2, Y1 - 2);
+  street(76, 60, 160, 61); street(76, 85, 160, 86); street(84, Y0 + 2, 85, Y1 - 2); street(130, Y0 + 2, 131, Y1 - 2);
+  for (let y = Y0 + 2; y <= Y1 - 2; y++) { const x = riverAt(y); c.fill(x, y, x + 2, y, "~"); }
+  // The Emberhall on Ember Hill, north of the middle, with the plaza in front; the bell tower by the square.
+  const hall = { x: 102, y: 44, w: 19, h: 14 };
+  c.fill(hall.x - 2, hall.y - 1, hall.x + hall.w + 1, hall.y + hall.h + 2, "<");
+  cityBuildings.push({ ...hall, district: "hill", floors: 3, wall: "marble", roof: "gold", detail: false, landmark: "emberhall", chimney: false, seed: 9 });
+  c.fill(hall.x, hall.y, hall.x + hall.w - 1, hall.y + hall.h - 1, ">");
+  cityBuildings.push({ x: 108, y: 66, w: 4, h: 4, district: "market", floors: 5, wall: "stone", roof: "slate", detail: false, landmark: "belltower", chimney: false, seed: 8 });
+  c.fill(106, 64, 114, 71, "<"); c.fill(108, 66, 111, 69, ">");
+  for (let y = Y0 + 3; y < Y1 - 3; y++) for (let x = X0 + 3; x < X1 - 3; x++) {
+    if (c.get(x, y) !== ">") continue;
+    if (x >= hall.x - 1 && x <= hall.x + hall.w && y >= hall.y - 1 && y <= hall.y + hall.h) continue;
+    if (x >= 107 && x <= 112 && y >= 65 && y <= 70) continue;
+    const sizes: [number, number][] = [[6, 5], [5, 4], [7, 5], [4, 4], [5, 5], [4, 3], [3, 3]];
+    const s = sizes.slice(Math.floor(r() * 3)).find(([w, h]) => free(x, y, w, h));
+    if (!s) continue;
+    const [w, h] = s;
+    c.fill(x, y, x + w - 1, y + h - 1, "B");
+    const rx = (x - X0) / (X1 - X0), ry = (y - Y0) / (Y1 - Y0);
+    const d: District = rx > 0.86 ? "docks" : ry < 0.32 ? "hill" : ry > 0.62 ? "lower" : rx < 0.3 ? "forge" : "market";
+    const wall: CityBuilding["wall"] = d === "lower" ? (r() < 0.5 ? "timber" : "plank") : d === "docks" ? (r() < 0.5 ? "plank" : "stone") : d === "market" && r() < 0.4 ? "timber" : "stone";
+    const roof: CityBuilding["roof"] = d === "hill" ? "slate" : d === "forge" ? "dark" : d === "lower" ? "thatch" : d === "docks" ? (r() < 0.5 ? "dark" : "red") : "red";
+    const floors = d === "hill" ? 2 + (r() < 0.2 ? 1 : 0) : d === "market" ? 2 : r() < 0.4 ? 2 : 1;
+    cityBuildings.push({ x, y, w, h, district: d, floors, wall, roof, detail: false, chimney: r() < 0.4, seed: Math.floor(r() * 1e6) });
+  }
+  // Everything that isn't a building is a street (still out of reach behind the wall).
+  for (let y = Y0 + 2; y <= Y1 - 2; y++) for (let x = X0 + 2; x <= X1 - 2; x++) {
+    const ch = c.get(x, y);
+    if (ch === "B") c.set(x, y, ">");
+    else if (ch === ">" && !(x >= hall.x && x < hall.x + hall.w && y >= hall.y && y < hall.y + hall.h) && !(x >= 108 && x <= 111 && y >= 66 && y <= 69)) c.set(x, y, "<");
+  }
+}
+
 export const OVER_W = 240;
 export const OVER_H = 160;
 /** The fence along the north edge of the Thornwood (the Dark Forest). Everything south of it is dangerous. */
@@ -234,33 +301,63 @@ function buildOverworld(): Canvas {
     c.fill(x, depth, x, OVER_H - 1, "T", ":.");
   }
 
-  // ---- The big lake, west of town ----
-  c.blob(46, 54, 24, 14, "~", r, 0.08);
-  c.blob(40, 50, 4, 3, ".", r, 0.2); // a little island
-  c.set(40, 50, "Y"); c.set(41, 49, "Y");
-  // ---- The river: down from the mountains, past the farm, into the Thornwood ----
+  // ---- The big lake, west of the city ----
+  c.blob(42, 55, 20, 12, "~", r, 0.08);
+  c.blob(38, 51, 4, 3, ".", r, 0.2); // a little island
+  c.set(38, 51, "Y"); c.set(39, 50, "Y");
+  // ---- The Glass River: down from the mountains, through Emberhold, into the Thornwood ----
   for (let y = 3; y < OVER_H - 2; y++) {
     const x = 163 + Math.round(Math.sin(y / 11) * 1.5);
     c.fill(x, y, x + 2, y, "~");
   }
 
-  // ---- Roads ----
-  // The main road, west to east, through the town square.
-  c.road(6, 73, 207, 73, ",", 2);
-  // North road: from the square up to the quarry.
-  c.road(88, 12, 88, 74, ",", 2);
-  // South road: from the square down to the forest gate and on into the Thornwood.
-  c.road(101, 74, 101, 150, ",", 2);
+  // ---- Emberhold's walls (version 0.18): the city stands where the old village was ----
+  // From out here you see its walls, towers and rooftops, with the Emberhall's spire in the middle. Each of its
+  // four gates is a way in: step into the archway and you're inside the city (the doors are made in assemble()).
+  const { X0, X1, Y0, Y1 } = HV_WALL;
+  c.fill(X0, Y0, X1, Y1, ">");
+  for (let y = Y0; y <= Y1; y++) for (let x = X0; x <= X1; x++) {
+    if (x > X0 + 1 && x < X1 - 1 && y > Y0 + 1 && y < Y1 - 1) continue;
+    if (c.get(x, y) === "~" && y > Y0 + 1 && y < Y1 - 1) continue;
+    c.set(x, y, "%");
+  }
+  // The river runs in under the north wall and out under the south wall, through iron grilles.
+  for (let x = X0; x <= X1; x++) for (const y of [Y0, Y0 + 1, Y1 - 1, Y1]) if (x >= 161 && x <= 167 && Math.abs(x - (163 + Math.round(Math.sin(y / 11) * 1.5)) - 1) <= 1) c.set(x, y, "~");
+  const tower = (x: number, y: number) => { c.fill(x - 1, y - 1, x + 1, y + 1, "&"); cityTowers.push({ x, y }); };
+  for (const x of [X0 + 1, 86, 120, 145, X1 - 1]) { tower(x, Y0 + 1); tower(x, Y1 - 1); }
+  for (const y of [57, 86]) { tower(X0 + 1, y); tower(X1 - 1, y); }
+  // The gates: archways you can walk into.
+  for (const g of HV_GATES) for (const t of g.tiles) c.set(t.x, t.y, "}");
+  // Inside: the city's streets and rooftops (scenery from out here: the 3D game draws them from CITY_BUILDINGS).
+  hvCityBackdrop(c, r);
+  for (const g of HV_GATES) {
+    const t = g.tiles[Math.floor(g.tiles.length / 2)];
+    citySigns.push({ x: t.x + g.out.x * 2, y: t.y + g.out.y * 2, text: `🚪 Emberhold: ${g.name}` });
+  }
+  citySigns.push({ x: 111, y: 36, text: "Emberhold", big: true });
+
+  // ---- Roads, from the gates out into the valley ----
+  c.road(6, 73, X0 - 1, 73, ",", 2);           // the Westroad, out of the West Gate
+  c.road(X1 + 1, 73, 207, 73, ",", 2);         // the coast road, out of the Saltmere Gate, past the farm
+  c.road(97, 14, 97, Y0 - 1, ",", 2);          // the quarry road, out of the North Gate
+  c.road(101, Y1 + 1, 101, 150, ",", 2);       // the south road, out of the River Gate to Kael's gate
   // Hill roads to the old mine and the spider cave.
   c.road(52, 12, 88, 31, ",", 1);
+  c.road(88, 31, 97, 31, ",", 1);
   c.road(88, 14, 112, 14, ",", 1);
   c.road(112, 10, 112, 14, ",", 1);
+  // A track round the outside of the walls, so you can walk from gate to gate.
+  c.road(X0 - 3, Y0 - 3, X1 + 3, Y0 - 3, ",", 1, ".TOBMY*wl");
+  c.road(X0 - 3, Y0 - 3, X0 - 3, Y1 + 3, ",", 1, ".TOBMY*wl");
+  c.road(X1 + 3, Y0 - 3, X1 + 3, Y1 + 3, ",", 1, ".TOBMY*wl");
+  c.road(X0 - 3, Y1 + 3, X1 + 3, Y1 + 3, ",", 1, ".TOBMY*wl");
   // Forest paths: west to the goblin camp, east to the spiders and graveyard, south-west to Wolf Hollow.
   c.road(50, 118, 101, 118, ",", 1);
   c.road(102, 124, 186, 124, ",", 1);
   // Bridges where roads cross water.
   for (let y = 0; y < OVER_H; y++) for (let x = 0; x < OVER_W; x++) if (c.get(x, y) === "~") {
-    if ((y === 73 || y === 74) && x < 206) c.set(x, y, "=");
+    if ((y === 73 || y === 74) && x > X1 && x < 206) c.set(x, y, "=");
+    if ((y === Y0 - 3 || y === Y1 + 3) && x > X0 && x < X1 + 4) c.set(x, y, "=");
     if (y === 124 && x > 150 && x < 180) c.set(x, y, "=");
   }
   // Causeways out to the islands: from the beach, across the water, to the next land.
@@ -271,84 +368,34 @@ function buildOverworld(): Canvas {
   causeway(46, 200); causeway(88, 200);
   c.fill(226, 52, 227, 61, "=", "~"); causeway(61, 226);
 
-  // ---- The town square and the Emberhall ----
-  c.fill(84, 63, 118, 77, ";");
-  // The Emberhall: the Emberguard's great white temple, built around the Heart Shrine.
-  const lh = building(c, 92, 47, 19, 17, { side: "s", at: 9 }, { roof: "u", wall: "A" });
-  c.fill(93, 63, 109, 63, "A");
-  c.set(lh!.x, lh!.y, "D");
-  c.fill(96, 64, 106, 65, "a"); // the white steps
-  oldTown({ ...lh!, area: "lighthall", label: "Enter the Emberhall", sign: "✨ The Emberhall" });
-  places.lighthallSteps = { x: 101, y: 65 };
-  places.board = { x: 110, y: 69 };
-  places.bryn = { x: 112, y: 69 };
-  c.set(90, 70, "q"); // the well
-  // Hedges and flower beds round the square.
-  for (const x of [85, 117]) c.fill(x, 64, x, 66, "h");
+  // ---- The pasture, out west by the valley's edge: cows and boars, and the grey dust creeping up to its fence ----
+  c.fill(22, 80, 52, 98, "|", ".,wTOBMY*");
+  c.fill(23, 81, 51, 97, ".");
+  c.fill(37, 80, 38, 80, "."); c.fill(52, 88, 52, 89, "."); // gaps in the fence
+  c.road(38, 75, 38, 80, ",", 1);
+  spawnIn(c, "cow", 6, 26, 82, 50, 96, r);
+  spawnIn(c, "boar", 3, 26, 82, 50, 96, r);
 
-  // ---- West of the square: the General Store and Rook's workshop (south of the road) ----
-  const tam = building(c, 74, 76, 9, 7, { side: "n", at: 4 });
-  oldTown({ ...tam!, area: "tam", label: "Enter the General Store", sign: "💰 General Store" });
-  const rook = building(c, 63, 76, 9, 7, { side: "n", at: 4 });
-  oldTown({ ...rook!, area: "rook", label: "Enter Woodworker Rook's workshop", sign: "🪚 Woodworker Rook" });
-  places.tanning_rack = { x: 72, y: 76 };
-  // Old Maren's cottage, on the lake's east shore (her stove is inside).
-  const maren = building(c, 64, 64, 5, 4, { side: "s", at: 2 });
-  oldTown({ ...maren!, area: "maren", label: "Enter Old Maren's cottage", sign: "🎣 Old Maren" });
-  // Wren's hut, by the lake, and the chicken coop north of the road.
-  const wren = building(c, 54, 76, 7, 6, { side: "n", at: 3 });
-  oldTown({ ...wren!, area: "wren", label: "Enter Herbalist Wren's hut", sign: "🌱 Herbalist Wren" });
-  c.fill(72, 61, 82, 69, "|"); c.fill(73, 62, 81, 68, "."); c.set(77, 69, "."); // the coop's fence, with a gap
-  spawnIn(c, "chicken", 6, 73, 62, 81, 68, r);
-  // The Mages' Guild, south-west of town, near the lake shore.
-  c.road(39, 74, 39, 81, ",", 1);
-  const guild = building(c, 31, 82, 17, 11, { side: "n", at: 8 }, { roof: "r", wall: "W" });
-  for (let x = 31; x <= 47; x++) c.set(x, 82, x === 39 ? "D" : "W"); // purple stone front
-  oldTown({ ...guild!, area: "guild", label: "Enter the Mages' Guild", sign: "🔮 Mages' Guild" });
+  // ---- The valley's edge: grey dust, where the shrines' warmth no longer reaches ----
+  // The Withering creeps in from the rim of the valley toward the shrines, a little closer every year (see the wiki's
+  // "The shrines" and "The Withering"). Thickest out west, where it began, and in the north-east foothills.
+  for (let i = 0; i < 16; i++) c.blob(10 + r() * 14, 40 + r() * 60, 4 + r() * 5, 3 + r() * 4, "w", r, 0.3, ".TOBMY*");
+  for (let i = 0; i < 6; i++) c.blob(16 + r() * 10, 82 + r() * 16, 3 + r() * 4, 3 + r() * 3, "w", r, 0.3, ".TOBMY*");
+  for (let i = 0; i < 10; i++) c.blob(140 + r() * 60, 10 + r() * 14, 4 + r() * 5, 2 + r() * 3, "w", r, 0.3, ".TBMYl*");
+  for (let i = 0; i < 6; i++) c.blob(16 + r() * 50, 9 + r() * 10, 4 + r() * 5, 2 + r() * 3, "w", r, 0.3, ".TBYl*");
 
-  // ---- East of the square: Trainer Row (north of the road) and the inn ----
-  const holt = building(c, 121, 63, 8, 9, { side: "s", at: 3 });
-  oldTown({ ...holt!, area: "holt", label: "Enter Forester Holt's house", sign: "🪓 Forester Holt" });
-  const greta = building(c, 131, 63, 8, 9, { side: "s", at: 3 });
-  oldTown({ ...greta!, area: "greta", label: "Enter Miner Greta's house", sign: "⛏️ Miner Greta" });
-  const brann = building(c, 141, 62, 10, 10, { side: "s", at: 4 });
-  oldTown({ ...brann!, area: "smithy", label: "Enter Smith Brann's smithy", sign: "🔨 Smith Brann" });
-  const inn = building(c, 153, 63, 8, 9, { side: "s", at: 3 });
-  oldTown({ ...inn!, area: "inn", label: "Enter the Hearthstone Inn", sign: "🍺 Hearthstone Inn" });
-  c.fill(119, 72, 162, 72, ",", ".");
-  // Cottages where the townsfolk live (no way in).
-  for (const [x, y] of [[121, 52], [131, 51], [141, 52], [151, 53], [70, 86], [80, 88], [106, 79], [62, 92]] as const) building(c, x, y, 6, 6, null);
-
-  // ---- South of the square: the pasture, Kael's lodge and the gate ----
-  c.fill(116, 80, 158, 98, "|");
-  c.fill(117, 81, 157, 97, ".");
-  c.fill(117, 89, 117, 90, "."); c.fill(158, 89, 158, 90, ".");
-  spawnIn(c, "cow", 5, 118, 82, 156, 96, r);
-  spawnIn(c, "boar", 3, 130, 84, 156, 96, r);
-  const kael = building(c, 104, 89, 8, 9, { side: "w", at: 5 });
-  oldTown({ ...kael!, area: "kael", label: "Enter Huntmaster Kael's lodge", sign: "🏹 Huntmaster Kael" });
-  // The fence, with its one gate on the south road.
-  c.fill(3, FENCE_Y, OVER_W - 1, FENCE_Y, "|", ".,:wsTOBMY*");
-  c.fill(GATE.x, FENCE_Y, GATE.x + 1, FENCE_Y, "+");
-  c.set(GATE.x - 2, FENCE_Y - 1, "!");
-  c.set(GATE.x + 3, FENCE_Y - 1, "!");
-
-  // ---- Meadows round town ----
-  c.scatter(60, 36, 160, 100, "T", 0.025, r);
-  c.scatter(60, 36, 160, 100, "O", 0.012, r);
-  c.scatter(118, 36, 160, 60, "O", 0.03, r);
-  c.place(60, 40, 160, 100, "*", 14, r);
-  c.blob(76, 46, 6, 5, "T", r, 0.3, ".");
-  // A pine wood just north of Trainer Row (Holt's first lesson), and a dig patch outside Wren's door.
-  c.scatter(118, 59, 162, 61, "T", 0.35, r);
-  c.scatter(118, 44, 165, 50, "T", 0.2, r);
-  c.set(wren!.out.x + 2, wren!.out.y, "*");
-  c.blob(74, 98, 9, 3, "O", r, 0.4, ".");
-  // Yews along the lake's north shore, birches to the south-west.
-  c.place(26, 34, 70, 40, "Y", 6, r);
-  c.place(14, 76, 30, 100, "B", 18, r);
-  c.place(14, 76, 30, 100, "O", 10, r);
-  // Fishing in the lake: trout by the town, perch to the south, pike out west.
+  // ---- Meadows round the city ----
+  c.scatter(52, 30, 180, 104, "T", 0.02, r);
+  c.scatter(52, 30, 180, 104, "O", 0.016, r);
+  c.place(52, 30, 180, 104, "*", 10, r);
+  c.blob(60, 34, 6, 4, "O", r, 0.4, ".");   // an oak copse by the North Gate road (The Totem's oaks)
+  c.blob(130, 34, 7, 3, "O", r, 0.4, ".");
+  c.blob(78, 100, 9, 2, "O", r, 0.4, ".");
+  // Yews along the lake's north shore, birches and oaks round the pasture.
+  c.place(26, 34, 62, 40, "Y", 6, r);
+  c.place(10, 76, 24, 100, "B", 14, r, ".w");
+  c.place(54, 76, 64, 100, "O", 8, r);
+  // Fishing in the lake: trout by the city, perch to the south, pike out west.
   const shoreSpots = (x0: number, y0: number, x1: number, y1: number, ch: string, n: number) => {
     for (let tries = 0; n > 0 && tries < 4000; tries++) {
       const x = x0 + Math.floor(r() * (x1 - x0 + 1)), y = y0 + Math.floor(r() * (y1 - y0 + 1));
@@ -358,14 +405,14 @@ function buildOverworld(): Canvas {
       n--;
     }
   };
-  shoreSpots(56, 44, 71, 68, "2", 5);
-  shoreSpots(36, 60, 58, 69, "3", 4);
-  shoreSpots(20, 42, 36, 66, "5", 4);
-  // Slimes in the wet meadow east of the lake, under the willows.
-  spawnIn(c, "slime", 5, 64, 42, 82, 58, r);
+  shoreSpots(50, 44, 63, 67, "2", 5);
+  shoreSpots(32, 60, 54, 68, "3", 4);
+  shoreSpots(20, 42, 34, 66, "5", 4);
+  // Slimes in the wet meadow south of the lake.
+  spawnIn(c, "slime", 5, 40, 67, 62, 71, r);
   // Bats come out over the meadows at night (they only bite back here).
-  spawnIn(c, "giant_bat", 2, 60, 40, 84, 60, r);
-  spawnIn(c, "giant_bat", 2, 120, 76, 160, 100, r);
+  spawnIn(c, "giant_bat", 2, 54, 30, 64, 70, r);
+  spawnIn(c, "giant_bat", 2, 172, 76, 180, 100, r);
 
   // ---- The quarry and the Greyspine hills ----
   c.blob(90, 24, 16, 8, ",", r, 0.25, ".T");
@@ -378,9 +425,9 @@ function buildOverworld(): Canvas {
   c.place(30, 10, 70, 32, "k", 4, r, ".l");
   spawnIn(c, "rat", 6, 76, 18, 104, 32, r);
   spawnIn(c, "giant_bat", 2, 30, 12, 70, 34, r);
-  c.scatter(14, 8, 200, 36, "T", 0.05, r);
-  c.scatter(130, 8, 200, 36, "B", 0.05, r);
-  c.scatter(14, 8, 70, 36, "B", 0.02, r);
+  c.scatter(14, 8, 200, 36, "T", 0.05, r, ".w");
+  c.scatter(130, 8, 200, 36, "B", 0.05, r, ".w");
+  c.scatter(14, 8, 70, 36, "B", 0.02, r, ".w");
   c.place(110, 8, 200, 36, "M", 10, r);
   c.place(14, 8, 200, 36, "*", 14, r, ".l");
   // The old mine and the spider cave, in the cliffs.
@@ -394,23 +441,28 @@ function buildOverworld(): Canvas {
   c.set(spider.x, spider.y, "D");
   pendingDoors.push({ ...spider, area: "spider_cave", label: "Enter the spider cave ⚠", sign: "🕷️ Spider cave ⚠" });
 
-  // ---- The farm, over the river ----
-  c.fill(168, 42, 199, 100, ".", ".TOBM*s");
-  c.fill(168, 41, 199, 41, "h"); c.fill(168, 101, 199, 101, "h");
-  building(c, 168, 43, 7, 6, null); // Odo's farmhouse
-  places.odo = { x: 171, y: 50 };
-  places.chest_farm = { x: 169, y: 51 };
+  // ---- The valley's edge shrine (Act 1: A Flame at the Valley's Edge), in the north-east foothills ----
+  // Shrine stones laid out in a ring, waiting for the flame, on the line where the green gives way to grey.
+  c.blob(150, 23, 6, 4, ".", r, 0.2, "TOBMYlw*ik");
+  c.road(130, 26, 146, 24, ",", 1, ".TOBMYlw*");
+  c.road(112, 26, 130, 26, ",", 1, ".TOBMYlw*");
+  c.road(97, 26, 112, 26, ",", 1, ".TOBMYlw*,");
+  places.thornShrine = { x: 151, y: 22 };
+  places.rhys = { x: 154, y: 23 };
+  spawnIn(c, "wolf", 5, 140, 16, 162, 30, r, 0, 0, ".wl");
+
+  // ---- The farm, east of the city, out of the Saltmere Gate ----
+  c.fill(176, 42, 199, 100, ".", ".TOBM*s");
+  c.fill(176, 41, 199, 41, "h"); c.fill(176, 101, 199, 101, "h");
+  building(c, 177, 43, 7, 6, null); // Odo's farmhouse
+  places.chest_east = { x: 203, y: 71 };
   for (const y of [44, 52, 60, 77, 85, 93]) {
-    for (const x of [177, 185, 193]) {
-      if (y === 93 && x !== 177) continue;
-      oldLots.push({ x, y });
-    }
+    for (const x of [185, 193]) oldLots.push({ x, y });
   }
-  // The old farm's fields (the lots themselves moved into Emberhold in version 0.18).
+  // Odo's fields (the lots you rent are inside Emberhold: the Training Ground and the Lower Town allotments).
   for (const l of oldLots) c.fill(l.x, l.y, l.x + 5, l.y + 5, "f");
 
   // ---- The Saltmere Coast ----
-  places.chest_east = { x: 203, y: 71 };
   c.fill(202, 70, 205, 76, "s", ".");
   shoreSpots(206, 30, 214, 100, "6", 7);
   shoreSpots(214, 36, 232, 56, "7", 5);
@@ -423,8 +475,9 @@ function buildOverworld(): Canvas {
   c.place(228, 60, 236, 72, "I", 2, r);
   c.place(224, 86, 228, 90, "m", 1, r);
   c.place(176, 8, 204, 36, "Y", 4, r);
-  // Salmon in the river.
-  shoreSpots(158, 20, 168, 100, "4", 8);
+  // Salmon in the river, north and south of the city.
+  shoreSpots(158, 4, 168, 36, "4", 5);
+  shoreSpots(158, 100, 168, 102, "4", 2);
 
   // ---- The Westroad shrine (smashed), and the barricade on the Barrens road ----
   places.westShrine = { x: 16, y: 70 };
@@ -434,6 +487,11 @@ function buildOverworld(): Canvas {
   c.set(6, 71, "!");
   // Ashbound scouts smashing the shrine (Act 1: Ash on the Road).
   spawnIn(c, "ashbound_scout", 4, 8, 64, 24, 71, r, 0, 0, ".,w");
+  // Kael's gate into the Thornwood, just outside the River Gate.
+  c.fill(3, FENCE_Y, OVER_W - 1, FENCE_Y, "|", ".,:wsTOBMY*");
+  c.fill(GATE.x, FENCE_Y, GATE.x + 1, FENCE_Y, "+");
+  c.set(GATE.x - 2, FENCE_Y - 1, "!");
+  c.set(GATE.x + 3, FENCE_Y - 1, "!");
 
   // ---- The Thornwood ----
   c.scatter(3, FENCE_Y + 1, 205, OVER_H - 3, "T", 0.17, r, ":");
@@ -446,9 +504,7 @@ function buildOverworld(): Canvas {
   // Clearings: by the gate (and the forest's first shrine), the goblin camp, the spiders' hollow, the raiders' camp.
   const FOREST = ":TOMY*ik";
   c.blob(101, 110, 9, 5, ":", r, 0.2, FOREST);
-  c.road(101, 74, 101, 150, ",", 2);
-  places.thornShrine = { x: 105, y: 110 };
-  places.rhys = { x: 108, y: 111 };
+  c.road(101, HV_WALL.Y1 + 1, 101, 150, ",", 2);
   places.chest_forest = { x: 97, y: 108 };
   c.blob(44, 120, 12, 7, ":", r, 0.25, FOREST);
   c.blob(150, 120, 12, 8, ":", r, 0.25, FOREST);
@@ -474,20 +530,21 @@ function buildOverworld(): Canvas {
   spawnIn(c, "bandit", 3, 106, 142, 128, 152, r, 0, 0, ":");
   spawnIn(c, "giant_bat", 2, 180, 115, 195, 128, r, 0, 0, ":");
   spawnIn(c, "giant_bat", 1, 90, 106, 112, 118, r, 0, 0, ":");
-  spawnIn(c, "hollow_wolf", 5, 62, 139, 80, 146, r, 0, 0, ":"); // Wolf Hollow's Blighted pack (Act 1)
+  // The Blighted pack (Act 1: The Hollow Wolves) prowls the grey dust out west, raiding the pasture.
+  spawnIn(c, "hollow_wolf", 5, 8, 78, 24, 100, r, 0, 0, ".w");
 
   c.fill(GATE.x, FENCE_Y, GATE.x + 1, FENCE_Y, "+");
   // ---- The story's lanterns and places (shared/story.ts) ----
-  // Lanterns on the Emberhall's steps and round the square (Light the Way).
-  ([[95, 64], [107, 64], [92, 67], [110, 66], [94, 71], [108, 71]] as const).forEach(([x, y], i) => { places[`lantern_${i + 1}`] = { x, y }; });
-  // Shrine lanterns round Heartvale (Lantern Rounds): quarry road, lake, inn, farm, coast, Kael's gate.
-  ([[91, 40], [71, 58], [160, 72], [168, 76], [203, 66], [97, 101]] as const).forEach(([x, y], i) => { places[`round_${i + 1}`] = nearFree(c, x, y); });
-  // Places to walk to: Odo's fields (Blessing the Fields), Holt's dead trees (What Holt Saw), the Thornwood clearing.
+  // Shrine lanterns round Heartvale (Lantern Rounds): the quarry road, the lake, the inn (inside the city, set in
+  // buildEmberhold), the farm, the coast and Kael's gate.
+  ([[95, 34], [63, 60], null, [178, 76], [203, 66], [97, 101]] as const).forEach((p, i) => { if (p) places[`round_${i + 1}`] = nearFree(c, p[0], p[1]); });
+  // Places to walk to: Odo's fields (Blessing the Fields), Holt's dead trees (What Holt Saw: three near shrines, three
+  // out at the valley's edge; the Emberhall garden one is in the city), the valley's edge shrine.
   const spots: Record<string, [number, number]> = {
-    fieldNorth: [183, 49], fieldMid: [189, 58], fieldSouth: [183, 82],
-    nearLighthall: [87, 57], nearWestShrine: [20, 66], nearGate: [96, 106],
-    farLake: [46, 38], farPeaks: [150, 30], farCoast: [205, 36],
-    thornEdge: [103, 112],
+    fieldNorth: [187, 49], fieldMid: [195, 58], fieldSouth: [187, 82],
+    nearWestShrine: [20, 66], nearGate: [108, 100],
+    farLake: [12, 92], farPeaks: [170, 18], farCoast: [198, 30],
+    thornEdge: [147, 24],
   };
   for (const [k, [x, y]] of Object.entries(spots)) storySpots[`spot.${k}`] = nearFree(c, x, y);
   // ---- Little paths: from each front door straight out to the nearest road (report #28) ----
@@ -546,6 +603,8 @@ export interface CityBuilding {
   seed: number;
 }
 const cityBuildings: CityBuilding[] = [];
+/** Emberhold's four gates, as built (world tiles of each archway). */
+const cityGates: { name: string; tiles: Point[] }[] = [];
 /** The middles of the towers on the city wall. */
 const cityTowers: Point[] = [];
 /** Floating name signs: the gates and the districts. */
@@ -626,7 +685,7 @@ function buildEmberhold(o: Point): Canvas {
       if (ch === " ") continue;
       if (ch === "%" || ch === "&") {
         if (!gate) continue;
-        c.set(x, y, "@");
+        c.set(x, y, "}"); // an open archway (version 0.18: the gates lead out into Heartvale)
         let g = gates.find((q) => q.name === gate);
         if (!g) gates.push(g = { name: gate, tiles: [] });
         g.tiles.push({ x, y });
@@ -684,6 +743,7 @@ function buildEmberhold(o: Point): Canvas {
   ([[58, 14], [84, 14], [58, 30], [84, 30]] as const).forEach(([x, y], i) => { c.set(x, y, "S"); places[`extinguished_${i + 1}`] = A(x, y); });
   c.fill(57, 12, 57, 32, "h"); c.fill(85, 12, 85, 32, "h");
   places.lighthallSteps = A(71, 34);
+  storySpots["spot.nearLighthall"] = A(59, 21); // What Holt Saw: the trees in the Emberhall's garden
 
   // ---- The Emberhall Training Ground: every trainer, and everything they teach with ----
   const TX0 = 86, TY0 = 16, TX1 = 107, TY1 = 54;
@@ -761,6 +821,7 @@ function buildEmberhold(o: Point): Canvas {
   const inn = building(c, 62, 68, 9, 9, { side: "e", at: 4 });
   detail(62, 68, 9, 9, "timber", "red", { chimney: true });
   pushDoor(inn, "inn", "Enter the Hearthstone Inn", "🍺 Hearthstone Inn");
+  places.round_3 = A(72, 70); // Lantern Rounds: the shrine lantern by the inn (where someone paints THE FLAME EATS)
   const kael = building(c, 62, 90, 8, 8, { side: "e", at: 3 });
   detail(62, 90, 8, 8, "plank", "thatch");
   pushDoor(kael, "kael", "Enter Huntmaster Kael's lodge", "🏹 Kael's lodge");
@@ -815,7 +876,8 @@ function buildEmberhold(o: Point): Canvas {
   // ---- Signs over the gates (all shut for now) and the districts ----
   for (const g of gates) {
     const mx = g.tiles.reduce((s, p) => s + p.x, 0) / g.tiles.length, my = g.tiles.reduce((s, p) => s + p.y, 0) / g.tiles.length;
-    citySigns.push({ x: o.x + Math.round(mx), y: o.y + Math.round(my), text: `🚪 ${g.name} (closed)` });
+    citySigns.push({ x: o.x + Math.round(mx), y: o.y + Math.round(my), text: `🚪 ${g.name}` });
+    cityGates.push({ name: g.name, tiles: g.tiles.map((t) => A(t.x, t.y)) });
   }
   for (const [x, y, text] of [[71, 12, "Ember Hill"], [74, 54, "Market Square"], [36, 61, "Forge Row"], [113, 38, "The Docks"], [64, 81, "Lower Town"], [125, 47, "Fish market"]] as const) {
     citySigns.push({ ...A(x, y), text, big: true });
@@ -1091,6 +1153,29 @@ function assemble() {
     doors.push({ x: p.x, y: p.y, to: inward(inner), area: p.area, label: p.label, sign: p.sign });
     doors.push({ x: inner.x, y: inner.y, to: p.out, area: p.from ?? "heartvale", label: "Leave" });
   }
+  // Emberhold's gates (version 0.18): step into a gate's archway out in Heartvale and you're just inside that gate in
+  // the city; walk out through a gate in the city and you're just outside it in the valley.
+  for (const hv of HV_GATES) {
+    const cg = cityGates.find((g) => g.name === hv.name);
+    if (!cg) throw new Error(`Emberhold has no ${hv.name}`);
+    const dx = hv.out.x, dy = hv.out.y;
+    // The city gate's archway: its outer row (furthest out) and inner row.
+    const key = (p: Point) => p.x * dx + p.y * dy;
+    const outer = Math.max(...cg.tiles.map(key)), inner = Math.min(...cg.tiles.map(key));
+    const cityOuter = cg.tiles.filter((p) => key(p) === outer), cityInner = cg.tiles.filter((p) => key(p) === inner);
+    const hvOuter = hv.tiles.filter((p) => key(p) === Math.max(...hv.tiles.map(key)));
+    const across = (list: Point[]) => [...list].sort((a, b) => (a.x - b.x) * (dy !== 0 ? 1 : 0) + (a.y - b.y) * (dx !== 0 ? 1 : 0));
+    const co = across(cityOuter), ci = across(cityInner), ho = across(hvOuter);
+    const n = Math.min(co.length, ho.length);
+    for (let i = 0; i < n; i++) {
+      // From the valley: the archway's outer tile takes you just inside the city gate.
+      const inside = { x: ci[Math.min(i, ci.length - 1)].x - dx, y: ci[Math.min(i, ci.length - 1)].y - dy };
+      doors.push({ x: ho[i].x, y: ho[i].y, to: inside, area: "emberhold", label: `Enter Emberhold by the ${hv.name}` });
+      // From the city: the road just outside the city gate takes you just outside the gate in the valley.
+      const road = { x: co[i].x + dx, y: co[i].y + dy };
+      doors.push({ x: road.x, y: road.y, to: { x: ho[i].x + dx, y: ho[i].y + dy }, area: "heartvale", label: `Out of the ${hv.name} into Heartvale`, gate: true });
+    }
+  }
   // The spider cave goes on through to the crystal cave.
   const sc = inDoor("spider_cave", 1), cc = inDoor("crystal_cave");
   doors.push({ x: sc.x, y: sc.y, to: inward(cc), area: "crystal_cave", label: "Go deeper: the crystal cave" });
@@ -1119,13 +1204,15 @@ export const WORLD_SPAWNS: readonly [MonsterId, number, number][] = spawns;
 export const MAP_LABELS: readonly { x: number; y: number; text: string; big?: boolean }[] = [
   { x: 120, y: 3, text: "The Greyspine Peaks", big: true },
   { x: 92, y: 26, text: "Quarry" },
-  { x: 46, y: 55, text: "The lake" },
-  { x: 101, y: 57, text: "The Emberhall" },
-  { x: 140, y: 58, text: "Trainer Row" },
-  { x: 137, y: 90, text: "Pasture" },
-  { x: 186, y: 69, text: "The farm" },
+  { x: 42, y: 55, text: "The lake" },
+  { x: 118, y: 66, text: "Emberhold", big: true },
+  { x: 37, y: 89, text: "Pasture" },
+  { x: 188, y: 69, text: "The farm" },
+  { x: 151, y: 19, text: "Valley's edge shrine" },
+  { x: 16, y: 64, text: "Westroad shrine" },
+  { x: 14, y: 50, text: "The grey dust" },
   { x: 220, y: 30, text: "Saltmere Coast", big: true },
-  { x: 24, y: 82, text: "To the Barrens (closed)" },
+  { x: 24, y: 78, text: "To the Barrens (closed)" },
   { x: 100, y: 128, text: "The Thornwood (Dark Forest)", big: true },
   { x: 44, y: 128, text: "Goblin camp" },
   { x: 150, y: 129, text: "Spider hollow" },

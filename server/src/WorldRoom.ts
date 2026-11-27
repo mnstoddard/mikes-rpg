@@ -103,7 +103,7 @@ import {
   CROPS, CROP_IDS, CropId, FARM_CHEST_PRICE, FarmView, LOTS, LOT_SIZE, MASTERY_EXTRA, PLANT_XP, PLOT_SIZES, SEED_BACK, SEED_BACK_PER_LEVEL, SeedId,
   cropOfSeed, decodeCrop, encodeCrop, inPlot, isSeed, lotAt, plotPrice, seedId, tileOf, timeLeft,
 } from "../../shared/farming";
-import { LOT_PLACES } from "../../shared/world";
+import { HV_WALL, LOT_PLACES } from "../../shared/world";
 
 const STEP_LOOP_MS = 50; // how often the server checks whether someone should take a step
 const AUTOSAVE_TICKS = 100; // 100 x 0.6s = once a minute
@@ -2338,6 +2338,11 @@ export class WorldRoom extends Room<WorldState> {
       if (client) this.say(client, this.notReady());
       return;
     }
+    // Emberhold's gates (version 0.18): Hopefuls stay inside the walls until they've sworn the Oath of the Flame.
+    if (door.gate && !chapterDone(p.quest, "oath")) {
+      if (client) this.dialog(client, ["Halt there, Hopeful! Nobody goes out into the valley until they've sworn the Oath of the Flame at the Emberhall. Finish your training first: open 📜 Quests to see what's next."], "Gate guard");
+      return;
+    }
     if (this.heldInTown(p, door.to)) {
       if (client) this.say(client, this.stayInTown());
       return;
@@ -3682,7 +3687,7 @@ export class WorldRoom extends Room<WorldState> {
     }
     if (step.bless) this.bless(client, p);
     if (step.warden) this.giveWarden(client, p);
-    if (step.opensGate) this.say(client, "🚪 The gate to the Dark Forest is open to you now. It's just south of Kael's lodge on the south road, past the ⚠ signs.");
+    if (step.opensGate) this.say(client, "🚪 The gate to the Dark Forest is open to you now. It's in Heartvale, just outside Emberhold's River Gate, past the ⚠ signs (the city gates open after the Oath).");
     if (step.opensBoard) this.say(client, "📋 The bounty board is open to you now. Its jobs are in the 📜 Quests tab too.");
     this.advance(p, client);
     if (step.rank) this.updateRank(client, p);
@@ -3804,8 +3809,8 @@ export class WorldRoom extends Room<WorldState> {
   /** What a story station looks like to you (lit or not). */
   private stationLook(p: Player, npc: NpcDef): string {
     const lit = litLanterns(p.quest).includes(npc.id);
-    if (npc.id === "west_shrine") return lit ? "The rebuilt shrine glows gold. The grass round it is brown and dry." : npc.greeting;
-    if (npc.id === "thorn_shrine") return lit ? "The Thornwood's first shrine burns gold. The trees nearest it look grey." : npc.greeting;
+    if (npc.id === "west_shrine") return lit ? "The rebuilt shrine glows gold, and the grass round it is green again. A thin thread of light runs from its flame east along the road, toward Emberhold." : npc.greeting;
+    if (npc.id === "thorn_shrine") return lit ? "The valley's edge shrine burns gold. The grass round it is green, but only just: a few steps further out, the dust is grey." : npc.greeting;
     return lit ? "The lantern burns bright and steady." : npc.greeting;
   }
 
@@ -3865,9 +3870,12 @@ export class WorldRoom extends Room<WorldState> {
     const door = area && area.kind !== "outdoor" ? DOORS.find((d) => d.area === area.id && areaAt(d.x, d.y)?.kind === "outdoor") : null;
     const from = door ?? p;
     const heart = DOORS.find((d) => d.area === "lighthall" && areaAt(d.x, d.y)?.kind === "outdoor")!;
-    const choices: { name: string; at: Point; from: Point }[] = [{ name: "the Heart Shrine in the Emberhall", at: WAKE_SPOT, from: heart }];
+    // Out in Heartvale, the Heart Shrine counts as being where Emberhold's walls are.
+    const hvCity = { x: (HV_WALL.X0 + HV_WALL.X1) / 2, y: (HV_WALL.Y0 + HV_WALL.Y1) / 2 };
+    const inValley = areaAt(from.x, from.y)?.id === "heartvale";
+    const choices: { name: string; at: Point; from: Point }[] = [{ name: "the Heart Shrine in the Emberhall", at: WAKE_SPOT, from: inValley ? hvCity : heart }];
     if (lit.includes("west_shrine")) choices.push({ name: "the Westroad shrine", at: PLACES.westShrine, from: PLACES.westShrine });
-    if (lit.includes("thorn_shrine")) choices.push({ name: "the Thornwood shrine", at: PLACES.thornShrine, from: PLACES.thornShrine });
+    if (lit.includes("thorn_shrine")) choices.push({ name: "the valley's edge shrine", at: PLACES.thornShrine, from: PLACES.thornShrine });
     const dist = (a: Point) => Math.hypot(a.x - from.x, a.y - from.y);
     const best = area && area.kind !== "outdoor" && !door ? choices[0] : choices.reduce((a, b) => (dist(b.from) < dist(a.from) ? b : a));
     return { name: best.name, at: best.at };

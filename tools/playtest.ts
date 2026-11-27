@@ -232,7 +232,13 @@ async function prologue(name: string) {
   if (b.task !== t0 || !b.log.slice(-4).some((l) => l.includes("Equip"))) throw new Error("Aldric didn't help with the robe");
   step("Aldric explains the robe");
   b.room.send("wear", { slot: b.slotOf("platebody_cloth") });
-  await b.until(() => /Aldric/.test(b.task), 5000, "the robe to count"); step("robe on");
+  await sleep(600);
+  if (/Walk/.test(b.task)) throw new Error("the robe top alone counted as the whole robe");
+  b.room.send("wear", { slot: b.slotOf("platelegs_cloth") });
+  await b.until(() => /Walk/.test(b.task), 5000, "the robe to count"); step("robe on");
+  // Celene's walking lesson: the two glowing marks down the hall.
+  for (const k of ["spot.hallLeft", "spot.hallRight"]) await b.goTo(PLACES[k].x, PLACES[k].y);
+  await b.until(() => /Aldric/.test(b.task), 5000, "the walking lesson to finish"); step("walked to both marks");
   // One flowing talk with Aldric: Awakening's end and the start of The Hall of Embers together.
   await b.talkUntilNew("aldric"); step("Aldric (Awakening done, Hall of Embers started)");
   if (!/Oren/.test(b.task)) throw new Error(`expected Oren's tour next, got: ${b.task}`);
@@ -427,13 +433,13 @@ async function story(name: string) {
     await b.talkUntilNew("kael");
     t = b.task;
     for (let n = 0; n < 6 && b.task === t; n++) {
-      await b.goTo(70, 140, 3); // (again after a knock-out: you wake at a shrine)
+      await b.goTo(16, 90, 3); // the grey dust west of the pasture (again after a knock-out: you wake at a shrine)
       await b.fight("hollow_wolf", true, 15);
     }
     await b.talkUntilNew("kael");
     done("1.10 The Hollow Wolves");
   }
-  // 1.12 A Light in the Thornwood.
+  // 1.12 A Flame at the Valley's Edge.
   if (!isDone("thorn_light")) {
     await b.talkUntilNew("aldric");
     t = b.task;
@@ -446,7 +452,7 @@ async function story(name: string) {
     await b.talkUntilNew("rhys");
     await b.talk("aldric");
     if (b.me.rank !== 2) throw new Error("not a Flame");
-    done("1.12 A Light in the Thornwood");
+    done("1.12 A Flame at the Valley's Edge");
   }
   console.log(`\nAll done in ${b.minutes()} minutes. Deaths: ${b.deaths}. Tithe marks now: ${b.me.tithe}.`);
   for (const [w, m] of times) console.log(`  ${w.padEnd(34)} ${m} min`);

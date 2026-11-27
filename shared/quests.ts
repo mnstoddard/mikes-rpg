@@ -563,7 +563,7 @@ const LESSONS: Chapter[] = [
       {
         task: `Talk to ${KAEL} by the pens in the training ground`, goal: { kind: "talk" }, unlocks: ["melee", "defense"],
         lines: [
-          "So you want to fight? I'm Kael. Out past the city walls is the Dark Forest. Wolves, goblins, giant spiders and worse, and they attack anyone who wanders in. The gates are shut for now, so we'll train right here in the pens.",
+          "So you want to fight? I'm Kael. Out past the city walls, south of the River Gate, is the Dark Forest. Wolves, goblins, giant spiders and worse, and they attack anyone who wanders in. Hopefuls stay inside the walls until the Oath, so we'll train right here in the pens.",
           "See the ❤ bar at the top left? That's your health. Fighting skills are Strength, and Strength raises your max health. If it runs out, you'll wake up at the Heart Shrine in the Emberhall, a bit shaken but with all your things.",
           "Let's start small. With nothing in your hand you fight with your fists: it works, but only just. So here's a bronze dagger. Weapons and armor go in your gear strip, under the tool belt. Click the dagger in your bag and press \"Equip\".",
         ],
@@ -633,7 +633,7 @@ const LESSONS: Chapter[] = [
         lines: [
           "Good shooting! One last test before you're ready for the forest.",
           "Take these bronze platelegs and 3 more potions. Hold the weapon you like best and clear 3 rats out of the pit. Fight them like they're wolves, and drink a potion if it goes badly.",
-          "When the city gates open, I'll let you through the Dark Forest's gate too.",
+          "Once you've sworn the Oath you can go out into the valley. The Dark Forest's gate is just outside the River Gate, and it'll let you through now. Mind yourself in there.",
         ],
         give: [{ item: "platelegs_bronze" }, POTION, POTION, POTION],
       },

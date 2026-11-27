@@ -11,6 +11,7 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { CITY_BUILDINGS, CITY_TOWERS, type CityBuilding } from "../../../shared/world";
+import { areaAt, type AreaDef } from "../../../shared/map";
 import { TILE } from "../environment";
 import { hash2, makeRng, mix, painted } from "../environment/kit";
 
@@ -85,12 +86,12 @@ export interface CityPiece { object: THREE.Object3D; update: (dt: number, t: num
  * Every backdrop building, the bell tower and the tower cones, merged.
  * `setHeight` tells the terrain how tall each tile is (so the camera stays out).
  */
-export function cityBackdrop(setHeight: (x: number, y: number, h: number) => void): CityPiece {
+export function cityBackdrop(area: AreaDef, setHeight: (x: number, y: number, h: number) => void): CityPiece {
   const solid: THREE.BufferGeometry[] = [];
   const lit: THREE.BufferGeometry[] = [];
   const dark: THREE.BufferGeometry[] = [];
   for (const b of CITY_BUILDINGS) {
-    if (b.detail) continue;
+    if (b.detail || areaAt(b.x, b.y) !== area) continue;
     const rng = makeRng(b.seed + 11);
     const W = b.w * TILE - 0.35, D = b.h * TILE - 0.35;
     const cx = (b.x + b.w / 2) * TILE, cz = (b.y + b.h / 2) * TILE;
@@ -158,6 +159,7 @@ export function cityBackdrop(setHeight: (x: number, y: number, h: number) => voi
   }
   // Slate cones on the wall towers.
   for (const t of CITY_TOWERS) {
+    if (areaAt(t.x, t.y) !== area) continue;
     const cone = new THREE.ConeGeometry(3.6, 4.2, 8, 1).toNonIndexed();
     cone.deleteAttribute("uv");
     cone.translate((t.x + 0.5) * TILE, 8.3 + 2.1, (t.y + 0.5) * TILE);
@@ -253,12 +255,16 @@ export function cityLand(x0: number, z0: number, w: number, d: number): THREE.Me
 }
 
 /** Rampart, tower and gate blocks for one tile (merged by the terrain's chunk builder). */
-export function rampartBlock(kind: "rampart" | "tower" | "citygate", x: number, y: number): THREE.BufferGeometry[] {
+export function rampartBlock(kind: "rampart" | "tower" | "citygate" | "gateway", x: number, y: number): THREE.BufferGeometry[] {
   const out: THREE.BufferGeometry[] = [];
   const h = kind === "tower" ? 7.4 : 4.8;
   const stoneCol = mix(0x9a917f, 0xb3a994, hash2(x, y, 51));
   const cx = (x + 0.5) * TILE, cz = (y + 0.5) * TILE;
-  if (kind === "citygate") {
+  if (kind === "gateway") {
+    // An open gate (version 0.18): the wall's top as a lintel high over the road, with the great doors swung open.
+    out.push(box(TILE, 1.2, TILE, cx, h - 0.6, cz, stoneCol));
+    out.push(box(TILE, 0.25, TILE, cx, h - 1.3, cz, mix(stoneCol, 0x4a4238, 0.35)));
+  } else if (kind === "citygate") {
     // A closed gate: the wall's top as a lintel over two great wooden doors.
     out.push(box(TILE, 1.4, TILE, cx, h - 0.7, cz, stoneCol));
     out.push(box(TILE, h - 1.4, TILE * 0.4, cx, (h - 1.4) / 2, cz, mix(0x5a3a22, 0x6e4a2c, hash2(x, y, 52))));
@@ -271,4 +277,4 @@ export function rampartBlock(kind: "rampart" | "tower" | "citygate", x: number, 
   if ((x + y) % 2 === 0) out.push(box(TILE * 0.6, 0.9, TILE * 0.6, cx, h + 0.45, cz, mix(stoneCol, 0x6a6252, 0.2)));
   return out;
 }
-export const RAMPART_H = { rampart: 4.8, tower: 7.4, citygate: 4.8 } as const;
+export const RAMPART_H = { rampart: 4.8, tower: 7.4, citygate: 4.8, gateway: 4.8 } as const;
