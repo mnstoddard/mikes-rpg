@@ -106,6 +106,8 @@ export interface QuestStep {
   hint?: string;
   /** Other steps: things they hand you again if you've lost them (so you can't get stuck). */
   ensure?: Gift[];
+  /** Visit steps: this person walks you round the rest themselves once you've talked to them (Keeper Oren's tour, version 0.22). */
+  tour?: NpcId;
   /** Crafting this step asks for always works (their guiding hand). */
   guaranteed?: boolean;
   /** Item id prefixes that can't be sold, dropped or eaten during this step. */

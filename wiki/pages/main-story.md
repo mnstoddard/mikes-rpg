@@ -70,7 +70,7 @@ After Rhys is drained, Sable takes you to meet Wick, and you hear the true histo
 - **Cut free:** Wick breaks your Oath of the Flame, the spell that ties you to the Heart Shrine, so the Undying can't drain you. Ash starts to creep up your hands, the Tithe ends, and you rise at Ashbound hearths until you've freed a shrine of your own.
 - **The Emberwardens:** you hunt down all six, in any order. Each time one falls, Wick shows you how to **free** their great shrine: cut its thread to the Heart Shrine, so everything it draws goes back out to the land. The warmth spreads outward from the shrine, and the region's edges start to heal. Unmasking Ivy and Reed as impostors is part of it.
 - **Frostfell:** the last stop before Vale. You thaw Wick's frozen shrine and free it, which gives Wick back enough strength to face Vale beside you.
-- **Vale:** you unmask [[Enchanter Vale]] and fight him in [[The Hollow Heart]], at the Emberheart.
+- **Vale:** you unmask [[High Keeper Aldric]] and fight him in [[The Hollow Heart]], at the Emberheart.
 - **The catch:** when Vale falls, every shrine shudders. The shrines are what hold the Emberborn together. Freed shrines keep them alive for now, but Wick warns it won't last: without a lasting fix, every Emberborn will slowly fade. That sets up the endgame.
 
 ## Endgame: The Seed

@@ -9,7 +9,7 @@ summary: The secret leaders of the Emberguard, who live on the siphon.
 
 Members:
 
-- [[Archmage Vale]], as [[Enchanter Vale]] and the hooded High Keeper. The strongest by far, fed by every [[Radiance Ceremony]].
+- [[Archmage Vale]], as [[High Keeper Aldric]]. The strongest by far, fed by every [[Radiance Ceremony]].
 - Crowe, Flint, Merrow and Dunn: the Circle members who sided with Vale. Today they're four of the [[Emberwardens]].
 - Warden Ivy and Warden Reed: impostors wearing the names of the members killed on Wick's side.
 - [[High Keeper Aldric]] and a few others Vale rewarded after the war.

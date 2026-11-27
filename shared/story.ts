@@ -103,7 +103,7 @@ export const FOUR_BOOKS: { title: string; pages: string[] }[] = [
       "Eight hundred years ago, on a still night, the land's own fire woke beneath the valley we now call Heartvale. No one knows why. The Emberheart, the fire under the world, simply broke its bounds, as wild fire will.",
       "A pillar of flame burst out of the earth. The ground fell in around it, and that is why Heartvale is round. Embers began to fall across the whole kingdom, and where they fell, things burned.",
       "King Aldemar went down to the fire himself. He knew no wall or spell could stop it in time, so he gave it the only thing that could: himself. He poured his own ember into the torrent and held it back, the way a man holds a door against a storm.",
-      "It was a bandage, not a cure, and it cost him his life. But it held. For a whole year the embers fell more softly, and in that year the Ember Circle built something that would last.",
+      "It was a bandage, not a cure, and it cost him his life. But it held. For forty years the embers fell more softly, and in those years the Ember Circle worked out how to build something that would last.",
       "When the king's strength finally gave out, the shrines were ready. Whitestone had burned and Aldmera was gone, but the land was saved. We count our years from that night: this is the year 800 After the Fall.",
       "His statue stands beside the Heart Shrine. Every Emberborn who wakes there wakes at the feet of the king who made it possible.",
     ],
@@ -112,7 +112,7 @@ export const FOUR_BOOKS: { title: string; pages: string[] }[] = [
     title: "On the Shrines",
     pages: [
       "The shrines are the Circle's answer to the Fall. Each of the Circle raised a great shrine in their own land, one to every land, to pin the fire down. Archmage Vale raised the greatest of them, the Heart Shrine, right above the place the fire woke.",
-      "A shrine does three things. It holds the fire down. It warms the land around it. And it raises the Emberborn: about thirty years after the Fall, the shrines began to gather the wild ember into heroes, and they have done it ever since. You are one of them.",
+      "A shrine does three things. It holds the fire down. It warms the land around it. And it raises the Emberborn: about thirty years after the shrines were raised, they began to gather the wild ember into heroes, and they have done it ever since. You are one of them.",
       "When an Emberborn falls, the nearest shrine gathers them up and makes them again. A dark shrine raises no one, which is why the Emberguard keep every shrine lit. Over the centuries we have built small shrines along every road, so that no Emberborn is ever far from home.",
       "The great shrines are kept by the Emberwardens, who carry the Circle's names. Cities have grown up around each one. Where the shrines burn bright, the land is warm.",
       "When you are ready, you will swear the Oath of the Flame at the Heart Shrine, so that it knows you and can always bring you home.",
@@ -222,19 +222,19 @@ export const PROLOGUE_START: Chapter[] = [
         // Keeper Oren's tour of the great hall: the statues of the Ember Circle (version 0.20, Mike's note), told the way the
         // Emberguard teach it (the official story on the wiki's Emberfall page), and the embers drifting overhead.
         task: "Take Keeper Oren's tour: the king, Archmage Vale and the empty plinth", goal: { kind: "visit", npcs: ["oren", "circle_aldemar", "circle_vale", "plinth"], names: "stops on Oren's tour" },
-        hint: "Keeper Oren is by the statues on the west side of the great hall. Talk to him, then click King Aldemar's statue (west wall, by the shrine), Archmage Vale's statue (behind the Heart Shrine) and the empty plinth near the doors (east side). Each has a ❗.",
-        speaker: "Keeper Oren",
+        hint: "Keeper Oren is by the statues on the west side of the great hall. Talk to him and he'll walk you round: the king, Archmage Vale and the empty plinth.",
+        speaker: "Keeper Oren", tour: "oren",
         visitLines: {
           oren: [
             "Welcome, welcome! I'm Keeper Oren. I keep the statues in this hall: the Ember Circle, the greatest mages Aldmera ever had, and the king who led them. Every Emberborn who wakes here owes them everything.",
-            "Come, I'll walk you round. Start with the king, by the shrine on this side. Click each statue with a ❗ and I'll tell you about it. The others along the walls have plaques you can read any time.",
+            "Come, walk with me. We'll start with the king, by the shrine on this side. The others along the walls have plaques you can read any time.",
           ],
           circle_aldemar: [
             "King Aldemar the Eighteenth, the last king of Aldmera. Eight hundred years ago, one terrible night, the land's own fire woke under this very valley. Nobody knows why. Fire burst out of the earth, and embers began to fall.",
-            "The king went down into the fire himself. He poured his own ember into it and held it back, the way you'd hold a door shut against a storm. It cost him his life. It was only ever a bandage, but it held for a whole year while the embers fell. That was the Emberfall, and that's why we count the years After the Fall.",
+            "The king went down into the fire himself. He poured his own ember into it and held it back, the way you'd hold a door shut against a storm. It cost him his life. It was only ever a bandage, but it held the fire back for decades, forty years of falling embers, while the Circle worked out how to build the shrines. That was the Emberfall, and that's why we count the years After the Fall.",
           ],
           circle_vale: [
-            "And this is Archmage Vale. That year the king bought them, Vale and the Circle used every day of it. Each of them raised a great shrine in their own land, and Vale raised the greatest of all: the Heart Shrine, right here. When the king's strength finally gave out, the shrines held. They still do.",
+            "And this is Archmage Vale. Those forty years the king bought them, Vale and the Circle used every day of them. Each of them raised a great shrine in their own land, and Vale raised the greatest of all: the Heart Shrine, right here. When the king's strength finally gave out, the shrines held. They still do.",
             "The shrines pinned the fire down and warmed the land again, and about thirty years later they began to raise the first Emberborn. Heroes made of ember, who come back every time they fall. Heroes like you.",
             "Look up, too. See the little embers drifting through the hall? Each one is for one of the Extinguished: the greatest Emberborn, honoured with a Radiance Ceremony. One flame goes out so many can be lit.",
           ],
@@ -257,7 +257,7 @@ export const PROLOGUE_START: Chapter[] = [
             "Now listen closely, Initiate, because this is the most important thing anyone will tell you today.",
             "Everything you do out there is a skill: chopping wood, mining, smithing, cooking, fighting, casting. Do a thing and you get better at it. Every skill has its own level. Open your 📊 skills and you'll see them all at 1. Add them together and you have your total level.",
             "That total is your flame. The brighter your flame, the more the Emberhall can trust you with, and the more good you can do. A dim Emberborn is a wasted one.",
-            "The Emberguard has its ranks, and every one is earned. You start as an Initiate. Swear the Oath of the Flame, and you become an Ember. Prove yourself in Heartvale, and you're a Flame. Out in the six lands, a Blaze. And the brightest of all are Radiant. Above them all sit we Keepers, who keep this hall and its flame, and High Keeper Aldric above us.",
+            "The Emberguard has its ranks, and every one is earned. You start as an Initiate. Swear the Oath of the Flame, and you become an Ember. Prove yourself in Heartvale, and you're a Flame. Out in the six lands, a Blaze. And the brightest of all are Radiant. Above every rank sit the six Emberwardens, who keep the great shrines out in the six lands. They carry the old Circle's names as titles, handed down the ages. We Keepers look after this hall and its flame, under High Keeper Aldric.",
             "And the greatest honour there is, the one we all live for: a Radiance Ceremony, where the very brightest give their flame back to the Heart Shrine, to light a hundred more. That's what you're for. Build your flame. Never let it dim.",
             "Once you've met everyone, High Keeper Aldric will send you to the trainers in the Training Ground, and they'll start you on your first skills. Don't waste a single lesson."],
           wynne: ["Welcome to the infirmary. Every patient gets a room of their own here, with a proper bed and a door that shuts. The Emberhall's doors never close to an Emberborn.",

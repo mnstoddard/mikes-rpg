@@ -63,7 +63,7 @@ On claude.ai you can filter this list, and move quests up and down to try a new 
 | Act 3 | Quest | Trial: Ashen Barrens | [[The Ashen Barrens]] | Warden Dunn | The Emberwarden's trial: reach the heart of the region, beat its boss and relight the great shrine. |
 | Act 3 | Quest | Trial: Blackfen | [[Blackfen]] | Warden Reed | The Emberwarden's trial: reach the heart of the region, beat its boss and relight the great shrine. |
 | Act 3 | Story beat 🔒 | Rhys comes back grey | [[Emberhold]] |  | After any 4 Trials. You find him with the Ashbound, and Sable takes you to meet [[Wick]]. |
-| Act 3 | Quest 🔒 | The Joining | [[The Emberhall]] | [[Enchanter Vale]] | After all 6 Trials and Radiant. Go down the stair, refuse Vale, and escape with Sable. |
+| Act 3 | Quest 🔒 | The Joining | [[The Emberhall]] | [[High Keeper Aldric]] | After all 6 Trials and Radiant. Go down the stair, refuse Vale, and escape with Sable. |
 | Act 4 | Quest 🔒 | Cut Free | Ashbound camp | [[Wick]] | Wick breaks your Oath, the spell that ties you to the Heart Shrine. |
 | Act 4 | Quest 🔒 | Free the Thornwood shrine | [[The Thornwood]] | [[Wick]] | Bring down Warden Crowe and free the great shrine. Any order. |
 | Act 4 | Quest 🔒 | Free the Greyspine Peaks shrine | [[Greyspine Peaks]] | [[Wick]] | Bring down Warden Flint and free the great shrine. Any order. |
@@ -72,7 +72,7 @@ On claude.ai you can filter this list, and move quests up and down to try a new 
 | Act 4 | Quest 🔒 | Free the Ashen Barrens shrine | [[The Ashen Barrens]] | [[Wick]] | Bring down Warden Dunn and free the great shrine. Any order. |
 | Act 4 | Quest 🔒 | Free the Blackfen shrine | [[Blackfen]] | [[Wick]] | Bring down Warden Reed and free the great shrine. Any order. |
 | Act 4 | Quest 🔒 | Thaw Frostfell | [[Frostfell]] | [[Wick]] | Thaw Wick's frozen shrine and free it. |
-| Act 4 | Quest 🔒 | Vale | [[The Hollow Heart]] | [[Wick]] | Unmask [[Enchanter Vale]] and fight him at the Emberheart. |
+| Act 4 | Quest 🔒 | Vale | [[The Hollow Heart]] | [[Wick]] | Unmask [[High Keeper Aldric]] and fight him at the Emberheart. |
 | Endgame | Quest 🔒 | Find the Seed | [[The Sundered Crown]] | [[Wick]] | Reach the Crown Vault under Whitestone. |
 | Endgame | Quest 🔒 | Finish the Seed | All regions | [[Wick]] | Gather a piece of each region's healed land. |
 | Endgame | Quest 🔒 | Ivy and Reed | [[Whitestone]] |  | Stop the impostor wardens from bringing Vale back. |

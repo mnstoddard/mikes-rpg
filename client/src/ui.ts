@@ -41,7 +41,7 @@ import { BAR_SLOT_MASTERY, describeSpell, isSpellBook, SPELL_BOOKS, spellMana } 
 import { isSoulGem, soulCapacity, soulFill } from "../../shared/jewelry";
 import { ENCHANTS, ENCHANT_IDS, EnchantId, INLAYS, Inlay, cappedGem, describeEnchant, enchantForGem, enchantKind, enchantsOf, fits, isSpent, soulPower } from "../../shared/enchanting";
 import {
-  BASE_INGREDIENTS, DISHES, DISH_IDS, DishId, FOOD_KINDS, FUEL_STAMINA, INGREDIENTS, IngredientId, MAX_STAMINA, RAW_FISH_STAMINA, STAMINA_COST,
+  BASE_INGREDIENTS, DISHES, DISH_IDS, DishId, FOOD_KINDS, FUEL_STAMINA, INGREDIENTS, IngredientId, MAX_STAMINA, RAW_FISH_STAMINA, STAMINA_COST, WOOD_COOK_LEVEL,
   fireStamina, fitsDish, foodStamina, ingredientStamina, isFood, isIngredient, isMeal, mealBaseStamina, mealId, mealRichness, parseMeal,
 } from "../../shared/cooking";
 import { ARROW_LEVEL, ARROW_RECOVER, BAITS, BAIT_IDS, BaitId, CLOTH_LEVEL, SOFT_LEVEL, THREAD_LEVEL, WOOD_LEVEL, arrowId, isArrow, isBait } from "../../shared/handicraft";
@@ -2019,9 +2019,11 @@ function renderStove(level: number): ItemId | null {
   const inPot = (i: IngredientId) => pick.pot.filter((x) => x === i).length;
   pick.pot = pick.pot.filter((i, n) => pick.pot.slice(0, n + 1).filter((x) => x === i).length <= haveUnlocked(i));
 
-  craftBody.append(choices("Dish", DISH_IDS, pick.dish, (d) => ({ icon: DISHES[d].icon, name: DISHES[d].name, lockedAt: level < DISHES[d].level ? DISHES[d].level : undefined }), (d) => { pick.dish = d; }));
+  // Only what you can cook (version 0.22, Mike's note): the dishes you know, and the next one to come.
+  const nextDish = DISH_IDS.filter((d) => DISHES[d].level > level).sort((a, b) => DISHES[a].level - DISHES[b].level)[0];
+  craftBody.append(choices("Dish", DISH_IDS.filter((d) => DISHES[d].level <= level || d === nextDish), pick.dish, (d) => ({ icon: DISHES[d].icon, name: DISHES[d].name, lockedAt: level < DISHES[d].level ? DISHES[d].level : undefined }), (d) => { pick.dish = d; }));
   const kinds = Object.entries(dish.kinds).map(([k, x]) => `${FOOD_KINDS[k as keyof typeof FOOD_KINDS].toLowerCase()} ×${x}`).join(", ");
-  craftBody.append(el("craft-info", `${dish.note}. Stamina: ${kinds}, fire ×${dish.fire}.`));
+  craftBody.append(el("craft-info", knows("cooking") ? `${dish.note}. Stamina: ${kinds}, fire ×${dish.fire}.` : `${dish.note}.`));
 
   // The pot: what's in it (tap to take out), and empty spaces.
   const potRow = el("pick-row");
@@ -2047,10 +2049,10 @@ function renderStove(level: number): ItemId | null {
   const bagRow = el("pick-row");
   bagRow.append(el("pick-label", "Your bag: tap to add"));
   const seen = new Set<ItemId>();
-  const mine = invItems.filter((it, i): it is ItemId => !!it && !locked[i] && !seen.has(it) && !!seen.add(it));
-  mine.sort((a, b) => Number(isIngredient(b) && fitsDish(pick.dish, b)) - Number(isIngredient(a) && fitsDish(pick.dish, a)));
+  // Only things you could put in this dish at your level: no "can't cook" clutter.
+  const mine = invItems.filter((it, i): it is ItemId => !!it && !locked[i] && !seen.has(it) && !!seen.add(it))
+    .filter((it) => isIngredient(it) && fitsDish(pick.dish, it) && INGREDIENTS[it].level <= level);
   for (const it of mine) {
-    if (/_logs$/.test(it)) continue; // logs are fuel, picked below
     const b = document.createElement("button");
     const fits = fitsDish(pick.dish, it);
     const tooHard = fits && INGREDIENTS[it].level > level;
@@ -2058,7 +2060,7 @@ function renderStove(level: number): ItemId | null {
     const full = pick.pot.length >= slots;
     const usable = fits && !tooHard && left > 0 && !full;
     b.className = "pick" + (usable ? "" : " locked");
-    const label = !isIngredient(it) ? "can't cook" : !fits ? `not in ${dish.name.toLowerCase()}` : tooHard ? `🔒${INGREDIENTS[it].level}` : `+${Math.round(ingredientStamina(pick.dish, it))} (${left})`;
+    const label = !isIngredient(it) ? "can't cook" : !fits ? `not in ${dish.name.toLowerCase()}` : tooHard ? `🔒${INGREDIENTS[it].level}` : knows("cooking") ? `+${Math.round(ingredientStamina(pick.dish, it))} (${left})` : `${ITEMS[it].single} (${left})`;
     b.append(itemIcon("pick-icon", it), el("pick-name", label));
     b.title = !isIngredient(it) ? `${ITEMS[it].name} can't be cooked.`
       : !fits ? `${dish.name} can't use ${FOOD_KINDS[INGREDIENTS[it as IngredientId].kind].toLowerCase()}.`
@@ -2069,11 +2071,15 @@ function renderStove(level: number): ItemId | null {
     if (usable) b.onclick = () => { pick.pot.push(it); renderCraft(); };
     bagRow.appendChild(b);
   }
-  if (!mine.some((it) => fitsDish(pick.dish, it))) bagRow.append(el("craft-warn", `Nothing in your bag goes in a ${dish.name.toLowerCase()}. Catch fish, get raw chicken or beef from chickens and cows, or buy vegetables at the General Store.`));
+  if (!mine.length) bagRow.append(el("craft-warn", `Nothing in your bag that you can cook goes in a ${dish.name.toLowerCase()}. Catch fish, get raw chicken or beef from chickens and cows, or buy vegetables at the General Store.`));
   craftBody.append(bagRow);
 
-  craftBody.append(choices("Log to burn (better wood, more stamina)", WOOD_IDS, pick.fuel,
-    (w) => ({ icon: "🪵", tint: ITEMS[`${w}_logs`].tint, name: `${WOODS[w].name} +${fireStamina(pick.dish, w)}` }), (w) => { pick.fuel = w; }));
+  // Only logs you have and can cook over.
+  const fuels = WOOD_IDS.filter((w) => WOOD_COOK_LEVEL[w] <= level && haveUnlocked(`${w}_logs` as ItemId) > 0);
+  if (!fuels.length) { craftBody.append(el("craft-warn", "You need a log to burn. Chop one, or buy pine logs at the General Store.")); return null; }
+  if (!fuels.includes(pick.fuel)) pick.fuel = fuels[fuels.length - 1];
+  craftBody.append(choices("Log to burn (better wood, more stamina)", fuels, pick.fuel,
+    (w) => ({ icon: "🪵", tint: ITEMS[`${w}_logs`].tint, name: knows("cooking") ? `${WOODS[w].name} +${fireStamina(pick.dish, w)}` : WOODS[w].name }), (w) => { pick.fuel = w; }));
 
   if (!pick.pot.length) {
     craftBody.append(el("craft-detail", "Put at least one ingredient in the pot."));

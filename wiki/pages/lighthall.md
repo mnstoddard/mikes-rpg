@@ -9,7 +9,7 @@ infobox.Owner: [[The Emberguard]]
 
 - **The library** (west, north side): shelves of books, [[Keeper Lisette]] and Scholar Quill. At the back, an iron grille looks through into the restricted section.
 - **The restricted section** (west, south side; since version 0.21): what used to be the stores and the ledger room, now one big locked area for the Keepers only. Its door off the great hall is barred, so the only way in is the grille at the back of the library, and Keeper Lisette always has an excuse ready (see [[The Restricted Section]]).
-- **The great hall** also gets [[Keeper Tomas]], with his ring of keys, and [[Enchanter Vale]]'s corner east of the Heart Shrine, which moved out of the old stores (version 0.21).
+- **The great hall** also gets [[Keeper Tomas]], with his ring of keys, and [[Enchanter Corwen]]'s corner east of the Heart Shrine, which moved out of the old stores (version 0.21).
 - **The infirmary** (east): [[Keeper Wynne]] and Healer Rosa, with a corridor and four bedrooms, one for each patient.
 
 Acolytes Bram and Mira sweep the floor and keep the braziers lit, and Pilgrim Ennis comes to pray at the shrine (see [[Townsfolk]]). Kevin MacLeod's "Gregorian Chant" plays softly inside.

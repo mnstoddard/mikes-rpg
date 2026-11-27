@@ -43,7 +43,7 @@ Leave notes on any book with ✏️ Suggest a change.
 >
 > King Aldemar went down to the fire himself. He knew no wall or spell could stop it in time, so he gave it the only thing that could: himself. He poured his own ember into the torrent and held it back, the way a man holds a door against a storm.
 >
-> It was a bandage, not a cure, and it cost him his life. But it held. For a whole year the embers fell more softly, and in that year the Ember Circle built something that would last.
+> It was a bandage, not a cure, and it cost him his life. But it held. For forty years the embers fell more softly, and in those years the Ember Circle worked out how to build something that would last.
 >
 > When the king's strength finally gave out, the shrines were ready. Whitestone had burned and Aldmera was gone, but the land was saved. We count our years from that night: this is the year 800 After the Fall.
 >
@@ -53,7 +53,7 @@ Leave notes on any book with ✏️ Suggest a change.
 
 > The shrines are the Circle's answer to the Fall. Each of the Circle raised a great shrine in their own land, one to every land, to pin the fire down. Archmage Vale raised the greatest of them, the Heart Shrine, right above the place the fire woke.
 >
-> A shrine does three things. It holds the fire down. It warms the land around it. And it raises the Emberborn: about thirty years after the Fall, the shrines began to gather the wild ember into heroes, and they have done it ever since. You are one of them.
+> A shrine does three things. It holds the fire down. It warms the land around it. And it raises the Emberborn: about thirty years after the shrines were raised, they began to gather the wild ember into heroes, and they have done it ever since. You are one of them.
 >
 > When an Emberborn falls, the nearest shrine gathers them up and makes them again. A dark shrine raises no one, which is why the Emberguard keep every shrine lit. Over the centuries we have built small shrines along every road, so that no Emberborn is ever far from home.
 >

@@ -3857,12 +3857,26 @@ export class WorldRoom extends Room<WorldState> {
     const step = this.step(p);
     const prog = this.prog(p);
     if (step && prog && step.goal.kind === "visit" && step.goal.npcs.includes(npc.id)) {
-      if (prog.got?.includes(npc.id)) return false;
+      // Keeper Oren's tour (version 0.22, Mike's note): once you've talked to him he walks you round the statues himself.
+      const tourLeft = () => step.tour ? (step.goal as { npcs: string[] }).npcs.filter((id) => id !== step.tour && !prog.got?.includes(id)) : [];
+      if (prog.got?.includes(npc.id)) {
+        if (npc.id === step.tour && tourLeft().length) {
+          this.dialog(client, ["Ready? Come along, then. Stay by me."], step.speaker ?? npc.name);
+          client.send("tour", { guide: npc.id, stops: tourLeft() });
+          return true;
+        }
+        return false;
+      }
+      if (step.tour && npc.id !== step.tour && !prog.got?.includes(step.tour)) {
+        this.dialog(client, [`(${step.speaker ?? "Your guide"} hurries over.) "Ah, not without me! Come and find me first, and I'll walk you round."`], step.speaker ?? npc.name);
+        return true;
+      }
       prog.got = [...(prog.got ?? []), npc.id];
       prog.count = prog.got.filter((id) => (step.goal as { npcs: string[] }).npcs.includes(id)).length;
       p.dirty = true;
       const lines = step.visitLines?.[npc.id];
       if (lines) this.dialog(client, lines, step.speaker ?? npc.name);
+      if (npc.id === step.tour && tourLeft().length) client.send("tour", { guide: npc.id, stops: tourLeft() });
       if (prog.count >= step.goal.npcs.length) this.advance(p, client);
       else { this.say(client, `📜 ${prog.count} of ${step.goal.npcs.length} ${step.goal.names}.`); this.sendQuest(client, p); }
       this.saveSoon(p);

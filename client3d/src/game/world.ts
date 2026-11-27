@@ -320,6 +320,7 @@ export class World3D {
     this.updateIntro(dt, me);
     this.updateSpotRings();
     this.updateHallEmbers();
+    this.updateTour(dt);
     for (const p of this.npcs.values()) if (near(p.root)) p.update(dt, this.time);
     const worldMs = Date.now() + this.clockOffset;
     this.folk.update(dt, this.time, worldMs, this.here.id);
@@ -411,7 +412,7 @@ export class World3D {
   // ---------------------------------------------------------------- input
 
   private setupInput() {
-    this.stick = createJoystick(() => { this.walkPaused = false; });
+    this.stick = createJoystick(() => { this.walkPaused = false; if (this.tour) this.endTour(); });
     setupFullscreen();
     const el = this.renderer.domElement;
     el.style.touchAction = "none";
@@ -468,7 +469,7 @@ export class World3D {
       if (e.key === "Shift" && !this.runShift) { this.runShift = true; this.sendRun(); }
       if (WALK_KEYS.includes(e.code) && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
-        if (!this.keys.has(e.code)) { this.keys.add(e.code); this.walkPaused = false; }
+        if (!this.keys.has(e.code)) { this.keys.add(e.code); this.walkPaused = false; if (this.tour) this.endTour(); }
         return;
       }
       if (e.key === "ArrowLeft" || e.key === "q" || e.key === "Q") { this.yaw += 0.12; this.saveCamera(); }
@@ -595,6 +596,7 @@ export class World3D {
 
   private onClick(sx: number, sy: number) {
     if (!this.room || this.intro) return;
+    if (this.tour) this.endTour(); // walking off on your own ends the tour
     const t = this.tileAt(sx, sy);
     // Townsfolk: they just say something (they aren't part of any quest).
     const folkHit = this.raycaster.intersectObjects(this.folk.roots(), true)[0];
@@ -769,7 +771,14 @@ export class World3D {
       this.showHit(h);
     });
     room.onMessage("died", () => this.showDeath());
-    room.onMessage("dialog", (msg: { name: string; lines: string[] }) => { this.marker.visible = false; openDialog(msg.name, msg.lines); });
+    room.onMessage("dialog", (msg: { name: string; lines: string[] }) => {
+      this.marker.visible = false;
+      openDialog(msg.name, msg.lines);
+      // On a tour, this is the stop we were walking to: on to the next once it's read.
+      if (this.tour?.sent) { this.tour.stops.shift(); this.tour.sent = false; this.tour.wait = 0.6; }
+    });
+    // Keeper Oren walks you round the statues (version 0.22, Mike's note): no clicking each one.
+    room.onMessage("tour", (msg: { guide: string; stops: string[] }) => { this.tour = { guide: msg.guide, stops: [...msg.stops], sent: false, wait: 0.6, follow: 0 }; });
     room.onMessage("intro", (msg: { name: string; lines: string[] }) => this.startIntro(msg.name, msg.lines));
     room.onMessage("stamina", (msg: { stamina: number; max: number; winded?: number }) => renderStamina(msg.stamina, msg.max, msg.winded ?? 0));
     room.onMessage("reward", (msg: { text: string }) => this.floatText(msg.text, "#ffd84a", true));
@@ -1213,6 +1222,37 @@ export class World3D {
     this.sky.object.visible = a.kind === "outdoor";
     this.scene.background = a.kind === "outdoor" ? null : new THREE.Color(0x000000);
     this.updateDaylight();
+  }
+
+  /** Keeper Oren's tour: where we're going next, and the guide walking beside you. */
+  private tour: { guide: string; stops: string[]; sent: boolean; wait: number; follow: number } | null = null;
+
+  private updateTour(dt: number) {
+    const t = this.tour;
+    if (!t || !this.room) return;
+    const guide = this.npcs.get(t.guide);
+    const me = this.players.get(this.room.sessionId);
+    // The guide keeps beside you (a step behind and to the side), walking at your pace.
+    if (guide && me && (t.follow -= dt) <= 0) {
+      t.follow = 0.4;
+      const px = Math.round(me.root.position.x / TILE - 0.5), py = Math.round(me.root.position.z / TILE - 0.5);
+      const spots = [[1, 1], [-1, 1], [1, 0], [-1, 0], [0, 1], [1, -1], [-1, -1]].map(([dx, dy]) => ({ x: px + dx, y: py + dy })).filter((c) => isWalkable(c.x, c.y) && !npcAt(c.x, c.y));
+      const g = { x: guide.root.position.x / TILE - 0.5, y: guide.root.position.z / TILE - 0.5 };
+      const best = spots.sort((a, b) => Math.hypot(a.x - g.x, a.y - g.y) - Math.hypot(b.x - g.x, b.y - g.y))[0];
+      if (best && Math.hypot(best.x - g.x, best.y - g.y) > 0.5) guide.walkTo(best.x, best.y, TICK_MS);
+    }
+    if (document.body.classList.contains("dialog-open")) return;
+    if ((t.wait -= dt) > 0) return;
+    if (!t.stops.length) return this.endTour();
+    if (!t.sent) { t.sent = true; this.room.send("talk", { id: t.stops[0] }); }
+  }
+
+  /** The tour's over (or you walked off): the guide goes back to their spot. */
+  private endTour() {
+    const t = this.tour;
+    this.tour = null;
+    const def = t && NPCS.find((n) => n.id === t.guide);
+    if (def) this.npcs.get(def.id)?.walkTo(def.x, def.y, TICK_MS * 1.5);
   }
 
   private drawNpcs() {

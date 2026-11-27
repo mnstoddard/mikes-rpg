@@ -45,5 +45,5 @@ If the player keeps trying (three times in a minute or so), she gets a little fl
 
 ## Why Lisette lies
 
-Lisette isn't one of the corrupt [[The Undying|Keepers]]. She has never been inside either. Every excuse is one High Keeper Aldric gave her, and over the years she's started to notice they don't add up. If the player finds her after the quest, she asks, quietly, what was in there.
+Lisette knows exactly what's in there (version 0.22, Mike's note: every Keeper is in on it). She has read the ledgers herself. Every excuse is a lie she tells on purpose, kindly, the way she has told it to every Initiate for a hundred years. If the player finds her after the quest, she doesn't ask what was in there: she asks who else they've told.
 :::

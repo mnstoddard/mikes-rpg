@@ -14,8 +14,8 @@ const LIGHTHALL: Book[] = [
   {
     title: "The Emberfall",
     pages: [
-      "Eight hundred years ago the land's fire burst up out of the earth under Heartvale. Embers rained down across Aldmera for a whole year, and the ground fell in where the valley is now. We count the years from it: this is the eight hundredth year After the Fall.",
-      "King Aldemar went down into the fire himself and poured his own ember into it, holding it back like a door against a storm. It cost him his life, but it held for a year, and in that year the Ember Circle raised the shrines. When the king's strength gave out, the shrines held. The Emberguard have kept them lit ever since.",
+      "Eight hundred years ago the land's fire burst up out of the earth under Heartvale. Embers rained down across Aldmera for forty years, and the ground fell in where the valley is now. We count the years from it: this is the eight hundredth year After the Fall.",
+      "King Aldemar went down into the fire himself and poured his own ember into it, holding it back like a door against a storm. It cost him his life, but it held the fire back for forty years, and in those years the Ember Circle worked out how to raise the shrines. When the king's strength gave out, the shrines held. The Emberguard have kept them lit ever since.",
       "Pressed between the last pages, a dry leaf and a note in an old hand: \"Fire does not burst up on its own. Ask what was dug.\"",
     ],
   },
@@ -109,7 +109,7 @@ const GUILD: Book[] = [
     title: "On Enchanting",
     pages: [
       "An enchantment is a little piece of a refined emberstone's power, woven into a thing. Weapons take fire and frost; armor takes warding.",
-      "Enchanter Vale of the Emberhall is the finest enchanter living. He is very old. Some say older than the Guild.",
+      "Enchanter Corwen of the Emberhall is the finest enchanter living. He learned his craft from High Keeper Aldric, who has kept the Emberhall longer than anyone can remember.",
     ],
   },
   {

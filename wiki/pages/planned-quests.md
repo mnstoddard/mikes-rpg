@@ -39,7 +39,7 @@ After the Oath, each trainer from the [[Emberhall Training Ground]] can be found
 | Brann's Coal | [[Smith Brann]] | Bring fuel from three kinds of wood for his 800-year-old coal. | Woodcutting, Smithing | The coal is an Emberfall shard. |
 | Odo's Old Seed | [[Farmer Odo]] | Plant one seed from Odo's jar. It glows at dusk. | Farming | Before the shrines, the whole land grew like this. |
 | Lanterns for the Dead | [[Keeper Wynne]] | Leave a lit lantern at each statue of the Extinguished. Orla's keeps going out. | Walking, night | Orla's spark isn't resting. |
-| The Night Key | [[Keeper Tomas]] | Wait in the dark hall to see who goes into the restricted section. | Sneaking (night) | You glimpse Enchanter Vale with the ledger. |
+| The Night Key | [[Keeper Tomas]] | Wait in the dark hall to see who goes into the restricted section. | Sneaking (night) | You glimpse High Keeper Aldric with the ledger. |
 | Ask the Totem | [[Woodworker Rook]] | Carve a small totem; learn to hide a note in the base. | Handicraft | How the Ashbound send messages. |
 | The Scratched Name | [[Keeper Oren]] | Clean the empty plinth. One letter is left: W. | Talking, Handicraft | The plinth was Wick's, and Oren's story of him has holes in it. |
 | Tam's Missing Cart | [[Shopkeeper Tam]] | Find Tam's lost cart on the Westroad. The crates are full of ash. | Exploring, Hunting | Tam deals with the Ashbound. |

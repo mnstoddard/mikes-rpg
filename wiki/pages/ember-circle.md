@@ -20,7 +20,7 @@ Their statues line the great hall of [[The Emberhall]]: the king, Vale, Crowe, F
 | Member | Great shrine | What everyone is taught | 🔒 The truth |
 |---|---|---|---|
 | [[King Aldemar XVIII]] | none | Gave his life to hold back the Fall | The same, but the Fall was Vale's doing |
-| [[Archmage Vale]] | Heartvale ([[The Heart Shrine]]) | The land's saviour. Died winning the Sundering War | Alive, as [[Enchanter Vale]]. Leads the Undying |
+| [[Archmage Vale]] | Heartvale ([[The Heart Shrine]]) | The land's saviour. Died winning the Sundering War | Alive, as [[High Keeper Aldric]]. Leads the Undying |
 | [[Wick]] | [[Frostfell]] | The traitor who tried to tear the shrines down | Framed. In hiding, and behind [[The Ashbound]] |
 | Crowe | [[The Thornwood]] | Long dead; Warden Crowe carries the name | Alive. One of the Undying |
 | Flint | [[Greyspine Peaks]] | Long dead; Warden Flint carries the name | Alive. One of the Undying |

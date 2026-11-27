@@ -13,7 +13,7 @@ infobox.Old_name: The Old Kingdom (before that, Aurel)
 
 Aldmera built everywhere. Its roads, towers, bridges and towns stood all across the land, and their ruins still do: the King's Road in [[The Ashen Barrens]], drowned towers off [[Saltmere Coast]], bridges swallowed by the vines of [[The Tangle]]. The country folk, [[The Tenders]], lived by the rule *"Take only what the land gives back."*
 
-It fell within a year of the Emberfall. People today remember it as a golden age.
+It fell during the forty years of the Emberfall. People today remember it as a golden age.
 
 Aldmeran coins dug up in the Barrens show a seed under a crown: the first hint of the [[Ember Seed]].
 

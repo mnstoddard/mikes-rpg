@@ -23,11 +23,11 @@ Two things change. Keeper Oren now tells the new official story: the land's fire
 >
 > The statues along these walls are the Ember Circle, the mages who raised the shrines after the Emberfall. Keeper Oren keeps them, and he's waiting to show you round. He's just down the hall on the left.
 >
-> Then meet three of my brothers and sisters. Each of them will teach you something you'll need. Come back to me when you've met them all.
+> Then meet three of my fellow Keepers. Each of them will teach you something you'll need. Come back to me when you've met them all.
 
 ### Step 2: Take Keeper Oren's tour
 
-Checklist, any order (Oren first, since he walks you round):
+Talk to Keeper Oren and he walks you round himself (version 0.22, Mike's note): your character follows him from statue to statue and he tells the story at each one. No clicking the statues. Walking off on your own pauses the tour; talk to Oren again to carry on. The checklist ticks off as you go:
 
 - ☐ Keeper Oren
 - ☐ King Aldemar's statue
@@ -38,17 +38,17 @@ Checklist, any order (Oren first, since he walks you round):
 
 > Welcome, welcome! I'm Keeper Oren. I keep the statues in this hall: the Ember Circle, the greatest mages Aldmera ever had, and the king who led them. Every Emberborn who wakes here owes them everything.
 >
-> Come, I'll walk you round. Start with the king, by the shrine on this side. Click each statue with a ❗ and I'll tell you about it.
+> Come, walk with me. We'll start with the king, by the shrine on this side. The others along the walls have plaques you can read any time.
 
 **King Aldemar's statue:**
 
 > King Aldemar the Eighteenth, the last king of Aldmera. Eight hundred years ago, one terrible night, the land's own fire woke under this very valley. Nobody knows why. Fire burst out of the earth, and embers began to fall.
 >
-> The king went down into the fire himself. He poured his own ember into it and held it back, the way you'd hold a door shut against a storm. It cost him his life. It was only ever a bandage, but it held for a whole year while the embers fell. That was the Emberfall, and that's why we count the years After the Fall.
+> The king went down into the fire himself. He poured his own ember into it and held it back, the way you'd hold a door shut against a storm. It cost him his life. It was only ever a bandage, but it held the fire back for decades, forty years of falling embers, while the Circle worked out how to build the shrines. That was the Emberfall, and that's why we count the years After the Fall.
 
 **Archmage Vale's statue:**
 
-> And this is Archmage Vale. That year the king bought them, Vale and the Circle used every day of it. Each of them raised a great shrine in their own land, and Vale raised the greatest of all: the Heart Shrine, right here. When the king's strength finally gave out, the shrines held. They still do.
+> And this is Archmage Vale. Those forty years the king bought them, Vale and the Circle used every day of them. Each of them raised a great shrine in their own land, and Vale raised the greatest of all: the Heart Shrine, right here. When the king's strength finally gave out, the shrines held. They still do.
 >
 > The shrines pinned the fire down and warmed the land again, and about thirty years later they began to raise the first Emberborn. Heroes made of ember, who come back every time they fall. Heroes like you.
 >

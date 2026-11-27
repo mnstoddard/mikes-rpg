@@ -181,7 +181,7 @@ export const NPCS: NpcDef[] = [
     greeting: "Bless you. If you're hurt or lost, the shrine always brings you home.",
   },
   {
-    id: "vale", name: "Enchanter Vale", kind: "person", ...at("lighthall.vale"), color: 0x9b7fd1, badge: "💠",
+    id: "vale", name: "Enchanter Corwen", kind: "person", ...at("lighthall.vale"), color: 0x9b7fd1, badge: "💠",
     greeting: "Hm? Oh, a new spark. How bright you are. Come back when you know a little magic.",
   },
   {
@@ -242,11 +242,11 @@ export const NPCS: NpcDef[] = [
   // official story (see the wiki's Emberfall page): Wick is the traitor, Vale the saviour.
   {
     id: "circle_vale", name: "Archmage Vale", kind: "station", ...at("lighthall.circle_vale"), color: 0xf3efe4,
-    greeting: "ARCHMAGE VALE, THE SAVIOUR. He raised the Heart Shrine in the year the king bought, and gave his life to win the Sundering War. \"The flame endures.\"",
+    greeting: "ARCHMAGE VALE, THE SAVIOUR. He raised the Heart Shrine in the forty years the king bought, and gave his life to win the Sundering War. \"The flame endures.\"",
   },
   {
     id: "circle_aldemar", name: "King Aldemar XVIII", kind: "station", ...at("lighthall.circle_aldemar"), color: 0xf3efe4,
-    greeting: "KING ALDEMAR XVIII, THE LAST KING OF ALDMERA. He went down into the fire on the night of the Fall, and gave his life to hold it back. His stone crown has a crack across it.",
+    greeting: "KING ALDEMAR XVIII, THE LAST KING OF ALDMERA. He went down into the fire on the night of the Fall, and gave his life to hold it back for forty years while the Circle learned to build the shrines. His stone crown has a crack across it.",
   },
   {
     id: "circle_crowe", name: "Crowe of the Circle", kind: "station", ...at("lighthall.circle_crowe"), color: 0xf3efe4,
