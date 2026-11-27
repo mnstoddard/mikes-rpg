@@ -1,0 +1,174 @@
+<!doctype html>
+<!-- Automatic crash reports (served at /admin/crashes, behind ADMIN_PASSWORD). Plain HTML + JS, no build step. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Emberfall crash reports</title>
+<style>
+  :root { --bg: #1b1610; --panel: #2a2218; --line: #6b5a3e; --text: #f2e6c9; --dim: #b8a888; --gold: #ffd84a; --bad: #8a3b2c; --new: #2e5a6b; --ok: #3d6b34; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, sans-serif; }
+  button, input { font: inherit; color: inherit; }
+  button { background: #5a4a2f; color: #fff; border: 1px solid var(--line); border-radius: 4px; padding: 6px 12px; cursor: pointer; }
+  button:hover { filter: brightness(1.15); }
+  a { color: var(--gold); }
+  header { position: sticky; top: 0; z-index: 5; background: var(--panel); border-bottom: 2px solid var(--line); padding: 10px 16px; }
+  .bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; max-width: 1100px; margin: 0 auto; }
+  .bar2 { margin-top: 8px; }
+  h1 { margin: 0 auto 0 0; font-size: 19px; color: var(--gold); font-weight: 600; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; background: transparent; padding: 5px 11px; }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button.on { background: var(--line); color: #fff; }
+  .seg .n { opacity: .75; font-size: 12px; margin-left: 4px; }
+  #q { background: #120e09; border: 1px solid var(--line); border-radius: 5px; padding: 5px 10px; width: 200px; }
+  main { max-width: 1100px; margin: 0 auto; padding: 14px 16px 40px; }
+  #now { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 9px 12px; margin-bottom: 14px; }
+  #now b { color: var(--gold); font-weight: 600; }
+  .chip { display: inline-block; background: var(--ok); color: #fff; border-radius: 10px; padding: 0 9px; margin: 2px 4px 2px 0; font-size: 13px; cursor: pointer; }
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid #3d3324; vertical-align: top; }
+  th { font-size: 12px; color: var(--dim); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; background: #231c13; }
+  tr:last-child td { border-bottom: 0; }
+  td.name { font-weight: 600; color: #fff; cursor: pointer; }
+  td.name:hover { color: var(--gold); }
+  .dim { color: var(--dim); font-size: 13px; }
+  .tag { font-size: 12px; padding: 1px 8px; border-radius: 10px; background: #5a4a2f; color: #fff; white-space: nowrap; }
+  .tag.new { background: var(--new); }
+  .tag.failed { background: var(--bad); }
+  .tag.on { background: var(--ok); }
+  .empty { text-align: center; color: #9a8a6a; padding: 50px 20px; }
+  @media (max-width: 700px) {
+    #q { width: 100%; }
+    thead { display: none; }
+    table, tbody, tr, td { display: block; width: 100%; }
+    tr { border-bottom: 1px solid var(--line); padding: 6px 0; }
+    td { border: 0; padding: 2px 10px; }
+    td:empty { display: none; }
+    td[data-l]::before { content: attr(data-l) ": "; color: var(--dim); font-size: 13px; }
+  }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; margin-bottom: 10px; }
+  .card > summary { list-style: none; cursor: pointer; padding: 9px 12px; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  .card > summary::-webkit-details-marker { display: none; }
+  .card[open] > summary { border-bottom: 1px solid #3d3324; }
+  .msg { font-weight: 600; color: #fff; flex: 1 1 300px; }
+  .body { padding: 10px 12px; display: grid; gap: 10px; }
+  .facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 4px 14px; font-size: 14px; }
+  .facts b { color: var(--dim); font-weight: 600; }
+  pre { margin: 0; background: #120e09; border: 1px solid #3d3324; border-radius: 5px; padding: 8px 10px; font-size: 12.5px; white-space: pre-wrap; word-break: break-word; max-height: 320px; overflow: auto; }
+  h3 { margin: 0 0 4px; font-size: 13px; color: var(--dim); text-transform: uppercase; letter-spacing: .04em; }
+  .tag.error, .tag.server-error { background: var(--bad); }
+  .tag.webgl, .tag.killed { background: #8a5a1c; }
+  .tag.disconnect { background: var(--new); }
+  .tag.server-start { background: #4a4a4a; }
+  .tag.restart { background: var(--bad); }
+  .tag.srv { background: transparent; border: 1px solid var(--line); }
+</style></head><body>
+<header>
+  <div class="bar">
+    <h1>💥 Emberfall crash reports</h1>
+    <a href="/admin/logins">🔑 Logins</a>
+    <a href="/admin/reports">🐞 Reports</a>
+    <input id="q" type="search" placeholder="Search player or message…" aria-label="Search">
+    <button id="reload">↻ Reload</button>
+  </div>
+  <div class="bar bar2">
+    <div class="seg" id="srvSeg" role="group" aria-label="Server"></div>
+    <div class="seg" id="kindSeg" role="group" aria-label="Kind"></div>
+  </div>
+</header>
+<main>
+  <div id="now">Loading…</div>
+  <div id="out"></div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+let rows = [];
+const state = { server: "", kind: "", q: "" };
+try { Object.assign(state, JSON.parse(localStorage.getItem("crashView") || "{}")); } catch {}
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const when = (iso) => new Date(iso).toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", second: "2-digit" });
+function ago(iso) {
+  const s = (Date.now() - new Date(iso)) / 1000;
+  if (s < 60) return "just now";
+  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
+  return `${Math.floor(s / 86400)} days ago`;
+}
+const KINDS = {
+  error: "Game error", webgl: "3D drawing lost", killed: "Page stopped (memory?)", disconnect: "Lost the server",
+  "server-error": "Server error", "server-start": "Server started",
+};
+function device(ua, touch) {
+  ua = ua || "";
+  // iPads say they're Macs; a Mac with a touch screen is an iPad.
+  const os = /iPad/.test(ua) || (/Macintosh/.test(ua) && touch) ? "iPad" : /iPhone/.test(ua) ? "iPhone" : /Android/.test(ua) ? "Android"
+    : /Windows/.test(ua) ? "Windows" : /Mac/.test(ua) ? "Mac" : /CrOS/.test(ua) ? "Chromebook" : /Linux/.test(ua) ? "Linux" : "";
+  const br = /Edg\//.test(ua) ? "Edge" : /CriOS|Chrome\//.test(ua) ? "Chrome" : /FxiOS|Firefox/.test(ua) ? "Firefox" : /Safari/.test(ua) ? "Safari" : "";
+  return [br, os].filter(Boolean).join(" on ");
+}
+function facts(r) {
+  const i = r.info || {}, g = i.game || {}, s = i.server || {}, p = i.player || {};
+  const f = [
+    ["Version", i.gameVersion], ["Device", device(i.userAgent, i.touch)], ["Screen", i.screen],
+    ["Memory used", i.heapMB != null ? `${i.heapMB} MB of ${i.heapLimitMB ?? "?"} MB` : null], ["Device memory", i.deviceMemoryGB ? `${i.deviceMemoryGB} GB` : null],
+    ["Playing for", i.upMinutes != null ? `${i.upMinutes} min` : null],
+    ["Where", g.area ? `${g.area}${g.x != null ? ` (${g.x}, ${g.y})` : ""}` : p.area ? `${p.area} (${p.x}, ${p.y})` : null],
+    ["Drawing", g.triangles != null ? `${Math.round(g.triangles / 1000)}k triangles, ${g.drawCalls} draw calls` : null],
+    ["Shapes / pictures", g.geometries != null ? `${g.geometries} / ${g.textures}` : null],
+    ["Server", s.build ? `${r.server} · build ${s.build} · ${s.rssMB} MB · up ${s.upMinutes} min` : r.server],
+  ];
+  return f.filter(([, v]) => v != null && v !== "").map(([k, v]) => `<div><b>${k}:</b> ${esc(v)}</div>`).join("");
+}
+function card(r) {
+  const restart = r.kind === "server-start" && r.info?.restartWithoutDeploy;
+  const list = (title, xs) => xs && xs.length ? `<div><h3>${title}</h3><pre>${esc(xs.join("\n"))}</pre></div>` : "";
+  const before = r.info?.before;
+  return `<details class="card"><summary>
+      <span class="tag ${restart ? "restart" : esc(r.kind)}">${esc(restart ? "Server restarted (crash?)" : KINDS[r.kind] || r.kind)}</span>
+      <span class="tag srv">${esc(r.server)}</span>
+      <span class="msg">${esc(r.message)}</span>
+      <span>${r.username ? esc(r.username) : '<span class="dim">no player</span>'}</span>
+      <span class="dim">${when(r.at)} · ${ago(r.at)}</span>
+    </summary><div class="body">
+      <div class="facts">${facts(r)}</div>
+      ${r.stack ? `<div><h3>Where in the code</h3><pre>${esc(r.stack)}</pre></div>` : ""}
+      ${list("What happened just before", r.info?.trail)}
+      ${list("Messages the player saw", r.info?.messages)}
+      ${before ? `<div><h3>Last note before it stopped</h3><div class="facts">${facts({ info: before, server: r.server })}</div></div>${list("Its trail", before.trail)}` : ""}
+      <details><summary class="dim">Everything (JSON)</summary><pre>${esc(JSON.stringify(r, null, 2))}</pre></details>
+    </div></details>`;
+}
+function seg(el, key, values, label) {
+  el.innerHTML = ["", ...values].map((v) => {
+    const n = rows.filter((r) => (!v || r[key] === v) && (key === "server" || !state.server || r.server === state.server)).length;
+    return `<button data-v="${esc(v)}" class="${state[key] === v ? "on" : ""}">${esc(v ? label(v) : "All")}<span class="n">${n}</span></button>`;
+  }).join("");
+}
+function render() {
+  try { localStorage.setItem("crashView", JSON.stringify({ server: state.server, kind: state.kind })); } catch {}
+  seg($("srvSeg"), "server", [...new Set(rows.map((r) => r.server))].sort(), (v) => v);
+  seg($("kindSeg"), "kind", Object.keys(KINDS).filter((k) => rows.some((r) => r.kind === k)), (v) => KINDS[v]);
+  const q = state.q.trim().toLowerCase();
+  const list = rows.filter((r) => (!state.server || r.server === state.server) && (!state.kind || r.kind === state.kind)
+    && (!q || `${r.username} ${r.message}`.toLowerCase().includes(q)));
+  const day = rows.filter((r) => r.kind !== "server-start" && Date.now() - new Date(r.at) < 86400000);
+  const restarts = rows.filter((r) => r.info?.restartWithoutDeploy && Date.now() - new Date(r.at) < 86400000);
+  $("now").innerHTML = `<b>Last 24 hours:</b> ${day.length} crash report${day.length === 1 ? "" : "s"}` +
+    (restarts.length ? ` · <b>${restarts.length} server restart${restarts.length === 1 ? "" : "s"} without a deploy</b>` : "") +
+    ` <span class="dim">· click a report for the details</span>`;
+  $("out").innerHTML = list.length ? list.map(card).join("") : `<div class="empty">No crash reports to show. 🎉</div>`;
+}
+async function load() {
+  try {
+    const res = await fetch("/admin/api/crashes?limit=1000", { cache: "no-store" });
+    if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+    rows = await res.json();
+    render();
+  } catch (err) { $("now").textContent = "Couldn't load the crash reports: " + err.message; }
+}
+$("srvSeg").onclick = (e) => { const b = e.target.closest("button"); if (b) { state.server = b.dataset.v; render(); } };
+$("kindSeg").onclick = (e) => { const b = e.target.closest("button"); if (b) { state.kind = b.dataset.v; render(); } };
+$("q").oninput = () => { state.q = $("q").value; render(); };
+$("reload").onclick = load;
+load();
+</script>
+</body></html>

@@ -8,6 +8,10 @@ import { WorldRoom } from "./WorldRoom";
 import { store, storageName } from "./storage";
 import { reportsRouter } from "./reports";
 import { loginsRouter } from "./logins";
+import { crashesRouter, installCrashCapture, noteServerStart } from "./crashes";
+
+// 💥 Errors nobody caught are written down (see /admin/crashes) instead of stopping the server.
+installCrashCapture();
 
 const PORT = Number(process.env.PORT ?? 2567);
 
@@ -17,6 +21,8 @@ app.set("trust proxy", 1); // Render sits in front: use the player's real addres
 app.use(reportsRouter);
 // The login log (who logged in, and when), for the admin only.
 app.use(loginsRouter);
+// Automatic crash reports (from players' games and from the server), for the admin only.
+app.use(crashesRouter);
 // When the client has been built (npm run build), serve it from the same port.
 // Which game to show: the 3D game (client3d) is the main game. The older 2D
 // game is still built and can be shown instead by setting CLIENT=2d.
@@ -46,6 +52,7 @@ async function start() {
     }
   }
   console.log(`Saving accounts to ${storageName}`);
+  await noteServerStart();
   if (process.env.RENDER && !process.env.DATABASE_URL) {
     console.warn("WARNING: DATABASE_URL isn't set, so accounts and saves will be lost on every redeploy or restart.");
   }

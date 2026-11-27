@@ -51,6 +51,18 @@ number of logins and total time played. Anyone playing right now is listed at th
 Lines older than a year are cleared out when the server starts. The JSON version is at
 `/admin/api/logins`. See `server/src/logins.ts`.
 
+## 💥 Crash reports (admin only)
+
+When the game breaks, it sends a crash report by itself (`client/src/crash.ts`): an
+uncaught error, the 3D drawing being lost (WebGL context lost), losing the server for
+good, or the page stopping without closing (noticed the next time it opens; on an iPad
+that's usually Safari running out of memory). Each has the error and stack, the version,
+device, memory, what was being drawn, where the player was and the last things that
+happened. The server records its own uncaught errors (and keeps running) and every start,
+flagging a restart without a new deploy. Open `/admin/crashes` (same `ADMIN_PASSWORD`).
+Each report says which server sent it (`live`, `dev` or `local`, from Render's branch,
+or set `SERVER_NAME`). JSON at `/admin/api/crashes`. See `server/src/crashes.ts`.
+
 ## The tutorial: Old Maren
 
 Every new character starts with empty hands next to **Old Maren**, a retired

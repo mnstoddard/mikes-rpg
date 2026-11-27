@@ -13,6 +13,17 @@ export interface GameUpdate { version: string; date: string; title: string; chan
 
 export const UPDATES: GameUpdate[] = [
   {
+    version: "0.17",
+    date: "2026-11-27",
+    title: "Automatic crash reports",
+    changes: [
+      { text: "Automatic crash reports. When the game breaks, it now tells the server by itself, with no button to press: a JavaScript error, the 3D drawing being lost (often the device running out of memory), losing the server and not getting back in, or the page stopping without closing (on an iPad that's usually Safari reloading the page because it ran out of memory; it's noticed the next time the game opens)." },
+      { text: "Each report has the error and where in the code it happened, the game version, the device, how much memory the game was using, how much it was drawing, where the player was, and the last things that happened before it broke." },
+      { text: "The server writes down its own errors too, and keeps running instead of stopping. Every time it starts it notes it, and flags a restart that wasn't a new deploy (that usually means it crashed or ran out of memory)." },
+      { text: "Only the admin can see them, at /admin/crashes on the game's address (the same password as the bug report page and the login log). Each report says which server it came from (live or dev), since they can share a database." },
+    ],
+  },
+  {
     version: "0.16",
     date: "2026-11-26",
     title: "A login log for the admin",
