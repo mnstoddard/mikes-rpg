@@ -28,7 +28,7 @@ import { TOWNSFOLK } from "../shared/townsfolk";
 import { AREAS, MAP_LABELS, WORLD_SPAWNS, FENCE_Y, DOORS } from "../shared/world";
 import { areaAt, MAP, MAP_NODES, isDanger } from "../shared/map";
 import { SHOPS, SHOP_IDS } from "../shared/shops";
-import { CHAPTERS, Chapter } from "../shared/quests";
+import { CHAPTERS, Chapter, QuestStep } from "../shared/quests";
 import { TREES } from "../shared/skilltree";
 import { RENOWN_RANKS } from "../shared/renown";
 import { RANKS as GUILD_RANKS, CHEST_RENT, CHEST_START, CHEST_STEP, EXPAND_GOLD } from "../shared/guild";
@@ -117,7 +117,7 @@ interface Page {
 }
 
 /** Page address: plain letters, digits and dashes (the only kind of #link an artifact keeps). Some words are taken by claude.ai. */
-const RESERVED = new Set(["settings", "sidebar", "customize", "upgrade", "downloads", "random", "search"]);
+const RESERVED = new Set(["settings", "sidebar", "customize", "upgrade", "downloads", "random", "search", "notes"]);
 const slugify = (t: string) => {
   const s = t.toLowerCase().replace(/['’]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   return RESERVED.has(s) || s.startsWith("comment-") || s.startsWith("cat-") ? `${s}-page` : s;
@@ -542,6 +542,43 @@ function placePages() {
   }
 }
 
+/** Planned changes for built quests, from the Act 1 table on the Main story page. */
+const PLANNED = new Map<string, string>();
+{
+  const ms = readFileSync(path.join(HERE, "pages", "main-story.md"), "utf8");
+  for (const row of ms.split("\n").filter((l) => l.startsWith("| ") && !l.startsWith("| Quest"))) {
+    const c = row.replace(/^\||\|$/g, "").split("|").map((x) => x.trim());
+    if (c.length >= 5 && c[4]) PLANNED.set(c[0], c[4]);
+  }
+}
+
+/** One quest step as a walkthrough section: what to do, where, what to bring, what's said, what you get. */
+function walkStep(c: Chapter, s: QuestStep, i: number): string {
+  const out: string[] = [`### Step ${i + 1}: ${canon(s.task)}`];
+  const facts: string[] = [];
+  if (s.who && s.who !== c.giver) facts.push(`**Talk to:** ${npcName(s.who)}.`);
+  if (s.hint) facts.push(`**How:** ${canon(s.hint)}`);
+  if (s.take && Object.keys(s.take).length) facts.push(`**Bring:** ${Object.entries(s.take).map(([id, n]) => `${n && n > 1 ? n + " × " : ""}${itemLink(id)}`).join(", ")}.`);
+  if (s.needsTool) facts.push(`**You need:** a ${s.needsTool}.`);
+  if (s.fightWith) facts.push(`**Fight with:** ${s.fightWith === "weapon" ? "any weapon" : s.fightWith}.`);
+  if (s.need) facts.push(`**Needs:** ${canon(s.need.line)}`);
+  out.push(facts.map((f) => "- " + f).join("\n"));
+  const speaker = s.speaker ?? (s.who ? npcName(s.who) : npcName(c.giver));
+  if (s.lines?.length) out.push(`**${canon(speaker)}:**\n\n` + s.lines.map((l) => "> " + canon(l)).join("\n>\n"));
+  if (s.spotLines) out.push("**What you find:**\n\n" + Object.values(s.spotLines).map((l) => "- " + canon(l)).join("\n"));
+  if (s.visitLines) out.push("**What they say when you visit:**\n\n" + Object.entries(s.visitLines).map(([who, ls]) => `- ${npcName(who)}: ${(ls ?? []).map(canon).join(" ")}`).join("\n"));
+  if (s.doneLines?.length) out.push(`**${canon(s.doneSpeaker ?? speaker)}, when it's done:**\n\n` + s.doneLines.map((l) => "> " + canon(l)).join("\n>\n"));
+  const get: string[] = [];
+  for (const g of s.give ?? []) get.push(`${g.count && g.count > 1 ? g.count + " × " : ""}${itemLink(g.item)}`);
+  if (s.coins) get.push(coins(s.coins));
+  for (const [sk, n] of Object.entries(s.xp ?? {})) get.push(`${n} ${skillName(sk as SkillId)} XP`);
+  for (const sk of s.unlocks ?? []) get.push(`the ${skillLink(sk)} skill`);
+  if (s.bless) get.push("a blessing");
+  if (s.opensGate) get.push("the gate opens");
+  if (get.length) out.push(`**You get:** ${get.join(", ")}.`);
+  return out.filter((x) => x.trim()).join("\n\n");
+}
+
 function questPages() {
   const kind = (c: Chapter) => (c.act === "prologue" ? "Prologue" : c.act === "act1" ? "Act 1" : c.side ? "Side quest" : "Lessons");
   for (const c of CHAPTERS) {
@@ -553,10 +590,11 @@ function questPages() {
       infobox: [["Part of", kind(c)], ["Given by", giver], ["Where", canon(c.where)], ["Steps", String(c.steps.length)], ...(c.requires ? [["Needs", `${skillName(c.requires.skill)} ${c.requires.level}`] as [string, string]] : [])] }, () => [
       `**${canon(c.title)}** is ${kind(c) === "Lessons" ? "a lesson" : kind(c) === "Side quest" ? "a side quest" : `part of the ${kind(c)}`} from ${link(giver)}, found ${canon(c.where)}.`,
       c.after?.length ? `It opens after: ${c.after.map((id) => link(canon(CHAPTERS.find((x) => x.id === id)?.title ?? id))).join(", ")}${c.lessons ? `, and ${c.lessons} trainers' lessons` : ""}.` : "",
-      "## Steps", c.steps.map((s, i) => `${i + 1}. ${canon(s.task)}${s.give?.length ? ` *(you get: ${s.give.map((g) => `${g.count && g.count > 1 ? g.count + " × " : ""}${itemLink(g.item)}`).join(", ")})*` : ""}`).join("\n"),
+      PLANNED.get(canon(c.title)) ? `:::note Planned change\n${PLANNED.get(canon(c.title))}\n:::` : "",
+      "## Walkthrough", c.steps.map((s, i) => walkStep(c, s, i)).join("\n\n"),
       unlocks.length ? `**Teaches:** ${unlocks.map(skillLink).join(", ")}.` : "",
-      gifts.length || coinsTotal ? `**Rewards:** ${[...gifts.map((g) => itemLink(g.item)), ...(coinsTotal ? [coins(coinsTotal)] : [])].join(", ")}.` : "",
-      "## What people say\n\n" + c.steps.map((s, i) => (s.lines?.length ? `**Step ${i + 1}.** ` + s.lines.map((l) => canon(l)).join(" ") : "")).filter(Boolean).join("\n\n"),
+      gifts.length || coinsTotal ? `**All rewards:** ${[...gifts.map((g) => `${g.count && g.count > 1 ? g.count + " × " : ""}${itemLink(g.item)}`), ...(coinsTotal ? [coins(coinsTotal)] : [])].join(", ")}.` : "",
+      `**Click through:** ${[CHAPTERS[CHAPTERS.indexOf(c) - 1] ? `← ${link(canon(CHAPTERS[CHAPTERS.indexOf(c) - 1].title))}` : "", link("Quests", "all quests"), CHAPTERS[CHAPTERS.indexOf(c) + 1] ? `${link(canon(CHAPTERS[CHAPTERS.indexOf(c) + 1].title))} →` : ""].filter(Boolean).join(" · ")}`,
     ].filter(Boolean).join("\n\n"));
   }
   gamePage({ title: "Quests", category: "Quests", icon: "📜", sources: ["shared/quests.ts", "shared/story.ts"], summary: "Every quest built so far." }, () => [
