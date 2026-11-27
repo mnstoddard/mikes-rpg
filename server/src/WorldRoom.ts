@@ -95,7 +95,7 @@ import { REROLL_FEE, boardDay } from "../../shared/bounties";
 import { MagicJob, isJob } from "../../shared/guild";
 import { canBuyHere } from "../../shared/shops";
 import { CHAPTERS, gateMet, litLanterns, oathSworn, opensAfter, rankOf, talkWith } from "../../shared/quests";
-import { BLESS_MINUTES, BLESS_POWER, RANKS as LIGHT_RANKS, STORY_ITEMS, SPOT_NAMES, TITHE_MAX, TITHE_SHARE, isStoryItem, titheCost } from "../../shared/story";
+import { BLESS_MINUTES, BLESS_POWER, FOUR_BOOKS, LISETTE_EXCUSES, RANKS as LIGHT_RANKS, STORY_ITEMS, SPOT_NAMES, TITHE_MAX, TITHE_SHARE, isStoryItem, titheCost } from "../../shared/story";
 import { AREAS, DOORS, PLACES } from "../../shared/map";
 import { stepSpots } from "./questTargets";
 import { cleanLook } from "../../shared/look";
@@ -254,6 +254,11 @@ export class Player extends Schema {
   invite: { from: string; until: number } | null = null; // a party invite waiting for an answer (from = their session id)
   loginNotes: string[] = []; // things to tell the player when they arrive (e.g. what happened to an old, bigger bag)
   dirty = false; // something changed since the last save
+  /** Standing at the restricted section's grille, when Sister Lisette last stopped you, and how often (version 0.21). */
+  atGrille = false;
+  grilleAt = 0;
+  grilleTries = 0;
+  grilleStreak = 0;
   lastSavedAt = 0;
 }
 
@@ -1459,6 +1464,7 @@ export class WorldRoom extends Room<WorldState> {
       return false;
     }
     this.checkReach(p);
+    this.checkGrille(p);
     return true;
   }
 
@@ -2039,6 +2045,7 @@ export class WorldRoom extends Room<WorldState> {
     if (npc.id === "bryn") this.renownTalk(client, p); // a new rank, if you've earned one
     if (this.robeHelp(client, p, npc)) return;
     if (this.storyClick(client, p, npc)) return;
+    if (npc.id.startsWith("book_")) return this.bookClick(client, p, npc);
     if (this.talkQuest(client, p, npc)) return;
     if (STORY_STATIONS.has(npc.id)) return this.say(client, `${npc.name}: ${this.stationLook(p, npc)}`);
     if (npc.id === "maren") return;
@@ -2338,9 +2345,9 @@ export class WorldRoom extends Room<WorldState> {
       if (client) this.say(client, this.notReady());
       return;
     }
-    // Emberhold's gates (version 0.20): Hopefuls stay inside the walls until they've sworn the Oath of the Flame.
+    // Emberhold's gates (version 0.20): Initiates stay inside the walls until they've sworn the Oath of the Flame.
     if (door.gate && !chapterDone(p.quest, "oath")) {
-      if (client) this.dialog(client, ["Halt there, Hopeful! Nobody goes out into the valley until they've sworn the Oath of the Flame at the Emberhall. Finish your training first: open 📜 Quests to see what's next."], "Gate guard");
+      if (client) this.dialog(client, ["Halt there, Initiate! Nobody goes out into the valley until they've sworn the Oath of the Flame at the Emberhall. Finish your training first: open 📜 Quests to see what's next."], "Gate guard");
       return;
     }
     if (this.heldInTown(p, door.to)) {
@@ -3510,6 +3517,8 @@ export class WorldRoom extends Room<WorldState> {
         this.say(client, `🎉 Quest complete: ${chapter.title}!`);
         client.send("questDone", { quest: chapter.title });
       }
+      // The Four Books done: Lisette is ticked off The Hall of Embers' checklist, and that quest picks up again (version 0.21).
+      if (chapter.id === "four_books" && this.tickLisette(p, client)) return;
     }
     this.saveSoon(p);
     this.refreshStats(p, client); // a lesson may have taught you a skill
@@ -3517,11 +3526,27 @@ export class WorldRoom extends Room<WorldState> {
     if (step) this.say(client, `📜 Next: ${step.task}.`);
     else {
       // A story chapter that's just opened: say who to see next.
-      const next = CHAPTERS.find((c) => (c.act || c.id === "maren") && !p.quest.ch[c.id] && chapterOpen(p.quest, c.id) && gateMet(c, this.levelOf(p)));
+      const next = CHAPTERS.find((c) => (c.act || c.id === "maren") && !c.side && !p.quest.ch[c.id] && chapterOpen(p.quest, c.id) && gateMet(c, this.levelOf(p)));
       if (next) this.say(client, `📜 Next: ${next.title}. Talk to ${next.name}, ${next.where}.`);
       else if (!tutorialDone(p.quest)) this.say(client, "📜 Next: talk to anyone with a ❗ for your next lesson (the 📜 Quests tab lists them all).");
     }
     this.sendQuest(client, p);
+  }
+
+  /** Tick Sister Lisette off The Hall of Embers (her side quest is done). True if that quest is now active (advance() has done the rest). */
+  private tickLisette(p: Player, client: Client | undefined): boolean {
+    const hall = p.quest.ch.hall;
+    const step = hall && chapterById("hall").steps[hall.step];
+    if (!hall || step?.goal.kind !== "visit" || !step.goal.npcs.includes("lisette")) return false;
+    if (!hall.got?.includes("lisette")) hall.got = [...(hall.got ?? []), "lisette"];
+    hall.count = hall.got.filter((id) => (step.goal as { npcs: string[] }).npcs.includes(id)).length;
+    p.quest.active = "hall";
+    p.dirty = true;
+    if (client) this.say(client, `📜 The Hall of Embers: ✓ Sister Lisette (${hall.count} of ${step.goal.npcs.length} Emberguard).`);
+    if (hall.count >= step.goal.npcs.length) this.advance(p, client);
+    else if (client) this.sendQuest(client, p);
+    this.saveSoon(p);
+    return true;
   }
 
   /** The tutorial makes some crafting turn out a set way: every stew burns until Maren explains it, and some tries always work. */
@@ -3614,7 +3639,8 @@ export class WorldRoom extends Room<WorldState> {
       if (!q.ch[chapter.id]) q.ch[chapter.id] = { step: 0, count: 0 };
       q.active = chapter.id;
       p.dirty = true;
-      if (was) this.say(client, `📜 You switch to ${chapter.name}'s lesson. ${was.name}'s will wait for you: talk to them to pick it up again.`);
+      if (was && chapter.side && chapter.act) this.say(client, `📜 New side quest: ${chapter.title}. ${was.title} waits for you; your 📜 Quests tab has both.`);
+      else if (was) this.say(client, `📜 You switch to ${chapter.name}'s lesson. ${was.name}'s will wait for you: talk to them to pick it up again.`);
       this.sendQuest(client, p);
     }
     const step = this.step(p);
@@ -3776,6 +3802,18 @@ export class WorldRoom extends Room<WorldState> {
    */
   private storyClick(client: Client, p: Player, npc: NpcDef): boolean {
     const q = p.quest;
+    // Sister Lisette's tick in The Hall of Embers waits for her side quest (version 0.21): talking to her starts it (talkQuest).
+    if (npc.id === "lisette" && !chapterDone(q, "four_books")) return false;
+    // A visit step in another chapter you've started (a book for Lisette while The Hall of Embers is active): switch to it.
+    const cur = this.step(p);
+    if (!(cur?.goal.kind === "visit" && cur.goal.npcs.includes(npc.id))) {
+      const other = (Object.keys(q.ch) as ChapterId[]).find((id) => {
+        if (id === q.active || chapterDone(q, id)) return false;
+        const st = chapterById(id).steps[q.ch[id]!.step];
+        return st?.goal.kind === "visit" && st.goal.npcs.includes(npc.id) && !q.ch[id]!.got?.includes(npc.id);
+      });
+      if (other) { q.active = other; p.dirty = true; }
+    }
     const step = this.step(p);
     const prog = this.prog(p);
     if (step && prog && step.goal.kind === "visit" && step.goal.npcs.includes(npc.id)) {
@@ -3804,6 +3842,35 @@ export class WorldRoom extends Room<WorldState> {
       return this.doTalk(client, p, c, st, npc);
     }
     return false;
+  }
+
+  /** A Four Books lectern that isn't the one you're on (version 0.21): not yet, a later one, or one you've read (read it again). */
+  private bookClick(client: Client, p: Player, npc: NpcDef) {
+    const n = Number(npc.id.slice(5)) - 1;
+    const book = FOUR_BOOKS[n];
+    const prog = p.quest.ch.four_books;
+    if (!prog) return this.dialog(client, [`${npc.greeting} Sister Lisette looks after the history books. Ask her about them first.`], npc.name);
+    // Step 0 is Lisette's talk; book n is step n + 1.
+    if (chapterDone(p.quest, "four_books") || prog.step > n + 1) return this.dialog(client, book.pages, `📖 ${book.title}`);
+    this.dialog(client, ["(The book won't come off the shelf. Sister Lisette calls over: \"The glowing one first, dear. History only makes sense in order.\")"], npc.name);
+  }
+
+  /** Walked up to the restricted section's grille (version 0.21): Sister Lisette hurries over with a reason it's closed today. */
+  private checkGrille(p: Player) {
+    const g = PLACES["lighthall.grille"];
+    if (!g || p.y !== g.y || Math.abs(p.x - g.x) > 2) { p.atGrille = false; return; }
+    if (p.atGrille) return;
+    p.atGrille = true;
+    const now = Date.now();
+    if (now - p.grilleAt < 4000) return;
+    // Keep trying within a minute or so and she gets flustered.
+    p.grilleStreak = now - p.grilleAt < 90_000 ? p.grilleStreak + 1 : 1;
+    p.grilleAt = now;
+    const client = this.clientOf(p);
+    if (!client) return;
+    const flustered = p.grilleStreak >= 3;
+    const line = flustered ? "Please. I'd be in terrible trouble." : LISETTE_EXCUSES[p.grilleTries++ % LISETTE_EXCUSES.length];
+    this.dialog(client, [line], "Sister Lisette");
   }
 
   /** What a story station looks like to you (lit or not). */
@@ -3974,12 +4041,33 @@ export class WorldRoom extends Room<WorldState> {
     const need = this.questNeeds(p, g, progNow);
     const warning = step.needsTool && !p.belt[step.needsTool] ? `Put your ${TOOL_TYPES[step.needsTool].name.toLowerCase()} back on your belt first!`
       : this.fightBlock(p) ? (step.fightWith === "magic" ? "Hold your staff first!" : step.fightWith === "ranged" ? "Hold your sling first!" : "Hold a weapon first!") : undefined;
-    return { ...base, done: false, quest: chapter.title, giver: chapter.name, task: step.task, progress, fraction, talk: g.kind === "talk", warning, need };
+    const checklist = this.checklist(p, step, progNow);
+    const robeLock = this.robeStep(p) && g.kind === "gear" ? g.items.filter((pre) => !GEAR_SLOTS.some((sl) => p.gear[sl]?.item.startsWith(pre))) : undefined;
+    return { ...base, done: false, quest: chapter.title, giver: chapter.name, task: step.task, progress, fraction, talk: g.kind === "talk", warning, need, checklist, robeLock };
+  }
+
+  /** Steps you can do in any order (version 0.21, Mike's note): each person, place or piece, ticked off as you go. One-thing steps get none. */
+  private checklist(p: Player, step: QuestStep, prog: { got?: string[] }): QuestView["checklist"] {
+    const g = step.goal;
+    const got = prog.got ?? [];
+    let list: { label: string; done: boolean }[] = [];
+    if (g.kind === "visit") {
+      list = g.npcs.map((id) => ({ label: step.checkLabels?.[id] ?? NPCS.find((n) => n.id === id)?.name ?? id, done: got.includes(id) }));
+      // Six lanterns all called "Lantern": number them.
+      if (new Set(list.map((c) => c.label)).size < list.length) list.forEach((c, i) => { c.label = `${c.label} ${i + 1}`; });
+    }
+    else if (g.kind === "reach") list = g.spots.map((k) => ({ label: SPOT_NAMES[k] ? SPOT_NAMES[k][0].toUpperCase() + SPOT_NAMES[k].slice(1) : k, done: got.includes(k) }));
+    else if (g.kind === "gear") list = g.items.map((pre) => {
+      const id = (Object.keys(ITEMS) as ItemId[]).find((it) => it.startsWith(pre));
+      return { label: id ? ITEMS[id].single[0].toUpperCase() + ITEMS[id].single.slice(1) : pre, done: GEAR_SLOTS.some((sl) => p.gear[sl]?.item.startsWith(pre)) };
+    });
+    else if (g.kind === "have") list = (Object.entries(g.items) as [ItemId, number][]).map(([id, n]) => ({ label: n === 1 ? ITEMS[id].single : `${n} ${ITEMS[id].name.toLowerCase()}`, done: this.countOf(p, id) >= n }));
+    return list.length > 1 ? list : undefined;
   }
 
   /** Between chapters: the story chapter (or Maren's lessons) you can start next, by name, else "pick your next lesson" (Mike's note #11). */
   private nextChapterView(p: Player, base: Omit<QuestView, "done" | "quest" | "giver" | "task" | "talk">): QuestView {
-    const next = CHAPTERS.find((c) => (c.act || c.id === "maren") && !p.quest.ch[c.id] && chapterOpen(p.quest, c.id) && gateMet(c, this.levelOf(p)));
+    const next = CHAPTERS.find((c) => (c.act || c.id === "maren") && !c.side && !p.quest.ch[c.id] && chapterOpen(p.quest, c.id) && gateMet(c, this.levelOf(p)));
     if (next) return { ...base, done: false, quest: next.title, giver: next.name, task: `Talk to ${next.name}, ${next.where}`, talk: true };
     return { ...base, done: false, quest: "Pick your next lesson", giver: "", task: "Talk to anyone with a ❗ (the 📜 Quests tab says where they are)", talk: true };
   }

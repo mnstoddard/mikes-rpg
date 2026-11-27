@@ -13,13 +13,14 @@
 // both use this.
 import type { Chapter } from "./quests";
 import type { ItemDef } from "./items";
+import type { NpcId } from "./npcs";
 
 // ---- Emberguard ranks ----
 
-/** Hopeful (everyone), Ember (after the Oath), Flame (end of Act 1). */
-export const RANKS = ["Hopeful", "Ember", "Flame"] as const;
+/** Initiate (everyone), Ember (after the Oath), Flame (end of Act 1). */
+export const RANKS = ["Initiate", "Ember", "Flame"] as const;
 export type Rank = 0 | 1 | 2;
-/** The cloak colour each rank wears (Hopefuls wear none). */
+/** The cloak colour each rank wears (Initiates wear none). */
 export const RANK_CLOAK = [0, 0xe8792b, 0xffc93c] as const;
 
 // ---- Ember Debt (Tithe marks) ----
@@ -84,6 +85,60 @@ const ALDRIC = "Keeper Aldric";
 const CELENE = "Sister Celene";
 const LIGHTHALL = "in the Emberhall, the great white temple on Ember Hill, in the middle of Emberhold";
 
+/** Sister Lisette's Four Books (version 0.21): the history every Initiate is taught, read in order. The official story. */
+export const FOUR_BOOKS: { title: string; pages: string[] }[] = [
+  {
+    title: "Aldmera, the Old Kingdom",
+    pages: [
+      "Before the Fall, the whole land was one kingdom: Aldmera, the land of the Aldmere. It was ruled by the Aldemar kings from Whitestone, a city of white stone in the far west, where the kings wore a crown of living fire.",
+      "The Aldmere built roads that ran from sea to mountains, bridges that still stand, and towers on every hill. You can still walk on their stones. Every King's Road you will ever travel was laid by them.",
+      "Out in the country lived the Tenders, the farmers and foresters who kept the land. They had one rule, and you will still see it painted over old doorways: \"Take only what the land gives back.\"",
+      "The pride of the kingdom was the Ember Circle: the greatest mages in Aldmera, nine of them, led by the king himself. King Aldemar the Eighteenth was the last of his line. His two highest mages were Vale and Wick.",
+      "It was a golden age. It lasted until the night the fire woke.",
+    ],
+  },
+  {
+    title: "The Emberfall",
+    pages: [
+      "Eight hundred years ago, on a still night, the land's own fire woke beneath the valley we now call Heartvale. No one knows why. The Emberheart, the fire under the world, simply broke its bounds, as wild fire will.",
+      "A pillar of flame burst out of the earth. The ground fell in around it, and that is why Heartvale is round. Embers began to fall across the whole kingdom, and where they fell, things burned.",
+      "King Aldemar went down to the fire himself. He knew no wall or spell could stop it in time, so he gave it the only thing that could: himself. He poured his own ember into the torrent and held it back, the way a man holds a door against a storm.",
+      "It was a bandage, not a cure, and it cost him his life. But it held. For a whole year the embers fell more softly, and in that year the Ember Circle built something that would last.",
+      "When the king's strength finally gave out, the shrines were ready. Whitestone had burned and Aldmera was gone, but the land was saved. We count our years from that night: this is the year 800 After the Fall.",
+      "His statue stands beside the Heart Shrine. Every Emberborn who wakes there wakes at the feet of the king who made it possible.",
+    ],
+  },
+  {
+    title: "On the Shrines",
+    pages: [
+      "The shrines are the Circle's answer to the Fall. Each of the Circle raised a great shrine in their own land, one to every land, to pin the fire down. Archmage Vale raised the greatest of them, the Heart Shrine, right above the place the fire woke.",
+      "A shrine does three things. It holds the fire down. It warms the land around it. And it raises the Emberborn: about thirty years after the Fall, the shrines began to gather the wild ember into heroes, and they have done it ever since. You are one of them.",
+      "When an Emberborn falls, the nearest shrine gathers them up and makes them again. A dark shrine raises no one, which is why the Emberguard keep every shrine lit. Over the centuries we have built small shrines along every road, so that no Emberborn is ever far from home.",
+      "The great shrines are kept by the Emberwardens, who carry the Circle's names. Cities have grown up around each one. Where the shrines burn bright, the land is warm.",
+      "When you are ready, you will swear the Oath of the Flame at the Heart Shrine, so that it knows you and can always bring you home.",
+    ],
+  },
+  {
+    title: "The Lands of Embervale",
+    pages: [
+      "Heartvale lies in the middle of everything: a round green valley of farms and rivers, with Emberhold, the city of the Heart Shrine, at its heart. Every road starts here.",
+      "To the south-east, the Thornwood, a deep old forest whose trees once glowed at night. To the west, beyond the Cinderfall Pass, the Greyspine Peaks: mines, forges and fire mountains. Behind the Greyspine lie the Ashen Barrens, where the Fall burned the land to sand and glass.",
+      "To the south, the Tangle, a jungle on the Glass River's great delta. To the south-west, Blackfen: swamp, stilt houses and fog. To the east, the Saltmere Coast, a strip of shore and a scatter of islands, where the ferries run.",
+      "In the far north lies Frostfell, frozen since the Sundering War. Its road is closed. In the far west lie the ruins of Whitestone, the old capital. No one goes there.",
+      "Each land has its great shrine and its city, and each has its own troubles. When you have proven yourself here, the roads to all six will open to you.",
+    ],
+  },
+];
+
+/** Sister Lisette, when you walk up to the restricted section's grille (version 0.21): a different excuse each time. */
+export const LISETTE_EXCUSES = [
+  "Oh, not in there, dear! The roof's leaking again. The old books are drying out, and the Keepers don't want a single page touched until they're dry.",
+  "Ah! Mind the gate. Woodworm. A whole shelf of it. We're smoking them out, and you'd cough for a week.",
+  "That's the Keepers' reading room. They're copying out the old records, and it all has to stay in order. Very dull, honestly.",
+  "The stair's broken. Brother Tomas has been meaning to fix it for, oh, a year now.",
+  "Not today. Maybe when you're a Flame. Or a Blaze. Keeper Aldric decides these things, not me.",
+];
+
 /** Prologue chapters before Old Maren's lessons. */
 export const PROLOGUE_START: Chapter[] = [
   {
@@ -96,18 +151,19 @@ export const PROLOGUE_START: Chapter[] = [
           "Easy, easy. Take my hand. Up you come. There you are.",
           "You've just woken on the steps of the Heart Shrine. Its flame flared up, the embers gathered, and there you were. That's how all of you come to us: made by the Emberheart itself.",
           "Do you remember your name? Anything at all? No? Don't be frightened. None of you ever do.",
-          "Now, you can't go about in nothing but your underthings. Here's a robe top and a robe skirt. Let's get you dressed before anything else.",
+          "Now, you can't go about in nothing but your underthings. I've put a robe top and a robe skirt in your bag. See it glowing, down in the corner? Open it.",
         ],
         give: [{ item: "platebody_cloth" }, { item: "platelegs_cloth" }],
       },
       {
         // Celene walks you through it; the story waits until both are on, and you can't leave the Emberhall without them.
-        task: "Put on your robe: open your 🎒 bag, click each robe piece, then press Equip", goal: { kind: "gear", items: ["platebody_cloth", "platelegs_cloth"], names: "robe top and skirt" },
+        task: "Put on your robe: open your glowing 🎒 bag, click each robe piece, then press Equip", goal: { kind: "gear", items: ["platebody_cloth", "platelegs_cloth"], names: "robe top and skirt" },
         hint: "Let's get you dressed first. Open your 🎒 bag (the button at the bottom right), click the robe top and press Equip, then do the same with the robe skirt. Whatever you wear shows on you. I'll wait.",
         ensure: [{ item: "platebody_cloth" }, { item: "platelegs_cloth" }],
         doneSpeaker: CELENE,
         doneLines: [
           "There! It suits you. Now you look like one of the Emberborn.",
+          "Everything you carry lives in that bag, and everything you wear shows on you. You'll be in and out of it all day.",
           "Let's see you walk; your legs will feel new for a while. See the two glowing marks on the floor, down the hall? Walk to each of them.",
           "On a computer, click the floor where you want to go, or walk with the W A S D keys. W walks the way the camera faces; Q and E turn the camera.",
           "On a tablet or phone, tap the floor where you want to go, or put your thumb on the round pad in the bottom left corner and push it the way you want to walk.",
@@ -131,8 +187,8 @@ export const PROLOGUE_START: Chapter[] = [
         task: `Talk to ${ALDRIC}, beside the Heart Shrine`, goal: { kind: "talk" }, who: "aldric",
         lines: [
           "Welcome, friend! Welcome to the Emberhall, and to Emberhold.",
-          "The Emberheart made you for a reason. You won't remember anything; none of you do. We call you the Emberborn: heroes the shrines make from the land's own ember, when the land needs them. Until you've proven yourself, you're a Hopeful.",
-          "And the land does need you. The Withering creeps out of the west, the Ashbound smash our shrines, and the Thornwood grows darker every year.",
+          "The Emberheart made you for a reason. You won't remember anything; none of you do. We call you the Emberborn: heroes the shrines make from the land's own ember, when the land needs them. Until you've proven yourself, you're an Initiate.",
+          "And the land does need you. The Withering creeps in from the edges of the land, the Ashbound smash our shrines, and the Thornwood grows darker every year.",
           "But not today. Today you're safe, and everything here is yours to learn.",
         ],
       },
@@ -146,7 +202,7 @@ export const PROLOGUE_START: Chapter[] = [
         lines: [
           "Now, let me tell you about our home. The Emberhall is the Emberguard's temple, built round the Heart Shrine: the brightest flame in all Embervale.",
           "The statues along these walls are the Ember Circle, the mages who raised the shrines after the Emberfall. Brother Oren keeps them, and he's waiting to show you round. He's just down the hall on the left.",
-          "Then meet the rest of my brothers and sisters: Sister Lisette keeps the library, through the door on the west side, Brother Tomas the stores, through the other west door, and Sister Wynne the infirmary, through the east door. Come back to me when you've met them all.",
+          "Then meet three of my brothers and sisters. Each of them will teach you something you'll need. Sister Lisette keeps the library, through the door on the west side, Brother Tomas is in the great hall, and Sister Wynne keeps the infirmary, through the east door. Come back to me when you've met them all.",
         ],
       },
       {
@@ -157,34 +213,40 @@ export const PROLOGUE_START: Chapter[] = [
         speaker: "Brother Oren",
         visitLines: {
           oren: [
-            "Welcome, welcome! I'm Brother Oren. I keep the statues in this hall: the Ember Circle, the greatest mages Aldmera ever had. Every Emberborn who wakes here owes them everything.",
+            "Welcome, welcome! I'm Brother Oren. I keep the statues in this hall: the Ember Circle, the greatest mages Aldmera ever had, and the king who led them. Every Emberborn who wakes here owes them everything.",
             "Come, I'll walk you round. Start with the king, by the shrine on this side. Click each statue with a ❗ and I'll tell you about it. The others along the walls have plaques you can read any time.",
           ],
           circle_aldemar: [
-            "King Aldemar the Eighteenth, the last king of Aldmera. Eight hundred years ago he led the Ember Circle, nine mages who meant to harness the Emberheart, the fire under the land, so no one would ever be hungry or cold again.",
-            "On the night they finished the working, deep under this very valley, one of the nine struck the king down and seized it for himself. The working broke loose. Fire burst out of the earth and embers fell for a whole year. That was the Emberfall, and that's why we count the years After the Fall.",
+            "King Aldemar the Eighteenth, the last king of Aldmera. Eight hundred years ago, one terrible night, the land's own fire woke under this very valley. Nobody knows why. Fire burst out of the earth, and embers began to fall.",
+            "The king went down into the fire himself. He poured his own ember into it and held it back, the way you'd hold a door shut against a storm. It cost him his life. It was only ever a bandage, but it held for a whole year while the embers fell. That was the Emberfall, and that's why we count the years After the Fall.",
           ],
           circle_vale: [
-            "And this is Archmage Vale. When the Fall came, he and the loyal Circle held the torrent back. Each of them raised a great shrine in their own land, and Vale raised the greatest of all: the Heart Shrine, right here.",
+            "And this is Archmage Vale. That year the king bought them, Vale and the Circle used every day of it. Each of them raised a great shrine in their own land, and Vale raised the greatest of all: the Heart Shrine, right here. When the king's strength finally gave out, the shrines held. They still do.",
             "The shrines pinned the fire down and warmed the land again, and about thirty years later they began to raise the first Emberborn. Heroes made of ember, who come back every time they fall. Heroes like you.",
-            "Centuries later the traitor turned half the Circle against the rest, and tried to tear the shrines down. That was the Sundering War. Vale won it, and gave his life doing so. The six along the walls are the ones who raised the other great shrines; the Emberwardens keep those now, and carry their names.",
-            "Look up, too. See the little embers drifting through the hall? Each one is for one of the Extinguished: the greatest Emberborn, honoured with a Radiance Ceremony. They burn brighter than ever, and their ember goes back into the Heart Shrine to raise the heroes who come after. One flame goes out so many can be lit.",
+            "Look up, too. See the little embers drifting through the hall? Each one is for one of the Extinguished: the greatest Emberborn, honoured with a Radiance Ceremony. One flame goes out so many can be lit.",
           ],
           plinth: [
             "(Brother Oren slows down at the empty plinth. Someone has scratched the name off the stone, very carefully, letter by letter. Under the dust you can just make out the first letter: a W.)",
-            "Wick. The king's own right hand, and the one who struck him down. The city pulled his statue down after the war. He fled into the dark and was never seen again, and the Emberguard keep watch so nobody ever finishes what he started.",
-            "But that's enough gloom for your first day! Go and meet the others: Sister Lisette in the library, Brother Tomas in the stores and Sister Wynne in the infirmary.",
+            "Wick. He stood beside the king, and helped raise the shrines. Then, four hundred years later, he turned half the Circle against the rest and tried to tear the shrines down. Everything the king died for, he'd have thrown away. That was the Sundering War. Vale won it, and gave his life doing so.",
+            "The city pulled Wick's statue down after the war. He fled into the dark and was never seen again. But that's enough gloom for your first day! Go and meet the others.",
           ],
         },
       },
       {
-        task: "Meet three more Emberguard: Lisette, Tomas and Wynne", goal: { kind: "visit", npcs: ["lisette", "tomas", "wynne"], names: "Emberguard" },
-        hint: "Sister Lisette is in the library (through the north-west door), Brother Tomas in the stores (the south-west door) and Sister Wynne in the infirmary (the east door).",
+        // Each of the three teaches part of the game (version 0.21). Lisette's tick waits for her side quest, The Four Books
+        // (server: storyClick sends you to her quest, and finishing it ticks her off here).
+        task: "Meet three Emberguard: Lisette, Tomas and Wynne", goal: { kind: "visit", npcs: ["lisette", "tomas", "wynne"], names: "Emberguard" },
+        hint: "Sister Lisette is in the library (through the north-west door), Brother Tomas is in the great hall, by the barred door on the west side, and Sister Wynne is in the infirmary (the east door).",
+        checkLabels: { lisette: "Sister Lisette, in the library: read her four books", tomas: "Brother Tomas, in the great hall", wynne: "Sister Wynne, in the infirmary" },
         visitLines: {
-          lisette: ["Welcome to the library! Every Emberborn's deeds are written down here, so the Emberheart remembers them even if you don't.",
-            "The oldest books are older than the town. The very oldest are in the ledger room, and only the Keepers read those."],
-          tomas: ["The stores, yes, and that gold-locked door is the ledger room. Keepers only, I'm afraid. Just old accounts. Very dull.",
-            "Now, if you ever need anything, you only have to ask. The Emberhall gives freely."],
+          lisette: ["All four books read, and the quest log ticked. You'll do well here. Go on, the others are waiting."],
+          tomas: ["Brother Tomas. I keep the keys: every key in this hall is on this ring. That barred door over there? The restricted section. Keepers only. Very dull.",
+            "Now listen closely, Initiate, because this is the most important thing anyone will tell you today.",
+            "Everything you do out there is a skill: chopping wood, mining, smithing, cooking, fighting, casting. Do a thing and you get better at it. Every skill has its own level. Open your 📊 skills and you'll see them all at 1. Add them together and you have your total level.",
+            "That total is your flame. The brighter your flame, the more the Emberhall can trust you with, and the more good you can do. A dim Emberborn is a wasted one.",
+            "The Emberguard has its ranks, and every one is earned. You start as an Initiate. Swear the Oath of the Flame, and you become an Ember. Prove yourself in Heartvale, and you're a Flame. Out in the six lands, a Blaze. And the brightest of all are Radiant. Above them sit the Keepers, and the High Keeper above us all.",
+            "And the greatest honour there is, the one we all live for: a Radiance Ceremony, where the very brightest give their flame back to the Heart Shrine, to light a hundred more. That's what you're for. Build your flame. Never let it dim.",
+            "Once you've met everyone, Keeper Aldric will send you to the trainers in the Training Ground, and they'll start you on your first skills. Don't waste a single lesson."],
           wynne: ["Welcome to the infirmary. Every patient gets a room of their own here, with a proper bed and a door that shuts. The Emberhall's doors never close to an Emberborn.",
             "Let me tell you what happens when you fall out there, so it doesn't frighten you. When your health runs out, the shrine's embers gather you up and make you again, on the shrine's steps.",
             "You'll wake up weak and dizzy, and we'll bring you in here and nurse you back onto your feet. Nobody is left alone on the cold stone.",
@@ -198,6 +260,38 @@ export const PROLOGUE_START: Chapter[] = [
           "Here, a little something to start you off. The Emberhall pays its own.",
         ],
         coins: 30,
+      },
+    ],
+  },
+  {
+    // Sister Lisette's side quest (version 0.21): the game's first side quest, and how it teaches side quests. Opens when
+    // The Hall of Embers sends you to meet her; finishing it ticks her off that quest's checklist (server: advance()).
+    id: "four_books", act: "prologue", side: true, title: "The Four Books", giver: "lisette", name: "Sister Lisette", where: "in the Emberhall library, through the north-west door of the great hall",
+    after: ["awakening"], afterStep: ["hall", 2],
+    steps: [
+      {
+        task: "Talk to Sister Lisette, in the library", goal: { kind: "talk" },
+        lines: [
+          "Welcome to the library! Every Emberborn's deeds are written down here, so the Emberheart remembers them even if you don't. Let me show you how yours are kept.",
+          "Open your 📜 quest log. Everything anyone has asked of you is in there.",
+          "The main quest is the story: what the Emberhall needs from you next. Side quests are smaller favours people ask along the way. Most you can do whenever you like.",
+          "When a task can be done in any order, like meeting the three of us, the log shows a checklist and ticks each one off as you go. When the order matters, it shows one step at a time.",
+          "And here's your first side quest. Four books on these shelves tell how Embervale came to be. Read them in order: the lectern glows for the one you're on. When you've read all four, come back and tell me.",
+        ],
+      },
+      ...FOUR_BOOKS.map((b, n) => ({
+        task: `Read "${b.title}", on the glowing lectern in the library`, goal: { kind: "visit" as const, npcs: [`book_${n + 1}` as NpcId], names: "book" },
+        hint: `The glowing lectern by the library's east wall: ${b.title}. ${n ? "The ones before it are done." : "Start there."}`,
+        speaker: `📖 ${b.title}`,
+        visitLines: { [`book_${n + 1}`]: b.pages },
+      })),
+      {
+        task: "Go back to Sister Lisette", goal: { kind: "talk" },
+        lines: [
+          "All four? Now you know more history than half the city. Most Initiates skip straight to the swords.",
+          "That's your first side quest done. See? It's ticked off your main quest too. Many side quests will help you along like that.",
+        ],
+        coins: 20,
       },
     ],
   },

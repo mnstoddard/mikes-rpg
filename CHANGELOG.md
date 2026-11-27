@@ -6,6 +6,20 @@ in `shared/version.ts` (the game reads it from there), so update both together.
 Each update adds 0.1 to the number. Version 1.0 is saved for the finished game on Steam
 (see docs/VERSION-1.0-PLAN.md).
 
+## 0.21 · 27 November 2026 · The Four Books, and a better first day
+
+- A new opening scene. It starts on a wide view of the Heart Shrine. A burst of embers flies out of its flame and circles the steps, and as they fade a body of glowing light forms there and slowly turns into your character. Then Sister Celene walks over, reaches out her hand, and helps you stand.
+- Getting dressed teaches one thing at a time. While you put on the robe, only the glowing 🎒 bag button works (anything else just wiggles the bag). Open it and the robe top glows; click it and the Equip button glows. Then the same for the robe skirt.
+- New item pictures. Every item in your bag, gear, shops and crafting lists now shows its own 3D model from the game, lit like the Emberhall, instead of an emoji. Weapons, armor, tools, bars, logs, fish, finds, potions, gems, rings and the story's keepsakes all have one. (Ores and a few others still use their emoji for now.)
+- Quest steps you can do in any order now show a checklist in the quest box, ticked as you go: the robe pieces, the two glowing marks, Brother Oren's tour, the three Emberguard you meet, the lanterns, and every other quest like them. Steps where order matters still show one step at a time.
+- New side quest from Sister Lisette in the library: The Four Books. She teaches how quests work, then asks you to read four history books on the lecterns by the library's east wall, in order: Aldmera, the Old Kingdom; The Emberfall; On the Shrines; and The Lands of Embervale. Only the next book glows, and a later one won't come off the shelf. Finishing it pays 20 bronze and ticks Lisette off The Hall of Embers.
+- The three Emberguard you meet each teach part of the game. Lisette teaches quests. Brother Tomas, a true believer, teaches skills, levels, your total level, the Emberguard's ranks and the Radiance Ceremony ("Build your flame"). Sister Wynne teaches what happens when you fall.
+- The new official story: the land's fire woke under Heartvale, and King Aldemar gave his life to hold it back for a year while the Ember Circle built the shrines. Brother Oren's tour, the king's and Vale's plaques and the library's books tell it this way now. Wick's crime is the Sundering War.
+- "Hopeful" is now "Initiate" everywhere: your first Emberguard rank, the gate guards and the quest text.
+- The Emberhall's old stores and ledger room are now the restricted section: tall shelves and locked glass cases behind an iron grille at the south end of the library. Its door off the great hall is barred. Walk up to the grille and Sister Lisette hurries over with a reason it's closed today (a different one each time), and if you keep trying she gets flustered.
+- Brother Tomas has moved out into the great hall, by the restricted section's barred door, and so has Enchanter Vale (east of the Heart Shrine).
+- The Emberhall's inside doors no longer poke up through the top of the walls, there's no wall section over them any more (it blocked the view from above), and there's no black panel behind a door when it opens.
+
 ## 0.20 · 27 November 2026 · Emberhold, the walled city, and Heartvale outside it
 
 - Emberhold, the walled capital, is built (on the dev test server first). A great stone wall with towers runs round the whole city, with four gates: the North Gate, the West Gate, the Saltmere Gate and the River Gate. The gates stay shut until you've sworn the Oath of the Flame, then open onto Heartvale.

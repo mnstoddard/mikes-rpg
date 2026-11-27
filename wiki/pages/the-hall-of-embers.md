@@ -3,11 +3,11 @@ category: Quests
 icon: 📜
 summary: Keeper Aldric shows you the Emberhall. Brother Oren tells how the king saved the land, and three Emberguard each teach you how something works.
 ---
-:::note Planned version (wiki only for now)
-This is the plan for this quest. The game still works the old way, shown under "In the game" further down. Leave notes with ✏️ Suggest a change.
+:::note Built in version 0.21
+This is how the quest plays since version 0.21 (on the dev test server first). The exact lines are under "In the game" below. Leave notes with ✏️ Suggest a change.
 :::
 
-## Planned version
+## How it plays
 
 Two things change. Brother Oren now tells the new official story: the land's fire woke, and **King Aldemar gave his life to hold it back** while the Circle built the shrines (see [[The Emberfall (disaster)]]). And the three Emberguard you meet each **teach you something about the game**:
 
@@ -118,7 +118,7 @@ As in the game today: when your health runs out, the nearest shrine remakes you;
 
 **You get:** 30 bronze.
 
-### What changes from the game today
+### What changed in 0.21
 
 - Oren tells the king's sacrifice instead of "one of the nine struck the king down", and Wick's crime is the Sundering War only.
 - Lisette, Tomas and Wynne each teach one part of the game. Tomas has new lines about skills, levels, ranks and Radiance.

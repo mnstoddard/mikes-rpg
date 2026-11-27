@@ -252,8 +252,11 @@ async function prologue(name: string) {
   await b.talk("aldric");
   if (b.task !== t0 || !b.log.slice(-4).some((l) => l.includes("Equip"))) throw new Error("Aldric didn't help with the robe");
   step("Aldric explains the robe");
+  if (!b.quest!.robeLock?.length) throw new Error("the robe step should lock everything but the bag");
   b.room.send("wear", { slot: b.slotOf("platebody_cloth") });
   await sleep(600);
+  if (b.quest!.robeLock?.join() !== "platelegs_cloth") throw new Error(`robe lock should wait for the skirt, got ${b.quest!.robeLock}`);
+  if (!b.quest!.checklist?.[0].done || b.quest!.checklist?.[1].done) throw new Error("the robe checklist should tick the top only");
   if (/Walk/.test(b.task)) throw new Error("the robe top alone counted as the whole robe");
   b.room.send("wear", { slot: b.slotOf("platelegs_cloth") });
   await b.until(() => /Walk/.test(b.task), 5000, "the robe to count"); step("robe on");
@@ -265,8 +268,21 @@ async function prologue(name: string) {
   if (!/Oren/.test(b.task)) throw new Error(`expected Oren's tour next, got: ${b.task}`);
   for (const id of ["oren", "circle_aldemar", "circle_vale", "plinth"]) await b.talk(id);
   step("Oren's tour");
-  for (const id of ["lisette", "tomas", "wynne"]) await b.talk(id);
-  step("met the three");
+  if (b.quest!.checklist?.length !== 3) throw new Error("meeting the three should show a checklist");
+  for (const id of ["tomas", "wynne"]) await b.talk(id);
+  step("met Tomas and Wynne");
+  // Sister Lisette: her side quest, The Four Books, read in order. Her tick waits for it.
+  await b.talk("lisette");
+  if (!/glowing lectern/.test(b.task)) throw new Error(`expected The Four Books, got: ${b.task}`);
+  if (b.quest!.checklist) throw new Error("one book at a time: no checklist");
+  if (!b.quest!.lit?.includes("book_1")) throw new Error("the first book should glow");
+  const t1 = b.task;
+  await b.talk("book_3");
+  if (b.task !== t1) throw new Error("read a later book out of order");
+  for (let n = 1; n <= 4; n++) await b.talk(`book_${n}`);
+  if (!/Lisette/.test(b.task)) throw new Error(`expected to go back to Lisette, got: ${b.task}`);
+  await b.talk("lisette");
+  await b.until(() => /Go back to Keeper Aldric/.test(b.task), 5000, "Lisette's tick to finish the three"); step("The Four Books (side quest), Lisette ticked");
   await b.talkUntilNew("aldric"); step("Hall done, Light the Way started");
   for (let n = 1; n <= 6; n++) await b.talk(`lantern_${n}`);
   step("lanterns lit");

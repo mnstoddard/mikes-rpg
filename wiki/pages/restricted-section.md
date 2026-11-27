@@ -2,16 +2,16 @@ title: The Restricted Section
 category: Places
 icon: 🔐
 aliases: Restricted section, The restricted section
-summary: Planned. The locked wing behind the Emberhall library, where the stores and ledger room were. Only the Keepers go in, and Sister Lisette always has a reason why you can't.
+summary: The locked wing behind the Emberhall library, where the stores and ledger room were. Only the Keepers go in, and Sister Lisette always has a reason why you can't.
 infobox.Where: The west-south wing of [[The Emberhall]], behind the library
 infobox.Kept_by: The Keepers (Sister Lisette guards the grille)
-infobox.Status: Planned (not in the game yet)
+infobox.Status: In the game since 0.21 (the grille and Lisette's excuses); the quest is planned
 ---
-**The restricted section** is the whole west-south wing of [[The Emberhall]]: what used to be the stores and the ledger room, made into one locked area bigger than the library, with two floors of shelves, a spiral stair and glass cases chained shut. [[Brother Tomas]] moved out into the great hall to make room. Its door off the great hall is barred. From the library you can see into it through a tall iron grille, but the gate is locked, and only the Keepers have the key.
+**The restricted section** is the whole west-south wing of [[The Emberhall]]: what used to be the stores and the ledger room, made into one locked area bigger than the library, with tall shelves and glass cases chained shut (a second floor and a spiral stair are planned). [[Brother Tomas]] moved out into the great hall to make room. Its door off the great hall is barred. From the library you can see into it through a tall iron grille, but the gate is locked, and only the Keepers have the key.
 
 ## Trying the gate
 
-From the very first day, a player can walk up to the grille. Before they get close, [[Sister Lisette]] hurries over with a reason why it's closed today. She picks a different excuse each time:
+From the very first day, a player can walk up to the grille. When they get there, [[Sister Lisette]] hurries over with a reason why it's closed today. She picks a different excuse each time:
 
 > Oh, not in there, dear! The roof's leaking again. The old books are drying out, and the Keepers don't want a single page touched until they're dry.
 
@@ -23,7 +23,7 @@ From the very first day, a player can walk up to the grille. Before they get clo
 
 > Not today. Maybe when you're a Flame. Or a Blaze. Keeper Aldric decides these things, not me.
 
-If the player keeps trying, she gets a little flustered: *"Please. I'd be in terrible trouble."*
+If the player keeps trying (three times in a minute or so), she gets a little flustered: *"Please. I'd be in terrible trouble."*
 
 ## The quest (planned, Act 3)
 

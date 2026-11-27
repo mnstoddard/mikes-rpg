@@ -12,6 +12,8 @@ export interface WallOptions {
   seed: number;
   /** How tall (defaults to one storey). */
   height?: number;
+  /** Doors: a door between two rooms, with no dark doorway behind it (you see the next room when it opens). */
+  hollow?: boolean;
 }
 type WallBuilder = (o: WallOptions) => EnvPiece;
 
@@ -476,7 +478,7 @@ export const door: WallBuilder = (o) => {
   frame.box(W + 0.28, 0.14, 0.16, 0x4e3220, 0, H + 0.07, 0);
   frame.box(W + 0.5, 0.08, 0.5, 0x8e8a80, 0, 0.04, 0.2); // doorstep
   // The dark doorway behind the door: it hides the wall (nothing pokes through), and shows when the door opens.
-  frame.box(W + 0.02, H + 0.02, 0.04, 0x1e140c, 0, H / 2, -0.07);
+  if (!o.hollow) frame.box(W + 0.02, H + 0.02, 0.04, 0x1e140c, 0, H / 2, -0.07);
   if (arched) {
     const a = new THREE.CylinderGeometry(W / 2 + 0.14, W / 2 + 0.14, 0.16, 12, 1, false, -Math.PI / 2, Math.PI);
     a.rotateX(-Math.PI / 2);

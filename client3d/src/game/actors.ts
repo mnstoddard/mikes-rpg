@@ -551,6 +551,27 @@ export class Person {
     this.name.obj.visible = alpha > 0.2;
   }
 
+  /**
+   * Glowing ember-gold (the opening scene, version 0.21): 1 is a body made of light, 0 is how they really look. Each
+   * material keeps its own colours in userData the first time, so it always comes back exactly.
+   */
+  setGlow(k: number) {
+    const gold = new THREE.Color(0xffd890), ember = new THREE.Color(0xff9a30);
+    this.hero.object.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (!m.isMesh) return;
+      const mats = Array.isArray(m.material) ? m.material : [m.material];
+      for (const mat of mats as THREE.MeshStandardMaterial[]) {
+        if (!mat.color || !mat.emissive) continue;
+        const u = mat.userData as { glow0?: { color: THREE.Color; emissive: THREE.Color; i: number } };
+        u.glow0 ??= { color: mat.color.clone(), emissive: mat.emissive.clone(), i: mat.emissiveIntensity };
+        mat.color.copy(u.glow0.color).lerp(gold, k * 0.8);
+        mat.emissive.copy(u.glow0.emissive).lerp(ember, k);
+        mat.emissiveIntensity = u.glow0.i + (1.6 - u.glow0.i) * k;
+      }
+    });
+  }
+
   dispose() {
     this.dropHeld();
     this.root.parent?.remove(this.root);
@@ -832,6 +853,36 @@ export function makeStation(npc: NpcDef): StationView {
     root.add(flame.object);
     parts.push({ update: (dt, t) => flame.update(dt, t), dispose: () => flame.dispose() });
     tag.obj.position.y = 4.2;
+  } else if (npc.id.startsWith("book_")) {
+    // Sister Lisette's Four Books (version 0.21): a lectern with a heavy book open on it. The one you're on glows.
+    const wood = new THREE.MeshStandardMaterial({ color: 0x6a4424, roughness: 0.8 });
+    const cover = new THREE.MeshStandardMaterial({ color: npc.color, roughness: 0.7 });
+    const paper = new THREE.MeshStandardMaterial({ color: 0xf2e6c8, roughness: 0.9, emissive: 0xffc060, emissiveIntensity: 0 });
+    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.08, 0.5), wood);
+    foot.position.y = 0.04;
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.0, 0.14), wood);
+    post.position.y = 0.55;
+    const top = new THREE.Group();
+    top.position.y = 1.08;
+    top.rotation.x = 0.45; // tilted toward the reader (south)
+    const desk = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.05, 0.55), wood);
+    const book = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.06, 0.44), cover);
+    book.position.y = 0.05;
+    const pages = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.03, 0.4), paper);
+    pages.position.y = 0.09;
+    top.add(desk, book, pages);
+    root.add(foot, post, top);
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.55, 12, 8), new THREE.MeshBasicMaterial({ color: 0xffc860, transparent: true, opacity: 0.18, depthWrite: false }));
+    glow.position.y = 1.15;
+    glow.userData.noShadow = true;
+    glow.visible = false;
+    root.add(glow);
+    setLit = (lit) => { glow.visible = lit; paper.emissiveIntensity = lit ? 0.8 : 0; };
+    parts.push({ update: (_dt, t) => { if (glow.visible) (glow.material as THREE.MeshBasicMaterial).opacity = 0.14 + 0.08 * Math.sin(t * 3); }, dispose: () => {
+      for (const m of [wood, cover, paper, glow.material as THREE.Material]) m.dispose();
+      for (const o of [foot, post, desk, book, pages, glow]) o.geometry.dispose();
+    } });
+    tag.obj.position.y = 1.9;
   } else if (npc.id.startsWith("lantern_") || npc.id.startsWith("round_")) {
     const lamp: EnvPiece = createEnv("decor-lamp", { variant: npc.id.startsWith("round_") ? 0 : 1, seed: 4 });
     root.add(lamp.object);

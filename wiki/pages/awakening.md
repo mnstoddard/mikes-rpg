@@ -3,17 +3,17 @@ category: Quests
 icon: 📜
 summary: The very first quest. You wake at the Heart Shrine, Sister Celene helps you up, and you dress yourself one piece at a time.
 ---
-:::note Planned version (wiki only for now)
-This is the plan for the first quest. The game still works the old way, shown under "In the game" further down. Leave notes with ✏️ Suggest a change.
+:::note Built in version 0.21
+This is how the quest plays since version 0.21 (on the dev test server first). The exact lines are under "In the game" below. Leave notes with ✏️ Suggest a change.
 :::
 
-## Planned version
+## How it plays
 
 The first quest teaches one thing at a time. While you get dressed, **nothing on the screen works except the 🎒 bag button**, and it glows. You can't walk, turn the camera, talk to anyone or open any other panel until both robe pieces are on.
 
 ### Step 1: Talk to Sister Celene, beside the Heart Shrine
 
-You wake lying on the shrine steps. Celene comes over and helps you up.
+The opening scene starts on a wide view of the Heart Shrine. A burst of embers flies out of its flame, circles the steps where you'll lie, and fades, and a body of glowing light forms in the ring. Slowly the glow fades into your own character, lying on the shrine steps. Then Celene walks over, reaches out her hand and helps you stand. (There's a Skip button.)
 
 **Sister Celene:**
 
@@ -72,7 +72,7 @@ As in the game today: click or tap the floor, use W A S D, or the round pad on a
 >
 > But not today. Today you're safe, and everything here is yours to learn.
 
-### What changes from the game today
+### What changed in 0.21
 
 - Step 2 locks everything except the bag, and makes the bag, then each robe piece, then the Equip button glow in turn.
 - Celene puts the robe in your bag and points at it, instead of telling you where the bag button is.

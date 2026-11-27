@@ -139,11 +139,13 @@ export interface QuestStep {
   /** Steps that finish by themselves (putting on the robe): what someone says when it's done, and who. */
   doneLines?: string[];
   doneSpeaker?: string;
+  /** Visit steps: how each one reads in the quest log's checklist (else their name). */
+  checkLabels?: Partial<Record<NpcId, string>>;
 }
 
 export type ChapterId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kael" | "wren" | "ysolde" | "moss" | "bryn" | "odo" | "bryn_bandits" | "kael_hunt"
   // The story (shared/story.ts): the Prologue, then Act 1.
-  | "awakening" | "hall" | "lanterns" | "sweeper" | "blessing" | "oath"
+  | "awakening" | "hall" | "four_books" | "lanterns" | "sweeper" | "blessing" | "oath"
   | "rounds" | "first_tithe" | "bless_fields" | "tonics" | "totem" | "ash_road" | "rebuild" | "holt_saw" | "odo_field" | "hollow_wolves" | "marens_question" | "thorn_light";
 
 export interface Chapter {
@@ -166,6 +168,8 @@ export interface Chapter {
   after?: ChapterId[];
   /** Story chapters: and this many trainers' lessons. */
   lessons?: number;
+  /** Story chapters: and that chapter has reached this step (The Four Books opens when The Hall of Embers sends you to Lisette). */
+  afterStep?: [ChapterId, number];
 }
 
 /** A skill's level, for chapters that need one (the server and client each pass their own). */
@@ -432,7 +436,7 @@ const LESSONS: Chapter[] = [
         task: `Talk to ${GRETA} in the training ground`, goal: { kind: "talk" }, unlocks: ["mining"],
         lines: [
           "You want to learn Mining? Good. It's hard work, but rocks don't run away. Mining is part of Endurance.",
-          "These practice rocks were hauled in from the quarry, just for Hopefuls like you. Here's a worn bronze pickaxe. Equip it, then mine 2 copper ore from the orange-flecked rocks. Eat when you get tired.",
+          "These practice rocks were hauled in from the quarry, just for Initiates like you. Here's a worn bronze pickaxe. Equip it, then mine 2 copper ore from the orange-flecked rocks. Eat when you get tired.",
         ],
         give: [WORN_PICK],
       },
@@ -563,7 +567,7 @@ const LESSONS: Chapter[] = [
       {
         task: `Talk to ${KAEL} by the pens in the training ground`, goal: { kind: "talk" }, unlocks: ["melee", "defense"],
         lines: [
-          "So you want to fight? I'm Kael. Out past the city walls, south of the River Gate, is the Dark Forest. Wolves, goblins, giant spiders and worse, and they attack anyone who wanders in. Hopefuls stay inside the walls until the Oath, so we'll train right here in the pens.",
+          "So you want to fight? I'm Kael. Out past the city walls, south of the River Gate, is the Dark Forest. Wolves, goblins, giant spiders and worse, and they attack anyone who wanders in. Initiates stay inside the walls until the Oath, so we'll train right here in the pens.",
           "See the ❤ bar at the top left? That's your health. Fighting skills are Strength, and Strength raises your max health. If it runs out, you'll wake up at the Heart Shrine in the Emberhall, a bit shaken but with all your things.",
           "Let's start small. With nothing in your hand you fight with your fists: it works, but only just. So here's a bronze dagger. Weapons and armor go in your gear strip, under the tool belt. Click the dagger in your bag and press \"Equip\".",
         ],
@@ -975,7 +979,8 @@ export const lessonsDone = (q: QuestProgress) => CHAPTERS.filter((c) => !c.act &
  */
 export function chapterOpen(q: QuestProgress, id: ChapterId): boolean {
   const c = chapterById(id);
-  if (c.act) return (c.after ?? []).every((a) => chapterDone(q, a)) && lessonsDone(q) >= (c.lessons ?? 0);
+  if (c.act) return !!q.ch[id] || ((c.after ?? []).every((a) => chapterDone(q, a)) && lessonsDone(q) >= (c.lessons ?? 0)
+    && (!c.afterStep || chapterDone(q, c.afterStep[0]) || (q.ch[c.afterStep[0]]?.step ?? -1) >= c.afterStep[1]));
   if (id === "maren") return !!q.ch.maren || chapterDone(q, "sweeper");
   // Lessons come in a sensible order: one skill feeds the next (mine ore before you smith it).
   return !!q.ch[id] || (marenDone(q) && (c.after ?? []).every((a) => chapterDone(q, a)));
@@ -997,9 +1002,10 @@ export function opensAfter(q: QuestProgress, id: ChapterId): string {
   else missing.push(...left.filter((a) => !chapterById(a).act).map((a) => `${chapterById(a).name}'s lesson`));
   const need = (c.lessons ?? 0) - lessonsDone(q);
   if (need > 0) missing.push(`${need} more trainer lesson${need === 1 ? "" : "s"}`);
+  if (c.afterStep && !missing.length) missing.push(`${chapterById(c.afterStep[0]).title} sends you to ${c.name}`);
   return missing.length ? `Opens after ${missing.join(", ")}` : "";
 }
-/** Your Emberguard rank: 0 Hopeful, 1 Ember (sworn the Oath), 2 Flame (end of Act 1). */
+/** Your Emberguard rank: 0 Initiate, 1 Ember (sworn the Oath), 2 Flame (end of Act 1). */
 export const rankOf = (q: QuestProgress): 0 | 1 | 2 => (chapterDone(q, "thorn_light") ? 2 : chapterDone(q, "oath") ? 1 : 0);
 /** Ember Debt is on once you've sworn the Oath. */
 export const oathSworn = (q: QuestProgress) => chapterDone(q, "oath");
@@ -1094,6 +1100,10 @@ export interface QuestView {
   marks: NpcId[];
   /** Something's wrong to fix first (e.g. "Put your rod back on your belt"). */
   warning?: string;
+  /** The robe step at the very start (version 0.21): only the 🎒 bag works, and these robe pieces (item ids) still need putting on. */
+  robeLock?: string[];
+  /** Steps that can be done in any order (meet three people, put on two robe pieces): each one, ticked when done. */
+  checklist?: { label: string; done: boolean }[];
   /** A picture checklist of what the step needs (🐟 1 / 3 ✓), so you can follow it without reading. */
   need?: { icon: string; tint?: string; have: number; want: number }[];
   /** Every chapter, for the 📜 tab. */
@@ -1121,6 +1131,9 @@ export function litLanterns(q: QuestProgress): NpcId[] {
     if (prog.step > at) out.push(...all);
     else if (prog.step === at) out.push(...all.filter((n) => prog.got?.includes(n)));
   }
+  // Sister Lisette's Four Books: the lectern you're on glows.
+  const fb = q.ch.four_books, book = fb && chapterById("four_books").steps[fb.step]?.goal;
+  if (book?.kind === "visit" && book.npcs[0].startsWith("book_")) out.push(book.npcs[0]);
   // The shrines you've lit.
   if (chapterDone(q, "thorn_light") || (q.ch.thorn_light?.step ?? 0) > 3) out.push("thorn_shrine");
   if ((q.ch.rebuild?.step ?? 0) > 3) out.push("west_shrine");

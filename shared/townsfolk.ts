@@ -32,7 +32,7 @@ export const TOWNSFOLK: TownsfolkDef[] = [
   {
     id: "hanna", name: "Baker Hanna", badge: "🥖", about: "Bakes the town's bread, and walks it round the square every morning.",
     area: "emberhold", route: [{ x: 61, y: 54 }, { x: 84, y: 54 }, { x: 84, y: 64 }, { x: 61, y: 64 }], speed: 1.3, pause: 4,
-    lines: ["Fresh loaves! Well, fresh this morning.", "The Emberguard buy half my bread. All those Hopefuls eat like wolves.", "If you smell burning, it's not the bakery. Probably."],
+    lines: ["Fresh loaves! Well, fresh this morning.", "The Emberguard buy half my bread. All those Initiates eat like wolves.", "If you smell burning, it's not the bakery. Probably."],
   },
   {
     id: "pip", name: "Pip", badge: "🪁", about: "A little boy who runs round the well all day. He wants to be an Emberborn when he grows up.",

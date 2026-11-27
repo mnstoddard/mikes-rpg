@@ -2,13 +2,13 @@ title: The Four Books
 category: Quests
 icon: 📚
 aliases: Lisette's Four Books
-summary: Planned side quest. Sister Lisette's first side quest: read four books in the library, in order, to learn how Embervale came to be.
-infobox.Part_of: Side quest (planned)
+summary: Sister Lisette's first side quest: read four books in the library, in order, to learn how Embervale came to be.
+infobox.Part_of: Side quest
 infobox.Given_by: [[Sister Lisette]]
 infobox.Where: The library in [[The Emberhall]]
 infobox.Needed_for: [[The Hall of Embers]]
 ---
-:::note Planned (not in the game yet)
+:::note In the game since version 0.21
 Leave notes on any book with ✏️ Suggest a change.
 :::
 
@@ -16,9 +16,9 @@ Leave notes on any book with ✏️ Suggest a change.
 
 ## How it works
 
-- Four books sit on the library shelves. **Only the next one glows**, and only that one can be read.
+- Four books sit on lecterns along the library's east wall. **Only the next one glows** (and has a ❗), and only that one can be read.
 - Clicking a later book first does nothing but a nudge: *(The book won't come off the shelf. Sister Lisette calls over: "The glowing one first, dear. History only makes sense in order.")*
-- Each book opens the normal book reader. Reading to the last page ticks it off.
+- Clicking the glowing one opens it; reading it ticks it off. Books you've read can be read again any time.
 - The quest log shows the books one at a time, because the order matters.
 
 ## Walkthrough

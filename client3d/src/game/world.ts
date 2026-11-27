@@ -78,7 +78,8 @@ const CULL_M = 60;
 const MAX_LAMPS = 6;
 
 /** When Sister Celene starts talking in the opening scene (seconds), once you're on your feet. */
-const INTRO_TALK = 6.4;
+/** The opening scene (version 0.21): when Sister Celene starts talking, in seconds. */
+const INTRO_TALK = 12.2;
 
 export class World3D {
   private renderer: THREE.WebGLRenderer;
@@ -952,7 +953,8 @@ export class World3D {
       if (document.getElementById("creator") || (!mine?.look && it.wait < 3)) return;
       it.t = 0;
       document.body.classList.add("intro-on"); // the messages and quest box would give the scene away
-      this.yaw = 0.35; this.pitch = 0.55; this.dist = 10;
+      // A wide shot of the Heart Shrine first.
+      this.yaw = 0.2; this.pitch = 0.85; this.dist = 24;
       const skip = document.createElement("button");
       skip.id = "intro-skip";
       skip.className = "shop-btn";
@@ -960,44 +962,66 @@ export class World3D {
       skip.onclick = () => { if (this.intro) this.intro.t = Math.max(this.intro.t, INTRO_TALK); };
       document.body.append(skip);
       it.skip = skip;
-      // Embers gather where the new hero is being formed.
-      const n = 60, pos = new Float32Array(n * 3);
+      // Lots of embers: they burst out of the shrine's flame, then circle the place the new hero will be.
+      const n = 240, pos = new Float32Array(n * 3);
       const geo = new THREE.BufferGeometry();
       geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-      it.sparks = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffb040, size: 0.12, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+      it.sparks = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffb048, size: 0.3, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
       it.sparks.frustumCulled = false;
       this.scene.add(it.sparks);
       me.setFaded(0);
+      me.setGlow(1);
     }
     const before = it.t;
     it.t += dt;
     const t = it.t;
     const passed = (s: number) => before < s && t >= s;
-    // 0 - 2 s: the embers swirl in and the body forms.
+    const ramp = (a: number, b: number) => Math.max(0, Math.min(1, (t - a) / (b - a)));
+    const ease = (k: number) => k * k * (3 - 2 * k);
+    // The camera comes slowly down from the wide shot to you.
+    if (t < INTRO_TALK) {
+      const k = ease(ramp(1.5, 8.5));
+      this.dist = 24 + (10 - 24) * k; this.pitch = 0.85 + (0.55 - 0.85) * k; this.yaw = 0.2 + (0.35 - 0.2) * k;
+    }
+    // 0.4 - 2.4 s: the embers burst out of the flame and fly wide. 2.4 - 3.8 s: they gather into a ring round you.
+    // Then they circle, faster and tighter, and fade away by about 6 s.
     if (it.sparks) {
+      const shrine = NPCS.find((n) => n.id === "heart_shrine")!;
+      const sx = (shrine.x + 0.5) * TILE, sz = (shrine.y + 0.5) * TILE;
+      const wx = me.root.position.x, wz = me.root.position.z;
       const pos = it.sparks.geometry.attributes.position as THREE.BufferAttribute;
-      const k = Math.min(1, t / 2.2);
+      const burst = ease(ramp(0.4, 2.4)), gather = ease(ramp(2.4, 3.8));
       for (let i = 0; i < pos.count; i++) {
-        const a = i * 2.4 + t * 2, r = (1 - k) * (1.6 + (i % 5) * 0.3) + 0.15;
-        pos.setXYZ(i, me.root.position.x + Math.cos(a) * r, 0.2 + ((i * 0.37) % 1) * (1 - k) * 2 + 0.1, me.root.position.z - 0.8 + Math.sin(a) * r * 0.8);
+        const h1 = (i * 0.6180339) % 1, h2 = (i * 0.4142135) % 1, h3 = (i * 0.7320508) % 1;
+        // Out of the flame: up, then out and down in an arc.
+        const ang = h1 * Math.PI * 2, far = 2.5 + h2 * 4.5;
+        const bx = sx + Math.cos(ang) * far * burst, bz = sz + Math.sin(ang) * far * burst * 0.8;
+        const by = 2.2 + Math.sin(burst * Math.PI) * (1.5 + h3 * 2.5) + burst * (h3 * 1.2 - 0.6);
+        // Into the ring: round and round where you lie.
+        const spin = t * (1.6 + h2 * 1.2) * (1 + ramp(3.8, 5.8)) + ang;
+        const r = (1.15 + h3 * 0.5) * (1 - 0.45 * ramp(3.8, 5.8));
+        const rx = wx + Math.cos(spin) * r, rz = wz + Math.sin(spin) * r * 0.85;
+        const ry = 0.25 + h1 * 1.7 + Math.sin(t * 3 + i) * 0.08;
+        pos.setXYZ(i, bx + (rx - bx) * gather, by + (ry - by) * gather, bz + (rz - bz) * gather);
       }
       pos.needsUpdate = true;
-      (it.sparks.material as THREE.PointsMaterial).opacity = t < 2 ? 1 : Math.max(0, 1 - (t - 2) / 0.6);
-      if (t > 2.7) { this.scene.remove(it.sparks); it.sparks.geometry.dispose(); (it.sparks.material as THREE.Material).dispose(); it.sparks = undefined; }
+      (it.sparks.material as THREE.PointsMaterial).opacity = ramp(0.2, 0.6) * (1 - ramp(4.8, 6.2));
+      if (t > 6.3) { this.scene.remove(it.sparks); it.sparks.geometry.dispose(); (it.sparks.material as THREE.Material).dispose(); it.sparks = undefined; }
     }
-    me.setFaded(Math.min(1, Math.max(0, (t - 0.3) / 1.6)));
-    const ramp = (a: number, b: number) => Math.max(0, Math.min(1, (t - a) / (b - a)));
-    // 1.2 s: Sister Celene hurries over to your side, kneels beside you and holds out her hand.
+    // 4.2 s: as the embers fade, a body of light forms in the ring, then slowly turns from glowing gold into you.
+    me.setFaded(ramp(4.2, 5.6));
+    me.setGlow(1 - ease(ramp(6.0, 8.6)));
+    // 7.6 s: Sister Celene walks up close, reaches out her hand, and helps you up.
     if (celene) {
-      if (passed(1.2)) celene.walkTo(home.x + 1, home.y - 1, 650);
-      if (passed(1.85)) celene.walkTo(wake.x - 1, wake.y, 650);
-      if (t > 2.5 && t < INTRO_TALK) celene.faceYaw(Math.PI / 2);
-      celene.stage = 3 - ramp(2.5, 3.1) + ramp(5.2, 6.2); // down on one knee, then up again with you
-      celene.reach = Math.min(ramp(3.0, 3.5), 1 - ramp(5.6, 6.2));
+      if (passed(7.6)) celene.walkTo(home.x + 1, home.y - 1, 700);
+      if (passed(8.3)) celene.walkTo(wake.x - 1, wake.y, 700);
+      if (t > 9.0 && t < INTRO_TALK) celene.faceYaw(Math.PI / 2);
+      celene.stage = 3 - 0.35 * (ramp(9.0, 9.5) - ramp(11.0, 11.8)); // she leans down to you, then straightens with you
+      celene.reach = Math.min(ramp(9.1, 9.6), 1 - ramp(11.2, 11.9));
     }
     // You sit up, take her hand, get up onto one knee, then stand.
-    me.stage = ramp(3.3, 4.3) + ramp(4.5, 5.3) + ramp(5.3, 6.2);
-    // 6.4 s: she talks.
+    me.stage = ramp(9.5, 10.3) + ramp(10.4, 11.0) + ramp(11.0, 11.8);
+    // She talks.
     if (t >= INTRO_TALK && !it.talked) {
       it.talked = true;
       if (celene && t - before > 0.5) celene.walkTo(wake.x - 1, wake.y, 10); // skipped: be there already
@@ -1005,6 +1029,8 @@ export class World3D {
       me.faceYaw(-Math.PI / 2);
       me.stage = 3;
       me.setFaded(1);
+      me.setGlow(0);
+      if (it.sparks) { this.scene.remove(it.sparks); it.sparks.geometry.dispose(); (it.sparks.material as THREE.Material).dispose(); it.sparks = undefined; }
       it.skip?.remove();
       openDialog(it.name, it.lines);
     }
@@ -1269,6 +1295,9 @@ export class World3D {
   private readShelf(x: number, y: number) {
     const me = this.room && this.room.state.players.get(this.room.sessionId);
     if (!me) return;
+    // The restricted section's shelves (version 0.21): behind the grille, out of reach.
+    const g = PLACES["lighthall.grille"];
+    if (this.here.id === "lighthall" && g && y > g.y + 1 && x < g.x + 6) { showMessage("Those shelves are behind the restricted section's iron grille. It's locked."); return; }
     if (Math.max(Math.abs(me.x - x), Math.abs(me.y - y)) <= 1) { this.openBook(x, y); return; }
     // The free tile next to the shelf that's closest to us.
     let best: { x: number; y: number } | null = null, bd = Infinity;
@@ -1461,7 +1490,8 @@ export class World3D {
     else if (t === "dig") setHoverText("Examine", "Dug-out patch (it glints again soon)", px, py);
     else if (door) setHoverText(door.label.startsWith("Leave") || door.label.startsWith("Back") || door.label.startsWith("Go") ? door.label : "Enter", door.label.replace(/^Enter /, ""), px, py);
     else if (this.here.danger && (t === "cave" || t === "crystal")) setHoverText(`⚠ ${this.here.name}:`, "monsters here attack on sight!", px, py);
-    else if (t === "lockeddoor") setHoverText("Locked", "a heavy door with a gold lock", px, py);
+    else if (t === "lockeddoor") setHoverText("Locked", this.here.id === "lighthall" ? "the restricted section: barred" : "a heavy door with a gold lock", px, py);
+    else if (t === "grille") setHoverText("Iron grille", "the restricted section, locked", px, py);
     else if (t === "barricade") setHoverText("Road closed:", "the Ashen Barrens lie beyond. The Watch has shut the road.", px, py);
     else if (lotAt(x, y)) {
       const at = lotAt(x, y)!;

@@ -13,7 +13,7 @@
 //   . grass   , dirt path   ; cobblestones   ~ water   = bridge   s sand   w withered grass
 //   ^ cliff   h hedge   q well   x barricade   | fence   + gate   ! warning sign
 //   r roof    u gold roof (the Emberhall)   H wooden wall   p floorboards   D door   J locked door
-//   A white stone wall   a white stone floor   o glowing floor   z gold carpet   S statue   F brazier   d inside door (between rooms)
+//   A white stone wall   a white stone floor   o glowing floor   z gold carpet   S statue   F brazier   d inside door (between rooms)   ] iron grille
 //   W purple wall   _ purple rug (the Mages' Guild)   n table   b bookshelf   e crates   y bed
 //   C cave floor   K cave wall   G crystal floor   V gravestone   l stony ground   * dig patch   f farm lot
 //   Trees: T pine  O oak  B birch  M maple  Y yew  I ironwood  E elderwood
@@ -941,23 +941,24 @@ function insides(): Inside[] {
   // east, with a bedroom for each patient. Real doors ("d") join the rooms.
   {
     const c = new Canvas(37, 27).room("A", "a");
-    // ---- West: the library (north) and the stores (south), each with a door into the great hall.
+    // ---- West: the library (north) and, behind an iron grille, the restricted section (south: the old stores and ledger
+    // room, version 0.21). Its door off the great hall is barred; only the Keepers go in.
     c.fill(10, 1, 10, 25, "A");
     c.fill(1, 14, 9, 14, "A");
+    c.fill(3, 14, 7, 14, "]"); // the iron grille: you can see in, but not get in
     c.set(10, 7, "d"); // library door
-    c.set(10, 20, "d"); // stores door
+    c.set(10, 20, "J"); // the restricted section's barred door
     // The library: shelves along the north wall, then rows of shelves (books on both sides), and a reading table.
     c.fill(1, 1, 9, 1, "b");
     c.fill(2, 4, 4, 4, "b"); c.fill(6, 4, 8, 4, "b");
     c.fill(2, 7, 4, 7, "b");
     c.fill(2, 10, 4, 10, "b"); c.fill(6, 10, 8, 10, "b");
     c.fill(6, 12, 7, 12, "n");
-    // The stores: crates, and the ledger room (locked) in the corner. Enchanter Vale keeps a corner here too.
-    c.fill(4, 15, 4, 18, "A"); c.fill(1, 18, 4, 18, "A");
-    c.set(2, 18, "J"); // the ledger room's locked door
-    c.fill(1, 15, 3, 15, "b");
-    c.fill(6, 15, 9, 15, "e"); c.set(9, 16, "e");
-    c.fill(1, 25, 3, 25, "b"); c.set(1, 23, "n");
+    // The restricted section: tall shelves, and glass cases (tables) chained shut.
+    c.fill(2, 17, 8, 17, "b");
+    c.fill(2, 20, 4, 20, "b"); c.fill(6, 20, 8, 20, "b");
+    c.set(3, 23, "n"); c.set(5, 23, "n"); c.set(7, 23, "n");
+    c.fill(1, 25, 9, 25, "b");
     // ---- East: the infirmary. A hall (Sister Wynne's) with four bedrooms off it, one bed each.
     c.fill(26, 1, 26, 25, "A");
     c.set(26, 13, "d"); // infirmary door
@@ -986,7 +987,11 @@ function insides(): Inside[] {
       spots: {
         heartShrine: { x: 18, y: 5 }, wake: { x: 18, y: 8 }, aldric: { x: 21, y: 9 }, celene: { x: 15, y: 9 },
         oren: { x: 13, y: 14 }, plinth: { x: 25, y: 21 },
-        lisette: { x: 7, y: 8 }, ledgerDoor: { x: 2, y: 18 }, tomas: { x: 4, y: 21 }, vale: { x: 3, y: 23 },
+        lisette: { x: 7, y: 8 }, tomas: { x: 13, y: 21 }, vale: { x: 23, y: 7 },
+        // Sister Lisette's Four Books (version 0.21): four lecterns along the library's east wall, read in order.
+        book_1: { x: 9, y: 3 }, book_2: { x: 9, y: 5 }, book_3: { x: 9, y: 9 }, book_4: { x: 9, y: 11 },
+        // In front of the grille, where Sister Lisette stops you.
+        grille: { x: 5, y: 13 },
         wynne: { x: 28, y: 10 },
         // Sister Celene's walking lesson: two glowing marks down the hall.
         walkLeft: { x: 13, y: 18 }, walkRight: { x: 23, y: 18 },

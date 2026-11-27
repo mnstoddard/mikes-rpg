@@ -14,7 +14,7 @@ export type NpcId = "maren" | "tam" | "holt" | "greta" | "brann" | "rook" | "kae
   | "furnace" | "anvil" | "stove" | "workbench" | "tanning_rack" | "spinning_wheel" | "board"
   | "archmage" | "altar" | "guildboard" | "repairer" | "alchemy_table" | "chest" | "chest_east" | "chest_forest" | "chest_farm" | "chest_inn"
   // The Emberhall (the Emberguard's temple) and its people.
-  | "heart_shrine" | "aldric" | "celene" | "vale" | "oren" | "lisette" | "tomas" | "wynne" | "plinth"
+  | "heart_shrine" | "aldric" | "celene" | "vale" | "oren" | "lisette" | "tomas" | "wynne" | "plinth" | "book_1" | "book_2" | "book_3" | "book_4"
   | "extinguished_1" | "extinguished_2" | "extinguished_3" | "extinguished_4"
   | "circle_vale" | "circle_aldemar" | "circle_crowe" | "circle_flint" | "circle_ivy" | "circle_merrow" | "circle_dunn" | "circle_reed"
   // The story (shared/story.ts): lanterns to light, the shrines out in Heartvale, and Rhys.
@@ -194,7 +194,7 @@ export const NPCS: NpcDef[] = [
   },
   {
     id: "tomas", name: "Brother Tomas", kind: "person", ...at("lighthall.tomas"), color: 0xeadcb5, badge: "🗝️",
-    greeting: "The ledger room? Only for the Keepers, I'm afraid. Just old accounts. Very dull.",
+    greeting: "Build your flame, Initiate. Every lesson, every day. A dim Emberborn is a wasted one.",
   },
   {
     id: "wynne", name: "Sister Wynne", kind: "person", ...at("lighthall.wynne"), color: 0xeadcb5, badge: "🛏️",
@@ -203,6 +203,23 @@ export const NPCS: NpcDef[] = [
   {
     id: "plinth", name: "Empty plinth", kind: "station", ...at("lighthall.plinth"), color: 0xbdb6a0,
     greeting: "A plinth with no statue, among the Ember Circle. Someone has scratched the name off the stone, letter by letter. The first letter might have been a W.",
+  },
+  // Sister Lisette's Four Books (version 0.21, shared/story.ts): four lecterns in the library, read in order.
+  {
+    id: "book_1", name: "Aldmera, the Old Kingdom", kind: "station", ...at("lighthall.book_1"), color: 0x8a5a2e,
+    greeting: "A heavy history book on a lectern: Aldmera, the Old Kingdom.",
+  },
+  {
+    id: "book_2", name: "The Emberfall", kind: "station", ...at("lighthall.book_2"), color: 0x8a2e1e,
+    greeting: "A heavy history book on a lectern: The Emberfall.",
+  },
+  {
+    id: "book_3", name: "On the Shrines", kind: "station", ...at("lighthall.book_3"), color: 0xc8a040,
+    greeting: "A heavy history book on a lectern: On the Shrines.",
+  },
+  {
+    id: "book_4", name: "The Lands of Embervale", kind: "station", ...at("lighthall.book_4"), color: 0x2e6a4a,
+    greeting: "A heavy history book on a lectern: The Lands of Embervale.",
   },
   // The Extinguished: four statues in the Emberhall's garden, one at each corner. Their plaques:
   {
@@ -225,11 +242,11 @@ export const NPCS: NpcDef[] = [
   // official story (see the wiki's Emberfall page): Wick is the traitor, Vale the saviour.
   {
     id: "circle_vale", name: "Archmage Vale", kind: "station", ...at("lighthall.circle_vale"), color: 0xf3efe4,
-    greeting: "ARCHMAGE VALE, THE SAVIOUR. He raised the Heart Shrine, held back the Emberfall, and gave his life to win the Sundering War. \"The flame endures.\"",
+    greeting: "ARCHMAGE VALE, THE SAVIOUR. He raised the Heart Shrine in the year the king bought, and gave his life to win the Sundering War. \"The flame endures.\"",
   },
   {
     id: "circle_aldemar", name: "King Aldemar XVIII", kind: "station", ...at("lighthall.circle_aldemar"), color: 0xf3efe4,
-    greeting: "KING ALDEMAR XVIII, THE LAST KING OF ALDMERA. He led the Ember Circle, and was struck down on the night of the Fall. His stone crown has a crack across it.",
+    greeting: "KING ALDEMAR XVIII, THE LAST KING OF ALDMERA. He went down into the fire on the night of the Fall, and gave his life to hold it back. His stone crown has a crack across it.",
   },
   {
     id: "circle_crowe", name: "Crowe of the Circle", kind: "station", ...at("lighthall.circle_crowe"), color: 0xf3efe4,

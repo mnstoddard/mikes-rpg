@@ -15,7 +15,7 @@ const LIGHTHALL: Book[] = [
     title: "The Emberfall",
     pages: [
       "Eight hundred years ago the land's fire burst up out of the earth under Heartvale. Embers rained down across Aldmera for a whole year, and the ground fell in where the valley is now. We count the years from it: this is the eight hundredth year After the Fall.",
-      "Wick did it. He stood in the Ember Circle beside King Aldemar for the great working, and in the middle of it he murdered the king and broke the work loose. The rest of the Circle pinned the fire down with their shrines, and the Emberguard have kept the shrines ever since.",
+      "King Aldemar went down into the fire himself and poured his own ember into it, holding it back like a door against a storm. It cost him his life, but it held for a year, and in that year the Ember Circle raised the shrines. When the king's strength gave out, the shrines held. The Emberguard have kept them lit ever since.",
       "Pressed between the last pages, a dry leaf and a note in an old hand: \"Fire does not burst up on its own. Ask what was dug.\"",
     ],
   },
@@ -23,7 +23,7 @@ const LIGHTHALL: Book[] = [
     title: "The Sundering War (a short history for new Emberborn)",
     pages: [
       "Before the Fall, Embervale was Aldmera: green from the Greyspine to the sea, ruled from Whitestone, the city of white stone in what is now the Barrens.",
-      "Four hundred years after the Fall, Wick came back. He turned half the Circle against the rest and tried to tear the shrines down. The war lasted a hundred years, and when it ended there were barely enough people left to bury the dead.",
+      "Four hundred years after the Fall, Wick, who had stood beside the king and helped raise the shrines, turned half the Circle against the rest and tried to tear the shrines down. The war lasted a hundred years, and when it ended there were barely enough people left to bury the dead.",
       "The Archmage Vale won it, and died winning it. Wick was driven out, and his shrine in the north went cold. The Emberwardens carry the old Circle names as titles now, and the Emberguard keep the shrines lit.",
     ],
   },

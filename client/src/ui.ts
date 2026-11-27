@@ -48,6 +48,8 @@ import { ARROW_LEVEL, ARROW_RECOVER, BAITS, BAIT_IDS, BaitId, CLOTH_LEVEL, SOFT_
 import { TreeRanks, treeBonus } from "../../shared/skilltree";
 import { setTreeData, treeButton, treeRanks } from "./tree";
 import { toolSvg } from "./toolIcons";
+import { ICON_INDEX, ICON_SHEET } from "./itemIconIndex";
+import { iconKey } from "../../shared/iconKey";
 import { autoRead, autoSpeak, canSpeak, setAutoRead, speakButton, stopSpeaking } from "./speech";
 import {
   CUT_LEVEL, GEMS, JEWEL_BARS, JEWEL_BAR_IDS, JEWEL_METALS, JEWEL_METAL_IDS, JEWEL_SLOTS, JEWEL_TYPES, JewelMetal, JewelSlot, JewelType, Jewels,
@@ -179,7 +181,7 @@ export function renderJewels(j: Jewels) {
     const slot = el("slot belt-slot" + (on ? " filled" : ""));
     if (on) {
       const item = ITEMS[on];
-      slot.append(icon("", item.icon, item.tint));
+      slot.append(itemIcon("", on));
       slot.title = `${item.name}: ${describeBonus(jewelBonus(on))}. Click to take it off.`;
       slot.onclick = () => onRemoveJewel(s);
     } else {
@@ -255,6 +257,24 @@ function icon(cls: string, glyph: string, tint?: string): HTMLElement {
     box.textContent = glyph;
   }
   if (tint) box.style.filter = tint;
+  return box;
+}
+
+/**
+ * An item's picture (version 0.21): its own 3D model, from the picture sheet tools/make-icons.mjs draws
+ * (client3d/public/icons/items.png). Anything without a picture keeps its emoji.
+ */
+function itemIcon(cls: string, id: ItemId): HTMLElement {
+  const at = ICON_INDEX[iconKey(id)];
+  if (at == null) return icon(cls, ITEMS[id].icon, ITEMS[id].tint);
+  const box = document.createElement("span");
+  box.className = cls;
+  const pic = document.createElement("span");
+  pic.className = "pic-icon";
+  const n = ICON_SHEET.cols;
+  pic.style.backgroundSize = `${n * 100}% ${n * 100}%`;
+  pic.style.backgroundPosition = `${((at % n) / (n - 1)) * 100}% ${(Math.floor(at / n) / (n - 1)) * 100}%`;
+  box.appendChild(pic);
   return box;
 }
 
@@ -365,7 +385,7 @@ function skillDetails(skill: SkillId): HTMLElement {
     const item = ITEMS[r.item];
     const open = level >= r.level;
     const row = el("m-type" + (open ? "" : " locked") + (flashType === id ? " flash" : ""));
-    const ic = icon("m-type-icon", item.icon, item.tint);
+    const ic = itemIcon("m-type-icon", r.item);
     if (!open) {
       row.append(ic, el("m-type-name", item.name), el("m-type-state", `🔒 Lv ${r.level}`));
       row.title = `Reach ${findSkill(skill).def.name} level ${r.level} to gather ${item.name}.`;
@@ -477,7 +497,7 @@ function forageDetails(level: number, box: HTMLElement) {
   for (const f of FORAGE_FINDS) {
     const item = ITEMS[f.item];
     const row = el("m-type" + (level >= f.level ? "" : " locked"));
-    row.append(icon("m-type-icon", item.icon, item.tint), el("m-type-name", item.name + (f.night ? " 🌙" : "")),
+    row.append(itemIcon("m-type-icon", f.item), el("m-type-name", item.name + (f.night ? " 🌙" : "")),
       el("m-type-state", level >= f.level ? `${f.xp} XP` : `🔒 Lv ${f.level}`));
     row.title = `${item.name}: Foraging level ${f.level}, ${f.xp} XP${f.night ? ". Only at night" : ""}. Sells for ${formatMoney(sellPrice(f.item))}.`;
     list.appendChild(row);
@@ -918,7 +938,7 @@ export function renderBelt(belt: Belt) {
     const slot = el("slot belt-slot" + (on ? " filled" : ""));
     if (on) {
       const max = maxDurability(on.item);
-      slot.append(icon("", ITEMS[on.item].icon, ITEMS[on.item].tint), durabilityBar(on.durability, max));
+      slot.append(itemIcon("", on.item), durabilityBar(on.durability, max));
       slot.title = `${ITEMS[on.item].name}: ${toolEffect(on.item)}. ${on.durability} of ${max} uses left. Click for details.`;
       slot.onclick = () => showInfo({ kind: "belt", type });
     } else {
@@ -950,7 +970,7 @@ export function renderGear(gear: Gear, spell: BoltSpellId) {
     const box = el("slot belt-slot" + (on ? " filled" : ""));
     if (on) {
       const item = ITEMS[on.item];
-      box.append(icon("", item.icon, item.tint), durabilityBar(on.durability, gearDurability(on.item)));
+      box.append(itemIcon("", on.item), durabilityBar(on.durability, gearDurability(on.item)));
       box.title = `${item.name}: ${gearEffect(on.item)}. ${on.durability} uses left. Click for details.`;
       box.onclick = () => showInfo({ kind: "gear", slot });
     } else {
@@ -1089,7 +1109,7 @@ function onDragMove(e: PointerEvent) {
     if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 8) return; // still a tap
     const id = invItems[entriesIn(bag, drag.from)[0]];
     if (!id) return cancelDrag();
-    drag.ghost = icon("", ITEMS[id].icon, ITEMS[id].tint);
+    drag.ghost = itemIcon("", id);
     drag.ghost.id = "drag-ghost";
     document.body.appendChild(drag.ghost);
     document.body.classList.add("dragging");
@@ -1162,7 +1182,8 @@ export function renderInventory() {
       const kinds = here.length;
       slot.classList.add("filled");
       if (kinds > 1) slot.classList.add("mixed"); // drawn like a little pile of cards
-      slot.appendChild(icon("item-icon", item.icon, item.tint));
+      slot.appendChild(itemIcon("item-icon", id));
+      if (isRobePiece(id)) slot.classList.add("robe-glow");
       if (isTool(id)) slot.appendChild(durabilityBar(durability[top] ?? maxDurability(id), maxDurability(id)));
       if (isGear(id)) slot.appendChild(durabilityBar(durability[top] ?? gearDurability(id), gearDurability(id)));
       if (isBroken(id, durability[top])) {
@@ -1320,7 +1341,7 @@ export function showRepairs(view: { jobs: RepairJob[]; free: boolean; open: bool
       const b = document.createElement("button");
       b.className = "buy-btn";
       const state = j.durability <= 0 ? "💔 broken" : `${Math.round((j.durability / j.max) * 100)}% left`;
-      b.append(icon("buy-icon", item.icon, item.tint), el("buy-name", `${item.short ?? item.name} · ${state}`), el("buy-price", cost ? formatMoney(cost) : "Free"));
+      b.append(itemIcon("buy-icon", j.item), el("buy-name", `${item.short ?? item.name} · ${state}`), el("buy-price", cost ? formatMoney(cost) : "Free"));
       b.title = `Repair your ${item.single} (${where[j.where]}): ${j.durability} of ${j.max} uses left`;
       b.onclick = () => repairActions.repair(j.where, j.key);
       row.append(b);
@@ -1410,7 +1431,7 @@ function renderShop() {
   const carrying = [...new Set(invItems.filter((id): id is ItemId => !!id && shop.buys(id)))];
   for (const id of carrying) {
     const span = document.createElement("span");
-    span.append(icon("", ITEMS[id].icon, ITEMS[id].tint), ` ${ITEMS[id].name}: ${formatMoney(sellPrice(id))}`);
+    span.append(itemIcon("", id), ` ${ITEMS[id].name}: ${formatMoney(sellPrice(id))}`);
     span.className = "price";
     prices.appendChild(span);
   }
@@ -1440,7 +1461,7 @@ function renderBuy() {
     const item = ITEMS[id];
     const price = buyPrice(id);
     const row = el("buy-row" + (coins < price ? " poor" : ""));
-    const ic = icon("buy-icon", item.icon, item.tint);
+    const ic = itemIcon("buy-icon", id);
     const one = document.createElement("button");
     one.className = "buy-btn";
     one.append(ic, el("buy-name", item.name), el("buy-price", formatMoney(price)));
@@ -1462,7 +1483,7 @@ function renderBuy() {
     const row = el("buy-row" + (!x.ok ? " locked-stock" : coins < price ? " poor" : ""));
     const one = document.createElement("button");
     one.className = "buy-btn";
-    one.append(icon("buy-icon", item.icon, item.tint), el("buy-name", item.name + (x.ok ? "" : ` 🔒 ${x.need}`)), el("buy-price", formatMoney(price)));
+    one.append(itemIcon("buy-icon", x.item), el("buy-name", item.name + (x.ok ? "" : ` 🔒 ${x.need}`)), el("buy-price", formatMoney(price)));
     one.title = x.ok ? `Buy ${item.name.toLowerCase()}` : `Needs ${x.need}`;
     one.disabled = !x.ok;
     const most = Math.max(1, Math.min(BUY_MAX, Math.floor(coins / price)));
@@ -1977,7 +1998,7 @@ function renderStove(level: number): ItemId | null {
   pick.pot.forEach((i, n) => {
     const b = document.createElement("button");
     b.className = "pick active";
-    b.append(icon("pick-icon", ITEMS[i].icon, ITEMS[i].tint), el("pick-name", ITEMS[i].single));
+    b.append(itemIcon("pick-icon", i), el("pick-name", ITEMS[i].single));
     b.title = `Take the ${ITEMS[i].single} out`;
     b.onclick = () => { pick.pot.splice(n, 1); renderCraft(); };
     potRow.appendChild(b);
@@ -2007,7 +2028,7 @@ function renderStove(level: number): ItemId | null {
     const usable = fits && !tooHard && left > 0 && !full;
     b.className = "pick" + (usable ? "" : " locked");
     const label = !isIngredient(it) ? "can't cook" : !fits ? `not in ${dish.name.toLowerCase()}` : tooHard ? `🔒${INGREDIENTS[it].level}` : `+${Math.round(ingredientStamina(pick.dish, it))} (${left})`;
-    b.append(icon("pick-icon", ITEMS[it].icon, ITEMS[it].tint), el("pick-name", label));
+    b.append(itemIcon("pick-icon", it), el("pick-name", label));
     b.title = !isIngredient(it) ? `${ITEMS[it].name} can't be cooked.`
       : !fits ? `${dish.name} can't use ${FOOD_KINDS[INGREDIENTS[it as IngredientId].kind].toLowerCase()}.`
       : tooHard ? `You need Cooking level ${INGREDIENTS[it].level} to cook ${ITEMS[it].name.toLowerCase()}.`
@@ -2047,7 +2068,7 @@ function renderCutting(level: number) {
     const b = document.createElement("button");
     const lockedOut = level < need;
     b.className = "pick" + (lockedOut ? " locked" : "");
-    b.append(icon("pick-icon", ITEMS[it].icon, ITEMS[it].tint), el("pick-name", lockedOut ? `🔒${need}` : `${ITEMS[it].name} (${haveUnlocked(it)})`));
+    b.append(itemIcon("pick-icon", it), el("pick-name", lockedOut ? `🔒${need}` : `${ITEMS[it].name} (${haveUnlocked(it)})`));
     b.title = lockedOut ? `Needs Smithing level ${need} to cut.` : `Cut the ${ITEMS[it].single}.`;
     b.disabled = lockedOut;
     if (!lockedOut) b.onclick = () => onCut(it);
@@ -2089,7 +2110,7 @@ function renderAlchemy(level: number): ItemId | null {
   pick.mix.forEach((i, n) => {
     const b = document.createElement("button");
     b.className = "pick active";
-    b.append(icon("pick-icon", ITEMS[i].icon, ITEMS[i].tint), el("pick-name", ITEMS[i].single));
+    b.append(itemIcon("pick-icon", i), el("pick-name", ITEMS[i].single));
     b.onclick = () => { pick.mix.splice(n, 1); renderCraft(); };
     mixRow.appendChild(b);
   });
@@ -2115,7 +2136,7 @@ function renderAlchemy(level: number): ItemId | null {
     const ok = usable && left > 0 && pick.mix.length < 3 && (!asBonus || (BONUS_IDS as string[]).includes(it));
     const b = document.createElement("button");
     b.className = "pick" + (ok ? "" : " locked");
-    b.append(icon("pick-icon", ITEMS[it].icon, ITEMS[it].tint), el("pick-name", !usable ? "no use" : asBonus && !(BONUS_IDS as string[]).includes(it) ? "not a bonus" : `${ITEMS[it].single} (${left})`));
+    b.append(itemIcon("pick-icon", it), el("pick-name", !usable ? "no use" : asBonus && !(BONUS_IDS as string[]).includes(it) ? "not a bonus" : `${ITEMS[it].single} (${left})`));
     const bonus = BONUSES[it as BonusId];
     b.title = !usable ? `${ITEMS[it].name} can't be used in alchemy.` : bonus ? `${ITEMS[it].name}. As a third ingredient: ${bonus.note}.` : `${ITEMS[it].name}.`;
     b.disabled = !ok;
@@ -2195,7 +2216,7 @@ function renderBounties() {
     btn.title = ready ? `Hand in ${b.count} ${item.name.toLowerCase()}` : `You need ${b.count - have} more`;
     btn.onclick = () => onHandIn(index);
     const unused = isTool(b.item) || isGear(b.item) ? " (unused)" : "";
-    row.append(icon("bounty-icon", item.icon, item.tint), el("bounty-what", `${b.count} × ${item.name}${unused}`), btn,
+    row.append(itemIcon("bounty-icon", b.item), el("bounty-what", `${b.count} × ${item.name}${unused}`), btn,
       el("bounty-have", `You have ${Math.min(have, b.count)} / ${b.count}`),
       el("bounty-reward", `Reward: ${formatMoney(reward.coins)} · +${reward.xp} ${reward.label} XP · +${reward.renown} Renown XP`));
     bountyList.appendChild(row);
@@ -2381,7 +2402,7 @@ function renderChest() {
       const n = slotTotal(chest, i);
       slot.classList.add("filled");
       if (here.length > 1) slot.classList.add("mixed");
-      slot.appendChild(icon("item-icon", item.icon, item.tint));
+      slot.appendChild(itemIcon("item-icon", id));
       if (isTool(id)) slot.appendChild(durabilityBar(chest.durability[top] ?? maxDurability(id), maxDurability(id)));
       if (isGear(id)) slot.appendChild(durabilityBar(chest.durability[top] ?? gearDurability(id), gearDurability(id)));
       if (n > 1) slot.appendChild(countBadge(n));
@@ -2474,7 +2495,7 @@ function renderInfo() {
     infoBody.appendChild(nav);
   }
   const head = el("craft-head");
-  head.append(icon("craft-icon", item.icon, item.tint), el("craft-name", shortName(id) + (isLocked ? " 🔒" : "")));
+  head.append(itemIcon("craft-icon", id), el("craft-name", shortName(id) + (isLocked ? " 🔒" : "")));
   infoBody.appendChild(head);
   const stack = entry >= 0 ? countAt(entry) : 1;
   if (target.kind === "slot") {
@@ -2614,7 +2635,10 @@ function renderInfo() {
     }
     const broken = isBroken(id, uses);
     if (isTool(id)) infoButton("Equip", () => { onEquip(e); closeInfo(); }, broken);
-    if (isGear(id)) infoButton("Equip", () => { onWear(e); closeInfo(); }, broken);
+    if (isGear(id)) {
+      infoButton("Equip", () => { onWear(e); closeInfo(); }, broken);
+      if (isRobePiece(id)) infoButtons.lastElementChild!.classList.add("robe-glow");
+    }
     if (id === POTION_ID) infoButton(`Drink (+${POTION_HEAL})`, () => { onDrink(e); closeInfo(); });
     if (isPotion(id)) infoButton("Drink", () => { onDrink(e); closeInfo(); });
     if (isJewelry(id)) infoButton("Equip", () => { onWearJewel(e); closeInfo(); });
@@ -2756,9 +2780,38 @@ export function renderTracked(item: ItemId | null) {
 }
 
 export function renderQuest(q: QuestView, flash = false) {
+  const wasLocked = !!lastQuest?.robeLock?.length;
   lastQuest = q;
+  document.body.classList.toggle("robe-lock", !!q.robeLock?.length);
   renderTracker(flash);
+  if (wasLocked || q.robeLock?.length) renderInventory(); // the robe pieces glow (or stop glowing)
 }
+
+// ---- The robe step at the very start (version 0.21, Mike's note): only the glowing 🎒 bag works ----
+// Then the robe piece glows, then its Equip button. Every other click, key, or touch does nothing but wobble the bag.
+
+/** Still to put on (item id prefixes), while the very first quest's robe step is on. */
+const robeLeft = () => lastQuest?.robeLock ?? [];
+const isRobePiece = (id: string) => robeLeft().some((pre) => id.startsWith(pre));
+const ROBE_ALLOWED = "#bag-tab, #inventory, #info, #dialog, #intro-skip, #creator";
+function robeBlock(e: Event) {
+  if (!robeLeft().length) return;
+  const t = e.target as Element | null;
+  if (t?.closest?.(ROBE_ALLOWED)) return;
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  if (e.type === "pointerdown" || e.type === "keydown") {
+    const bagTab = document.getElementById("bag-tab")!;
+    bagTab.classList.remove("wobble");
+    void bagTab.offsetWidth;
+    bagTab.classList.add("wobble");
+  }
+}
+for (const type of ["pointerdown", "pointerup", "click", "dblclick", "wheel", "touchstart", "contextmenu"]) window.addEventListener(type, robeBlock, { capture: true, passive: false });
+window.addEventListener("keydown", (e) => {
+  // Keys still turn the dialog's pages; walking and turning the camera wait.
+  if (robeLeft().length && /^(w|a|s|d|q|e|arrow\w+)$/i.test(e.key)) robeBlock(e);
+}, { capture: true });
 
 function bar(fraction: number) {
   const b = el("q-bar");
@@ -2771,7 +2824,8 @@ function bar(fraction: number) {
 /** The quest said in words: what to do, and what's wrong first. */
 function questWords(q: QuestView) {
   const who = q.giver ? `${q.quest}, from ${q.giver}.` : `${q.quest}.`;
-  return [who, q.warning ?? "", `${q.task}.`, q.progress ? `${q.progress}.` : ""].filter(Boolean).join(" ").replace(/\.\./g, ".");
+  const left = q.checklist?.filter((c) => !c.done).map((c) => c.label);
+  return [who, q.warning ?? "", `${q.task}.`, left?.length ? `Still to do: ${left.join(", ")}.` : q.progress ? `${q.progress}.` : ""].filter(Boolean).join(" ").replace(/\.\./g, ".");
 }
 let spokenQuest: string | null = null;
 
@@ -2805,7 +2859,12 @@ function renderTracker(flash = false) {
     title.prepend(speakButton(() => questWords(q), "Read the quest out loud"));
     questEl.append(title, el("q-task", (q.talk ? "❗ " : "") + q.task));
     if (q.warning) questEl.append(el("q-warn", `⚠️ ${q.warning}`));
-    if (q.need?.length) questEl.append(needPictures(q.need));
+    // Steps done in any order show a checklist, ticked as you go (version 0.21).
+    if (q.checklist?.length) {
+      const box = el("q-check");
+      for (const c of q.checklist) box.append(el(c.done ? "done" : "", c.label));
+      questEl.append(box);
+    } else if (q.need?.length) questEl.append(needPictures(q.need));
     else if (q.progress) questEl.append(el("q-progress", q.progress));
     if (q.fraction != null) questEl.append(bar(q.fraction));
     // A new step (or a new warning) is read out by itself.

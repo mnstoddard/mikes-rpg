@@ -17,7 +17,7 @@ export const TILE_COLORS: Record<Tile, number> = {
   void: 0x000000, door: 0x5c3a1a, lockeddoor: 0x3e2712, cobble: 0x9a958b, sand: 0xe0cc8e, withered: 0x8c8a4e, cliff: 0x5e5650,
   hedge: 0x2f6a2a, well: 0x9a958b, barricade: 0xb89b6a, roof: 0x8e3b2b, goldroof: 0xe2bd52, marblewall: 0xe2ddd0, marble: 0xf3efe4,
   glow: 0xfff1b8, carpet: 0xb8862b, statue: 0xf3efe4, table: 0xa47a4c, shelf: 0xa47a4c, crates: 0xa47a4c, bed: 0xc8c0e8, grave: 0x23432a, gravel: 0x7f8a5a,
-  brazier: 0xf3efe4, innerdoor: 0x8b5a2b,
+  brazier: 0xf3efe4, innerdoor: 0x8b5a2b, grille: 0x3a3a40,
   rampart: 0x8e8574, tower: 0x7a7262, citygate: 0x5a3a22, lamp: 0x9a958b, stall: 0xc0392b,
   gateway: 0x9a958b, cityblock: 0x8e3b2b, citystreet: 0x9a958b,
 };

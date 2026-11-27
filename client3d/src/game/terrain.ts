@@ -17,7 +17,7 @@ import { cityBackdrop, cityLand, emberhallCrown, gpuOnly, rampartBlock, RAMPART_
 import { treeKey, type ResourceId } from "../../../shared/foraging";
 import { NPCS } from "../../../shared/npcs";
 import { createEnv, house, TILE, type EnvPiece } from "../environment";
-import type { RoofKind, WallKind } from "../environment/building";
+import { door as makeDoor, type RoofKind, type WallKind } from "../environment/building";
 import { hash2, makeRng, noise2, mix, rockGeo, painted, WALL_H } from "../environment/kit";
 import { createTree, TREE_TYPES, type Tree, type TreeKind } from "../trees";
 import { createRock, ROCK_TYPES, type Rock, type RockKind } from "../rocks";
@@ -62,7 +62,7 @@ function floorOf(t: Tile, area: AreaDef): Ground | null {
 }
 
 /** Tiles with something standing on them get the ground of their neighbours underneath. */
-const STANDS_ON = new Set<Tile>(["tree", "rock", "dig", "sign", "fence", "gate", "hedge", "well", "barricade", "statue", "grave", "crates", "table", "shelf", "bed", "door", "lockeddoor", "brazier", "innerdoor", "rampart", "tower", "citygate", "lamp", "stall"]);
+const STANDS_ON = new Set<Tile>(["tree", "rock", "dig", "sign", "fence", "gate", "hedge", "well", "barricade", "statue", "grave", "crates", "table", "shelf", "bed", "door", "lockeddoor", "brazier", "innerdoor", "grille", "rampart", "tower", "citygate", "lamp", "stall"]);
 
 function groundUnder(x: number, y: number, area: AreaDef): Ground {
   for (let r = 1; r <= 3; r++) {
@@ -505,6 +505,21 @@ export class Terrain {
         band.deleteAttribute("uv");
         band.translate((x + 0.5) * TILE, h - 0.1, (y + 0.5) * TILE);
         blocks.push(painted(band, t === "marblewall" || a.id === "guild" ? 0xd4a640 : 0x5c3a1a));
+      } else if (t === "grille") {
+        // The restricted section's iron grille (version 0.21): bars you can see through, with rails, and a gold lock on the gate.
+        const along = MAP[y][x - 1] === "grille" || MAP[y][x + 1] === "grille" || MAP[y][x - 1] === "marblewall";
+        const bar = (w: number, h: number, d: number, px: number, py: number, color: number) => {
+          const g = new THREE.BoxGeometry(along ? w : d, h, along ? d : w).toNonIndexed();
+          g.deleteAttribute("uv");
+          g.translate((x + 0.5) * TILE + (along ? px : 0), py, (y + 0.5) * TILE + (along ? 0 : px));
+          blocks.push(painted(g, color));
+        };
+        const h = 2.2, n = 5;
+        for (let k = 0; k < n; k++) bar(0.07, h, 0.07, (k + 0.5) / n * TILE - TILE / 2, h / 2, 0x2c2a2e);
+        for (const py of [0.12, 1.1, h - 0.08]) bar(TILE, 0.08, 0.1, 0, py, 0x3a3640);
+        // Spikes along the top, and the gate's lock in the middle.
+        for (let k = 0; k < n; k++) bar(0.05, 0.22, 0.05, (k + 0.5) / n * TILE - TILE / 2, h + 0.1, 0x2c2a2e);
+        if (MAP[y][x - 2] === "grille" && MAP[y][x + 2] === "grille") bar(0.3, 0.36, 0.16, 0, 1.1, 0xd4a640);
       } else if (t === "rampart" || t === "tower" || t === "citygate" || t === "gateway") {
         blocks.push(...rampartBlock(t, x, y));
       } else if (t === "cavewall") {
@@ -655,11 +670,14 @@ export class Terrain {
     const object = new THREE.Group();
     object.position.copy(tileCenter(x, y));
     const marble = a.id === "lighthall";
-    const piece = createEnv("wall-door", { variant: marble ? 1 : 0, seed: x * 7 + y });
+    // Square-topped (an arched top would poke out over the wall), and no dark panel behind it: open, you see the next room
+    // (Mike's notes, version 0.21).
+    const piece = makeDoor({ length: TILE, variant: 0, seed: x * 7 + y, hollow: true });
     piece.object.scale.setScalar(0.95);
     piece.object.rotation.y = face;
     object.add(piece.object);
-    // The wall either side of the door (the doorway is wider than the door), and a strip over it.
+    // The wall either side of the door (the doorway is wider than the door). Nothing over it: you look down from above,
+    // and a strip over the doorway only hid the door (Mike's note, version 0.21).
     const col = marble ? 0xf2efe8 : a.id === "guild" ? 0x6a4a9a : 0x9c6a42;
     const wallMat = withWallCut(new THREE.MeshStandardMaterial({ color: col, roughness: 0.9 }));
     const geos: THREE.BufferGeometry[] = [];
@@ -675,11 +693,6 @@ export class Terrain {
       holder.add(m);
       object.add(holder);
     }
-    const top = new THREE.BoxGeometry(TILE, 0.12, TILE);
-    geos.push(top);
-    const lintel = new THREE.Mesh(top, wallMat);
-    lintel.position.y = 2.16;
-    object.add(lintel);
     // Tap anywhere on the door, not just the floor under it.
     const pick = new THREE.Mesh(DOOR_PICK, PICK_MAT);
     pick.position.y = 1.3;
