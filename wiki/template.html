@@ -169,6 +169,28 @@ body.no-secrets .secret-only { display: none; }
 }
 @media (max-width: 520px) { .brand b { font-size: 19px; } .top-in { gap: 10px; } }
 @media (prefers-reduced-motion: reduce) { .side { transition: none; } }
+
+/* Change notes: a button on each page that saves a note for Claude, and a page listing them. */
+.notebar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: -4px 0 14px; }
+.btn-note { font: inherit; font-size: 14px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--ember); background: var(--ember-soft); color: var(--ember); cursor: pointer; }
+.btn-note:hover { filter: brightness(.97); }
+.note-count { font-size: 13px; color: var(--muted); }
+.note-form { border: 1px solid var(--line); background: var(--paper); border-radius: 10px; padding: 12px; margin: 0 0 18px; display: grid; gap: 8px; }
+.note-form label { font-size: 13px; color: var(--muted); }
+.note-form select, .note-form textarea { font: inherit; font-size: 15px; width: 100%; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+.note-form textarea { min-height: 90px; resize: vertical; }
+.note-form .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.note-form .msg { font-size: 13px; color: var(--muted); }
+.btn-plain { font: inherit; font-size: 14px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--soft); color: var(--ink); cursor: pointer; }
+.btn-go { font: inherit; font-size: 14px; padding: 6px 14px; border-radius: 8px; border: 0; background: var(--ember); color: #fff; cursor: pointer; }
+.notes-list { display: grid; gap: 10px; }
+.note-card { border: 1px solid var(--line); background: var(--paper); border-radius: 10px; padding: 10px 12px; }
+.note-card.done { opacity: .65; }
+.note-card .meta { font-size: 13px; color: var(--muted); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.note-card .text { margin: 6px 0; white-space: pre-wrap; }
+.note-card .reply { font-size: 14px; border-left: 3px solid var(--ember); padding-left: 8px; color: var(--muted); }
+.tag { font-size: 12px; padding: 1px 8px; border-radius: 99px; background: var(--soft); }
+.tag.open { background: var(--ember-soft); color: var(--ember); }
 </style>
 
 <header class="top">
@@ -217,7 +239,7 @@ function drawSide(current) {
   const counts = {}; for (const p of WIKI.pages) counts[p.c] = (counts[p.c] || 0) + 1;
   side.innerHTML = `<h3>Start</h3><a href="#main-page" class="${current === "main-page" ? "on" : ""}"><span>Main page</span></a><a href="#maps" class="${current === "maps" ? "on" : ""}"><span>🗺️ Maps</span></a><a href="#random"><span>Random page</span></a>` +
     `<h3>Categories</h3>` + WIKI.categories.map((c) => `<a href="#${catSlug(c)}" class="${current === catSlug(c) ? "on" : ""}"><span>${CAT_ICONS[c] || ""} ${esc(c)}</span><span>${counts[c]}</span></a>`).join("") +
-    `<h3>This wiki</h3><a href="#how-to-update-the-wiki"><span>How to update it</span></a><a href="#names"><span>Names</span></a><a href="#version-history"><span>Game version ${esc(WIKI.version)}</span></a>`;
+    `<h3>This wiki</h3>${notesDb ? `<a href="#notes" class="${current === "notes" ? "on" : ""}"><span>📝 Change notes</span><span>${openCount() || ""}</span></a>` : ""}<a href="#how-to-update-the-wiki"><span>How to update it</span></a><a href="#names"><span>Names</span></a><a href="#version-history"><span>Game version ${esc(WIKI.version)}</span></a>`;
 }
 
 // ---- pages ----
@@ -240,7 +262,7 @@ function showPage(p) {
   let extra = "";
   if (p.s === "main-page") extra = mainExtras();
   view.innerHTML = `<div class="crumb"><a href="#${catSlug(p.c)}">${CAT_ICONS[p.c] || ""} ${esc(p.c)}</a></div><h1>${esc(p.t)}</h1>` +
-    (p.sum ? `<p class="lede">${p.sum}</p>` : `<div class="lede"></div>`) +
+    (p.sum ? `<p class="lede">${p.sum}</p>` : `<div class="lede"></div>`) + noteBar(p) +
     `<div class="content">${infobox(p)}${toc(p.h)}${p.h}${extra}</div>` +
     `<div class="foot"><div>${made}${p.r ? ` Some names here were swapped from the game's old ones (see <a href="#names">Names</a>).` : ""}</div>` +
     `<div class="chips">Category: <a class="chip" href="#${catSlug(p.c)}">${esc(p.c)}</a></div>` +
@@ -340,6 +362,7 @@ function route() {
   let h = decodeURIComponent(location.hash.slice(1)) || "main-page";
   if (h === "random") { const p = WIKI.pages[Math.floor(Math.random() * WIKI.pages.length)]; location.replace("#" + p.s); return; }
   if (h === "search") { showSearch(lastQuery); drawSide(h); return; }
+  if (h === "notes") { showNotes(); drawSide(h); window.scrollTo(0, 0); return; }
   const cat = WIKI.categories.find((c) => catSlug(c) === h);
   if (cat) showCategory(cat); else showPage(bySlug.get(h) || bySlug.get("main-page"));
   drawSide(h);
@@ -388,4 +411,90 @@ const applySecrets = () => { document.body.classList.toggle("no-secrets", !secre
 secrets.addEventListener("change", applySecrets);
 applySecrets();
 route();
+// ---- change notes (saved in the artifact's shared store, so Claude can read them) ----
+var notesDb = null, notes = [], notesErr = "";
+var NOTE_KEY = "wiki-note-draft";
+const pageNotes = (slug) => notes.filter((n) => n.page === slug);
+const openCount = () => notes.filter((n) => n.status !== "done").length;
+function whenStr(t) { try { return new Date(t).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); } catch { return ""; } }
+function noteBar(p) {
+  if (!notesDb) return "";
+  const n = pageNotes(p.s).filter((x) => x.status !== "done").length;
+  return `<div class="notebar"><button class="btn-note" data-note-open>✏️ Suggest a change</button>` +
+    (n ? `<a class="note-count" href="#notes">${n} open note${n > 1 ? "s" : ""} on this page</a>` : "") + `</div><div id="noteSlot"></div>`;
+}
+function openNoteForm(p) {
+  const slot = document.getElementById("noteSlot"); if (!slot) return;
+  const heads = [...p.h.matchAll(/<h[23] id="[^"]+">(.*?)<\/h[23]>/g)].map((m) => strip(m[1]));
+  let draft = ""; try { draft = sessionStorage.getItem(NOTE_KEY + p.s) || ""; } catch {}
+  slot.innerHTML = `<form class="note-form"><label>Which part?</label><select name="part"><option>The whole page</option>${heads.map((h) => `<option>${esc(h)}</option>`).join("")}</select>` +
+    `<label>What should change?</label><textarea name="text" placeholder="For example: Holt should count trees at the valley's edge, not the Thornwood."></textarea>` +
+    `<div class="row"><button class="btn-go" type="submit">Save note</button><button class="btn-plain" type="button" data-note-cancel>Cancel</button><span class="msg"></span></div></form>`;
+  const form = slot.querySelector("form"), ta = form.text, msg = form.querySelector(".msg");
+  ta.value = draft; ta.focus();
+  ta.addEventListener("input", () => { try { sessionStorage.setItem(NOTE_KEY + p.s, ta.value); } catch {} });
+  form.querySelector("[data-note-cancel]").onclick = () => { slot.innerHTML = ""; };
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const text = ta.value.trim(); if (!text) { msg.textContent = "Type a note first."; return; }
+    form.querySelector("button[type=submit]").disabled = true; msg.textContent = "Saving…";
+    try {
+      await notesDb.collection("notes").add({ page: p.s, title: p.t, part: form.part.value, text, status: "open", reply: "", created: new Date().toISOString() });
+      try { sessionStorage.removeItem(NOTE_KEY + p.s); } catch {}
+      slot.innerHTML = `<p class="note-count">✅ Saved. You'll find it under <a href="#notes">Change notes</a>. Tell Claude when you've left a batch.</p>`;
+    } catch (err) {
+      form.querySelector("button[type=submit]").disabled = false;
+      msg.textContent = "Couldn't save it (" + (err && err.code || "error") + "). Your text is kept; try again.";
+    }
+  };
+}
+function showNotes() {
+  const list = [...notes].sort((a, b) => (a.status === "done") - (b.status === "done") || String(b.created).localeCompare(String(a.created)));
+  const card = (n) => `<div class="note-card ${n.status === "done" ? "done" : ""}"><div class="meta"><span class="tag ${n.status === "done" ? "" : "open"}">${n.status === "done" ? "Done" : "Open"}</span>` +
+    `<a href="#${esc(n.page)}">${esc(n.title || n.page)}</a>${n.part && n.part !== "The whole page" ? `<span>· ${esc(n.part)}</span>` : ""}<span>· ${esc(whenStr(n.created))}</span>` +
+    `<span style="margin-left:auto;display:flex;gap:6px"><button class="btn-plain" data-note-toggle="${esc(n.id)}">${n.status === "done" ? "Reopen" : "Mark done"}</button><button class="btn-plain" data-note-del="${esc(n.id)}">Delete</button></span></div>` +
+    `<div class="text">${esc(n.text)}</div>${n.reply ? `<div class="reply">Claude: ${esc(n.reply)}</div>` : ""}</div>`;
+  view.innerHTML = `<div class="crumb"><a href="#main-page">Main page</a></div><h1>📝 Change notes</h1>` +
+    `<p class="lede">Notes left with the ✏️ Suggest a change button on any page. Claude reads them, makes the changes, marks them done and replies under each one.</p><div class="content">` +
+    (!notesDb ? `<p>${notesErr || "Change notes only work when the wiki is opened on claude.ai while signed in."}</p>` :
+      list.length ? `<div class="notes-list">${list.map(card).join("")}</div>` : `<p>No notes yet. Open any page and press ✏️ Suggest a change.</p>`) + `</div>`;
+  document.title = "Change notes · Emberfall Wiki";
+}
+view.addEventListener("click", async (e) => {
+  if (e.target.closest("[data-note-open]")) { const p = bySlug.get(decodeURIComponent(location.hash.slice(1)) || "main-page") || bySlug.get("main-page"); openNoteForm(p); return; }
+  const t = e.target.closest("[data-note-toggle]"), d = e.target.closest("[data-note-del]");
+  if (!notesDb || !(t || d)) return;
+  const id = (t || d).dataset.noteToggle || (t || d).dataset.noteDel;
+  const n = notes.find((x) => x.id === id); if (!n) return;
+  try {
+    if (t) await notesDb.doc("notes/" + id).update({ status: n.status === "done" ? "open" : "done" });
+    else if (d.dataset.armed) await notesDb.doc("notes/" + id).delete();
+    else { d.dataset.armed = "1"; d.textContent = "Sure? Delete"; }
+  } catch (err) { (t || d).textContent = "Couldn't change it"; }
+});
+(async () => {
+  try {
+    notesDb = window.claude && typeof window.claude.use === "function" ? await window.claude.use("db") : null;
+  } catch { notesDb = null; }
+  if (!notesDb) { notesErr = ""; return; }
+  const timer = setTimeout(() => { notesErr = "The notes are taking a while to load."; }, 10000);
+  notesDb.collection("notes").onSnapshot((snap) => {
+    clearTimeout(timer);
+    notes = snap.docs.map((d) => ({ id: d.id, ...(d.data() || {}) }));
+    const h = decodeURIComponent(location.hash.slice(1));
+    if (h === "notes") showNotes(); else refreshBar();
+    drawSide(h || "main-page");
+  }, (err) => { clearTimeout(timer); notesErr = "Couldn't load the notes (" + (err && err.code || "error") + ")."; });
+  refreshBar(); drawSide(decodeURIComponent(location.hash.slice(1)) || "main-page");
+})();
+/** Put the note button on the page being shown (or update its count) without re-drawing the page. */
+function refreshBar() {
+  const h = decodeURIComponent(location.hash.slice(1)) || "main-page";
+  const p = bySlug.get(h); if (!p || !notesDb) return;
+  const tmp = document.createElement("div"); tmp.innerHTML = noteBar(p);
+  const nb = view.querySelector(".notebar");
+  if (nb) nb.replaceWith(tmp.firstElementChild);
+  else { const c = view.querySelector(".content"); if (c) c.before(...tmp.childNodes); }
+}
+
 </script>
