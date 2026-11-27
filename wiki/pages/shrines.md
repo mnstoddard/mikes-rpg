@@ -26,16 +26,18 @@ Over the centuries the Emberguard built **small shrines** along every road, so a
 The Drowned Shrine off [[Saltmere Coast]], one of the oldest small shrines, sank with a carving that still reads: *"The shrines shall close when the land is healed."*
 
 ::: secret
-## What they really do
+## What's really wrong
 
-The great shrines were built with good intentions: to catch the wild ember and turn it into Emberborn. They still do. But each shrine also draws ember toward itself, and over the centuries the Circle learned to live on what flowed in.
+**The shrines are good.** They do what the Circle built them to do: draw warmth up from [[The Emberheart]], spread it out over the land, and give Emberborn their bodies. Land near a shrine is warm and green, and always has been.
 
-- **The small shrines are taps.** Each one quietly draws [[The ember|ember]] out of the land around it and sends it along an invisible thread to its great shrine. That's why trees die nearest the small roadside shrines, while the cities around the great shrines thrive.
-- **The great shrines are pools.** The ember gathers there. Some of it warms the city, so the people living there see only the good the shrines do. The rest feeds the shrine's keeper, one of [[The Undying]].
-- **The Heart Shrine is the deepest pool.** Every [[Radiance Ceremony]] pours a champion's ember down its thread to Vale.
-- **The land far away goes cold.** That's [[The Withering]], and each region withers in its own way.
+The problem is what's tied to them.
 
-Each time an Emberborn falls and comes back, the shrine skims a little ember off them ([[The Tithe]]).
+- **Every shrine has a thread.** Each small shrine is threaded to its great shrine, and each great shrine is threaded to [[The Heart Shrine]]. The threads were meant to share warmth between them.
+- **Vale drinks from the threads.** Over the centuries Vale, and the rest of [[The Undying]] on a smaller scale, learned to pull ember back down the threads to live on. Vale takes far more than is healthy, and more every century.
+- **So every shrine has less to give.** A shrine still warms the land, but its warmth doesn't reach as far as it used to. The land at the very edge of a shrine's reach goes cold first. That's [[The Withering]], and it creeps **inward** from the far edges toward the shrines, a little closer every year.
+- **The cities see only the warmth.** They're right next to the great shrines, so they feel nothing missing. The people who notice are the ones who live or work at the edges: foresters, farmers, hunters, herbalists.
 
-In Act 4, players learn from Wick how to **turn** a great shrine, so it gives ember back to the land instead of taking it.
+Each time an Emberborn falls and comes back, the shrine skims a little ember off them and sends it down the thread ([[The Tithe]]). Every [[Radiance Ceremony]] sends a whole champion's ember down the Heart Shrine's thread to Vale.
+
+In Act 4, players learn from Wick how to **free** a great shrine: cut its thread to the Heart Shrine, so everything it draws goes back out to the land. A freed shrine's warmth spreads outward again, and the region starts to heal from the shrine toward the edges.
 :::

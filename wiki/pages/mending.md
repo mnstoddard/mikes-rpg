@@ -17,6 +17,6 @@ summary: Repeatable quests in every region, at every level, to fight the Witheri
 
 Each player has a Mending score in each region. As it grows, that region visibly heals for them: grass returns, trees glow again, the fog lifts, the ice pulls back.
 
-Before Act 4, the Emberguard hand out the Mending as "fighting the Blight". After Act 4, when the great shrines have been turned, the land heals faster, and Mending quests also gather what the [[Ember Seed]] needs.
+Before Act 4, the Emberguard hand out the Mending as "fighting the Blight". After Act 4, when the great shrines have been freed, the land heals faster, and Mending quests also gather what the [[Ember Seed]] needs.
 
 Not in the game yet.

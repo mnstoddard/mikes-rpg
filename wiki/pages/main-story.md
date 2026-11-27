@@ -9,10 +9,10 @@ You start as a [[Hopefuls|Hopeful]], not a member. [[The Emberguard]]'s trials t
 | Act | Where, levels | What happens | Trial mark |
 |---|---|---|---|
 | **Prologue: Awakening** (built) | [[The Emberhall]] and [[Emberhold]], 1 to 10 | The tutorial. You wake at [[The Heart Shrine]], take Brother Oren's tour, and learn every skill from the townsfolk. Then you swear the Oath of the Flame to be allowed to try for the Emberguard. | Ember |
-| **Act 1: The First Trial** (built, changes planned) | [[Heartvale]] only, 5 to 20 | You learn the base story and prove yourself around home. Small things feel off: trees die near the shrines, and the land at the valley's edge turns to grey dust. | Flame |
+| **Act 1: The First Trial** (built, changes planned) | [[Heartvale]] only, 5 to 20 | You learn the base story and prove yourself around home. Small things feel off: the land at the valley's edge is dying, and the edge is creeping closer every year. | Flame |
 | **Act 2: The Outer Shrines** | All six outer regions, 20 to 40 | The roads open. You travel to every region's city, meet its [[Emberwardens|Emberwarden]], and do the first tier of its quests (the *Arrival* stage). | Blaze |
 | **Act 3: The Far Reaches** | The outer reaches of all six regions, 40 to 60 | You head into the withering wilds far from the cities (the *Wilds* stage), then take each Emberwarden's trial and relight their great shrine (the *Trial* stage). It ends with your invitation, and the truth. | Radiant |
-| **Act 4: The Truth** | All six regions, [[Frostfell]], [[The Hollow Heart]], 60 to 75 | You hunt down the Emberwardens one by one and turn their great shrines. You thaw Wick's shrine in Frostfell, then face Vale at the Emberheart. | |
+| **Act 4: The Truth** | All six regions, [[Frostfell]], [[The Hollow Heart]], 60 to 75 | You hunt down the Emberwardens one by one and free their great shrines. You thaw Wick's shrine in Frostfell, then face Vale at the Emberheart. | |
 | **Endgame: The Seed** | [[The Sundered Crown]] and every region, 75+ | You search Whitestone's ruins for the [[Ember Seed]], gather what it needs to be finished, and stop Vale coming back. Alongside it runs [[The Mending]]. | |
 
 The Prologue and Act 1 are in the game: see [[Quests]] for every built quest, step by step.
@@ -29,10 +29,10 @@ Act 1 stays inside [[Heartvale]]. Keeper Aldric gives most of it. These are the 
 | Tithe Tonics | [[Alchemist Moss]] | Brew five Tithe tonics. | "They sell the cure for a debt they put on you." | |
 | The Totem | [[Woodworker Rook]] | Chop oak for a shrine totem and deliver it. | Rook hides a note in it. | |
 | Ash on the Road | [[Captain Bryn]] | Drive Ashbound scouts off the Westroad shrine. | A dropped note: "They aren't what they seem." | |
-| Rebuild the Shrine | Keeper Aldric | Bring oak and bronze and rebuild the Westroad shrine. | The grass around it turns brown. | |
-| What Holt Saw | [[Forester Holt]] | Count dead trees in six places. | 28 dead near shrines, 2 far away. | Move the Thornwood gate and Greyspine foothill spots to Heartvale meadows. |
-| Odo's Stubborn Field | [[Farmer Odo]] | Grow four crops with no blessing. | The ground grew fine before the shrines. | |
-| The Hollow Wolves | [[Huntmaster Kael]] | Clear five Blighted wolves. | "The Blight is always worst downhill of a shrine." | Move the pack from Wolf Hollow (Thornwood) to the grey-dust edge of the valley, raiding the pasture. |
+| Rebuild the Shrine | Keeper Aldric | Bring oak and bronze and rebuild the Westroad shrine. | The grass around it greens in a ring, but the ring is small. A thin thread of light runs from the flame east along the road toward Emberhold. | Change the shrine's lit line: green grass, not brown, and the thread. |
+| What Holt Saw | [[Forester Holt]] | Count dead trees in six places. | 2 dead near shrines, 28 out at the valley's edge, where his father counted almost none forty years ago. The edge is moving in. | Flip the numbers. Move the Thornwood gate and Greyspine foothill spots to Heartvale: three near shrines, three at the valley's edge. |
+| Odo's Stubborn Field | [[Farmer Odo]] | Grow four crops with no blessing. | A blessing lasted a season in his gran's day, and barely a week now. The shrines have less to give every year: where's it going? | Reword Odo's last line. |
+| The Hollow Wolves | [[Huntmaster Kael]] | Clear five Blighted wolves. | "The Blight is always worst furthest from a shrine, and the line gets closer every year." | Move the pack from Wolf Hollow (Thornwood) to the grey-dust edge of the valley, raiding the pasture. |
 | Maren's Question | [[Old Maren]] | Talk to Maren. | She asks if you felt something was taken when you came back. | Reword: she isn't an Emberborn, but after decades of caring for them she's noticed they come back "a little less". She asks out of worry. |
 | A Flame at the Valley's Edge | Keeper Aldric | Escort two Emberguard to the edge of the valley, protect them, and light a new roadside shrine. | You meet [[Rhys]]. Aldric names you a Flame. | Replaces *A Flame in the Thornwood*, which is outside Heartvale and says "the Thornwood has never had a shrine". |
 
@@ -52,7 +52,7 @@ Each region is a ring: safe around its great shrine, and more dangerous the furt
 
 - **Act 2, after 3 Arrivals:** a Radiance Ceremony is announced in Emberhold, and you watch a champion you know go into the light.
 - **Act 2, after all 6 Arrivals:** you earn Blaze, and the outer reaches open (Act 3).
-- **Act 3, after 2 Trials:** you see the grass die around a great shrine you just relit.
+- **Act 3, after 2 Trials:** you relight a great shrine and warmth rolls out across the land, then is pulled back down a thread of light toward Heartvale. Something is drinking from the shrines.
 - **Act 3, after 4 Trials:** Rhys is invited to his Joining first. He comes back up the Emberhall stair drained, grey and back to level 1. You go looking for him, and find him with the Ashbound.
 - **Act 3, after all 6 Trials:** you earn Radiant, and your own invitation comes.
 
@@ -67,11 +67,11 @@ After Rhys is drained, Sable takes you to meet Wick, and you hear the true histo
 
 ## Act 4: The Truth
 
-- **Cut free:** Wick cuts your thread from the Heart Shrine so the Undying can't drain you. Ash starts to creep up your hands, the Tithe ends, and you rise at Ashbound hearths until you've turned a shrine of your own.
-- **The Emberwardens:** you hunt down all six, in any order. Each time one falls, Wick shows you how to **turn** their great shrine, so it gives ember back to the land instead of taking it. Each region gets warmer straight away. Unmasking Ivy and Reed as impostors is part of it.
-- **Frostfell:** the last stop before Vale. You thaw Wick's frozen shrine and turn it first, which gives Wick back enough strength to face Vale beside you.
+- **Cut free:** Wick cuts your thread from the Heart Shrine so the Undying can't drain you. Ash starts to creep up your hands, the Tithe ends, and you rise at Ashbound hearths until you've freed a shrine of your own.
+- **The Emberwardens:** you hunt down all six, in any order. Each time one falls, Wick shows you how to **free** their great shrine: cut its thread to the Heart Shrine, so everything it draws goes back out to the land. The warmth spreads outward from the shrine, and the region's edges start to heal. Unmasking Ivy and Reed as impostors is part of it.
+- **Frostfell:** the last stop before Vale. You thaw Wick's frozen shrine and free it, which gives Wick back enough strength to face Vale beside you.
 - **Vale:** you unmask [[Enchanter Vale]] and fight him in [[The Hollow Heart]], at the Emberheart.
-- **The catch:** when Vale falls, every shrine shudders. The shrines are what hold the Emberborn together. Turned shrines keep them alive for now, but Wick warns it won't last: without a lasting fix, every Emberborn will slowly fade. That sets up the endgame.
+- **The catch:** when Vale falls, every shrine shudders. The shrines are what hold the Emberborn together. Freed shrines keep them alive for now, but Wick warns it won't last: without a lasting fix, every Emberborn will slowly fade. That sets up the endgame.
 
 ## Endgame: The Seed
 
@@ -87,7 +87,7 @@ Alongside the story, every region has repeatable quests at every level to fight 
 
 ## How the ash marks work in play
 
-After Wick cuts your thread in Act 4, grey ash marks slowly spread up your character's hands, Ember Debt ends, and you rise at Ashbound hearths, then at the great shrines you've turned. You never actually crumble away.
+After Wick cuts your thread in Act 4, grey ash marks slowly spread up your character's hands, Ember Debt ends, and you rise at Ashbound hearths, then at the great shrines you've freed. You never actually crumble away.
 
 ## Changes still to make in the game
 
