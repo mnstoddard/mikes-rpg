@@ -1,0 +1,251 @@
+[
+ {
+  "name": "Hero_Man",
+  "file": "hero_man",
+  "who": "man",
+  "cfg": {},
+  "outfit": [
+   {
+    "name": "Tunic",
+    "kind": "shirt",
+    "sleeve": "long",
+    "color": "#E9DFC8",
+    "push": 0.009,
+    "tex": "linen"
+   },
+   {
+    "name": "Trousers",
+    "kind": "trousers",
+    "color": "#5A3A22",
+    "rough": 0.8,
+    "tex": "leather",
+    "tint": "#9a8476"
+   },
+   {
+    "name": "Belt",
+    "kind": "belt",
+    "color": "#8A5A34",
+    "rough": 0.65,
+    "tex": "leather"
+   },
+   {
+    "name": "Boots",
+    "kind": "boots",
+    "color": "#5A3A22",
+    "rough": 0.65,
+    "height": 0.3,
+    "tex": "leather",
+    "tint": "#9a8476"
+   }
+  ]
+ },
+ {
+  "name": "Hero_Woman",
+  "file": "hero_woman",
+  "who": "woman",
+  "cfg": {},
+  "outfit": [
+   {
+    "name": "Tunic",
+    "kind": "shirt",
+    "sleeve": "long",
+    "color": "#E9DFC8",
+    "push": 0.009,
+    "tex": "linen"
+   },
+   {
+    "name": "Trousers",
+    "kind": "trousers",
+    "color": "#5A3A22",
+    "rough": 0.8,
+    "tex": "leather",
+    "tint": "#9a8476"
+   },
+   {
+    "name": "Belt",
+    "kind": "belt",
+    "color": "#8A5A34",
+    "rough": 0.65,
+    "tex": "leather"
+   },
+   {
+    "name": "Boots",
+    "kind": "boots",
+    "color": "#5A3A22",
+    "rough": 0.65,
+    "height": 0.3,
+    "tex": "leather",
+    "tint": "#9a8476"
+   }
+  ]
+ },
+ {
+  "name": "Old_Maren",
+  "file": "npc_maren",
+  "who": "woman",
+  "cfg": {
+   "skin": 1,
+   "hairCol": 6,
+   "eye": 0,
+   "hair": "bun",
+   "height": -0.8,
+   "weight": 0.5,
+   "hips": 0.4,
+   "belly": 0.4,
+   "muscle": -0.5,
+   "cheeks": 0.3
+  },
+  "outfit": [
+   {
+    "name": "Blouse",
+    "kind": "shirt",
+    "sleeve": "long",
+    "color": "#E9DFC8",
+    "tex": "linen"
+   },
+   {
+    "name": "Bodice",
+    "kind": "shirt",
+    "sleeve": "none",
+    "color": "#4F7F45",
+    "push": 0.014,
+    "neck": 0.09,
+    "tex": "wool_green"
+   },
+   {
+    "name": "Skirt",
+    "kind": "skirt",
+    "color": "#3F64A8",
+    "flare": 0.85,
+    "double": true,
+    "tex": "wool_blue"
+   },
+   {
+    "name": "Boots",
+    "kind": "boots",
+    "color": "#5A3A22",
+    "rough": 0.65,
+    "height": 0.14,
+    "tex": "leather",
+    "tint": "#9a8476"
+   }
+  ],
+  "dropCovered": true
+ },
+ {
+  "name": "Smith_Brann",
+  "file": "npc_brann",
+  "who": "man",
+  "cfg": {
+   "skin": 4,
+   "hairCol": 0,
+   "eye": 2,
+   "hair": "buzz",
+   "beard": "full",
+   "muscle": 1,
+   "weight": 0.6,
+   "shoulders": 0.7,
+   "belly": 0.3,
+   "jaw": 0.6,
+   "height": 0.3
+  },
+  "outfit": [
+   {
+    "name": "Shirt",
+    "kind": "shirt",
+    "sleeve": "short",
+    "color": "#B4473C",
+    "tex": "wool_red"
+   },
+   {
+    "name": "Trousers",
+    "kind": "trousers",
+    "color": "#5A3A22",
+    "rough": 0.8,
+    "tex": "leather",
+    "tint": "#9a8476"
+   },
+   {
+    "name": "Boots",
+    "kind": "boots",
+    "color": "#3d2a1a",
+    "rough": 0.6,
+    "height": 0.32,
+    "tex": "leather",
+    "tint": "#6e6058"
+   },
+   {
+    "name": "Apron",
+    "kind": "apron",
+    "color": "#8A5A34",
+    "rough": 0.6,
+    "push": 0.024,
+    "tex": "leather"
+   }
+  ],
+  "dropCovered": true
+ },
+ {
+  "name": "Repairer_Oswin",
+  "file": "npc_oswin",
+  "who": "man",
+  "cfg": {
+   "skin": 1,
+   "hairCol": 7,
+   "eye": 4,
+   "hair": "short",
+   "beard": "mustache",
+   "height": -0.4,
+   "muscle": -0.5,
+   "weight": 0.3,
+   "belly": 0.6,
+   "noseBridge": 0.4,
+   "nose": 0.3
+  },
+  "outfit": [
+   {
+    "name": "Shirt",
+    "kind": "shirt",
+    "sleeve": "long",
+    "color": "#3F64A8",
+    "tex": "wool_blue"
+   },
+   {
+    "name": "Vest",
+    "kind": "shirt",
+    "sleeve": "none",
+    "color": "#8A5A34",
+    "rough": 0.65,
+    "push": 0.016,
+    "neck": 0.08,
+    "tex": "leather"
+   },
+   {
+    "name": "Trousers",
+    "kind": "trousers",
+    "color": "#6b5a44",
+    "rough": 0.85,
+    "tex": "burlap",
+    "tint": "#8c8478"
+   },
+   {
+    "name": "Belt",
+    "kind": "belt",
+    "color": "#5A3A22",
+    "rough": 0.65,
+    "tex": "leather",
+    "tint": "#9a8476"
+   },
+   {
+    "name": "Boots",
+    "kind": "boots",
+    "color": "#5A3A22",
+    "rough": 0.65,
+    "height": 0.22,
+    "tex": "leather",
+    "tint": "#9a8476"
+   }
+  ],
+  "dropCovered": true
+ }
+]

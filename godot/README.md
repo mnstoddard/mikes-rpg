@@ -18,6 +18,8 @@ Render ignores this folder.
 - `assets/environment/emberfall_day.tres` and `emberfall_lighting.tscn`: the
   sky, sun, fog and colour settings from the style guide. Drop the scene into
   any test scene to see things lit the Emberfall way.
+- `assets/characters/`: the people (hero, NPCs) and creatures as `.glb`
+  models with skeletons and motions. See `assets/characters/README.md`.
 - `tools/`: the Python scripts that make all of the above. Every texture is
   generated from code, so it can be tweaked and remade at any time.
 
