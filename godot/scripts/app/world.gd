@@ -153,8 +153,7 @@ func _enter_area(a: Dictionary) -> void:
 		if str(n.get("kind", "")) != "person" or not _in_area(int(n.x), int(n.y)):
 			continue
 		var av := Avatar.new()
-		var look := str(n.id) if Avatar.PEOPLE.has(str(n.id)) else ("hero_woman" if hash(str(n.id)) % 2 == 1 else "hero_man")
-		av.setup("npc", look, str(n.name), Color.hex((int(n.get("color", 0xcccccc)) << 8) | 0xff))
+		av.setup("npc", str(n.id), str(n.name), Color.hex((int(n.get("color", 0xcccccc)) << 8) | 0xff))
 		add_child(av)
 		av.place(WorldMap.to_world(float(n.x) + 0.5, float(n.y) + 0.5, map.ground(int(n.x), int(n.y))))
 		avatars["n:" + str(n.id)] = av

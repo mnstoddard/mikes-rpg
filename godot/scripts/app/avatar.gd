@@ -3,26 +3,32 @@
 class_name Avatar
 extends Node3D
 
-const PEOPLE := {
-	"hero_man": "res://assets/characters/people/hero_man.glb",
-	"hero_woman": "res://assets/characters/people/hero_woman.glb",
-	"maren": "res://assets/characters/people/npc_maren.glb",
-	"brann": "res://assets/characters/people/npc_brann.glb",
-	"oswin": "res://assets/characters/people/npc_oswin.glb",
+const PEOPLE_DIR := "res://assets/characters/people/"
+const CREATURE_DIR := "res://assets/characters/creatures/"
+## Monster kinds whose model has a different name: [folder, file, size].
+const MONSTER_MODELS := {
+	"spider": ["creature", "giant_spider", 1.0],
+	"goblin": ["people", "foe_goblin", 1.0],
+	"bandit": ["people", "foe_ashbound_raider", 1.0],
+	"ashbound_scout": ["people", "foe_ashbound_scout", 1.0],
 }
-const CREATURES := {
-	"chicken": "res://assets/characters/creatures/creature_chicken.glb",
-	"wolf": "res://assets/characters/creatures/creature_wolf.glb",
-	"alpha_wolf": "res://assets/characters/creatures/creature_wolf.glb",
-	"hollow_wolf": "res://assets/characters/creatures/creature_hollow_wolf.glb",
-	"boar": "res://assets/characters/creatures/creature_boar.glb",
-	"slime": "res://assets/characters/creatures/creature_slime.glb",
-}
-## Creatures without a model yet: [stand-in model, size].
-const STAND_INS := {
-	"rat": ["slime", 0.6], "cow": ["boar", 1.8], "giant_bat": ["chicken", 1.3], "cave_spider": ["slime", 1.2],
-	"spider": ["slime", 1.6], "goblin": ["hero_man", 0.65], "bandit": ["hero_man", 1.0], "ashbound_scout": ["hero_man", 1.0],
-}
+
+
+## The model file for a player ("hero_man"), townsperson (their id, e.g. "maren")
+## or monster kind ("wolf"). Townsfolk without their own model get a hero model.
+static func model_path(kind: String, look: String) -> Array:
+	if kind == "monster":
+		if MONSTER_MODELS.has(look):
+			var m: Array = MONSTER_MODELS[look]
+			return [(CREATURE_DIR + "creature_" if m[0] == "creature" else PEOPLE_DIR) + m[1] + ".glb", m[2]]
+		return [CREATURE_DIR + "creature_" + look + ".glb", 1.0]
+	if look.begins_with("hero_"):
+		return [PEOPLE_DIR + look + ".glb", 1.0]
+	var own := PEOPLE_DIR + "npc_" + look + ".glb"
+	if ResourceLoader.exists(own):
+		return [own, 1.0]
+	return [PEOPLE_DIR + ("hero_woman" if hash(look) % 2 == 1 else "hero_man") + ".glb", 1.0]
+
 
 var target := Vector3.ZERO
 var speed := 3.4 # metres per second; set from the server's step time
@@ -39,17 +45,9 @@ var running := false
 
 ## kind: "player", "npc" or "monster". look: which model ("hero_man", "maren", "wolf"...).
 func setup(kind: String, look: String, display_name: String, color: Color) -> void:
-	var path := ""
-	var scale_by := 1.0
-	if kind == "monster":
-		if CREATURES.has(look):
-			path = CREATURES[look]
-		elif STAND_INS.has(look):
-			var s: Array = STAND_INS[look]
-			path = CREATURES.get(s[0], PEOPLE.get(s[0], ""))
-			scale_by = s[1]
-	else:
-		path = PEOPLE.get(look, PEOPLE.hero_man)
+	var found := model_path(kind, look)
+	var path: String = found[0]
+	var scale_by: float = found[1]
 	if path != "" and ResourceLoader.exists(path):
 		_model = (load(path) as PackedScene).instantiate() as Node3D
 	else:
