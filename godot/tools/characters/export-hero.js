@@ -73,6 +73,47 @@ function skirt(L, from, to, flare, bi) {
   return g;
 }
 
+// a cape hanging from the shoulders behind the body
+function cape(L, spine, piece, bi) {
+  const rings = 18, segs = 32, pos = [], si = [], sw = [], uv = [], ix = [];
+  const top = L.neck - 0.02, hem = L.foot + (piece.hemUp ?? 0.25), w0 = L.shX + 0.06;
+  for (let r = 0; r <= rings; r++) { const t = r / rings, y = top + (hem - top) * t, fl = 1 + (piece.flare ?? 0.3) * t;
+    const wx = (0.13 + (w0 - 0.13) * smooth(0, 0.14, t)) * fl, wz = (0.13 + 0.05 * smooth(0, 0.14, t) + 0.06 * t) * fl;
+    for (let s = 0; s <= segs; s++) { const th = Math.PI * (0.5 + s / segs), x = Math.sin(th) * wx, z = Math.cos(th) * wz - 0.01;
+      pos.push(x, y, z); uv.push(s / segs * w0 * 6, y * 3);
+      const legW = smooth(0.35, 1, t) * 0.6, side = x > 0 ? 1 : 0, chest = 1 - smooth(0.1, 0.5, t);
+      si.push(bi['spine02'], bi.root, side ? bi['upperleg01.L'] : bi['upperleg01.R'], bi['neck01']);
+      const nk = 1 - smooth(0, 0.06, t);
+      sw.push(chest * (1 - nk), (1 - chest) * (1 - legW), (1 - chest) * legW, chest * nk); } }
+  for (let r = 0; r < rings; r++) for (let s = 0; s < segs; s++) { const a = r * (segs + 1) + s, b = a + segs + 1; ix.push(a, a + 1, b, b, a + 1, b + 1); }
+  const g = new T.BufferGeometry();
+  g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
+  g.setAttribute('skinIndex', new T.Uint16BufferAttribute(si, 4)); g.setAttribute('skinWeight', new T.Float32BufferAttribute(sw, 4));
+  g.setIndex(ix); g.computeVertexNormals(); return g;
+}
+
+// a hood: a soft dome round the head that falls onto the shoulders, open at the face
+function hood(D, L, H, bi, piece) {
+  const e = D.eyes[0].c, eyeY = (D.eyes[0].c[1] + D.eyes[1].c[1]) / 2;
+  const c = [0, eyeY + 0.015, e[2] - 0.115], rx = 0.13, ry = 0.15, rz = 0.15;
+  const rings = 26, segs = 40, pos = [], si = [], sw = [], uv = [], ix = [], keep = [];
+  for (let r = 0; r <= rings; r++) { const p = r / rings * 2.75;  // from the crown down past the chin
+    for (let s = 0; s <= segs; s++) { const a = s / segs * Math.PI * 2;  // a = 0 is the front
+      let k = 1 + Math.max(0, p - 1.75) * 0.9, x = Math.sin(p) * Math.sin(a) * rx * k, y = c[1] + Math.cos(p) * ry, z = c[2] + Math.sin(p) * Math.cos(a) * rz * k;
+      if (p > 1.75) { const q = p - 1.75; y = c[1] + Math.cos(1.75) * ry - q * 0.27; x = Math.sin(a) * (rx + q * q * 0.17); z = c[2] + Math.cos(a) * (rz * 0.92 + q * q * 0.06) - q * 0.02; }
+      pos.push(x, y, z); uv.push(s / segs * 2.5, r / rings * 1.5);
+      const lo = smooth(L.neck + 0.08, L.neck - 0.06, y);
+      si.push(bi.head, bi['neck01'], bi['spine02'], 0); sw.push(1 - lo, lo * 0.4, lo * 0.6, 0); } }
+  for (let r = 0; r < rings; r++) for (let s = 0; s < segs; s++) {
+    const a = (s + 0.5) / segs * Math.PI * 2, p = (r + 0.5) / rings * 2.75, front = Math.abs(Math.atan2(Math.sin(a), Math.cos(a)));
+    if (front < 0.9 * (1 - smooth(1.9, 2.3, p)) && p > 1.12) continue;  // the face opening
+    const A = r * (segs + 1) + s, B = A + segs + 1; ix.push(A, B, A + 1, B, B + 1, A + 1); }
+  const g = new T.BufferGeometry();
+  g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
+  g.setAttribute('skinIndex', new T.Uint16BufferAttribute(si, 4)); g.setAttribute('skinWeight', new T.Float32BufferAttribute(sw, 4));
+  g.setIndex(ix); g.computeVertexNormals(); return compact(g);
+}
+
 function hairTexture(color) { // the hair shader's root-to-tip shading, painted into a texture so any engine shows it
   const c = document.createElement('canvas'); c.width = 64; c.height = 64; const x = c.getContext('2d'), img = x.createImageData(64, 64), base = new T.Color(color);
   for (let j = 0; j < 64; j++) for (let i = 0; i < 64; i++) { const v = 1 - j / 63, u = i / 63;
@@ -85,7 +126,13 @@ const LOOP = new Set(['idle', 'walk', 'run', 'sneak', 'talk', 'look', 'block', '
 
 window.__exportPerson = async function (job) {
   X.renderer.setAnimationLoop(null);
-  await X.go({ state: { who: job.who, mode: 'create', tab: 'body', motion: 'idle' }, cfg: job.cfg, build: true, freeze: 0 });
+  // every person starts from the page's defaults, so one recipe never leaks into the next
+  window.__cfg0 = window.__cfg0 || JSON.parse(JSON.stringify(X.state.cfg));
+  X.state.cfg[job.who] = JSON.parse(JSON.stringify(window.__cfg0[job.who]));
+  const cfg = { ...job.cfg };
+  if (job.skinColor) { let i = X.SKINS.indexOf(job.skinColor); if (i < 0) { X.SKINS.push(job.skinColor); i = X.SKINS.length - 1; } cfg.skin = i; }
+  if (job.hairColor) { let i = X.HAIRS.indexOf(job.hairColor); if (i < 0) { X.HAIRS.push(job.hairColor); i = X.HAIRS.length - 1; } cfg.hairCol = i; }
+  await X.go({ state: { who: job.who, mode: 'create', tab: 'body', motion: 'idle' }, cfg, build: true, freeze: 0 });
   const h = X.hero();
   h.group.remove(X.props.held); h.group.remove(X.props.heldL);
   const D = X.morphed(await X.getData(job.who), X.state.cfg[job.who]);
@@ -125,7 +172,7 @@ window.__exportPerson = async function (job) {
       const ld = new T.TextureLoader(), base = 'tex/' + piece.tex + '/' + piece.tex;
       const TC = window.__texCache = window.__texCache || {};
       const [al, nm, orm] = TC[piece.tex] = TC[piece.tex] || await Promise.all(['_albedo', '_normal', '_orm'].map((s) => ld.loadAsync(base + s + '.png')));
-      for (const t of [al, nm, orm]) { t.wrapS = t.wrapT = T.RepeatWrapping; } al.colorSpace = T.SRGBColorSpace; al.userData.mimeType = 'image/jpeg';
+      for (const t of [al, nm, orm]) { t.wrapS = t.wrapT = T.RepeatWrapping; } al.colorSpace = T.SRGBColorSpace; for (const t of [al, nm, orm]) t.userData.mimeType = 'image/jpeg';
       Object.assign(mat, { map: al, normalMap: nm, aoMap: orm, roughnessMap: orm, metalnessMap: orm, roughness: 1, metalness: 1 });
       mat.normalScale.set(0.8, 0.8); mat.color.set(piece.tint || '#ffffff'); }
     mat.name = piece.name; let g;
@@ -140,9 +187,14 @@ window.__exportPerson = async function (job) {
     else if (piece.kind === 'apron') { const lo = piece.lo ?? L.knee + 0.05, hi = piece.hi ?? L.neck - 0.17, w = piece.w ?? 0.17;
       g = cut(D.parts.tights, tri3((p) => p[1] > lo && p[1] < hi && Math.abs(p[0]) < w + 0.03 && p[2] > (p[1] < crotch ? 0.0 : 0.03)), (v) => { v.y = Math.max(lo, Math.min(hi, v.y)); v.x = Math.max(-w, Math.min(w, v.x)); }, piece.push ?? 0.022); }
     else if (piece.kind === 'skirt') { g = skirt(L, L.waist + 0.02, L.foot + (piece.hemUp ?? 0.08), piece.flare ?? 0.9, bi); }
+    else if (piece.kind === 'hood') { g = hood(D, L, H, bi, piece); mat.side = T.DoubleSide; }
+    else if (piece.kind === 'cape') { g = cape(L, H('spine02'), piece, bi); }
+    else if (piece.kind === 'gloves') { g = cut(D.parts.body, any3((p) => Math.abs(p[0]) > L.wrX - 0.07), null, piece.push ?? 0.003); }
     else if (piece.kind === 'belt') { const lo = L.waist - 0.03, hi = L.waist + 0.025;
       g = cut(D.parts.tights, any3((p) => p[1] > lo && p[1] < hi && armR(p) < L.shX), (v) => { v.y = Math.max(lo, Math.min(hi, v.y)); }, piece.push ?? 0.02); }
     if (!g.attributes.uv) wrapUV(g, crotch);
+    { const k = piece.uvScale ?? (piece.tex === 'leather' ? 2 : 1), uv = g.attributes.uv; for (let i = 0; i < uv.array.length; i++) uv.array[i] *= k; }
+    if (piece.tex === 'leather') mat.normalScale.set(0.45, 0.45);
     const m = new T.SkinnedMesh(g, mat); m.name = piece.name; m.frustumCulled = false; h.group.add(m); m.bind(h.skeleton); made.push(m);
   }
   // Split the body into regions, so the parts under clothes can be hidden (no skin poking through, fewer triangles).
@@ -194,6 +246,8 @@ window.__exportPerson = async function (job) {
   }
   // rest on the first idle frame
   X.applyPose(h, X.MOTIONS[0].f(0));
+  if (job.hideHair) h.group.traverse((o) => { if (o.isMesh && /^Hair/.test(o.name)) o.visible = false; });
+  if (job.scale) h.group.scale.multiplyScalar(job.scale);
   h.group.name = job.name;
   h.group.updateMatrixWorld(true);
   let tris = 0; h.group.traverse((o) => { if (o.isMesh && o.visible) tris += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3; });

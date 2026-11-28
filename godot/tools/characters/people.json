@@ -130,7 +130,25 @@
     "tint": "#9a8476"
    }
   ],
-  "dropCovered": true
+  "dropCovered": true,
+  "motions": [
+   "idle",
+   "walk",
+   "run",
+   "talk",
+   "wave",
+   "bow",
+   "look",
+   "sit",
+   "drink",
+   "eat",
+   "pickup",
+   "hit",
+   "fall",
+   "defeat",
+   "fish",
+   "cook"
+  ]
  },
  {
   "name": "Smith_Brann",
@@ -183,7 +201,25 @@
     "tex": "leather"
    }
   ],
-  "dropCovered": true
+  "dropCovered": true,
+  "motions": [
+   "idle",
+   "walk",
+   "run",
+   "talk",
+   "wave",
+   "bow",
+   "look",
+   "sit",
+   "drink",
+   "eat",
+   "pickup",
+   "hit",
+   "fall",
+   "defeat",
+   "smith",
+   "smelt"
+  ]
  },
  {
   "name": "Repairer_Oswin",
@@ -246,6 +282,24 @@
     "tint": "#9a8476"
    }
   ],
-  "dropCovered": true
+  "dropCovered": true,
+  "motions": [
+   "idle",
+   "walk",
+   "run",
+   "talk",
+   "wave",
+   "bow",
+   "look",
+   "sit",
+   "drink",
+   "eat",
+   "pickup",
+   "hit",
+   "fall",
+   "defeat",
+   "smith",
+   "saw"
+  ]
  }
 ]
