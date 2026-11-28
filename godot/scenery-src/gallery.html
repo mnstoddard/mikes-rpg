@@ -1,0 +1,90 @@
+<title>Emberfall Scenery Workshop</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: a field-guide sidebar of every object on the left, the live 3D stage filling the rest,
+   with a small specimen card floating over the stage. One deliberate dark look (like a workshop at dusk). */
+:root {
+  --bg: #15171a;
+  --panel: #1d2024;
+  --panel-2: #262a2f;
+  --line: #33383e;
+  --fg: #ecebe6;
+  --muted: #9aa0a6;
+  --ember: #ff8a3d;
+  --ember-soft: rgba(255,138,61,0.16);
+  --leaf: #8cc850;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "Inter", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); overflow: hidden; }
+.app { display: grid; grid-template-columns: 272px 1fr; height: 100%; }
+aside { background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; padding-left: env(safe-area-inset-left, 0px); }
+.brand { padding: 18px 18px 12px; display: flex; flex-direction: column; gap: 4px; }
+.brand h1 { font-family: var(--display); font-weight: 800; font-size: 21px; line-height: 1.1; margin: 0; letter-spacing: -0.01em; }
+.brand h1 span { color: var(--ember); }
+.brand p { margin: 0; color: var(--muted); font-size: 12.5px; line-height: 1.4; }
+.tabs { display: flex; gap: 6px; padding: 0 14px 12px; }
+.tab { flex: 1; background: var(--panel-2); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 6px; font: 600 13px var(--body); cursor: pointer; }
+.tab[aria-pressed="true"] { background: var(--ember-soft); border-color: var(--ember); color: #ffd2b0; }
+.search { margin: 0 14px 10px; }
+.search input { width: 100%; box-sizing: border-box; background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: 13px var(--body); }
+.list { overflow-y: auto; flex: 1; padding: 0 8px 16px; }
+.group-h { font: 600 11px var(--body); text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); padding: 14px 10px 6px; display: flex; justify-content: space-between; }
+.item { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: none; border: 0; color: var(--fg); padding: 7px 10px; border-radius: 7px; font: 500 13.5px var(--body); cursor: pointer; }
+.item:hover { background: var(--panel-2); }
+.item[aria-current="true"] { background: var(--ember-soft); color: #ffd2b0; }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.stage { position: relative; min-width: 0; min-height: 0; }
+canvas#view { display: block; width: 100%; height: 100%; touch-action: none; }
+.card { position: absolute; left: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); max-width: min(440px, calc(100% - 32px)); background: rgba(21,23,26,0.86); backdrop-filter: blur(8px); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.card h2 { font-family: var(--display); font-weight: 600; font-size: 24px; margin: 0; line-height: 1.1; text-wrap: balance; }
+.card .note { margin: 0; color: #c9ccce; font-size: 13.5px; line-height: 1.45; }
+.row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chip { background: var(--panel-2); border: 1px solid var(--line); color: var(--fg); border-radius: 999px; padding: 5px 11px; font: 500 12.5px var(--body); cursor: pointer; }
+.chip[aria-pressed="true"] { border-color: var(--leaf); background: rgba(140,200,80,0.16); color: #d8f2b8; }
+.chip:focus-visible, .tab:focus-visible, .item:focus-visible, .btn:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+.btn { background: var(--ember); color: #24140a; border: 0; border-radius: 8px; padding: 7px 12px; font: 600 12.5px var(--body); cursor: pointer; }
+.btn.ghost { background: var(--panel-2); color: var(--fg); border: 1px solid var(--line); }
+.stats { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stats b { color: var(--fg); font-weight: 600; }
+.time { position: absolute; top: calc(12px + env(safe-area-inset-top, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); display: flex; gap: 6px; background: rgba(21,23,26,0.7); padding: 6px; border-radius: 999px; border: 1px solid var(--line); }
+.label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+.hint { position: absolute; top: calc(14px + env(safe-area-inset-top, 0px)); left: 16px; font-size: 12px; color: rgba(255,255,255,0.8); text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+@media (max-width: 760px) {
+  body { overflow: auto; }
+  .app { grid-template-columns: 1fr; grid-template-rows: 58vh auto; height: auto; }
+  aside { order: 2; border-right: 0; border-top: 1px solid var(--line); padding-left: max(0px, env(safe-area-inset-left, 0px)); padding-right: env(safe-area-inset-right, 0px); }
+  .stage { order: 1; height: 58vh; }
+  .list { max-height: none; overflow: visible; }
+  .card { left: 8px; right: 8px; bottom: 8px; max-width: none; padding: 10px 12px; gap: 7px; }
+  .card h2 { font-size: 19px; }
+  .card .note { display: none; }
+  .hint { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+<div class="app">
+  <aside>
+    <div class="brand">
+      <h1>Emberfall <span>Scenery</span></h1>
+      <p>Trees, rocks, ore, plants and more for the Godot version. Every piece is a Godot-ready .glb.</p>
+    </div>
+    <div class="tabs" role="group" aria-label="View">
+      <button class="tab" id="tab-objects" aria-pressed="true">Objects</button>
+      <button class="tab" id="tab-scene" aria-pressed="false">Sample scene</button>
+    </div>
+    <div class="search"><input id="q" type="search" placeholder="Find an object" aria-label="Find an object"></div>
+    <nav class="list" id="list" aria-label="Scenery objects"></nav>
+  </aside>
+  <main class="stage">
+    <canvas id="view" aria-label="3D view. Drag to turn, scroll or pinch to zoom."></canvas>
+    <div class="hint">Drag to turn · scroll to zoom · right-drag to pan</div>
+    <div class="time" role="group" aria-label="Time of day" id="time"></div>
+    <section class="card" id="card" aria-live="polite"></section>
+  </main>
+</div>
+<!--APP-->
