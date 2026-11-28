@@ -9,6 +9,7 @@ import { SERVER_NAME, store, storageName } from "./storage";
 import { reportsRouter } from "./reports";
 import { loginsRouter } from "./logins";
 import { crashesRouter, installCrashCapture, noteServerStart } from "./crashes";
+import { attachJsonGateway } from "./jsonGateway";
 
 // 💥 Errors nobody caught are written down (see /admin/crashes) instead of stopping the server.
 installCrashCapture();
@@ -31,9 +32,12 @@ const clientDist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), wa
 app.use(express.static(clientDist));
 app.get("/health", (_req, res) => { res.send("ok"); });
 
+const httpServer = createServer(app);
 const gameServer = new Server({
-  transport: new WebSocketTransport({ server: createServer(app) }),
+  transport: new WebSocketTransport({ server: httpServer }),
 });
+// 🎮 The JSON door at /json, for the Godot app (server/src/jsonGateway.ts). Browsers are unaffected.
+attachJsonGateway(httpServer, PORT);
 gameServer.define("world", WorldRoom);
 // On shutdown (e.g. Render redeploying), players are saved as they're disconnected,
 // then the database connection is closed.
