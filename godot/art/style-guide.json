@@ -1,0 +1,92 @@
+{
+  "name": "Emberfall Godot art style",
+  "version": "1.0",
+  "look": "Sunlit storybook realism: bright, soft, stylized-but-lifelike 3D with lush open-world scenery. Clean readable shapes, rich but natural colour, soft light. All designs original to Emberfall.",
+  "units": {
+    "meter": 1.0,
+    "tile_m": 1.0,
+    "player_height_m": 1.75,
+    "up_axis": "Y",
+    "forward": "-Z (Godot)",
+    "origin": "Props and characters: origin at the base, centred. Hand items: origin at the grip, blade/head pointing +Y."
+  },
+  "shading": {
+    "outlines": false,
+    "flat_shading": false,
+    "rule": "Smooth shading with soft bevels on every hard edge (bevel 1-3 cm on props, 0.5-1 cm on hand items). No toon ramps, no outlines, no flat facets. Colour comes from textures or per-material albedo, not vertex colours, except foliage tint and AO in vertex colour is fine.",
+    "silhouette": "Chunky, slightly rounded, readable at 30 m. Hand items may be up to 15% oversized versus real life."
+  },
+  "pbr": {
+    "workflow": "Godot StandardMaterial3D (metallic/roughness). Textures: albedo (sRGB), normal (OpenGL, Y+), ORM (R=AO, G=roughness, B=metallic, linear).",
+    "albedo_range": "Keep albedo between sRGB 40 and 235. No lighting or hard shadows baked into albedo.",
+    "roughness": {"wood": 0.75, "stone": 0.85, "ground": 0.95, "cloth": 0.9, "leather": 0.65, "skin": 0.55, "foliage": 0.7, "water": 0.05, "polished_metal": 0.3, "worn_metal": 0.5},
+    "normal_strength": "0.6-0.9 (soft, painted detail, never gritty photo detail)",
+    "detail_scale": "Big colour variation (0.5-2 m), soft medium detail, very little fine noise."
+  },
+  "textures": {
+    "format": "PNG in the repo; Godot imports as VRAM compressed (BPTC/ASTC). Normal maps flagged as normal.",
+    "sizes": {"terrain_tiling": 1024, "large_prop": 1024, "small_prop": 512, "hand_item": 512, "character": 2048},
+    "texel_density_px_per_m": 512,
+    "tiling": "All library textures tile seamlessly. Terrain textures cover 2 x 2 m per repeat; others 1 x 1 m.",
+    "naming": "godot/assets/textures/<material>/<material>_albedo.png, _normal.png, _orm.png",
+    "materials_path": "godot/assets/materials/<material>.tres",
+    "shared_folder": "/mnt/project-files/godot-art/textures/"
+  },
+  "poly_budgets": {
+    "hand_item": "800-2,500 tris",
+    "armor_piece": "1,500-4,000 tris",
+    "small_prop": "300-1,500 tris",
+    "large_prop_or_station": "2,000-8,000 tris",
+    "tree": "4,000-12,000 tris (with LOD1 at 40%, LOD2 billboard)",
+    "rock": "500-3,000 tris",
+    "building": "8,000-30,000 tris",
+    "character_hero": "15,000-30,000 tris",
+    "creature": "4,000-15,000 tris",
+    "export": "glTF 2.0 binary (.glb), Y-up, metres, applied transforms"
+  },
+  "lighting": {
+    "sun": {"color": "#FFF1DC", "energy": 1.6, "elevation_deg": 50, "shadow": "PCSS soft, light_angular_distance 1.0, shadow_blur 1.5"},
+    "sky": {"top": "#3F86DB", "horizon": "#BFE2F7", "ground_bottom": "#5E7A4C", "ground_horizon": "#A9C79A", "sun_disk": "#FFF6E0"},
+    "ambient": {"source": "sky", "energy": 0.65},
+    "tonemap": {"mode": "Filmic", "exposure": 1.0, "white": 6.0},
+    "adjustments": {"saturation": 1.12, "contrast": 1.03},
+    "ssao": {"enabled": true, "radius": 1.0, "intensity": 1.4},
+    "glow": {"enabled": true, "intensity": 0.45, "bloom": 0.05, "hdr_threshold": 1.1},
+    "fog": {"depth_fog_color": "#CFE6F5", "density": 0.0035, "aerial_perspective": 0.5},
+    "times_of_day": {
+      "dawn":  {"sun": "#FFC9A0", "energy": 0.9, "sky_top": "#6C8FD6", "horizon": "#F7C9A8"},
+      "noon":  {"sun": "#FFF1DC", "energy": 1.6, "sky_top": "#3F86DB", "horizon": "#BFE2F7"},
+      "dusk":  {"sun": "#FF9E5E", "energy": 0.8, "sky_top": "#46519C", "horizon": "#F59A6B"},
+      "night": {"moon": "#AFC4FF", "energy": 0.25, "sky_top": "#0E1736", "horizon": "#2B3B6E"}
+    }
+  },
+  "palette": {
+    "meadow":  {"grass_light": "#9BD35A", "grass": "#6DB33F", "grass_deep": "#3F8A2E", "moss": "#5E8F3A", "leaf": "#4E9A3A", "leaf_autumn": "#E0913A", "flower_pink": "#F28AB2", "flower_yellow": "#FFD75A", "flower_blue": "#7FB8F0"},
+    "earth":   {"dirt": "#9A6E46", "path": "#C9A574", "sand": "#E8D3A0", "mud": "#6B4A30", "clay": "#B7684A", "farmland": "#6E4A2E"},
+    "stone":   {"granite": "#9C9A94", "slate": "#6E7680", "sandstone": "#D2B58A", "cobble": "#8F8B83", "dark_rock": "#55585C", "mossy": "#7E8E68"},
+    "water":   {"shallow": "#5FD0D8", "mid": "#2F9FCF", "deep": "#1E5F9E", "foam": "#F2FBFF"},
+    "sky":     {"top": "#3F86DB", "horizon": "#BFE2F7", "cloud": "#FFFFFF", "cloud_shade": "#D6E4F2"},
+    "woods":   {"pine": "#D2AE73", "oak": "#9C6C3F", "birch": "#ECE2CC", "maple": "#BB6A3C", "yew": "#8E3D2B", "ironwood": "#737A7F", "elderwood": "#6E4F96"},
+    "metals":  {"bronze": "#D99C52", "iron": "#8D9197", "steel": "#D5DBE1", "mithril": "#7CC4EE", "silver": "#E3E6EA", "gold": "#F2C14E", "platinum": "#DCE3E6", "iridium": "#B9B2D8", "copper": "#C87447"},
+    "cloth":   {"linen": "#E9DFC8", "wool_red": "#B4473C", "wool_blue": "#3F64A8", "wool_green": "#4F7F45", "dye_purple": "#7A4F9E", "leather": "#8A5A34", "leather_dark": "#5A3A22"},
+    "ember":   {"ember": "#FF7A2F", "glow": "#FFB347", "hot": "#FFE08A", "deep": "#C2431B", "ash": "#4A403B"},
+    "magic":   {"arcane": "#8A5CFF", "frost": "#8FE3FF", "nature": "#7BE38A", "holy": "#FFE9A8"},
+    "skin":    {"s1": "#F6D7C3", "s2": "#EBBE9F", "s3": "#D49B78", "s4": "#B07A55", "s5": "#8A5A3C", "s6": "#5E3B28"}
+  },
+  "special_materials": {
+    "metal": "metallic 1.0; bronze/steel roughness 0.25-0.3, iron 0.5. Mithril adds emission #2A6FA8 at 0.35.",
+    "elderwood": "emission #7B4FBF at 0.3",
+    "ember_glow": "emission from palette.ember with energy 2-4, so glow picks it up",
+    "foliage": "alpha scissor 0.5, backlight #A8D86A at 0.35, two-sided, vertex wind sway",
+    "water": "custom shader: depth tint shallow->deep, soft foam at edges, small waves, roughness 0.05",
+    "skin": "subsurface scattering 0.3, roughness 0.55 (characters thread owns details)"
+  },
+  "characters": "Follow the approved lifelike hero style (character-creator/lifelike-preview). Natural proportions, slightly enlarged eyes, soft skin SSS, clean hair cards. Creatures: original, rounded and appealing, never copies of another game's creatures.",
+  "dont": [
+    "No copying any existing game's characters, creatures, logos or textures.",
+    "No outlines, toon ramps or flat-shaded facets.",
+    "No baked lighting or hard shadows in albedo.",
+    "No photo-gritty detail or heavy dirt; keep surfaces clean and readable.",
+    "No pure black (#000) or pure white (#FFF) albedo."
+  ]
+}

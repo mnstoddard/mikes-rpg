@@ -1,0 +1,17 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Environment" path="res://assets/environment/emberfall_day.tres" id="1"]
+
+[node name="EmberfallLighting" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = ExtResource("1")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866025, -0.383022, 0.321394, 0, 0.642788, 0.766044, -0.5, -0.663414, 0.556670, 0, 10, 0)
+light_color = Color(1.0000, 0.9451, 0.8627, 1.0)
+light_energy = 1.6
+light_angular_distance = 1.0
+shadow_enabled = true
+shadow_blur = 1.5
+directional_shadow_max_distance = 120.0
