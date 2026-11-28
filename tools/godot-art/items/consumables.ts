@@ -1,6 +1,6 @@
 // Potions, food and fish.
 import * as THREE from "three";
-import { ItemDef, at, group, lathe, glassMat, mat, plain, sphere, cyl, torus, paint, paintedMat, slab, lump, rng, woodMat, clothMat, capsule, tube, cone } from "./kit";
+import { ItemDef, at, group, lathe, glassMat, mat, plain, sphere, cyl, torus, paint, paintedMat, slab, slabShape, lump, rng, woodMat, clothMat, capsule, tube, cone, metalMat, rod } from "./kit";
 
 /** A round potion flask with glowing liquid, a cork and a tied cloth. */
 export function potion(color = 0xff4058, shape: "round" | "tall" | "vial" = "round") {
@@ -16,7 +16,7 @@ export function potion(color = 0xff4058, shape: "round" | "tall" | "vial" = "rou
   const top = pts[pts.length - 1];
   const g = group("potion",
     lathe(pts, glassMat(), 20),
-    lathe(inner, mat("liquid", color, { rough: 0.15, emissive: color, glow: 0.35 }), 20),
+    lathe(inner, mat("liquid", color, { rough: 0.2, emissive: color, glow: 0.12 }), 20),
     at(cyl(top[0] * 0.85, top[0] * 0.75, 0.03, mat("cork", 0xc9a574, { rough: 0.9, tex: "stone", normal: 0.3 }), 12), [0, top[1] + 0.005, 0]),
   );
   if (shape !== "vial") {
@@ -26,54 +26,6 @@ export function potion(color = 0xff4058, shape: "round" | "tall" | "vial" = "rou
     g.add(at(sphere(0.004, mat("bubble", 0xffffff, { rough: 0.1, opacity: 0.5 }), 8, 6), [-0.012, fill - 0.035, -0.006]));
   }
   return g;
-}
-
-/** Fish markings, painted round the body: dark back, pale belly, spots and a stripe. */
-function fishTex(key: string, back: string, side: string, belly: string, stripe: string | null, spots: string | null) {
-  return paint("fish_" + key, 256, 128, (c, w, h) => {
-    // the lathe texture runs u = round the body (0 = the side facing you, 0.25 = back, 0.75 = belly), v = nose to tail
-    const grad = c.createLinearGradient(0, 0, w, 0);
-    grad.addColorStop(0, side); grad.addColorStop(0.25, back); grad.addColorStop(0.5, side); grad.addColorStop(0.62, belly);
-    grad.addColorStop(0.88, belly); grad.addColorStop(1, side);
-    c.fillStyle = grad; c.fillRect(0, 0, w, h);
-    if (stripe) {
-      c.fillStyle = stripe; c.globalAlpha = 0.75;
-      for (const u0 of [-0.035, 0.465, 0.965]) c.fillRect(u0 * w, h * 0.12, w * 0.07, h * 0.78);
-      c.globalAlpha = 1;
-    }
-    if (spots) {
-      const r = rng(7);
-      c.fillStyle = spots;
-      for (let i = 0; i < 120; i++) {
-        const u = r(), v = 0.1 + r() * 0.85;
-        if (Math.abs(u - 0.25) > 0.22) continue;
-        c.beginPath(); c.arc(u * w, v * h, 1.4 + r() * 1.6, 0, Math.PI * 2); c.fill();
-      }
-    }
-  });
-}
-
-/** A fish lying on its side (as caught). Length in metres, nose toward +X. */
-export function fish(len = 0.32, tex = fishTex("trout", "#5d7a4a", "#b9c49a", "#f1ead8", "#e98a8a", "#3d4a30"), fin = 0x9aa070) {
-  const prof: [number, number][] = [[0, 0], [0.06, 0.02], [0.11, 0.08], [0.13, 0.25], [0.11, 0.55], [0.06, 0.82], [0.03, 0.95], [0.022, 1]];
-  const body = lathe(prof.map(([r, y]) => [r * len, y * len]), paintedMat("fish_skin", tex, { rough: 0.35 }), 18);
-  body.scale.set(1, 1, 0.5);
-  const finM = mat("fin", fin, { rough: 0.5, opacity: 0.85 });
-  const g = group("fish",
-    at(body, [0, 0, 0], [0, 0, 90]),
-    // tail
-    at(slab([[0, 0], [len * 0.2, len * 0.12], [len * 0.16, 0], [len * 0.2, -len * 0.12]], 0.006, finM, 0.002), [-len * 0.98, 0, 0], [0, 180, 0]),
-    // dorsal and belly fins
-    at(slab([[0, 0], [len * 0.2, 0], [len * 0.05, len * 0.09]], 0.005, finM, 0.002), [-len * 0.45, len * 0.115, 0]),
-    at(slab([[0, 0], [len * 0.12, 0], [len * 0.03, -len * 0.05]], 0.005, finM, 0.002), [-len * 0.6, -len * 0.09, 0]),
-    // side fin
-    at(slab([[0, 0], [len * 0.09, len * 0.02], [len * 0.1, -len * 0.03]], 0.004, finM, 0.0015), [-len * 0.2, -len * 0.03, len * 0.06], [0, 30, -20]),
-    // eye
-    at(sphere(len * 0.022, plain("eye_white", 0xf2f0ea, 0.2), 10, 8), [-len * 0.1, len * 0.025, len * 0.05]),
-    at(sphere(len * 0.013, plain("eye", 0x2a2420, 0.1), 8, 6), [-len * 0.1, len * 0.026, len * 0.062]),
-  );
-  // upright, belly just above the ground, centred, nose to +X
-  return group("trout", at(g, [len * 0.5, len * 0.15, 0]));
 }
 
 /** A bowl of stew: wooden bowl, thick sauce, chunks of potato, carrot and meat, herbs on top. */
@@ -104,7 +56,7 @@ export function mushroom(cap = 0xd8483c) {
   const stem = mat("stem", 0xf1e6cc, { rough: 0.7, tex: "paper", normal: 0.4 });
   const g = group("mushroom",
     lathe([[0, 0], [0.022, 0.002], [0.019, 0.03], [0.016, 0.06], [0.0, 0.065]], stem, 14),
-    at(new THREE.Mesh(new THREE.SphereGeometry(0.058, 24, 10, 0, Math.PI * 2, 0, Math.PI / 2), capM), [0, 0.058, 0], [0, 0, 0], [1, 0.8, 1]),
+    at(new THREE.Mesh(new THREE.SphereGeometry(0.058, 18, 7, 0, Math.PI * 2, 0, Math.PI / 2), capM), [0, 0.058, 0], [0, 0, 0], [1, 0.8, 1]),
     at(lathe([[0.058, 0], [0.05, -0.006], [0.02, -0.004]], capM, 24), [0, 0.058, 0]),
     at(cyl(0.048, 0.048, 0.003, mat("gills", 0xe8d6b8, { rough: 0.8 }), 22), [0, 0.053, 0]),
   );
@@ -113,7 +65,7 @@ export function mushroom(cap = 0xd8483c) {
     const a = r() * Math.PI * 2, e = 0.25 + r() * 1.0;
     const R = 0.058;
     const p = new THREE.Vector3(Math.cos(a) * Math.cos(e) * R, Math.sin(e) * R * 0.8, Math.sin(a) * Math.cos(e) * R);
-    const s = at(sphere(0.007 + r() * 0.004, spot, 8, 6), [p.x, 0.058 + p.y, p.z], [0, 0, 0], [1, 1, 0.35]);
+    const s = at(sphere(0.007 + r() * 0.004, spot, 6, 4), [p.x, 0.058 + p.y, p.z], [0, 0, 0], [1, 1, 0.35]);
     s.lookAt(new THREE.Vector3(p.x * 1.2, 0.058 + p.y * 1.56, p.z * 1.2).multiplyScalar(2));
     g.add(s);
   }
@@ -122,11 +74,79 @@ export function mushroom(cap = 0xd8483c) {
   return group("mushrooms", g, at(small, [0.05, 0, 0.03], [0, 40, 10], 0.6));
 }
 
+/** A glazed plate. */
+function plate(r = 0.12) {
+  return lathe([[0, 0], [r * 0.6, 0], [r * 0.65, 0.004], [r * 0.7, 0.008], [r, 0.018], [r * 1.02, 0.02], [r * 0.98, 0.021], [r * 0.68, 0.011], [0, 0.009]], mat("plate", 0xf2ece0, { rough: 0.25 }), 28);
+}
+const veg = (r: () => number, g: THREE.Group, n: number, spread: number, y: number) => {
+  const cols = [0xf08a2a, 0x6db33f, 0xffd75a, 0xd8483c];
+  for (let i = 0; i < n; i++) {
+    const a = r() * Math.PI * 2, d = r() * spread;
+    g.add(at(lump(0.009 + r() * 0.005, mat("veg", cols[i % 4], { rough: 0.5 }), r, 0.3, 1, [1.3, 0.7, 1]), [Math.cos(a) * d, y, Math.sin(a) * d], [r() * 90, r() * 180, 0]));
+  }
+};
+
+export function stirFry() {
+  const r = rng(21);
+  const pan = lathe([[0, 0], [0.07, 0], [0.11, 0.03], [0.13, 0.055], [0.134, 0.058], [0.128, 0.058], [0.106, 0.034], [0.068, 0.006], [0, 0.006]], metalMat("iron"), 26);
+  const g = group("stir_fry", pan, at(rod(0.012, 0.014, 0.16, woodMat("oak"), 10), [0.13, 0.05, 0], [0, 0, -78]));
+  for (let i = 0; i < 9; i++) {
+    const a = r() * Math.PI * 2, d = r() * 0.07;
+    g.add(at(capsule(0.007, 0.03, mat("meat_strip", 0xa86a3a, { rough: 0.45 }), 3, 6), [Math.cos(a) * d, 0.022, Math.sin(a) * d], [90, 0, r() * 180]));
+  }
+  veg(r, g, 14, 0.08, 0.022);
+  for (let i = 0; i < 6; i++) g.add(at(slab([[0, 0], [0.006, 0.004], [0, 0.01], [-0.006, 0.004]], 0.0015, plain("herb", 0x4f9a3a, 0.6), 0.0006), [(r() - 0.5) * 0.12, 0.034, (r() - 0.5) * 0.12], [-90, 0, r() * 360]));
+  return g;
+}
+
+export function curry() {
+  const r = rng(23);
+  const bowl = lathe([[0, 0], [0.05, 0], [0.06, 0.006], [0.088, 0.035], [0.1, 0.06], [0.102, 0.064], [0.094, 0.064], [0.082, 0.038], [0.05, 0.014], [0, 0.012]], mat("bowl", 0x3f64a8, { rough: 0.3 }), 24);
+  const g = group("curry", bowl,
+    at(cyl(0.088, 0.078, 0.01, mat("curry_sauce", 0xe0912a, { rough: 0.25 }), 24), [0, 0.05, 0]),
+    // a mound of rice on one side
+    at(lump(0.04, mat("rice", 0xf6f0e0, { rough: 0.7, tex: "stone", normal: 0.5 }), r, 0.12, 2, [1, 0.5, 1]), [-0.03, 0.058, -0.01]),
+  );
+  for (let i = 0; i < 5; i++) { const a = r() * Math.PI * 2, d = 0.04 + r() * 0.03; g.add(at(lump(0.013, mat("curry_bit", 0xc86a3a, { rough: 0.5 }), r, 0.25, 1), [Math.cos(a) * d + 0.02, 0.058, Math.sin(a) * d], [0, r() * 180, 0])); }
+  for (let i = 0; i < 6; i++) g.add(at(slab([[0, 0], [0.006, 0.004], [0, 0.01], [-0.006, 0.004]], 0.0015, plain("herb", 0x4f9a3a, 0.6), 0.0006), [(r() - 0.5) * 0.1, 0.063, (r() - 0.5) * 0.1], [-90, 0, r() * 360]));
+  return g;
+}
+
+export function steakPlate() {
+  const r = rng(25);
+  const s = new THREE.Shape();
+  s.moveTo(-0.07, -0.02); s.bezierCurveTo(-0.08, 0.04, -0.02, 0.06, 0.03, 0.05); s.bezierCurveTo(0.08, 0.04, 0.085, -0.02, 0.06, -0.045); s.bezierCurveTo(0.02, -0.06, -0.05, -0.06, -0.07, -0.02);
+  const sm = paintedMat("steak", paint("grill_marks", 128, 128, (c, w, h) => {
+    c.fillStyle = "#8a4a2a"; c.fillRect(0, 0, w, h);
+    c.strokeStyle = "#3b2216"; c.lineWidth = 6;
+    for (let i = -2; i < 8; i++) { c.beginPath(); c.moveTo(i * 22, 0); c.lineTo(i * 22 + 60, h); c.stroke(); }
+  }), { rough: 0.45 });
+  const g = group("steak", plate(), at(slabShape(s, 0.026, sm, 0.009, 12), [-0.01, 0.024, 0], [-90, 0, 10]));
+  // greens and a few roast potatoes on the side
+  for (let i = 0; i < 3; i++) g.add(at(lump(0.017, mat("roast_potato", 0xe0a850, { rough: 0.5 }), r, 0.2, 1), [0.07, 0.024, -0.04 + i * 0.035]));
+  for (let i = 0; i < 4; i++) g.add(at(slab([[0, 0], [0.01, 0.012], [0, 0.03], [-0.01, 0.012]], 0.002, plain("leaf", 0x4f9a3a, 0.6), 0.0008), [-0.07 + i * 0.012, 0.014, 0.055], [-80, 0, i * 30]));
+  return g;
+}
+
+export function roast() {
+  const r = rng(27);
+  const g = group("roast", plate(0.14));
+  g.add(at(lump(0.06, mat("roast_skin", 0xb86a2e, { rough: 0.35, tex: "leather", normal: 0.3 }), r, 0.12, 2, [1.3, 0.75, 1]), [0, 0.055, 0]));
+  g.add(at(rod(0.009, 0.008, 0.06, plain("bone", 0xf4eedc, 0.6), 10), [0.07, 0.06, 0], [0, 0, -70]));
+  g.add(at(sphere(0.012, plain("bone", 0xf4eedc, 0.6), 10, 8), [0.128, 0.08, 0]));
+  veg(r, g, 10, 0.12, 0.02);
+  g.add(at(sphere(0.012, mat("garnish", 0xd8483c, { rough: 0.3 }), 10, 8), [-0.05, 0.1, 0.01]));
+  return g;
+}
+
 void THREE; void tube; void cone;
 
 export const CONSUMABLE_DEFS: ItemDef[] = [
-  { id: "health_potion", name: "Health potion", cat: "Potions", game: ["health_potion"], about: "A round flask of glowing red liquid with a cork and a linen tie.", build: () => potion(0xe8203c, "round") },
-  { id: "trout", name: "Trout", cat: "Fish", game: ["trout"], about: "Olive back, pink side stripe, dark spots. Lies on its side as caught.", build: () => fish() },
-  { id: "stew", name: "Stew", cat: "Food", game: ["meal_stew*"], about: "A wooden bowl of stew with potato, carrot and meat, herbs and a spoon.", build: stew },
+  { id: "health_potion", name: "Health potion", cat: "Potions", game: ["health_potion", "potion_health*"], about: "A round flask of glowing red liquid with a cork and a linen tie.", build: () => potion(0xe8203c, "round") },
+  { id: "stew", name: "Stew", cat: "Food", game: ["meal_stew_*"], about: "A wooden bowl of stew with potato, carrot and meat, herbs and a spoon.", build: stew },
+  { id: "stir_fry", name: "Stir fry", cat: "Food", game: ["meal_stirfry_*"], about: "An iron pan of meat strips and bright vegetables with herbs.", build: stirFry },
+  { id: "curry", name: "Curry", cat: "Food", game: ["meal_curry_*"], about: "A blue bowl of golden curry with rice and herbs.", build: curry },
+  { id: "steak", name: "Steak", cat: "Food", game: ["meal_steak_*"], about: "A grilled steak with roast potatoes and greens.", build: steakPlate },
+  { id: "roast", name: "Roast", cat: "Food", game: ["meal_roast_*"], about: "A roast joint with vegetables on a big plate.", build: roast },
   { id: "red_cap", name: "Red cap mushroom", cat: "Foraging", game: ["red_cap"], about: "A red-capped mushroom with cream spots, and a little one beside it.", build: () => mushroom() },
 ];

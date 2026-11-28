@@ -112,13 +112,13 @@ function sample(kind: TexKind, u: number, v: number): [number, number] {
       const cell = fbm(u, v, 28, 2, 21);
       const big = fbm(u, v, 3, 3, 22);
       const h = Math.pow(cell, 1.5);
-      return [h, 0.8 + 0.12 * h + 0.08 * big];
+      return [h * 0.6, 0.88 + 0.06 * h + 0.06 * big];
     }
     case "cloth": {
       const a = 0.5 + 0.5 * Math.sin(u * 64 * Math.PI * 2), b = 0.5 + 0.5 * Math.sin(v * 64 * Math.PI * 2);
       const weave = (Math.floor(u * 64) + Math.floor(v * 64)) % 2 ? a : b;
       const big = fbm(u, v, 4, 3, 31);
-      return [weave, 0.86 + 0.08 * weave + 0.06 * big];
+      return [weave * 0.5, 0.92 + 0.03 * weave + 0.05 * big];
     }
     case "stone": {
       const n = fbm(u, v, 6, 4, 41);
@@ -219,10 +219,10 @@ export const metalMat = (m: Metal, dark = false) => {
 export const jewelMat = (j: Jewel) => { const l = JEWELS[j]; return mat("jewel_metal", l.color, { rough: l.rough, metal: l.metal, tex: "metal", emissive: l.emissive, glow: l.glow }); };
 export const woodMat = (w: Wood) => { const l = WOODS[w]; return mat("wood", l.wood, { rough: 0.75, metal: l.metal ?? 0, tex: "wood", emissive: l.emissive, glow: l.glow }); };
 export const barkMat = (w: Wood) => { const l = WOODS[w]; return mat("bark", l.bark, { rough: 0.9, tex: "bark", normal: 1, emissive: l.emissive, glow: (l.glow ?? 0) * 0.5 }); };
-export const leatherMat = (c = 0x8a5a34, name = "leather") => mat(name, c, { rough: 0.65, tex: "leather" });
-export const clothMat = (c: number, name = "cloth") => mat(name, c, { rough: 0.9, tex: "cloth", normal: 0.5 });
+export const leatherMat = (c = 0x8a5a34, name = "leather") => mat(name, c, { rough: 0.65, tex: "leather", normal: 0.35 });
+export const clothMat = (c: number, name = "cloth") => mat(name, c, { rough: 0.9, tex: "cloth", normal: 0.3 });
 export const gemMat = (c: number, glow = 0.25) => mat("gem", c, { rough: 0.08, metal: 0.1, emissive: c, glow });
-export const glassMat = (c = 0xdff4ff) => mat("glass", c, { rough: 0.05, metal: 0, opacity: 0.38 });
+export const glassMat = (c = 0xeef8ff) => mat("glass", c, { rough: 0.05, metal: 0, opacity: 0.22 });
 export const plain = (name: string, c: number, rough = 0.6, metal = 0) => mat(name, c, { rough, metal });
 
 // ---------- Shapes ----------
@@ -327,7 +327,12 @@ export function lump(r: number, m: THREE.Material, rng: () => number, amount = 0
 
 /** A faceted gem (cut stone). */
 export function gem(r: number, m: THREE.Material, sides = 8, crown = 0.45, pavilion = 0.9) {
-  return lathe([[0, -r * pavilion], [r, 0], [r * 0.62, r * crown], [0, r * crown]], m, sides);
+  // cut stones keep crisp facets (the one place flat faces are right)
+  const mesh = lathe([[0, -r * pavilion], [r, 0], [r * 0.62, r * crown], [0, r * crown]], m, sides);
+  const g = mesh.geometry.toNonIndexed();
+  g.computeVertexNormals();
+  mesh.geometry = g;
+  return mesh;
 }
 
 /** A one-off painted texture (not tiling), e.g. a fish's markings. Drawn once per key. */
@@ -340,6 +345,7 @@ export function paint(key: string, w: number, h: number, draw: (c: CanvasRenderi
   draw(cv.getContext("2d")!, w, h);
   const t = new THREE.CanvasTexture(cv);
   t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.userData.mimeType = "image/jpeg";
   t.name = key;
   paintCache.set(key, t);

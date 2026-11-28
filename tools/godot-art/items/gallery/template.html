@@ -105,7 +105,7 @@ code, #v-file { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace
     <main class="catalogue">
       <div id="chips" role="toolbar" aria-label="Categories"></div>
       <div id="grid"></div>
-      <p class="note">Models are glTF (.glb), Y-up, in metres, following the shared Emberfall art style guide. One model covers every metal and wood: in Godot the materials named <code>metal</code>, <code>wood</code>, <code>bark</code>, <code>jewel_metal</code> and <code>gem</code> are swapped for the right look, just like the swatches here. The painted textures inside each file are light preview versions; the full 512 px material library replaces them in Godot.</p>
+      <p class="note">Models are glTF (.glb), Y-up, in metres, following the shared Emberfall art style guide. One model covers every metal and wood: in Godot, <code>ItemLook.apply_game_item(model, "sword_steel_yew")</code> swaps the materials named <code>metal</code>, <code>wood</code>, <code>bark</code>, <code>jewel_metal</code>, <code>gem</code> and <code>leather</code> for the shared 512 px texture library, just like the swatches here. The textures inside each file are light preview versions.</p>
     </main>
   </div>
 </div>

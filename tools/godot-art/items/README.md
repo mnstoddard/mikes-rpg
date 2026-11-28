@@ -26,5 +26,24 @@ A sword is one model, not 35. Its materials are named so Godot can swap them:
 | `jewel_metal` | silver, gold, platinum, iridium |
 | `gem` | amethyst, topaz, emerald, sapphire, ruby, emberstone |
 
-The painted textures inside each `.glb` are light preview versions; in Godot
-the shared 512 px material library replaces them by material name.
+The painted textures inside each `.glb` are light preview versions. In Godot,
+`godot/scripts/items/item_look.gd` swaps them for the shared 512 px material
+library (`res://assets/materials/`, from the style guide thread):
+
+```gdscript
+var sword = preload("res://assets/items/weapons/sword.glb").instantiate()
+ItemLook.apply_game_item(sword, "sword_steel_yew")   # or ItemLook.apply(sword, {"metal": "steel", "wood": "yew"})
+```
+
+Item UVs aren't laid out in metres, so the script projects the library
+textures in the item's own space (triplanar, 1 tile per metre, matching the
+style guide's 512 px per metre).
+
+## What's here
+
+125 models in 15 groups: tools (7), weapons (10), armor (14: plate, leather
+and cloth sets), resources (logs, bars, 9 ores and coal), materials (leather,
+thread, cloth, hides and pelts, silk), fish (8), ingredients, foraging finds,
+food (5 dishes), potions (10 and the empty vial), monster loot, bait, gems and
+jewelry, spell books and quest items. `_gallery/catalog.json` lists every
+model with the game item ids it is used for, its triangle count and size.

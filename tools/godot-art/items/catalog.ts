@@ -6,5 +6,7 @@ import { ARMOR_DEFS } from "./armor";
 import { RESOURCE_DEFS } from "./resources";
 import { CONSUMABLE_DEFS } from "./consumables";
 import { TREASURE_DEFS } from "./treasures";
+import { FISH_DEFS } from "./fish";
+import { GOODS_DEFS } from "./goods";
 
-export const ITEMS: ItemDef[] = [...TOOL_DEFS, ...WEAPON_DEFS, ...ARMOR_DEFS, ...RESOURCE_DEFS, ...CONSUMABLE_DEFS, ...TREASURE_DEFS];
+export const ITEMS: ItemDef[] = [...TOOL_DEFS, ...WEAPON_DEFS, ...ARMOR_DEFS, ...RESOURCE_DEFS, ...FISH_DEFS, ...CONSUMABLE_DEFS, ...TREASURE_DEFS, ...GOODS_DEFS];
