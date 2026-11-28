@@ -1,0 +1,62 @@
+# Emberfall scenery for Godot
+
+Every tree, rock, ore node, plant, building, crafting station, fence, bridge
+and prop for the Godot version of Emberfall (73 objects, 112 files with variants). Each one is
+made from code here, then exported as a `.glb` file that Godot opens directly.
+
+The look follows the shared style guide (`godot/art/style-guide.json`):
+bright, soft and stylized but lifelike, smooth shading, no outlines, 1 unit = 1 metre,
+Y up, origin at the base of each object.
+
+## The files Godot uses
+
+`godot/assets/scenery/<group>/<id>.glb` (one file per object and variant), plus
+`catalog.json`, which lists every file with its name, variant and triangle count.
+Drag the `assets` folder into a Godot project and every model is ready to place.
+
+In Godot:
+
+- Foliage (leaves, needles, grass) uses alpha scissor and is two-sided, as the style guide asks.
+- Most surfaces use the **shared texture library** in `godot/assets/textures`
+  (bark, rock, stone brick, planks, plaster, roof tiles, slate, thatch, grass
+  blades, every metal, leather, embers). The .glb files link to those PNGs
+  (`../../textures/<name>/<name>_albedo.png`, `_normal.png`, `_orm.png`) rather
+  than carrying copies, so keep the `assets` folder together. A soft tint and
+  shade (moss on rocks, darker wood, AO near the ground) rides on the vertex
+  colours, which Godot uses as an albedo tint when it imports the file.
+- A few textures are still the scenery's own and live inside the .glb: the
+  leaf and needle cards (shaped clusters in each tree's colours), the flower
+  cards, Elderwood's purple bark, and the white stone of the Emberhall, the
+  shrine and the enchanting altar (the library's stone_brick is warm grey).
+- Glowing ores (mithril, iridium, emberstone, ruby, Wellglass, Embersteel) have emission, so Godot's glow picks them up.
+- For lots of grass and flowers, use a `MultiMeshInstance3D` (one draw call for thousands).
+- Fences, hedges and walls are 2 m sections (the city wall is 4 m), ending at x = -1 and x = +1, so they line up end to end.
+- Buildings and stations face +Z (their door or working side).
+- Godot makes the LOD levels for each mesh by itself when it imports them (Mesh LOD is on by default).
+
+## Making changes
+
+You need Node.js. In this folder:
+
+```
+npm install three@0.186.0 esbuild@0.25.0 playwright
+node build.mjs     # the gallery page -> dist/scenery-gallery.html (also needs Python 3 with Pillow)
+node export.mjs    # every .glb -> ../assets/scenery/
+```
+
+| File | What's in it |
+|---|---|
+| `lib.js` | Shared pieces: seeded randomness, noise, painted textures (leaves, grass, bark, stone, planks, roof tiles), materials, and the shape makers (blobs, limbs, leaf cards) |
+| `trees.js` | Oak, pine (classic, tall, snowy), birch, maple, yew, ironwood, elderwood, crownwood, dead tree |
+| `rocks.js` | Boulders, clusters, pebbles, cliffs, standing stones, sandstone, and all 18 ore nodes (Boulder and Cluster shapes) |
+| `plants.js` | Grass, wildflowers, bushes, ferns, mushrooms, reeds, lily pads |
+| `buildings.js` | The Emberhall with its tower and ember spire, cottage, townhouse, smithy, wall tower, bell tower, wayside shrine |
+| `stations.js` | Anvil, furnace, cooking stove, alchemy table, workbench, enchanting altar, spinning wheel, tanning rack, storage chest, guild board |
+| `props.js` | Barrels, crates, sacks, street lamp, well, signpost, market stall, cart, bench, campfire, hay, planter; fences, gate, hedge, stone and city walls; plank and stone bridges |
+| `kit.js` | Shared materials and shapes for made things (soft-edged boxes, posts, roofs, flames) |
+| `scene.js` | The gallery's sample scene (a Heartvale meadow) |
+| `gallery.js`, `gallery.html` | The Scenery Gallery page |
+| `export.mjs`, `export-entry.js` | Turns every object into `.glb` files, linking the shared library textures |
+| `make-libtex.py` | Small copies of the library textures for the gallery page |
+
+The same seed always makes the same object, so the exported files never change unless the code does.
