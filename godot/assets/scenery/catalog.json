@@ -1,0 +1,1010 @@
+[
+ {
+  "id": "tree_oak",
+  "name": "Oak",
+  "variant": "Round",
+  "group": "Trees",
+  "file": "trees/tree_oak.glb",
+  "triangles": 4764,
+  "kb": 271
+ },
+ {
+  "id": "tree_pine",
+  "name": "Pine",
+  "variant": "Classic",
+  "group": "Trees",
+  "file": "trees/tree_pine_classic.glb",
+  "triangles": 1458,
+  "kb": 145
+ },
+ {
+  "id": "tree_pine",
+  "name": "Pine",
+  "variant": "Tall",
+  "group": "Trees",
+  "file": "trees/tree_pine_tall.glb",
+  "triangles": 1668,
+  "kb": 153
+ },
+ {
+  "id": "tree_pine",
+  "name": "Pine",
+  "variant": "Snowy",
+  "group": "Trees",
+  "file": "trees/tree_pine_snowy.glb",
+  "triangles": 1458,
+  "kb": 145
+ },
+ {
+  "id": "tree_birch",
+  "name": "Birch",
+  "variant": "Single",
+  "group": "Trees",
+  "file": "trees/tree_birch.glb",
+  "triangles": 3594,
+  "kb": 205
+ },
+ {
+  "id": "tree_maple",
+  "name": "Maple",
+  "variant": "Red",
+  "group": "Trees",
+  "file": "trees/tree_maple.glb",
+  "triangles": 4688,
+  "kb": 268
+ },
+ {
+  "id": "tree_yew",
+  "name": "Yew",
+  "variant": "Old",
+  "group": "Trees",
+  "file": "trees/tree_yew.glb",
+  "triangles": 5308,
+  "kb": 323
+ },
+ {
+  "id": "tree_ironwood",
+  "name": "Ironwood",
+  "variant": "Steel",
+  "group": "Trees",
+  "file": "trees/tree_ironwood.glb",
+  "triangles": 5276,
+  "kb": 295
+ },
+ {
+  "id": "tree_elderwood",
+  "name": "Elderwood",
+  "variant": "Violet",
+  "group": "Trees",
+  "file": "trees/tree_elderwood.glb",
+  "triangles": 4764,
+  "kb": 338
+ },
+ {
+  "id": "tree_crownwood",
+  "name": "Crownwood",
+  "variant": "Gilded",
+  "group": "Trees",
+  "file": "trees/tree_crownwood.glb",
+  "triangles": 4764,
+  "kb": 272
+ },
+ {
+  "id": "tree_dead",
+  "name": "Dead tree",
+  "variant": "Oak",
+  "group": "Trees",
+  "file": "trees/tree_dead.glb",
+  "triangles": 554,
+  "kb": 71
+ },
+ {
+  "id": "rock_boulder",
+  "name": "Boulder",
+  "variant": "Granite",
+  "group": "Rocks",
+  "file": "rocks/rock_boulder.glb",
+  "triangles": 320,
+  "kb": 11
+ },
+ {
+  "id": "rock_cluster",
+  "name": "Rock cluster",
+  "variant": "Granite",
+  "group": "Rocks",
+  "file": "rocks/rock_cluster.glb",
+  "triangles": 860,
+  "kb": 26
+ },
+ {
+  "id": "rock_pebbles",
+  "name": "Pebbles",
+  "variant": "Scatter",
+  "group": "Rocks",
+  "file": "rocks/rock_pebbles.glb",
+  "triangles": 480,
+  "kb": 16
+ },
+ {
+  "id": "rock_cliff",
+  "name": "Cliff outcrop",
+  "variant": "Slate",
+  "group": "Rocks",
+  "file": "rocks/rock_cliff.glb",
+  "triangles": 1920,
+  "kb": 55
+ },
+ {
+  "id": "rock_standing",
+  "name": "Standing stone",
+  "variant": "Granite",
+  "group": "Rocks",
+  "file": "rocks/rock_standing.glb",
+  "triangles": 320,
+  "kb": 11
+ },
+ {
+  "id": "rock_sandstone",
+  "name": "Sandstone rock",
+  "variant": "Barrens",
+  "group": "Rocks",
+  "file": "rocks/rock_sandstone.glb",
+  "triangles": 320,
+  "kb": 11
+ },
+ {
+  "id": "ore_stone",
+  "name": "Stone rock",
+  "variant": "Boulder",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_stone_boulder.glb",
+  "triangles": 320,
+  "kb": 11
+ },
+ {
+  "id": "ore_stone",
+  "name": "Stone rock",
+  "variant": "Cluster",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_stone_cluster.glb",
+  "triangles": 960,
+  "kb": 29
+ },
+ {
+  "id": "ore_copper",
+  "name": "Copper rock",
+  "variant": "Boulder",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_copper_boulder.glb",
+  "triangles": 1040,
+  "kb": 34
+ },
+ {
+  "id": "ore_copper",
+  "name": "Copper rock",
+  "variant": "Cluster",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_copper_cluster.glb",
+  "triangles": 2080,
+  "kb": 63
+ },
+ {
+  "id": "ore_tin",
+  "name": "Tin rock",
+  "variant": "Boulder",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_tin_boulder.glb",
+  "triangles": 1040,
+  "kb": 34
+ },
+ {
+  "id": "ore_tin",
+  "name": "Tin rock",
+  "variant": "Cluster",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_tin_cluster.glb",
+  "triangles": 2080,
+  "kb": 63
+ },
+ {
+  "id": "ore_iron",
+  "name": "Iron rock",
+  "variant": "Boulder",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_iron_boulder.glb",
+  "triangles": 1040,
+  "kb": 34
+ },
+ {
+  "id": "ore_iron",
+  "name": "Iron rock",
+  "variant": "Cluster",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_iron_cluster.glb",
+  "triangles": 2080,
+  "kb": 63
+ },
+ {
+  "id": "ore_coal",
+  "name": "Coal rock",
+  "variant": "Boulder",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_coal_boulder.glb",
+  "triangles": 1040,
+  "kb": 33
+ },
+ {
+  "id": "ore_coal",
+  "name": "Coal rock",
+  "variant": "Cluster",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_coal_cluster.glb",
+  "triangles": 2080,
+  "kb": 62
+ },
+ {
+  "id": "ore_silver",
+  "name": "Silver rock",
+  "variant": "Boulder",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_silver_boulder.glb",
+  "triangles": 1040,
+  "kb": 34
+ },
+ {
+  "id": "ore_silver",
+  "name": "Silver rock",
+  "variant": "Cluster",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_silver_cluster.glb",
+  "triangles": 2080,
+  "kb": 63
+ },
+ {
+  "id": "ore_gold",
+  "name": "Gold rock",
+  "variant": "Boulder",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_gold_boulder.glb",
+  "triangles": 1040,
+  "kb": 34
+ },
+ {
+  "id": "ore_gold",
+  "name": "Gold rock",
+  "variant": "Cluster",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_gold_cluster.glb",
+  "triangles": 2080,
+  "kb": 63
+ },
+ {
+  "id": "ore_mithril",
+  "name": "Mithril rock",
+  "variant": "Boulder",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_mithril_boulder.glb",
+  "triangles": 1040,
+  "kb": 34
+ },
+ {
+  "id": "ore_mithril",
+  "name": "Mithril rock",
+  "variant": "Cluster",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_mithril_cluster.glb",
+  "triangles": 2080,
+  "kb": 63
+ },
+ {
+  "id": "ore_platinum",
+  "name": "Platinum rock",
+  "variant": "Boulder",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_platinum_boulder.glb",
+  "triangles": 1040,
+  "kb": 34
+ },
+ {
+  "id": "ore_platinum",
+  "name": "Platinum rock",
+  "variant": "Cluster",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_platinum_cluster.glb",
+  "triangles": 2080,
+  "kb": 63
+ },
+ {
+  "id": "ore_iridium",
+  "name": "Iridium rock",
+  "variant": "Boulder",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_iridium_boulder.glb",
+  "triangles": 1040,
+  "kb": 34
+ },
+ {
+  "id": "ore_iridium",
+  "name": "Iridium rock",
+  "variant": "Cluster",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_iridium_cluster.glb",
+  "triangles": 2080,
+  "kb": 63
+ },
+ {
+  "id": "ore_amethyst",
+  "name": "Amethyst rock",
+  "variant": "Boulder",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_amethyst_boulder.glb",
+  "triangles": 1040,
+  "kb": 71
+ },
+ {
+  "id": "ore_amethyst",
+  "name": "Amethyst rock",
+  "variant": "Cluster",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_amethyst_cluster.glb",
+  "triangles": 1788,
+  "kb": 98
+ },
+ {
+  "id": "ore_topaz",
+  "name": "Topaz rock",
+  "variant": "Boulder",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_topaz_boulder.glb",
+  "triangles": 1040,
+  "kb": 71
+ },
+ {
+  "id": "ore_topaz",
+  "name": "Topaz rock",
+  "variant": "Cluster",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_topaz_cluster.glb",
+  "triangles": 1788,
+  "kb": 98
+ },
+ {
+  "id": "ore_emberstone",
+  "name": "Emberstone vein rock",
+  "variant": "Boulder",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_emberstone_boulder.glb",
+  "triangles": 1040,
+  "kb": 71
+ },
+ {
+  "id": "ore_emberstone",
+  "name": "Emberstone vein rock",
+  "variant": "Cluster",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_emberstone_cluster.glb",
+  "triangles": 1788,
+  "kb": 98
+ },
+ {
+  "id": "ore_emerald",
+  "name": "Emerald rock",
+  "variant": "Boulder",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_emerald_boulder.glb",
+  "triangles": 1040,
+  "kb": 71
+ },
+ {
+  "id": "ore_emerald",
+  "name": "Emerald rock",
+  "variant": "Cluster",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_emerald_cluster.glb",
+  "triangles": 1788,
+  "kb": 98
+ },
+ {
+  "id": "ore_sapphire",
+  "name": "Sapphire rock",
+  "variant": "Boulder",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_sapphire_boulder.glb",
+  "triangles": 1040,
+  "kb": 71
+ },
+ {
+  "id": "ore_sapphire",
+  "name": "Sapphire rock",
+  "variant": "Cluster",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_sapphire_cluster.glb",
+  "triangles": 1788,
+  "kb": 98
+ },
+ {
+  "id": "ore_ruby",
+  "name": "Ruby rock",
+  "variant": "Boulder",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_ruby_boulder.glb",
+  "triangles": 1040,
+  "kb": 71
+ },
+ {
+  "id": "ore_ruby",
+  "name": "Ruby rock",
+  "variant": "Cluster",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_ruby_cluster.glb",
+  "triangles": 1788,
+  "kb": 98
+ },
+ {
+  "id": "ore_aurelite",
+  "name": "Embersteel (Aurelite) rock",
+  "variant": "Boulder",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_aurelite_boulder.glb",
+  "triangles": 1040,
+  "kb": 34
+ },
+ {
+  "id": "ore_aurelite",
+  "name": "Embersteel (Aurelite) rock",
+  "variant": "Cluster",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_aurelite_cluster.glb",
+  "triangles": 2080,
+  "kb": 63
+ },
+ {
+  "id": "ore_wellglass",
+  "name": "Wellglass rock",
+  "variant": "Boulder",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_wellglass_boulder.glb",
+  "triangles": 1040,
+  "kb": 71
+ },
+ {
+  "id": "ore_wellglass",
+  "name": "Wellglass rock",
+  "variant": "Cluster",
+  "group": "Ore nodes",
+  "file": "ore_nodes/ore_wellglass_cluster.glb",
+  "triangles": 1788,
+  "kb": 98
+ },
+ {
+  "id": "plant_grass",
+  "name": "Grass",
+  "variant": "Tuft",
+  "group": "Plants",
+  "file": "plants/plant_grass_tuft.glb",
+  "triangles": 12,
+  "kb": 4
+ },
+ {
+  "id": "plant_grass",
+  "name": "Grass",
+  "variant": "Tall",
+  "group": "Plants",
+  "file": "plants/plant_grass_tall.glb",
+  "triangles": 18,
+  "kb": 4
+ },
+ {
+  "id": "plant_flowers",
+  "name": "Wildflowers",
+  "variant": "Pink",
+  "group": "Plants",
+  "file": "plants/plant_flowers_pink.glb",
+  "triangles": 12,
+  "kb": 58
+ },
+ {
+  "id": "plant_flowers",
+  "name": "Wildflowers",
+  "variant": "Yellow",
+  "group": "Plants",
+  "file": "plants/plant_flowers_yellow.glb",
+  "triangles": 12,
+  "kb": 61
+ },
+ {
+  "id": "plant_flowers",
+  "name": "Wildflowers",
+  "variant": "Blue",
+  "group": "Plants",
+  "file": "plants/plant_flowers_blue.glb",
+  "triangles": 12,
+  "kb": 60
+ },
+ {
+  "id": "plant_flowers",
+  "name": "Wildflowers",
+  "variant": "Mixed",
+  "group": "Plants",
+  "file": "plants/plant_flowers_mixed.glb",
+  "triangles": 12,
+  "kb": 58
+ },
+ {
+  "id": "plant_bush",
+  "name": "Bush",
+  "variant": "Leafy",
+  "group": "Plants",
+  "file": "plants/plant_bush_leafy.glb",
+  "triangles": 744,
+  "kb": 70
+ },
+ {
+  "id": "plant_bush",
+  "name": "Bush",
+  "variant": "Berry",
+  "group": "Plants",
+  "file": "plants/plant_bush_berry.glb",
+  "triangles": 2184,
+  "kb": 265
+ },
+ {
+  "id": "plant_bush",
+  "name": "Bush",
+  "variant": "Flowering",
+  "group": "Plants",
+  "file": "plants/plant_bush_flowering.glb",
+  "triangles": 744,
+  "kb": 70
+ },
+ {
+  "id": "plant_fern",
+  "name": "Fern",
+  "variant": "Green",
+  "group": "Plants",
+  "file": "plants/plant_fern.glb",
+  "triangles": 180,
+  "kb": 11
+ },
+ {
+  "id": "plant_mushroom",
+  "name": "Mushrooms",
+  "variant": "Red cap",
+  "group": "Plants",
+  "file": "plants/plant_mushroom_red_cap.glb",
+  "triangles": 744,
+  "kb": 28
+ },
+ {
+  "id": "plant_mushroom",
+  "name": "Mushrooms",
+  "variant": "Brown",
+  "group": "Plants",
+  "file": "plants/plant_mushroom_brown.glb",
+  "triangles": 1240,
+  "kb": 45
+ },
+ {
+  "id": "plant_mushroom",
+  "name": "Mushrooms",
+  "variant": "Glowing",
+  "group": "Plants",
+  "file": "plants/plant_mushroom_glowing.glb",
+  "triangles": 1240,
+  "kb": 45
+ },
+ {
+  "id": "plant_reeds",
+  "name": "Reeds",
+  "variant": "Cattails",
+  "group": "Plants",
+  "file": "plants/plant_reeds.glb",
+  "triangles": 868,
+  "kb": 37
+ },
+ {
+  "id": "plant_lilypads",
+  "name": "Lily pads",
+  "variant": "Pads",
+  "group": "Plants",
+  "file": "plants/plant_lilypads.glb",
+  "triangles": 134,
+  "kb": 8
+ },
+ {
+  "id": "building_emberhall",
+  "name": "The Emberhall",
+  "variant": "White stone",
+  "group": "Buildings",
+  "file": "buildings/building_emberhall.glb",
+  "triangles": 23656,
+  "kb": 741
+ },
+ {
+  "id": "building_cottage",
+  "name": "Cottage",
+  "variant": "Thatched",
+  "group": "Buildings",
+  "file": "buildings/building_cottage.glb",
+  "triangles": 6356,
+  "kb": 198
+ },
+ {
+  "id": "building_townhouse",
+  "name": "Townhouse",
+  "variant": "Red roof",
+  "group": "Buildings",
+  "file": "buildings/building_townhouse_red_roof.glb",
+  "triangles": 5348,
+  "kb": 173
+ },
+ {
+  "id": "building_townhouse",
+  "name": "Townhouse",
+  "variant": "Slate roof",
+  "group": "Buildings",
+  "file": "buildings/building_townhouse_slate_roof.glb",
+  "triangles": 5348,
+  "kb": 173
+ },
+ {
+  "id": "building_smithy",
+  "name": "Smithy",
+  "variant": "Open forge",
+  "group": "Buildings",
+  "file": "buildings/building_smithy.glb",
+  "triangles": 2408,
+  "kb": 96
+ },
+ {
+  "id": "building_wall_tower",
+  "name": "Wall tower",
+  "variant": "Round",
+  "group": "Buildings",
+  "file": "buildings/building_wall_tower.glb",
+  "triangles": 5156,
+  "kb": 162
+ },
+ {
+  "id": "building_bell_tower",
+  "name": "Bell tower",
+  "variant": "Market Square",
+  "group": "Buildings",
+  "file": "buildings/building_bell_tower.glb",
+  "triangles": 2624,
+  "kb": 93
+ },
+ {
+  "id": "building_shrine",
+  "name": "Wayside shrine",
+  "variant": "Ember flame",
+  "group": "Buildings",
+  "file": "buildings/building_shrine.glb",
+  "triangles": 1596,
+  "kb": 67
+ },
+ {
+  "id": "station_anvil",
+  "name": "Anvil",
+  "variant": "Iron on a stump",
+  "group": "Crafting stations",
+  "file": "crafting_stations/station_anvil.glb",
+  "triangles": 740,
+  "kb": 31
+ },
+ {
+  "id": "station_furnace",
+  "name": "Furnace",
+  "variant": "Stone kiln",
+  "group": "Crafting stations",
+  "file": "crafting_stations/station_furnace.glb",
+  "triangles": 1652,
+  "kb": 62
+ },
+ {
+  "id": "station_stove",
+  "name": "Cooking stove",
+  "variant": "Brick hearth",
+  "group": "Crafting stations",
+  "file": "crafting_stations/station_stove.glb",
+  "triangles": 1074,
+  "kb": 46
+ },
+ {
+  "id": "station_alchemy",
+  "name": "Alchemy table",
+  "variant": "Potion bench",
+  "group": "Crafting stations",
+  "file": "crafting_stations/station_alchemy.glb",
+  "triangles": 3240,
+  "kb": 126
+ },
+ {
+  "id": "station_workbench",
+  "name": "Workbench",
+  "variant": "Carpenter's bench",
+  "group": "Crafting stations",
+  "file": "crafting_stations/station_workbench.glb",
+  "triangles": 1452,
+  "kb": 48
+ },
+ {
+  "id": "station_altar",
+  "name": "Enchanting altar",
+  "variant": "White stone",
+  "group": "Crafting stations",
+  "file": "crafting_stations/station_altar.glb",
+  "triangles": 1044,
+  "kb": 47
+ },
+ {
+  "id": "station_spinning_wheel",
+  "name": "Spinning wheel",
+  "variant": "Wooden",
+  "group": "Crafting stations",
+  "file": "crafting_stations/station_spinning_wheel.glb",
+  "triangles": 1184,
+  "kb": 49
+ },
+ {
+  "id": "station_tanning_rack",
+  "name": "Tanning rack",
+  "variant": "Pole frame",
+  "group": "Crafting stations",
+  "file": "crafting_stations/station_tanning_rack.glb",
+  "triangles": 336,
+  "kb": 20
+ },
+ {
+  "id": "station_chest",
+  "name": "Storage chest",
+  "variant": "Iron bands",
+  "group": "Crafting stations",
+  "file": "crafting_stations/station_chest_iron_bands.glb",
+  "triangles": 880,
+  "kb": 32
+ },
+ {
+  "id": "station_chest",
+  "name": "Storage chest",
+  "variant": "Brass bands",
+  "group": "Crafting stations",
+  "file": "crafting_stations/station_chest_brass_bands.glb",
+  "triangles": 880,
+  "kb": 32
+ },
+ {
+  "id": "station_guild_board",
+  "name": "Guild board",
+  "variant": "Notice board",
+  "group": "Crafting stations",
+  "file": "crafting_stations/station_guild_board.glb",
+  "triangles": 826,
+  "kb": 42
+ },
+ {
+  "id": "fence_wood",
+  "name": "Wooden fence",
+  "variant": "Rail",
+  "group": "Fences and bridges",
+  "file": "fences_and_bridges/fence_wood_rail.glb",
+  "triangles": 280,
+  "kb": 14
+ },
+ {
+  "id": "fence_wood",
+  "name": "Wooden fence",
+  "variant": "Picket",
+  "group": "Fences and bridges",
+  "file": "fences_and_bridges/fence_wood_picket.glb",
+  "triangles": 676,
+  "kb": 54
+ },
+ {
+  "id": "fence_gate",
+  "name": "Field gate",
+  "variant": "Double",
+  "group": "Fences and bridges",
+  "file": "fences_and_bridges/fence_gate.glb",
+  "triangles": 1252,
+  "kb": 43
+ },
+ {
+  "id": "fence_hedge",
+  "name": "Hedge",
+  "variant": "Trimmed",
+  "group": "Fences and bridges",
+  "file": "fences_and_bridges/fence_hedge.glb",
+  "triangles": 580,
+  "kb": 70
+ },
+ {
+  "id": "fence_stone",
+  "name": "Stone wall",
+  "variant": "Field wall",
+  "group": "Fences and bridges",
+  "file": "fences_and_bridges/fence_stone_field_wall.glb",
+  "triangles": 1200,
+  "kb": 36
+ },
+ {
+  "id": "fence_stone",
+  "name": "Stone wall",
+  "variant": "City wall",
+  "group": "Fences and bridges",
+  "file": "fences_and_bridges/fence_stone_city_wall.glb",
+  "triangles": 1080,
+  "kb": 33
+ },
+ {
+  "id": "bridge_plank",
+  "name": "Plank bridge",
+  "variant": "Wooden",
+  "group": "Fences and bridges",
+  "file": "fences_and_bridges/bridge_plank.glb",
+  "triangles": 2672,
+  "kb": 89
+ },
+ {
+  "id": "bridge_stone",
+  "name": "Stone bridge",
+  "variant": "Arch",
+  "group": "Fences and bridges",
+  "file": "fences_and_bridges/bridge_stone.glb",
+  "triangles": 3888,
+  "kb": 112
+ },
+ {
+  "id": "prop_barrel",
+  "name": "Barrel",
+  "variant": "Closed",
+  "group": "Props",
+  "file": "props/prop_barrel_closed.glb",
+  "triangles": 1512,
+  "kb": 52
+ },
+ {
+  "id": "prop_barrel",
+  "name": "Barrel",
+  "variant": "Apples",
+  "group": "Props",
+  "file": "props/prop_barrel_apples.glb",
+  "triangles": 3132,
+  "kb": 272
+ },
+ {
+  "id": "prop_crate",
+  "name": "Crate",
+  "variant": "Single",
+  "group": "Props",
+  "file": "props/prop_crate_single.glb",
+  "triangles": 540,
+  "kb": 19
+ },
+ {
+  "id": "prop_crate",
+  "name": "Crate",
+  "variant": "Stack",
+  "group": "Props",
+  "file": "props/prop_crate_stack.glb",
+  "triangles": 1620,
+  "kb": 50
+ },
+ {
+  "id": "prop_sacks",
+  "name": "Grain sacks",
+  "variant": "Pile",
+  "group": "Props",
+  "file": "props/prop_sacks.glb",
+  "triangles": 720,
+  "kb": 22
+ },
+ {
+  "id": "prop_lamp_post",
+  "name": "Street lamp",
+  "variant": "Iron",
+  "group": "Props",
+  "file": "props/prop_lamp_post.glb",
+  "triangles": 924,
+  "kb": 34
+ },
+ {
+  "id": "prop_well",
+  "name": "Well",
+  "variant": "Stone",
+  "group": "Props",
+  "file": "props/prop_well.glb",
+  "triangles": 1178,
+  "kb": 53
+ },
+ {
+  "id": "prop_signpost",
+  "name": "Signpost",
+  "variant": "Crossroads",
+  "group": "Props",
+  "file": "props/prop_signpost.glb",
+  "triangles": 140,
+  "kb": 21
+ },
+ {
+  "id": "prop_market_stall",
+  "name": "Market stall",
+  "variant": "Red",
+  "group": "Props",
+  "file": "props/prop_market_stall_red.glb",
+  "triangles": 2264,
+  "kb": 234
+ },
+ {
+  "id": "prop_market_stall",
+  "name": "Market stall",
+  "variant": "Blue",
+  "group": "Props",
+  "file": "props/prop_market_stall_blue.glb",
+  "triangles": 2264,
+  "kb": 234
+ },
+ {
+  "id": "prop_market_stall",
+  "name": "Market stall",
+  "variant": "Green",
+  "group": "Props",
+  "file": "props/prop_market_stall_green.glb",
+  "triangles": 2264,
+  "kb": 234
+ },
+ {
+  "id": "prop_cart",
+  "name": "Hand cart",
+  "variant": "Loaded",
+  "group": "Props",
+  "file": "props/prop_cart.glb",
+  "triangles": 2480,
+  "kb": 87
+ },
+ {
+  "id": "prop_bench",
+  "name": "Bench",
+  "variant": "Wooden",
+  "group": "Props",
+  "file": "props/prop_bench.glb",
+  "triangles": 648,
+  "kb": 21
+ },
+ {
+  "id": "prop_campfire",
+  "name": "Campfire",
+  "variant": "Lit",
+  "group": "Props",
+  "file": "props/prop_campfire.glb",
+  "triangles": 1600,
+  "kb": 62
+ },
+ {
+  "id": "prop_hay",
+  "name": "Hay",
+  "variant": "Round bale",
+  "group": "Props",
+  "file": "props/prop_hay_round_bale.glb",
+  "triangles": 72,
+  "kb": 6
+ },
+ {
+  "id": "prop_hay",
+  "name": "Hay",
+  "variant": "Stacked bales",
+  "group": "Props",
+  "file": "props/prop_hay_stacked_bales.glb",
+  "triangles": 324,
+  "kb": 12
+ },
+ {
+  "id": "prop_planter",
+  "name": "Flower planter",
+  "variant": "Mixed",
+  "group": "Props",
+  "file": "props/prop_planter.glb",
+  "triangles": 856,
+  "kb": 70
+ }
+]
