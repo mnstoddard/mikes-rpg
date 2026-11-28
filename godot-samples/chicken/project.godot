@@ -1,0 +1,10 @@
+; Emberfall chicken sample. Open this folder in Godot 4.3 or newer.
+config_version=5
+
+[application]
+config/name="Emberfall Chicken Sample"
+run/main_scene="res://chicken_demo.tscn"
+config/features=PackedStringArray("4.3", "Forward Plus")
+
+[rendering]
+anti_aliasing/quality/msaa_3d=2
