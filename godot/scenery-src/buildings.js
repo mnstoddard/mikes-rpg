@@ -79,7 +79,7 @@ function townhouse(seed, variant) {
   for (let i = 0; i <= 4; i++) b.put(box(0.14, F, 0.1, { bevel: 0.02 }), t, { p: [-W / 2 - 0.25 + i * (W + 0.5) / 4, F * 1.5 + 0.1, D / 2 + 0.22] });
   for (let i = 0; i < 4; i++) b.put(box((W + 0.5) / 4 * 1.05, 0.1, 0.08, { bevel: 0.015 }), t, { p: [-W / 2 - 0.25 + (i + 0.5) * (W + 0.5) / 4, F * 1.5, D / 2 + 0.23], r: [0, 0, i % 2 ? 0.55 : -0.55] });
   for (const s of [-1, 1]) b.put(gable(D + 0.4, 2.6, 0.2, 0xf4ecd8), M.plaster(), { p: [s * (W / 2 + 0.15), F * 2 + 0.1, 0] });
-  gableRoof(b, M.roof(), W + 0.5, D + 0.4, 2.7, { over: 0.45, thick: 0.18, color: roofCol, at: [0, F * 2 + 0.05, 0] });
+  gableRoof(b, variant ? M.roofSlate() : M.roof(), W + 0.5, D + 0.4, 2.7, { over: 0.45, thick: 0.18, color: variant ? 0x5a6a80 : roofCol, at: [0, F * 2 + 0.05, 0] });
   b.put(box(0.8, 2.2, 0.8, { bevel: 0.04, tex: 1, color: 0xd8d0c2 }), M.stone(), { p: [-W / 2 + 1.0, F * 2 + 1.9, -0.6] });
   doorAt(b, 1.4, 0, D / 2 + 0.05, 1.1, 2.2, { arch: true });
   windowAt(b, -1.3, 1.5, D / 2 + 0.02, 0, 1.0, 1.1, { arch: true });
@@ -122,7 +122,7 @@ function smithy(seed) {
 function emberhall(seed) {
   const b = new Builder("building_emberhall");
   const W = 14, D = 24, H = 9;
-  const stone = M.stone();
+  const stone = M.stoneWhite();
   const white = 0xf2ede2, trim = 0xd8cdb8, roof = 0x46607a;
   // the raised floor and steps
   b.put(paint(box(W + 3, 0.8, D + 3, { bevel: 0.06, tex: 1.5, color: trim }), groundAO(0.8, 0.3)), stone, { p: [0, 0.4, 0] });
@@ -138,12 +138,12 @@ function emberhall(seed) {
   // tall arched windows between the buttresses
   for (let i = 0; i < 4; i++) for (const s of [-1, 1]) {
     const z = -D / 2 + 2 + (i + 0.5) * (D - 4) / 4;
-    windowAt(b, s * (W / 2 + 0.02), 0.8 + H * 0.45, z, s > 0 ? 1 : 3, 1.3, 3.2, { arch: true, frame: M.stone() });
+    windowAt(b, s * (W / 2 + 0.02), 0.8 + H * 0.45, z, s > 0 ? 1 : 3, 1.3, 3.2, { arch: true, frame: M.stoneWhite() });
   }
   // the front: a gable with a round rose window and a great arched door
   b.put(gable(W, 5.5, 0.6, white), stone, { p: [0, 0.8 + H, D / 2 - 0.3], r: [0, Math.PI / 2, 0] });
   b.put(gable(W, 5.5, 0.6, white), stone, { p: [0, 0.8 + H, -D / 2 + 0.3], r: [0, Math.PI / 2, 0] });
-  gableRoof(b, M.roof(), D + 0.4, W, 5.5, { over: 0.6, thick: 0.3, color: roof, at: [0, 0.8 + H, 0], rotY: Math.PI / 2 });
+  gableRoof(b, M.roofSlate(), D + 0.4, W, 5.5, { over: 0.6, thick: 0.3, color: 0x5a6a80, at: [0, 0.8 + H, 0], rotY: Math.PI / 2 });
   doorAt(b, 0, 0.8, D / 2 + 0.06, 2.6, 4.2, { arch: true, color: 0xe0c8a8 });
   b.put(ring(1.9, 0.18, trim, 32), stone, { p: [0, 0.8 + 4.2 + 1.3, D / 2 + 0.1], r: [Math.PI / 2, 0, 0] });
   const rose = new THREE.CircleGeometry(1.8, 24);
@@ -161,8 +161,8 @@ function emberhall(seed) {
   for (let k = 1; k < 4; k++) b.put(box(5.4, 0.4, 5.4, { bevel: 0.05, color: trim }), stone, { p: [tx, 0.8 + k * TH / 4, tz] });
   for (const f of [0, 1, 2, 3]) {
     const off = [[0, 2.52], [2.52, 0], [0, -2.52], [-2.52, 0]][f];
-    windowAt(b, tx + off[0], 0.8 + TH - 3.5, tz + off[1], f, 1.1, 2.2, { arch: true, frame: M.stone() });
-    windowAt(b, tx + off[0], 0.8 + TH * 0.55, tz + off[1], f, 0.7, 1.4, { arch: true, frame: M.stone() });
+    windowAt(b, tx + off[0], 0.8 + TH - 3.5, tz + off[1], f, 1.1, 2.2, { arch: true, frame: M.stoneWhite() });
+    windowAt(b, tx + off[0], 0.8 + TH * 0.55, tz + off[1], f, 0.7, 1.4, { arch: true, frame: M.stoneWhite() });
   }
   // battlements round the tower top
   for (let i = 0; i < 4; i++) for (const s of [-1, 1]) {
@@ -170,7 +170,7 @@ function emberhall(seed) {
     b.put(box(0.5, 0.8, 0.7, { bevel: 0.04, color: trim }), stone, { p: [tx + s * 2.4, 0.8 + TH + 0.4, tz - 1.9 + i * 1.27] });
   }
   // the spire and the great ember flame
-  b.put(coneRoof(2.6, 9, 4, roof), M.roof(), { p: [tx, 0.8 + TH + 0.2, tz], r: [0, Math.PI / 4, 0] });
+  b.put(coneRoof(2.6, 9, 4, 0x5a6a80), M.roofSlate(), { p: [tx, 0.8 + TH + 0.2, tz], r: [0, Math.PI / 4, 0] });
   b.put(turned([[0, 0], [0.5, 0.1], [0.65, 0.6], [0.4, 0.8], [0, 0.75]], 10, 0xffffff), M.brass(), { p: [tx, 0.8 + TH + 8.8, tz] });
   b.put(flameGeo(2.2, 0.55), M.flame(), { p: [tx, 0.8 + TH + 9.5, tz] });
   b.put(paint(new THREE.IcosahedronGeometry(0.5, 1), () => new THREE.Color(0xffffff)), M.ember(), { p: [tx, 0.8 + TH + 9.8, tz] });
@@ -215,13 +215,13 @@ function bellTower(seed) {
 function shrine(seed) {
   const b = new Builder("building_shrine");
   // a small round open shrine: a ring of pillars under a dome, an ember flame in a stone bowl
-  b.put(paint(turned([[0, 0], [2.4, 0], [2.4, 0.3], [2.1, 0.35], [2.1, 0.55], [0, 0.55]], 24, 0xe6e0d4, 1), groundAO(0.5, 0.3)), M.stone());
+  b.put(paint(turned([[0, 0], [2.4, 0], [2.4, 0.3], [2.1, 0.35], [2.1, 0.55], [0, 0.55]], 24, 0xe6e0d4, 1), groundAO(0.5, 0.3)), M.stoneWhite());
   for (let i = 0; i < 6; i++) {
     const a = (i / 6) * Math.PI * 2;
-    b.put(turned([[0.28, 0], [0.22, 0.2], [0.2, 2.6], [0.28, 2.8], [0.3, 2.95], [0, 2.95]], 12, 0xf2ede2, 2), M.stone(), { p: [Math.cos(a) * 1.75, 0.55, Math.sin(a) * 1.75] });
+    b.put(turned([[0.28, 0], [0.22, 0.2], [0.2, 2.6], [0.28, 2.8], [0.3, 2.95], [0, 2.95]], 12, 0xf2ede2, 2), M.stoneWhite(), { p: [Math.cos(a) * 1.75, 0.55, Math.sin(a) * 1.75] });
   }
-  b.put(turned([[2.2, 0], [2.2, 0.35], [2.05, 0.45], [1.6, 1.2], [0.9, 1.65], [0.2, 1.85], [0, 1.85]], 24, 0x46607a, 2), M.roof(), { p: [0, 3.5, 0] });
-  b.put(turned([[0, 0], [0.35, 0], [0.2, 0.25], [0.18, 0.8], [0.6, 1.0], [0.65, 1.1], [0, 1.05]], 14, 0xe6e0d4), M.stone(), { p: [0, 0.55, 0] });
+  b.put(turned([[2.2, 0], [2.2, 0.35], [2.05, 0.45], [1.6, 1.2], [0.9, 1.65], [0.2, 1.85], [0, 1.85]], 24, 0x5a6a80, 2), M.roofSlate(), { p: [0, 3.5, 0] });
+  b.put(turned([[0, 0], [0.35, 0], [0.2, 0.25], [0.18, 0.8], [0.6, 1.0], [0.65, 1.1], [0, 1.05]], 14, 0xe6e0d4), M.stoneWhite(), { p: [0, 0.55, 0] });
   b.put(paint(new THREE.IcosahedronGeometry(0.35, 1), () => new THREE.Color(0xffffff)), M.ember(), { p: [0, 1.7, 0], s: [1, 0.6, 1] });
   b.put(flameGeo(1.0, 0.3), M.flame(), { p: [0, 1.65, 0] });
   return b.build();

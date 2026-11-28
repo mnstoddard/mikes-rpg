@@ -7,21 +7,27 @@ export const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 
 // ---------- Materials (shared, so a building is only a few draw calls) ----------
 export const M = {
-  wood: () => mat("wood", { map: plankTexture(0xa87a4a, 13, 4), roughness: 0.75 }),
-  woodDark: () => mat("wood_dark", { map: plankTexture(0x6e4a2e, 14, 4), roughness: 0.75 }),
-  log: () => mat("log", { map: barkTexture(0x8a6440, 0x4c3520, 9), roughness: 0.8 }),
-  stone: () => mat("stone_blocks", { map: brickTexture(17, 4, 3), roughness: 0.85 }),
-  rock: () => mat("stone", { map: stoneTexture(11), roughness: 0.85 }),
-  plaster: () => mat("plaster", { map: plasterTexture(23), roughness: 0.9 }),
-  roof: () => mat("roof_tiles", { map: roofTexture(19, "tile"), roughness: 0.8 }),
-  thatch: () => mat("thatch", { map: roofTexture(21, "thatch"), roughness: 0.95 }),
-  iron: () => mat("iron", { color: 0x6a6e74, vertexColors: false, roughness: 0.5, metalness: 1 }),
-  brass: () => mat("brass", { color: 0xd99c52, vertexColors: false, roughness: 0.3, metalness: 1 }),
+  // shared library textures (godot/assets/textures), see lib.js
+  wood: () => mat("planks", { lib: { name: "planks" }, roughness: 0.75 }),
+  woodDark: () => mat("planks_dark", { lib: { name: "planks", tint: 0xa88a78 } }),
+  log: () => mat("bark_oak", { lib: { name: "bark_oak" } }),
+  stone: () => mat("stone_brick", { lib: { name: "stone_brick", ref: 0xe0dacd } }),
+  rock: () => mat("rock", { lib: { name: "rock", ref: 0x9c9a94 } }),
+  plaster: () => mat("plaster", { lib: { name: "plaster", ref: 0xf2ead8 } }),
+  roof: () => mat("roof_tiles", { lib: { name: "roof_tiles", ref: 0xb4553a } }),
+  roofSlate: () => mat("roof_slate", { lib: { name: "slate", ref: 0x5a6a80 } }),
+  thatch: () => mat("thatch", { lib: { name: "thatch" } }),
+  iron: () => mat("metal_iron", { lib: { name: "metal_iron" } }),
+  brass: () => mat("metal_bronze", { lib: { name: "metal_bronze" } }),
+  leather: () => mat("leather", { lib: { name: "leather" } }),
+  ember: () => mat("embers", { lib: { name: "embers" }, emissiveIntensity: 3 }),
+  // Emberfall's white stone (the Emberhall, shrines, the altar): kept as its own
+  // light texture, because the library's stone_brick is a warm grey
+  stoneWhite: () => mat("stone_white", { map: brickTexture(17, 4, 3), roughness: 0.85 }),
+  // plain materials (no texture needed)
   cloth: () => mat("cloth", { roughness: 0.9 }),
-  leather: () => mat("leather", { roughness: 0.65 }),
   paper: () => mat("paper", { roughness: 0.9, double: true }),
   glass: () => mat("glass", { color: 0xcfeaf2, vertexColors: false, roughness: 0.05, transparent: true, opacity: 0.45 }),
-  ember: () => mat("ember_glow", { color: 0xffb347, vertexColors: false, roughness: 1, emissive: 0xff7a2f, emissiveIntensity: 3 }),
   flame: () => mat("flame", { color: 0xffe08a, vertexColors: false, roughness: 1, emissive: 0xffa040, emissiveIntensity: 3.5 }),
   lamp: () => mat("lamp_glow", { color: 0xfff0c0, vertexColors: false, roughness: 1, emissive: 0xffc060, emissiveIntensity: 2.5 }),
   arcane: () => mat("arcane_glow", { color: 0xc8b0ff, vertexColors: false, roughness: 0.2, emissive: 0x8a5cff, emissiveIntensity: 2.2 }),

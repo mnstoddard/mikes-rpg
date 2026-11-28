@@ -331,6 +331,45 @@ export function plasterTexture(seed = 23) {
   });
 }
 
+// ---------- The shared texture library (godot/assets/textures) ----------
+//
+// Materials made with `lib: { name }` use the style guide's shared textures:
+// <name>_albedo.png, _normal.png, _orm.png (and _emission.png for glowing ones).
+// In the gallery the real images are embedded (small copies); when exporting,
+// a tiny stand-in is used and export.mjs points the .glb at the real files in
+// godot/assets/textures, so every model shares one copy of each texture.
+
+const libCache = new Map();
+/** One map of a library texture: kind is "albedo", "normal", "orm" or "emission". */
+export function libTexture(name, kind) {
+  const key = `${name}:${kind}`;
+  if (libCache.has(key)) return libCache.get(key);
+  const src = globalThis.EMBERFALL_LIBTEX?.[name]?.[kind];
+  let t;
+  if (src) {
+    const img = new Image();
+    t = new THREE.Texture(img);
+    img.onload = () => { t.needsUpdate = true; };
+    img.src = src;
+  } else {
+    const c = document.createElement("canvas");
+    c.width = c.height = 4;
+    const g = c.getContext("2d");
+    g.fillStyle = kind === "normal" ? "#8080ff" : kind === "orm" ? "#ffd900" : "#ffffff";
+    g.fillRect(0, 0, 4, 4);
+    t = new THREE.CanvasTexture(c);
+  }
+  t.name = `lib:${name}:${kind}`;
+  t.colorSpace = kind === "albedo" || kind === "emission" ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.anisotropy = 4;
+  libCache.set(key, t);
+  return t;
+}
+
+/** Which library textures have an emission map. */
+export const LIB_EMISSION = new Set(["embers", "crystal"]);
+
 // ---------- Materials ----------
 
 const matCache = new Map();
@@ -341,6 +380,32 @@ const matCache = new Map();
 export function mat(name, o = {}) {
   const key = name + JSON.stringify({ ...o, map: o.map?.name });
   if (matCache.has(key)) return matCache.get(key);
+  if (o.lib) {
+    // a library material: albedo, normal and ORM (AO, roughness, metallic) maps
+    const L = o.lib;
+    const orm = libTexture(L.name, "orm");
+    const m = new THREE.MeshStandardMaterial({
+      name,
+      color: o.color ?? 0xffffff,
+      vertexColors: o.vertexColors ?? true,
+      map: libTexture(L.name, "albedo"),
+      normalMap: libTexture(L.name, "normal"),
+      normalScale: new THREE.Vector2(0.7, 0.7),
+      roughnessMap: orm, metalnessMap: orm, aoMap: orm,
+      roughness: 1, metalness: 1, aoMapIntensity: 0.6,
+      side: o.double ? THREE.DoubleSide : THREE.FrontSide,
+      alphaTest: o.alphaTest ?? 0,
+    });
+    if (LIB_EMISSION.has(L.name)) { m.emissiveMap = libTexture(L.name, "emission"); m.emissive.set(0xffffff); m.emissiveIntensity = o.emissiveIntensity ?? 2; }
+    else if (o.emissive) { m.emissive.set(o.emissive); m.emissiveIntensity = o.emissiveIntensity ?? 1; }
+    // vertex colours are painted against a base colour (`ref`); for a library
+    // material they become a soft tint relative to it, times `tint`
+    m.userData.ref = new THREE.Color(L.ref ?? 0xffffff);
+    m.userData.tint = new THREE.Color(L.tint ?? 0xffffff);
+    m.userData.lib = L.name;
+    matCache.set(key, m);
+    return m;
+  }
   const m = new THREE.MeshStandardMaterial({
     name,
     color: o.color ?? 0xffffff,
@@ -380,6 +445,16 @@ export class Builder {
   constructor(name) { this.name = name; this.parts = new Map(); this.extra = []; }
   add(geo, material, matrix) {
     const g = prep(geo.clone());
+    if (material.userData?.ref) {
+      // turn painted colours into a tint over the library texture
+      const c = g.attributes.color, ref = material.userData.ref, t = material.userData.tint;
+      for (let i = 0; i < c.count; i++) {
+        c.setXYZ(i,
+          Math.min(1, (c.getX(i) / Math.max(0.05, ref.r)) * t.r),
+          Math.min(1, (c.getY(i) / Math.max(0.05, ref.g)) * t.g),
+          Math.min(1, (c.getZ(i) / Math.max(0.05, ref.b)) * t.b));
+      }
+    }
     if (matrix) g.applyMatrix4(matrix);
     if (!this.parts.has(material)) this.parts.set(material, []);
     this.parts.get(material).push(g);

@@ -16,7 +16,11 @@ export const SPECIES = {
   crownwood: { name: "Crownwood", bark: [0xb08a5a, 0x6a4e2e], leaves: [0xe0a83a, 0xf6d36a, 0xfff0a8], core: [0xb07a22, 0xe0aa3a], h: [8, 9.5], crown: 2.8, shape: "broad", branches: 6, spread: 1.0, thick: 1.5 },
 };
 
-function barkMat(sp) {
+// Which shared library bark each tree uses (elderwood keeps its own purple bark).
+const LIB_BARK = { Oak: ["bark_oak"], Maple: ["bark_oak", 0xe8c8b8], Yew: ["bark_oak", 0xe0b0a0], Crownwood: ["bark_oak", 0xfff0d0], Ironwood: ["bark_oak", 0xb8c8d0], Birch: ["bark_birch"] };
+function barkMat(sp, dead = false) {
+  const l = dead ? ["bark_oak", 0xb8b4b0] : LIB_BARK[sp.name];
+  if (l) return mat(`bark_${sp.name}${dead ? "_dead" : ""}`, { lib: { name: l[0], tint: l[1] ?? 0xffffff } });
   return mat(`bark_${sp.name}`, { map: barkTexture(sp.bark[0], sp.bark[1], 7, sp.barkStyle ?? "ridged"), roughness: 0.8 });
 }
 function coreMat(sp) {
@@ -36,7 +40,7 @@ function broadleaf(sp, seed, { dead = false } = {}) {
   const H = r.range(...sp.h);
   const thick = sp.thick ?? 1, thin = sp.thin ?? 1;
   const baseR = 0.28 * thick * thin;
-  const bm = barkMat(sp), cm = coreMat(sp), lm = cardMat(sp, seed % 5);
+  const bm = barkMat(sp, dead), cm = coreMat(sp), lm = cardMat(sp, seed % 5);
 
   // trunk: leans a little, tapers, flares at the roots
   const trunkLen = H * 0.62;
@@ -98,7 +102,7 @@ function pine(seed, variant = 0) {
   const r = rng(seed);
   const b = new Builder("tree_pine");
   const H = r.range(8, 10) * (variant === 1 ? 1.3 : 1);
-  const bm = mat("bark_Pine", { map: barkTexture(0x8a6440, 0x4c3520, 9), roughness: 0.8 });
+  const bm = mat("bark_pine", { lib: { name: "bark_pine" } });
   const nm = mat("foliage_Pine", { roughness: 0.75 });
   const lm = mat("needles_Pine", { map: leafTexture("needle", [0x3a7a40, 0x6aa850, 0x9ccc6a], 4), alphaTest: 0.5, double: true, roughness: 0.75 });
   const sm = mat("snow", { roughness: 0.6 });

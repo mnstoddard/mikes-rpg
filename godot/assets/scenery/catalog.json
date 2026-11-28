@@ -6,7 +6,7 @@
   "group": "Trees",
   "file": "trees/tree_oak.glb",
   "triangles": 4764,
-  "kb": 335
+  "kb": 271
  },
  {
   "id": "tree_pine",
@@ -15,7 +15,7 @@
   "group": "Trees",
   "file": "trees/tree_pine_classic.glb",
   "triangles": 1458,
-  "kb": 207
+  "kb": 145
  },
  {
   "id": "tree_pine",
@@ -24,7 +24,7 @@
   "group": "Trees",
   "file": "trees/tree_pine_tall.glb",
   "triangles": 1668,
-  "kb": 215
+  "kb": 153
  },
  {
   "id": "tree_pine",
@@ -33,7 +33,7 @@
   "group": "Trees",
   "file": "trees/tree_pine_snowy.glb",
   "triangles": 1458,
-  "kb": 207
+  "kb": 145
  },
  {
   "id": "tree_birch",
@@ -42,7 +42,7 @@
   "group": "Trees",
   "file": "trees/tree_birch.glb",
   "triangles": 3594,
-  "kb": 208
+  "kb": 205
  },
  {
   "id": "tree_maple",
@@ -51,7 +51,7 @@
   "group": "Trees",
   "file": "trees/tree_maple.glb",
   "triangles": 4688,
-  "kb": 330
+  "kb": 268
  },
  {
   "id": "tree_yew",
@@ -60,7 +60,7 @@
   "group": "Trees",
   "file": "trees/tree_yew.glb",
   "triangles": 5308,
-  "kb": 386
+  "kb": 323
  },
  {
   "id": "tree_ironwood",
@@ -69,7 +69,7 @@
   "group": "Trees",
   "file": "trees/tree_ironwood.glb",
   "triangles": 5276,
-  "kb": 360
+  "kb": 295
  },
  {
   "id": "tree_elderwood",
@@ -87,7 +87,7 @@
   "group": "Trees",
   "file": "trees/tree_crownwood.glb",
   "triangles": 4764,
-  "kb": 338
+  "kb": 272
  },
  {
   "id": "tree_dead",
@@ -96,7 +96,7 @@
   "group": "Trees",
   "file": "trees/tree_dead.glb",
   "triangles": 554,
-  "kb": 136
+  "kb": 71
  },
  {
   "id": "rock_boulder",
@@ -105,7 +105,7 @@
   "group": "Rocks",
   "file": "rocks/rock_boulder.glb",
   "triangles": 320,
-  "kb": 59
+  "kb": 11
  },
  {
   "id": "rock_cluster",
@@ -114,7 +114,7 @@
   "group": "Rocks",
   "file": "rocks/rock_cluster.glb",
   "triangles": 860,
-  "kb": 74
+  "kb": 26
  },
  {
   "id": "rock_pebbles",
@@ -123,7 +123,7 @@
   "group": "Rocks",
   "file": "rocks/rock_pebbles.glb",
   "triangles": 480,
-  "kb": 64
+  "kb": 16
  },
  {
   "id": "rock_cliff",
@@ -132,7 +132,7 @@
   "group": "Rocks",
   "file": "rocks/rock_cliff.glb",
   "triangles": 1920,
-  "kb": 103
+  "kb": 55
  },
  {
   "id": "rock_standing",
@@ -141,7 +141,7 @@
   "group": "Rocks",
   "file": "rocks/rock_standing.glb",
   "triangles": 320,
-  "kb": 59
+  "kb": 11
  },
  {
   "id": "rock_sandstone",
@@ -150,7 +150,7 @@
   "group": "Rocks",
   "file": "rocks/rock_sandstone.glb",
   "triangles": 320,
-  "kb": 59
+  "kb": 11
  },
  {
   "id": "ore_stone",
@@ -159,7 +159,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_stone_boulder.glb",
   "triangles": 320,
-  "kb": 59
+  "kb": 11
  },
  {
   "id": "ore_stone",
@@ -168,7 +168,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_stone_cluster.glb",
   "triangles": 960,
-  "kb": 77
+  "kb": 29
  },
  {
   "id": "ore_copper",
@@ -177,7 +177,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_copper_boulder.glb",
   "triangles": 1040,
-  "kb": 81
+  "kb": 34
  },
  {
   "id": "ore_copper",
@@ -186,7 +186,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_copper_cluster.glb",
   "triangles": 2080,
-  "kb": 110
+  "kb": 63
  },
  {
   "id": "ore_tin",
@@ -195,7 +195,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_tin_boulder.glb",
   "triangles": 1040,
-  "kb": 81
+  "kb": 34
  },
  {
   "id": "ore_tin",
@@ -204,7 +204,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_tin_cluster.glb",
   "triangles": 2080,
-  "kb": 110
+  "kb": 63
  },
  {
   "id": "ore_iron",
@@ -213,7 +213,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_iron_boulder.glb",
   "triangles": 1040,
-  "kb": 81
+  "kb": 34
  },
  {
   "id": "ore_iron",
@@ -222,7 +222,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_iron_cluster.glb",
   "triangles": 2080,
-  "kb": 110
+  "kb": 63
  },
  {
   "id": "ore_coal",
@@ -231,7 +231,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_coal_boulder.glb",
   "triangles": 1040,
-  "kb": 81
+  "kb": 33
  },
  {
   "id": "ore_coal",
@@ -240,7 +240,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_coal_cluster.glb",
   "triangles": 2080,
-  "kb": 110
+  "kb": 62
  },
  {
   "id": "ore_silver",
@@ -249,7 +249,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_silver_boulder.glb",
   "triangles": 1040,
-  "kb": 81
+  "kb": 34
  },
  {
   "id": "ore_silver",
@@ -258,7 +258,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_silver_cluster.glb",
   "triangles": 2080,
-  "kb": 110
+  "kb": 63
  },
  {
   "id": "ore_gold",
@@ -267,7 +267,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_gold_boulder.glb",
   "triangles": 1040,
-  "kb": 81
+  "kb": 34
  },
  {
   "id": "ore_gold",
@@ -276,7 +276,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_gold_cluster.glb",
   "triangles": 2080,
-  "kb": 110
+  "kb": 63
  },
  {
   "id": "ore_mithril",
@@ -285,7 +285,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_mithril_boulder.glb",
   "triangles": 1040,
-  "kb": 81
+  "kb": 34
  },
  {
   "id": "ore_mithril",
@@ -294,7 +294,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_mithril_cluster.glb",
   "triangles": 2080,
-  "kb": 110
+  "kb": 63
  },
  {
   "id": "ore_platinum",
@@ -303,7 +303,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_platinum_boulder.glb",
   "triangles": 1040,
-  "kb": 81
+  "kb": 34
  },
  {
   "id": "ore_platinum",
@@ -312,7 +312,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_platinum_cluster.glb",
   "triangles": 2080,
-  "kb": 110
+  "kb": 63
  },
  {
   "id": "ore_iridium",
@@ -321,7 +321,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_iridium_boulder.glb",
   "triangles": 1040,
-  "kb": 81
+  "kb": 34
  },
  {
   "id": "ore_iridium",
@@ -330,7 +330,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_iridium_cluster.glb",
   "triangles": 2080,
-  "kb": 110
+  "kb": 63
  },
  {
   "id": "ore_amethyst",
@@ -339,7 +339,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_amethyst_boulder.glb",
   "triangles": 1040,
-  "kb": 119
+  "kb": 71
  },
  {
   "id": "ore_amethyst",
@@ -348,7 +348,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_amethyst_cluster.glb",
   "triangles": 1788,
-  "kb": 146
+  "kb": 98
  },
  {
   "id": "ore_topaz",
@@ -357,7 +357,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_topaz_boulder.glb",
   "triangles": 1040,
-  "kb": 119
+  "kb": 71
  },
  {
   "id": "ore_topaz",
@@ -366,7 +366,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_topaz_cluster.glb",
   "triangles": 1788,
-  "kb": 146
+  "kb": 98
  },
  {
   "id": "ore_emberstone",
@@ -375,7 +375,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_emberstone_boulder.glb",
   "triangles": 1040,
-  "kb": 119
+  "kb": 71
  },
  {
   "id": "ore_emberstone",
@@ -384,7 +384,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_emberstone_cluster.glb",
   "triangles": 1788,
-  "kb": 146
+  "kb": 98
  },
  {
   "id": "ore_emerald",
@@ -393,7 +393,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_emerald_boulder.glb",
   "triangles": 1040,
-  "kb": 119
+  "kb": 71
  },
  {
   "id": "ore_emerald",
@@ -402,7 +402,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_emerald_cluster.glb",
   "triangles": 1788,
-  "kb": 146
+  "kb": 98
  },
  {
   "id": "ore_sapphire",
@@ -411,7 +411,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_sapphire_boulder.glb",
   "triangles": 1040,
-  "kb": 119
+  "kb": 71
  },
  {
   "id": "ore_sapphire",
@@ -420,7 +420,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_sapphire_cluster.glb",
   "triangles": 1788,
-  "kb": 146
+  "kb": 98
  },
  {
   "id": "ore_ruby",
@@ -429,7 +429,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_ruby_boulder.glb",
   "triangles": 1040,
-  "kb": 119
+  "kb": 71
  },
  {
   "id": "ore_ruby",
@@ -438,7 +438,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_ruby_cluster.glb",
   "triangles": 1788,
-  "kb": 146
+  "kb": 98
  },
  {
   "id": "ore_aurelite",
@@ -447,7 +447,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_aurelite_boulder.glb",
   "triangles": 1040,
-  "kb": 81
+  "kb": 34
  },
  {
   "id": "ore_aurelite",
@@ -456,7 +456,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_aurelite_cluster.glb",
   "triangles": 2080,
-  "kb": 110
+  "kb": 63
  },
  {
   "id": "ore_wellglass",
@@ -465,7 +465,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_wellglass_boulder.glb",
   "triangles": 1040,
-  "kb": 119
+  "kb": 71
  },
  {
   "id": "ore_wellglass",
@@ -474,7 +474,7 @@
   "group": "Ore nodes",
   "file": "ore_nodes/ore_wellglass_cluster.glb",
   "triangles": 1788,
-  "kb": 146
+  "kb": 98
  },
  {
   "id": "plant_grass",
@@ -483,7 +483,7 @@
   "group": "Plants",
   "file": "plants/plant_grass_tuft.glb",
   "triangles": 12,
-  "kb": 59
+  "kb": 4
  },
  {
   "id": "plant_grass",
@@ -492,7 +492,7 @@
   "group": "Plants",
   "file": "plants/plant_grass_tall.glb",
   "triangles": 18,
-  "kb": 59
+  "kb": 4
  },
  {
   "id": "plant_flowers",
@@ -618,7 +618,7 @@
   "group": "Buildings",
   "file": "buildings/building_emberhall.glb",
   "triangles": 23656,
-  "kb": 780
+  "kb": 741
  },
  {
   "id": "building_cottage",
@@ -627,7 +627,7 @@
   "group": "Buildings",
   "file": "buildings/building_cottage.glb",
   "triangles": 6356,
-  "kb": 347
+  "kb": 198
  },
  {
   "id": "building_townhouse",
@@ -636,7 +636,7 @@
   "group": "Buildings",
   "file": "buildings/building_townhouse_red_roof.glb",
   "triangles": 5348,
-  "kb": 270
+  "kb": 173
  },
  {
   "id": "building_townhouse",
@@ -645,7 +645,7 @@
   "group": "Buildings",
   "file": "buildings/building_townhouse_slate_roof.glb",
   "triangles": 5348,
-  "kb": 270
+  "kb": 173
  },
  {
   "id": "building_smithy",
@@ -654,7 +654,7 @@
   "group": "Buildings",
   "file": "buildings/building_smithy.glb",
   "triangles": 2408,
-  "kb": 228
+  "kb": 96
  },
  {
   "id": "building_wall_tower",
@@ -663,7 +663,7 @@
   "group": "Buildings",
   "file": "buildings/building_wall_tower.glb",
   "triangles": 5156,
-  "kb": 210
+  "kb": 162
  },
  {
   "id": "building_bell_tower",
@@ -672,7 +672,7 @@
   "group": "Buildings",
   "file": "buildings/building_bell_tower.glb",
   "triangles": 2624,
-  "kb": 140
+  "kb": 93
  },
  {
   "id": "building_shrine",
@@ -681,7 +681,7 @@
   "group": "Buildings",
   "file": "buildings/building_shrine.glb",
   "triangles": 1596,
-  "kb": 90
+  "kb": 67
  },
  {
   "id": "station_anvil",
@@ -690,7 +690,7 @@
   "group": "Crafting stations",
   "file": "crafting_stations/station_anvil.glb",
   "triangles": 740,
-  "kb": 114
+  "kb": 31
  },
  {
   "id": "station_furnace",
@@ -699,7 +699,7 @@
   "group": "Crafting stations",
   "file": "crafting_stations/station_furnace.glb",
   "triangles": 1652,
-  "kb": 114
+  "kb": 62
  },
  {
   "id": "station_stove",
@@ -708,7 +708,7 @@
   "group": "Crafting stations",
   "file": "crafting_stations/station_stove.glb",
   "triangles": 1074,
-  "kb": 120
+  "kb": 46
  },
  {
   "id": "station_alchemy",
@@ -717,7 +717,7 @@
   "group": "Crafting stations",
   "file": "crafting_stations/station_alchemy.glb",
   "triangles": 3240,
-  "kb": 216
+  "kb": 126
  },
  {
   "id": "station_workbench",
@@ -726,7 +726,7 @@
   "group": "Crafting stations",
   "file": "crafting_stations/station_workbench.glb",
   "triangles": 1452,
-  "kb": 90
+  "kb": 48
  },
  {
   "id": "station_altar",
@@ -744,7 +744,7 @@
   "group": "Crafting stations",
   "file": "crafting_stations/station_spinning_wheel.glb",
   "triangles": 1184,
-  "kb": 70
+  "kb": 49
  },
  {
   "id": "station_tanning_rack",
@@ -753,7 +753,7 @@
   "group": "Crafting stations",
   "file": "crafting_stations/station_tanning_rack.glb",
   "triangles": 336,
-  "kb": 81
+  "kb": 20
  },
  {
   "id": "station_chest",
@@ -762,7 +762,7 @@
   "group": "Crafting stations",
   "file": "crafting_stations/station_chest_iron_bands.glb",
   "triangles": 880,
-  "kb": 53
+  "kb": 32
  },
  {
   "id": "station_chest",
@@ -771,7 +771,7 @@
   "group": "Crafting stations",
   "file": "crafting_stations/station_chest_brass_bands.glb",
   "triangles": 880,
-  "kb": 52
+  "kb": 32
  },
  {
   "id": "station_guild_board",
@@ -780,7 +780,7 @@
   "group": "Crafting stations",
   "file": "crafting_stations/station_guild_board.glb",
   "triangles": 826,
-  "kb": 170
+  "kb": 42
  },
  {
   "id": "fence_wood",
@@ -789,7 +789,7 @@
   "group": "Fences and bridges",
   "file": "fences_and_bridges/fence_wood_rail.glb",
   "triangles": 280,
-  "kb": 97
+  "kb": 14
  },
  {
   "id": "fence_wood",
@@ -798,7 +798,7 @@
   "group": "Fences and bridges",
   "file": "fences_and_bridges/fence_wood_picket.glb",
   "triangles": 676,
-  "kb": 138
+  "kb": 54
  },
  {
   "id": "fence_gate",
@@ -807,7 +807,7 @@
   "group": "Fences and bridges",
   "file": "fences_and_bridges/fence_gate.glb",
   "triangles": 1252,
-  "kb": 126
+  "kb": 43
  },
  {
   "id": "fence_hedge",
@@ -825,7 +825,7 @@
   "group": "Fences and bridges",
   "file": "fences_and_bridges/fence_stone_field_wall.glb",
   "triangles": 1200,
-  "kb": 85
+  "kb": 36
  },
  {
   "id": "fence_stone",
@@ -834,7 +834,7 @@
   "group": "Fences and bridges",
   "file": "fences_and_bridges/fence_stone_city_wall.glb",
   "triangles": 1080,
-  "kb": 39
+  "kb": 33
  },
  {
   "id": "bridge_plank",
@@ -843,7 +843,7 @@
   "group": "Fences and bridges",
   "file": "fences_and_bridges/bridge_plank.glb",
   "triangles": 2672,
-  "kb": 173
+  "kb": 89
  },
  {
   "id": "bridge_stone",
@@ -852,7 +852,7 @@
   "group": "Fences and bridges",
   "file": "fences_and_bridges/bridge_stone.glb",
   "triangles": 3888,
-  "kb": 118
+  "kb": 112
  },
  {
   "id": "prop_barrel",
@@ -861,7 +861,7 @@
   "group": "Props",
   "file": "props/prop_barrel_closed.glb",
   "triangles": 1512,
-  "kb": 73
+  "kb": 52
  },
  {
   "id": "prop_barrel",
@@ -870,7 +870,7 @@
   "group": "Props",
   "file": "props/prop_barrel_apples.glb",
   "triangles": 3132,
-  "kb": 293
+  "kb": 272
  },
  {
   "id": "prop_crate",
@@ -879,7 +879,7 @@
   "group": "Props",
   "file": "props/prop_crate_single.glb",
   "triangles": 540,
-  "kb": 61
+  "kb": 19
  },
  {
   "id": "prop_crate",
@@ -888,7 +888,7 @@
   "group": "Props",
   "file": "props/prop_crate_stack.glb",
   "triangles": 1620,
-  "kb": 92
+  "kb": 50
  },
  {
   "id": "prop_sacks",
@@ -906,7 +906,7 @@
   "group": "Props",
   "file": "props/prop_lamp_post.glb",
   "triangles": 924,
-  "kb": 82
+  "kb": 34
  },
  {
   "id": "prop_well",
@@ -915,7 +915,7 @@
   "group": "Props",
   "file": "props/prop_well.glb",
   "triangles": 1178,
-  "kb": 165
+  "kb": 53
  },
  {
   "id": "prop_signpost",
@@ -924,7 +924,7 @@
   "group": "Props",
   "file": "props/prop_signpost.glb",
   "triangles": 140,
-  "kb": 104
+  "kb": 21
  },
  {
   "id": "prop_market_stall",
@@ -933,7 +933,7 @@
   "group": "Props",
   "file": "props/prop_market_stall_red.glb",
   "triangles": 2264,
-  "kb": 338
+  "kb": 234
  },
  {
   "id": "prop_market_stall",
@@ -942,7 +942,7 @@
   "group": "Props",
   "file": "props/prop_market_stall_blue.glb",
   "triangles": 2264,
-  "kb": 338
+  "kb": 234
  },
  {
   "id": "prop_market_stall",
@@ -951,7 +951,7 @@
   "group": "Props",
   "file": "props/prop_market_stall_green.glb",
   "triangles": 2264,
-  "kb": 338
+  "kb": 234
  },
  {
   "id": "prop_cart",
@@ -960,7 +960,7 @@
   "group": "Props",
   "file": "props/prop_cart.glb",
   "triangles": 2480,
-  "kb": 129
+  "kb": 87
  },
  {
   "id": "prop_bench",
@@ -969,7 +969,7 @@
   "group": "Props",
   "file": "props/prop_bench.glb",
   "triangles": 648,
-  "kb": 42
+  "kb": 21
  },
  {
   "id": "prop_campfire",
@@ -978,7 +978,7 @@
   "group": "Props",
   "file": "props/prop_campfire.glb",
   "triangles": 1600,
-  "kb": 171
+  "kb": 62
  },
  {
   "id": "prop_hay",
@@ -987,7 +987,7 @@
   "group": "Props",
   "file": "props/prop_hay_round_bale.glb",
   "triangles": 72,
-  "kb": 81
+  "kb": 6
  },
  {
   "id": "prop_hay",
@@ -996,7 +996,7 @@
   "group": "Props",
   "file": "props/prop_hay_stacked_bales.glb",
   "triangles": 324,
-  "kb": 87
+  "kb": 12
  },
  {
   "id": "prop_planter",
@@ -1005,6 +1005,6 @@
   "group": "Props",
   "file": "props/prop_planter.glb",
   "triangles": 856,
-  "kb": 92
+  "kb": 70
  }
 ]

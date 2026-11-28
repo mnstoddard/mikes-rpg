@@ -17,8 +17,17 @@ Drag the `assets` folder into a Godot project and every model is ready to place.
 In Godot:
 
 - Foliage (leaves, needles, grass) uses alpha scissor and is two-sided, as the style guide asks.
-- Colours are partly in the vertex colours (soft tint and shade). Godot turns on
-  "vertex colour as albedo" for these when it imports the file.
+- Most surfaces use the **shared texture library** in `godot/assets/textures`
+  (bark, rock, stone brick, planks, plaster, roof tiles, slate, thatch, grass
+  blades, every metal, leather, embers). The .glb files link to those PNGs
+  (`../../textures/<name>/<name>_albedo.png`, `_normal.png`, `_orm.png`) rather
+  than carrying copies, so keep the `assets` folder together. A soft tint and
+  shade (moss on rocks, darker wood, AO near the ground) rides on the vertex
+  colours, which Godot uses as an albedo tint when it imports the file.
+- A few textures are still the scenery's own and live inside the .glb: the
+  leaf and needle cards (shaped clusters in each tree's colours), the flower
+  cards, Elderwood's purple bark, and the white stone of the Emberhall, the
+  shrine and the enchanting altar (the library's stone_brick is warm grey).
 - Glowing ores (mithril, iridium, emberstone, ruby, Wellglass, Embersteel) have emission, so Godot's glow picks them up.
 - For lots of grass and flowers, use a `MultiMeshInstance3D` (one draw call for thousands).
 - Fences, hedges and walls are 2 m sections (the city wall is 4 m), ending at x = -1 and x = +1, so they line up end to end.
@@ -31,7 +40,7 @@ You need Node.js. In this folder:
 
 ```
 npm install three@0.186.0 esbuild@0.25.0 playwright
-node build.mjs     # the gallery page -> dist/scenery-gallery.html
+node build.mjs     # the gallery page -> dist/scenery-gallery.html (also needs Python 3 with Pillow)
 node export.mjs    # every .glb -> ../assets/scenery/
 ```
 
@@ -47,6 +56,7 @@ node export.mjs    # every .glb -> ../assets/scenery/
 | `kit.js` | Shared materials and shapes for made things (soft-edged boxes, posts, roofs, flames) |
 | `scene.js` | The gallery's sample scene (a Heartvale meadow) |
 | `gallery.js`, `gallery.html` | The Scenery Gallery page |
-| `export.mjs`, `export-entry.js` | Turns every object into `.glb` files |
+| `export.mjs`, `export-entry.js` | Turns every object into `.glb` files, linking the shared library textures |
+| `make-libtex.py` | Small copies of the library textures for the gallery page |
 
 The same seed always makes the same object, so the exported files never change unless the code does.

@@ -3,7 +3,7 @@
 // an ore node is a rock with metal nuggets, coal chunks or gem crystals in it.
 import { THREE, rng, Builder, blob, boxUV, stoneTexture, mat, paint, mix, fbm } from "./lib.js";
 
-const stoneMat = () => mat("stone", { map: stoneTexture(11), roughness: 0.85 });
+const stoneMat = () => mat("rock", { lib: { name: "rock", ref: 0x9c9a94 } });
 
 /** Rock paint: stone colour with soft colour patches, moss on the top, darker at the foot (AO). */
 function rockPaint(base, seed, { moss = 0.5, mossCol = 0x6f9a3c } = {}) {
@@ -82,22 +82,22 @@ function rock(seed, kind) {
 // Every mineable rock in the game, from shared/foraging and the wiki.
 export const ORES = {
   stone:    { name: "Stone",     level: 1,  kind: "plain" },
-  copper:   { name: "Copper",    level: 1,  kind: "nugget", color: 0xc87447, rough: 0.35 },
-  tin:      { name: "Tin",       level: 1,  kind: "nugget", color: 0xc9ced2, rough: 0.4 },
-  iron:     { name: "Iron",      level: 20, kind: "nugget", color: 0x8d9197, rough: 0.5, stone: 0x8a6a58 },
+  copper:   { name: "Copper",    level: 1,  kind: "nugget", lib: "metal_copper", color: 0xc87447, rough: 0.35 },
+  tin:      { name: "Tin",       level: 1,  kind: "nugget", lib: "metal_steel", color: 0xc9ced2, rough: 0.4 },
+  iron:     { name: "Iron",      level: 20, kind: "nugget", lib: "metal_iron", color: 0x8d9197, rough: 0.5, stone: 0x8a6a58 },
   coal:     { name: "Coal",      level: 30, kind: "coal",   color: 0x2a2a2e },
-  silver:   { name: "Silver",    level: 40, kind: "nugget", color: 0xe3e6ea, rough: 0.25 },
-  gold:     { name: "Gold",      level: 55, kind: "nugget", color: 0xf2c14e, rough: 0.25, stone: 0xd2b58a },
-  mithril:  { name: "Mithril",   level: 70, kind: "nugget", color: 0x7cc4ee, rough: 0.25, glow: 0x2a6fa8, stone: 0x55585c },
-  platinum: { name: "Platinum",  level: 75, kind: "nugget", color: 0xdce3e6, rough: 0.2, stone: 0x6e7680 },
-  iridium:  { name: "Iridium",   level: 85, kind: "nugget", color: 0xb9b2d8, rough: 0.2, glow: 0x6a5aa8, stone: 0x55585c },
+  silver:   { name: "Silver",    level: 40, kind: "nugget", lib: "metal_silver", color: 0xe3e6ea, rough: 0.25 },
+  gold:     { name: "Gold",      level: 55, kind: "nugget", lib: "metal_gold", color: 0xf2c14e, rough: 0.25, stone: 0xd2b58a },
+  mithril:  { name: "Mithril",   level: 70, kind: "nugget", lib: "metal_mithril", color: 0x7cc4ee, rough: 0.25, glow: 0x2a6fa8, stone: 0x55585c },
+  platinum: { name: "Platinum",  level: 75, kind: "nugget", lib: "metal_platinum", color: 0xdce3e6, rough: 0.2, stone: 0x6e7680 },
+  iridium:  { name: "Iridium",   level: 85, kind: "nugget", lib: "metal_iridium", color: 0xb9b2d8, rough: 0.2, glow: 0x6a5aa8, stone: 0x55585c },
   amethyst: { name: "Amethyst",  level: 10, kind: "gem", color: 0x9a6ad8 },
   topaz:    { name: "Topaz",     level: 20, kind: "gem", color: 0xf2b84a, stone: 0xd2b58a },
   emberstone: { name: "Emberstone vein", level: 25, kind: "gem", color: 0x5dade2, glow: 0x3a9ae0, stone: 0x4f5566 },
   emerald:  { name: "Emerald",   level: 30, kind: "gem", color: 0x3fc47a },
   sapphire: { name: "Sapphire",  level: 40, kind: "gem", color: 0x3f74e0 },
   ruby:     { name: "Ruby",      level: 50, kind: "gem", color: 0xe0304a, glow: 0x80101e, stone: 0x4a403b },
-  aurelite: { name: "Embersteel (Aurelite)", level: 90, kind: "nugget", color: 0xf0c860, rough: 0.2, glow: 0xffb020, stone: 0xb3a68c, planned: true },
+  aurelite: { name: "Embersteel (Aurelite)", level: 90, kind: "nugget", lib: "metal_embersteel", color: 0xf0c860, rough: 0.2, glow: 0xffb020, stone: 0xb3a68c, planned: true },
   wellglass:{ name: "Wellglass", level: 95, kind: "gem", color: 0x5fe0d2, glow: 0x2fd8c8, stone: 0x3e4a58, planned: true },
 };
 
@@ -169,7 +169,7 @@ function oreNode(id, seed, shape = 0) {
     const isCoal = o.kind === "coal";
     const mm = isCoal
       ? mat("coal", { roughness: 0.45, metalness: 0.1 })
-      : mat(`metal_${id}`, { color: o.color, vertexColors: false, roughness: o.rough, metalness: 1, ...(o.glow ? { emissive: o.glow, emissiveIntensity: 0.35 } : {}) });
+      : mat(`metal_${id}`, { lib: { name: o.lib }, ...(o.glow ? { emissive: o.glow, emissiveIntensity: 0.35 } : {}) });
     for (const s of spots) {
       const sz = r.range(0.1, 0.2) * (isCoal ? 1.4 : 1);
       const g = blob(sz, { detail: 1, lump: 0.3, seed: r.int(1, 999), squash: [1.2, 0.7, 1] });

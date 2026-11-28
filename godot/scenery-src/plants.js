@@ -27,7 +27,7 @@ function grass(seed, variant) {
   const r = rng(seed);
   const tall = variant === 1;
   const b = new Builder(tall ? "grass_tall" : "grass_tuft");
-  const gm = mat(tall ? "grass_tall" : "grass", { map: grassTexture(tall ? [P.grass, 0xc8d86a] : [P.grass, P.light], seed % 3 + 5), alphaTest: 0.5, double: true, roughness: 0.9 });
+  const gm = mat(tall ? "grass_tall" : "grass", { lib: { name: "grass_blades", tint: tall ? 0xf0f0c8 : 0xffffff }, alphaTest: 0.5, double: true });
   const clumps = tall ? 3 : 2;
   for (let c = 0; c < clumps; c++) {
     const h = tall ? r.range(0.9, 1.3) : r.range(0.35, 0.5);

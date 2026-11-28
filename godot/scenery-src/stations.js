@@ -134,7 +134,7 @@ function workbench(seed) {
 
 function altar(seed) {
   const b = new Builder("station_altar");
-  const st = M.stone();
+  const st = M.stoneWhite();
   // a carved white-stone pedestal, a rune ring and a floating crystal
   b.put(paint(box(1.3, 0.25, 1.3, { bevel: 0.05, tex: 1, color: 0xe8e2d8 }), groundAO(0.25, 0.25)), st, { p: [0, 0.125, 0] });
   b.put(turned([[0, 0], [0.45, 0], [0.4, 0.1], [0.28, 0.2], [0.26, 0.7], [0.36, 0.8], [0.52, 0.9], [0.52, 0.98], [0, 0.98]], 8, 0xeeeae0, 1), st, { p: [0, 0.25, 0] });
@@ -195,7 +195,7 @@ function tanningRack(seed) {
   return b.build();
 }
 import { mat } from "./lib.js";
-const mat2 = (n) => mat(n, { roughness: 0.7, double: true });
+const mat2 = (n) => mat(n, { lib: { name: "leather", ref: 0xa87a4a }, double: true });
 
 function chest(seed, variant = 0) {
   const b = new Builder("station_chest");
