@@ -1,0 +1,3 @@
+# Godot's import cache: rebuilt automatically when the project is opened.
+.godot/
+*.import.tmp

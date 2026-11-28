@@ -1,0 +1,441 @@
+{
+ "grass": {
+  "category": "Ground",
+  "size": 1024,
+  "description": "Meadow grass, the main ground of the open world. Repeats every 2 m.",
+  "alpha": false,
+  "repeat_m": 2.0
+ },
+ "grass_lush": {
+  "category": "Ground",
+  "size": 1024,
+  "description": "Deeper green grass with clover and tiny flowers, for valleys and gardens.",
+  "alpha": false,
+  "repeat_m": 2.0
+ },
+ "dirt": {
+  "category": "Ground",
+  "size": 1024,
+  "description": "Bare soil for fields edges, digging spots and forest paths.",
+  "alpha": false,
+  "repeat_m": 2.0
+ },
+ "path": {
+  "category": "Ground",
+  "size": 1024,
+  "description": "Packed earth road, worn smooth by travellers.",
+  "alpha": false,
+  "repeat_m": 2.0
+ },
+ "sand": {
+  "category": "Ground",
+  "size": 1024,
+  "description": "Soft beach and riverbank sand with gentle wind ripples.",
+  "alpha": false,
+  "repeat_m": 2.0
+ },
+ "mud": {
+  "category": "Ground",
+  "size": 1024,
+  "description": "Wet mud by rivers and swamps, shiny in the dips.",
+  "alpha": false,
+  "repeat_m": 2.0
+ },
+ "farmland": {
+  "category": "Ground",
+  "size": 1024,
+  "description": "Tilled farm soil in rows, for the farm plots.",
+  "alpha": false,
+  "repeat_m": 2.0
+ },
+ "forest_floor": {
+  "category": "Ground",
+  "size": 1024,
+  "description": "Shady woodland floor with fallen leaves, needles and moss.",
+  "alpha": false,
+  "repeat_m": 2.0
+ },
+ "snow": {
+  "category": "Ground",
+  "size": 1024,
+  "description": "Fresh snow for mountain tops, soft and slightly blue in the shade.",
+  "alpha": false,
+  "repeat_m": 2.0
+ },
+ "rock": {
+  "category": "Stone",
+  "size": 1024,
+  "description": "Everyday grey rock for boulders, cliffs and mining rocks.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "rock_mossy": {
+  "category": "Stone",
+  "size": 1024,
+  "description": "Rock with moss growing on its upper faces, for forests and old ruins.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "slate": {
+  "category": "Stone",
+  "size": 1024,
+  "description": "Dark layered slate for mountain cliffs and roof stone.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "sandstone": {
+  "category": "Stone",
+  "size": 1024,
+  "description": "Warm banded sandstone for desert cliffs and city foundations.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "cobblestone": {
+  "category": "Stone",
+  "size": 1024,
+  "description": "Rounded cobbles for Emberhold's streets and market square.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "flagstone": {
+  "category": "Stone",
+  "size": 1024,
+  "description": "Big flat paving slabs for halls, plazas and the Emberhall floor.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "stone_brick": {
+  "category": "Stone",
+  "size": 1024,
+  "description": "Cut stone blocks for castle walls, the Emberhall and city gates.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "wood_pine": {
+  "category": "Wood",
+  "size": 512,
+  "description": "Pine wood grain for tool handles, bows, staffs and furniture.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "wood_oak": {
+  "category": "Wood",
+  "size": 512,
+  "description": "Oak wood grain for tool handles, bows, staffs and furniture.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "wood_birch": {
+  "category": "Wood",
+  "size": 512,
+  "description": "Birch wood grain for tool handles, bows, staffs and furniture.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "wood_maple": {
+  "category": "Wood",
+  "size": 512,
+  "description": "Maple wood grain for tool handles, bows, staffs and furniture.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "wood_yew": {
+  "category": "Wood",
+  "size": 512,
+  "description": "Yew wood grain for tool handles, bows, staffs and furniture.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "wood_ironwood": {
+  "category": "Wood",
+  "size": 512,
+  "description": "Ironwood wood grain for tool handles, bows, staffs and furniture.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "wood_elderwood": {
+  "category": "Wood",
+  "size": 512,
+  "description": "Elderwood wood grain for tool handles, bows, staffs and furniture.",
+  "alpha": false,
+  "repeat_m": 1.0,
+  "emission": "#7B4FBF",
+  "emission_energy": 0.3
+ },
+ "planks": {
+  "category": "Wood",
+  "size": 1024,
+  "description": "Oak floorboards and wall planks for houses, docks and the farm.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "bark_pine": {
+  "category": "Wood",
+  "size": 1024,
+  "description": "Deep-grooved pine bark for pine trees.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "bark_oak": {
+  "category": "Wood",
+  "size": 1024,
+  "description": "Chunky oak bark for oak and maple trees.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "bark_birch": {
+  "category": "Wood",
+  "size": 1024,
+  "description": "White birch bark with dark marks for birch trees.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "metal_bronze": {
+  "category": "Metal",
+  "size": 512,
+  "description": "Brushed bronze for tool heads, weapons, armor and jewellery.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "metal_iron": {
+  "category": "Metal",
+  "size": 512,
+  "description": "Brushed iron for tool heads, weapons, armor and jewellery.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "metal_steel": {
+  "category": "Metal",
+  "size": 512,
+  "description": "Brushed steel for tool heads, weapons, armor and jewellery.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "metal_mithril": {
+  "category": "Metal",
+  "size": 512,
+  "description": "Brushed mithril for tool heads, weapons, armor and jewellery.",
+  "alpha": false,
+  "repeat_m": 1.0,
+  "emission": "#2A6FA8",
+  "emission_energy": 0.35
+ },
+ "metal_copper": {
+  "category": "Metal",
+  "size": 512,
+  "description": "Brushed copper for tool heads, weapons, armor and jewellery.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "metal_silver": {
+  "category": "Metal",
+  "size": 512,
+  "description": "Brushed silver for tool heads, weapons, armor and jewellery.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "metal_gold": {
+  "category": "Metal",
+  "size": 512,
+  "description": "Brushed gold for tool heads, weapons, armor and jewellery.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "metal_platinum": {
+  "category": "Metal",
+  "size": 512,
+  "description": "Brushed platinum for tool heads, weapons, armor and jewellery.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "metal_iridium": {
+  "category": "Metal",
+  "size": 512,
+  "description": "Brushed iridium for tool heads, weapons, armor and jewellery.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "metal_embersteel": {
+  "category": "Metal",
+  "size": 512,
+  "description": "Brushed embersteel for tool heads, weapons, armor and jewellery.",
+  "alpha": false,
+  "repeat_m": 1.0,
+  "emission": "#B07A10",
+  "emission_energy": 0.45
+ },
+ "metal_rusty_iron": {
+  "category": "Metal",
+  "size": 512,
+  "description": "Old iron with soft rust, for gates, chains and abandoned mines.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "water": {
+  "category": "Water",
+  "size": 1024,
+  "description": "Normal map for lakes, rivers and the sea. Colour comes from the water shader's depth tint.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "foam": {
+  "category": "Water",
+  "size": 512,
+  "description": "Soft white foam for shorelines, waterfalls and boat wakes. Use as a mask.",
+  "alpha": true,
+  "repeat_m": 1.0
+ },
+ "leaves_broad": {
+  "category": "Foliage",
+  "size": 512,
+  "description": "Broadleaf card (oak, maple, birch canopies). Alpha cut-out.",
+  "alpha": true,
+  "repeat_m": 1.0
+ },
+ "leaves_autumn": {
+  "category": "Foliage",
+  "size": 512,
+  "description": "Autumn leaf card for maple trees and fall areas. Alpha cut-out.",
+  "alpha": true,
+  "repeat_m": 1.0
+ },
+ "pine_needles": {
+  "category": "Foliage",
+  "size": 512,
+  "description": "Pine and yew needle card. Alpha cut-out.",
+  "alpha": true,
+  "repeat_m": 1.0
+ },
+ "grass_blades": {
+  "category": "Foliage",
+  "size": 512,
+  "description": "Grass tuft card for 3D grass you walk through. Alpha cut-out.",
+  "alpha": true,
+  "repeat_m": 1.0
+ },
+ "moss": {
+  "category": "Foliage",
+  "size": 512,
+  "description": "Soft cushion moss for rocks, roofs and tree roots.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "linen": {
+  "category": "Cloth",
+  "size": 512,
+  "description": "Plain undyed linen for shirts, robes, sacks and banners.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "wool_red": {
+  "category": "Cloth",
+  "size": 512,
+  "description": "Red dyed wool for cloaks and Emberguard banners.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "wool_blue": {
+  "category": "Cloth",
+  "size": 512,
+  "description": "Blue dyed wool for clothes and mage robes.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "wool_green": {
+  "category": "Cloth",
+  "size": 512,
+  "description": "Green dyed wool for rangers' and farmers' clothes.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "burlap": {
+  "category": "Cloth",
+  "size": 512,
+  "description": "Rough sacking for grain sacks, targets and the training dummies.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "leather": {
+  "category": "Cloth",
+  "size": 512,
+  "description": "Tanned leather for armor, belts, boots, bags and book covers.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "fur": {
+  "category": "Cloth",
+  "size": 512,
+  "description": "Short animal fur for pelts, wolves, boars and fur trims.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "feathers": {
+  "category": "Cloth",
+  "size": 512,
+  "description": "Soft overlapping feathers for chickens, birds and arrow fletching.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "thatch": {
+  "category": "Building",
+  "size": 1024,
+  "description": "Straw thatch for farmhouse and village roofs.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "roof_tiles": {
+  "category": "Building",
+  "size": 1024,
+  "description": "Rounded clay roof tiles for Emberhold's houses.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "plaster": {
+  "category": "Building",
+  "size": 1024,
+  "description": "Warm whitewashed plaster for house walls.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "brick": {
+  "category": "Building",
+  "size": 1024,
+  "description": "Red brick for chimneys, forges and the smithy.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "embers": {
+  "category": "Special",
+  "size": 512,
+  "description": "Glowing embers and coals for forges, campfires and the Flame. Emission on the hot cracks.",
+  "alpha": false,
+  "repeat_m": 1.0,
+  "emission": "#FF7A2F",
+  "emission_energy": 3.0,
+  "emission_texture": true
+ },
+ "ice": {
+  "category": "Special",
+  "size": 512,
+  "description": "Clear blue ice for frost spells, frozen lakes and the cold north.",
+  "alpha": false,
+  "repeat_m": 1.0
+ },
+ "crystal": {
+  "category": "Special",
+  "size": 512,
+  "description": "Arcane crystal for gems, mana stones and the Emberhall's restricted section.",
+  "alpha": false,
+  "repeat_m": 1.0,
+  "emission": "#8A5CFF",
+  "emission_energy": 0.6,
+  "emission_texture": true
+ },
+ "ore_veins": {
+  "category": "Special",
+  "size": 1024,
+  "description": "Rock with bright metal veins, a base the scenery thread can tint per ore (copper, iron, gold, mithril...).",
+  "alpha": false,
+  "repeat_m": 1.0
+ }
+}
