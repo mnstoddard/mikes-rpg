@@ -1,7 +1,7 @@
 # Emberfall scenery for Godot
 
-Every tree, rock, ore node and plant (and soon buildings, crafting stations,
-fences, bridges and props) for the Godot version of Emberfall. Each one is
+Every tree, rock, ore node, plant, building, crafting station, fence, bridge
+and prop for the Godot version of Emberfall (73 objects, 112 files with variants). Each one is
 made from code here, then exported as a `.glb` file that Godot opens directly.
 
 The look follows the shared style guide (`godot/art/style-guide.json`):
@@ -21,6 +21,8 @@ In Godot:
   "vertex colour as albedo" for these when it imports the file.
 - Glowing ores (mithril, iridium, emberstone, ruby, Wellglass, Embersteel) have emission, so Godot's glow picks them up.
 - For lots of grass and flowers, use a `MultiMeshInstance3D` (one draw call for thousands).
+- Fences, hedges and walls are 2 m sections (the city wall is 4 m), ending at x = -1 and x = +1, so they line up end to end.
+- Buildings and stations face +Z (their door or working side).
 - Godot makes the LOD levels for each mesh by itself when it imports them (Mesh LOD is on by default).
 
 ## Making changes
@@ -39,6 +41,10 @@ node export.mjs    # every .glb -> ../assets/scenery/
 | `trees.js` | Oak, pine (classic, tall, snowy), birch, maple, yew, ironwood, elderwood, crownwood, dead tree |
 | `rocks.js` | Boulders, clusters, pebbles, cliffs, standing stones, sandstone, and all 18 ore nodes (Boulder and Cluster shapes) |
 | `plants.js` | Grass, wildflowers, bushes, ferns, mushrooms, reeds, lily pads |
+| `buildings.js` | The Emberhall with its tower and ember spire, cottage, townhouse, smithy, wall tower, bell tower, wayside shrine |
+| `stations.js` | Anvil, furnace, cooking stove, alchemy table, workbench, enchanting altar, spinning wheel, tanning rack, storage chest, guild board |
+| `props.js` | Barrels, crates, sacks, street lamp, well, signpost, market stall, cart, bench, campfire, hay, planter; fences, gate, hedge, stone and city walls; plank and stone bridges |
+| `kit.js` | Shared materials and shapes for made things (soft-edged boxes, posts, roofs, flames) |
 | `scene.js` | The gallery's sample scene (a Heartvale meadow) |
 | `gallery.js`, `gallery.html` | The Scenery Gallery page |
 | `export.mjs`, `export-entry.js` | Turns every object into `.glb` files |

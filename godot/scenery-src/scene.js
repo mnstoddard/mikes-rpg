@@ -50,6 +50,15 @@ export function buildSampleScene() {
   const ores = ["ore_copper", "ore_tin", "ore_iron", "ore_coal"];
   ores.forEach((id, i) => { const x = -6 + i * 4, z = -6.5; place(make(id, 7 + i, i % 2), x, z); claim(x, z, 1.6); });
 
+  // a cottage at the edge of the meadow, with a fence, a well and a few props
+  place(make("building_cottage"), 12, -2, -0.5); claim(12, -2, 5);
+  for (let i = 0; i < 4; i++) { place(make("fence_wood", 1 + i), 7.5 + i * 2, 3.5, 0); claim(7.5 + i * 2, 3.5, 1); }
+  place(make("fence_gate"), 15.5, 3.5, 0); claim(15.5, 3.5, 1);
+  place(make("prop_well"), 6, 7, 0.4); claim(6, 7, 1.6);
+  place(make("prop_barrel", 3, 1), 9.2, 0.6, 0); place(make("prop_barrel", 4), 9.9, 1.1, 0); place(make("prop_crate", 5, 1), 15, -5.5, 0.3);
+  place(make("prop_lamp_post"), 8, 4.6, Math.PI); claim(9, 1, 1.5);
+  place(make("prop_campfire"), 2, 7, 0); place(make("prop_bench"), 2, 8.8, Math.PI); claim(2, 7.5, 2);
+
   // the grove
   const trees = ["tree_oak", "tree_oak", "tree_birch", "tree_maple", "tree_pine", "tree_pine", "tree_birch", "tree_oak", "tree_pine", "tree_maple"];
   let tries = 0, ti = 0;

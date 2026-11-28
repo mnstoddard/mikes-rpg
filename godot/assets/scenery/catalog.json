@@ -610,5 +610,401 @@
   "file": "plants/plant_lilypads.glb",
   "triangles": 134,
   "kb": 8
+ },
+ {
+  "id": "building_emberhall",
+  "name": "The Emberhall",
+  "variant": "White stone",
+  "group": "Buildings",
+  "file": "buildings/building_emberhall.glb",
+  "triangles": 23656,
+  "kb": 780
+ },
+ {
+  "id": "building_cottage",
+  "name": "Cottage",
+  "variant": "Thatched",
+  "group": "Buildings",
+  "file": "buildings/building_cottage.glb",
+  "triangles": 6356,
+  "kb": 347
+ },
+ {
+  "id": "building_townhouse",
+  "name": "Townhouse",
+  "variant": "Red roof",
+  "group": "Buildings",
+  "file": "buildings/building_townhouse_red_roof.glb",
+  "triangles": 5348,
+  "kb": 270
+ },
+ {
+  "id": "building_townhouse",
+  "name": "Townhouse",
+  "variant": "Slate roof",
+  "group": "Buildings",
+  "file": "buildings/building_townhouse_slate_roof.glb",
+  "triangles": 5348,
+  "kb": 270
+ },
+ {
+  "id": "building_smithy",
+  "name": "Smithy",
+  "variant": "Open forge",
+  "group": "Buildings",
+  "file": "buildings/building_smithy.glb",
+  "triangles": 2408,
+  "kb": 228
+ },
+ {
+  "id": "building_wall_tower",
+  "name": "Wall tower",
+  "variant": "Round",
+  "group": "Buildings",
+  "file": "buildings/building_wall_tower.glb",
+  "triangles": 5156,
+  "kb": 210
+ },
+ {
+  "id": "building_bell_tower",
+  "name": "Bell tower",
+  "variant": "Market Square",
+  "group": "Buildings",
+  "file": "buildings/building_bell_tower.glb",
+  "triangles": 2624,
+  "kb": 140
+ },
+ {
+  "id": "building_shrine",
+  "name": "Wayside shrine",
+  "variant": "Ember flame",
+  "group": "Buildings",
+  "file": "buildings/building_shrine.glb",
+  "triangles": 1596,
+  "kb": 90
+ },
+ {
+  "id": "station_anvil",
+  "name": "Anvil",
+  "variant": "Iron on a stump",
+  "group": "Crafting stations",
+  "file": "crafting_stations/station_anvil.glb",
+  "triangles": 740,
+  "kb": 114
+ },
+ {
+  "id": "station_furnace",
+  "name": "Furnace",
+  "variant": "Stone kiln",
+  "group": "Crafting stations",
+  "file": "crafting_stations/station_furnace.glb",
+  "triangles": 1652,
+  "kb": 114
+ },
+ {
+  "id": "station_stove",
+  "name": "Cooking stove",
+  "variant": "Brick hearth",
+  "group": "Crafting stations",
+  "file": "crafting_stations/station_stove.glb",
+  "triangles": 1074,
+  "kb": 120
+ },
+ {
+  "id": "station_alchemy",
+  "name": "Alchemy table",
+  "variant": "Potion bench",
+  "group": "Crafting stations",
+  "file": "crafting_stations/station_alchemy.glb",
+  "triangles": 3240,
+  "kb": 216
+ },
+ {
+  "id": "station_workbench",
+  "name": "Workbench",
+  "variant": "Carpenter's bench",
+  "group": "Crafting stations",
+  "file": "crafting_stations/station_workbench.glb",
+  "triangles": 1452,
+  "kb": 90
+ },
+ {
+  "id": "station_altar",
+  "name": "Enchanting altar",
+  "variant": "White stone",
+  "group": "Crafting stations",
+  "file": "crafting_stations/station_altar.glb",
+  "triangles": 1044,
+  "kb": 47
+ },
+ {
+  "id": "station_spinning_wheel",
+  "name": "Spinning wheel",
+  "variant": "Wooden",
+  "group": "Crafting stations",
+  "file": "crafting_stations/station_spinning_wheel.glb",
+  "triangles": 1184,
+  "kb": 70
+ },
+ {
+  "id": "station_tanning_rack",
+  "name": "Tanning rack",
+  "variant": "Pole frame",
+  "group": "Crafting stations",
+  "file": "crafting_stations/station_tanning_rack.glb",
+  "triangles": 336,
+  "kb": 81
+ },
+ {
+  "id": "station_chest",
+  "name": "Storage chest",
+  "variant": "Iron bands",
+  "group": "Crafting stations",
+  "file": "crafting_stations/station_chest_iron_bands.glb",
+  "triangles": 880,
+  "kb": 53
+ },
+ {
+  "id": "station_chest",
+  "name": "Storage chest",
+  "variant": "Brass bands",
+  "group": "Crafting stations",
+  "file": "crafting_stations/station_chest_brass_bands.glb",
+  "triangles": 880,
+  "kb": 52
+ },
+ {
+  "id": "station_guild_board",
+  "name": "Guild board",
+  "variant": "Notice board",
+  "group": "Crafting stations",
+  "file": "crafting_stations/station_guild_board.glb",
+  "triangles": 826,
+  "kb": 170
+ },
+ {
+  "id": "fence_wood",
+  "name": "Wooden fence",
+  "variant": "Rail",
+  "group": "Fences and bridges",
+  "file": "fences_and_bridges/fence_wood_rail.glb",
+  "triangles": 280,
+  "kb": 97
+ },
+ {
+  "id": "fence_wood",
+  "name": "Wooden fence",
+  "variant": "Picket",
+  "group": "Fences and bridges",
+  "file": "fences_and_bridges/fence_wood_picket.glb",
+  "triangles": 676,
+  "kb": 138
+ },
+ {
+  "id": "fence_gate",
+  "name": "Field gate",
+  "variant": "Double",
+  "group": "Fences and bridges",
+  "file": "fences_and_bridges/fence_gate.glb",
+  "triangles": 1252,
+  "kb": 126
+ },
+ {
+  "id": "fence_hedge",
+  "name": "Hedge",
+  "variant": "Trimmed",
+  "group": "Fences and bridges",
+  "file": "fences_and_bridges/fence_hedge.glb",
+  "triangles": 580,
+  "kb": 70
+ },
+ {
+  "id": "fence_stone",
+  "name": "Stone wall",
+  "variant": "Field wall",
+  "group": "Fences and bridges",
+  "file": "fences_and_bridges/fence_stone_field_wall.glb",
+  "triangles": 1200,
+  "kb": 85
+ },
+ {
+  "id": "fence_stone",
+  "name": "Stone wall",
+  "variant": "City wall",
+  "group": "Fences and bridges",
+  "file": "fences_and_bridges/fence_stone_city_wall.glb",
+  "triangles": 1080,
+  "kb": 39
+ },
+ {
+  "id": "bridge_plank",
+  "name": "Plank bridge",
+  "variant": "Wooden",
+  "group": "Fences and bridges",
+  "file": "fences_and_bridges/bridge_plank.glb",
+  "triangles": 2672,
+  "kb": 173
+ },
+ {
+  "id": "bridge_stone",
+  "name": "Stone bridge",
+  "variant": "Arch",
+  "group": "Fences and bridges",
+  "file": "fences_and_bridges/bridge_stone.glb",
+  "triangles": 3888,
+  "kb": 118
+ },
+ {
+  "id": "prop_barrel",
+  "name": "Barrel",
+  "variant": "Closed",
+  "group": "Props",
+  "file": "props/prop_barrel_closed.glb",
+  "triangles": 1512,
+  "kb": 73
+ },
+ {
+  "id": "prop_barrel",
+  "name": "Barrel",
+  "variant": "Apples",
+  "group": "Props",
+  "file": "props/prop_barrel_apples.glb",
+  "triangles": 3132,
+  "kb": 293
+ },
+ {
+  "id": "prop_crate",
+  "name": "Crate",
+  "variant": "Single",
+  "group": "Props",
+  "file": "props/prop_crate_single.glb",
+  "triangles": 540,
+  "kb": 61
+ },
+ {
+  "id": "prop_crate",
+  "name": "Crate",
+  "variant": "Stack",
+  "group": "Props",
+  "file": "props/prop_crate_stack.glb",
+  "triangles": 1620,
+  "kb": 92
+ },
+ {
+  "id": "prop_sacks",
+  "name": "Grain sacks",
+  "variant": "Pile",
+  "group": "Props",
+  "file": "props/prop_sacks.glb",
+  "triangles": 720,
+  "kb": 22
+ },
+ {
+  "id": "prop_lamp_post",
+  "name": "Street lamp",
+  "variant": "Iron",
+  "group": "Props",
+  "file": "props/prop_lamp_post.glb",
+  "triangles": 924,
+  "kb": 82
+ },
+ {
+  "id": "prop_well",
+  "name": "Well",
+  "variant": "Stone",
+  "group": "Props",
+  "file": "props/prop_well.glb",
+  "triangles": 1178,
+  "kb": 165
+ },
+ {
+  "id": "prop_signpost",
+  "name": "Signpost",
+  "variant": "Crossroads",
+  "group": "Props",
+  "file": "props/prop_signpost.glb",
+  "triangles": 140,
+  "kb": 104
+ },
+ {
+  "id": "prop_market_stall",
+  "name": "Market stall",
+  "variant": "Red",
+  "group": "Props",
+  "file": "props/prop_market_stall_red.glb",
+  "triangles": 2264,
+  "kb": 338
+ },
+ {
+  "id": "prop_market_stall",
+  "name": "Market stall",
+  "variant": "Blue",
+  "group": "Props",
+  "file": "props/prop_market_stall_blue.glb",
+  "triangles": 2264,
+  "kb": 338
+ },
+ {
+  "id": "prop_market_stall",
+  "name": "Market stall",
+  "variant": "Green",
+  "group": "Props",
+  "file": "props/prop_market_stall_green.glb",
+  "triangles": 2264,
+  "kb": 338
+ },
+ {
+  "id": "prop_cart",
+  "name": "Hand cart",
+  "variant": "Loaded",
+  "group": "Props",
+  "file": "props/prop_cart.glb",
+  "triangles": 2480,
+  "kb": 129
+ },
+ {
+  "id": "prop_bench",
+  "name": "Bench",
+  "variant": "Wooden",
+  "group": "Props",
+  "file": "props/prop_bench.glb",
+  "triangles": 648,
+  "kb": 42
+ },
+ {
+  "id": "prop_campfire",
+  "name": "Campfire",
+  "variant": "Lit",
+  "group": "Props",
+  "file": "props/prop_campfire.glb",
+  "triangles": 1600,
+  "kb": 171
+ },
+ {
+  "id": "prop_hay",
+  "name": "Hay",
+  "variant": "Round bale",
+  "group": "Props",
+  "file": "props/prop_hay_round_bale.glb",
+  "triangles": 72,
+  "kb": 81
+ },
+ {
+  "id": "prop_hay",
+  "name": "Hay",
+  "variant": "Stacked bales",
+  "group": "Props",
+  "file": "props/prop_hay_stacked_bales.glb",
+  "triangles": 324,
+  "kb": 87
+ },
+ {
+  "id": "prop_planter",
+  "name": "Flower planter",
+  "variant": "Mixed",
+  "group": "Props",
+  "file": "props/prop_planter.glb",
+  "triangles": 856,
+  "kb": 92
  }
 ]

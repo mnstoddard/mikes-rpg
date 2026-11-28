@@ -246,7 +246,7 @@ function setMode(m) {
     camera.position.set(24, 13, 34);
     const s = sceneGroup.userData.stats;
     $("card").innerHTML = `<div class="label">Sample scene</div><h2>A Heartvale meadow</h2>
-      <p class="note">Built only from the objects in this gallery: a pond with reeds and lily pads, a grove of oak, birch, maple and pine, a cliff with copper, tin, iron and coal rocks, bushes, flowers and grass. Repeated things (grass, flowers) are drawn as instances, the way Godot's MultiMesh does it, to stay fast.</p>
+      <p class="note">Built only from the objects in this gallery: a pond with reeds and lily pads, a cottage with a fence, well and campfire, a grove of oak, birch, maple and pine, a cliff with copper, tin, iron and coal rocks, bushes, flowers and grass. Repeated things (grass, flowers) are drawn as instances, the way Godot's MultiMesh does it, to stay fast.</p>
       <div class="stats"><span><b>${s.objects}</b> objects</span><span><b>${s.tris.toLocaleString()}</b> triangles</span><span><b>${s.calls}</b> draw calls</span></div>`;
     for (const b of list.querySelectorAll(".item")) b.setAttribute("aria-current", "false");
   } else {
