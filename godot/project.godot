@@ -1,0 +1,14 @@
+; Engine configuration file for the Emberfall Godot version.
+; Open this folder (godot/) in Godot 4.4 or newer: Project Manager > Import > pick this file.
+
+config_version=5
+
+[application]
+
+config/name="Emberfall"
+config/features=PackedStringArray("4.4", "Forward Plus")
+
+[rendering]
+
+textures/vram_compression/import_etc2_astc=true
+anti_aliasing/quality/msaa_3d=2
