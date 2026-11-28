@@ -1,0 +1,785 @@
+[
+ {
+  "id": "axe",
+  "name": "Axe",
+  "cat": "Tools",
+  "held": true,
+  "swaps": [
+   "metal",
+   "wood"
+  ],
+  "game": [
+   "axe_*"
+  ],
+  "about": "A bearded axe head with a brighter sharpened edge, on a wooden haft with a leather grip.",
+  "file": "tools/axe.glb",
+  "bytes": 250684,
+  "tris": 2856,
+  "materials": [
+   "wood",
+   "grip",
+   "metal",
+   "metal_dark"
+  ],
+  "size": [
+   0.228,
+   0.766,
+   0.065
+  ]
+ },
+ {
+  "id": "pickaxe",
+  "name": "Pickaxe",
+  "cat": "Tools",
+  "held": true,
+  "swaps": [
+   "metal",
+   "wood"
+  ],
+  "game": [
+   "pickaxe_*"
+  ],
+  "about": "A curved two-point head, thick in the middle, on a wooden haft.",
+  "file": "tools/pickaxe.glb",
+  "bytes": 230604,
+  "tris": 2452,
+  "materials": [
+   "wood",
+   "grip",
+   "metal",
+   "metal_dark"
+  ],
+  "size": [
+   0.509,
+   0.76,
+   0.065
+  ]
+ },
+ {
+  "id": "shovel",
+  "name": "Shovel",
+  "cat": "Tools",
+  "held": true,
+  "swaps": [
+   "metal",
+   "wood"
+  ],
+  "game": [
+   "shovel_*"
+  ],
+  "about": "A dished spade with a T-handle, for Foraging (digging up roots, herbs and treasures).",
+  "file": "tools/shovel.glb",
+  "bytes": 150832,
+  "tris": 1596,
+  "materials": [
+   "wood",
+   "grip",
+   "metal_dark",
+   "metal"
+  ],
+  "size": [
+   0.165,
+   1.272,
+   0.06
+  ]
+ },
+ {
+  "id": "fishing_rod",
+  "name": "Fishing rod",
+  "cat": "Tools",
+  "held": true,
+  "swaps": [
+   "wood"
+  ],
+  "game": [
+   "rod_*"
+  ],
+  "about": "A tapering rod with line guides, a little reel and a red-and-white float.",
+  "file": "tools/fishing_rod.glb",
+  "bytes": 182820,
+  "tris": 2484,
+  "materials": [
+   "wood",
+   "grip",
+   "metal",
+   "metal_dark",
+   "knob",
+   "line",
+   "float_red",
+   "float_white"
+  ],
+  "size": [
+   0.137,
+   1.7,
+   0.073
+  ]
+ },
+ {
+  "id": "hammer",
+  "name": "Smithing hammer",
+  "cat": "Tools",
+  "held": true,
+  "swaps": [
+   "metal",
+   "wood"
+  ],
+  "game": [
+   "hammer_*"
+  ],
+  "about": "A two-faced hammer for the anvil.",
+  "file": "tools/hammer.glb",
+  "bytes": 147952,
+  "tris": 1696,
+  "materials": [
+   "wood",
+   "grip",
+   "metal",
+   "metal_dark"
+  ],
+  "size": [
+   0.2,
+   0.511,
+   0.084
+  ]
+ },
+ {
+  "id": "tongs",
+  "name": "Tongs",
+  "cat": "Tools",
+  "held": true,
+  "swaps": [
+   "metal"
+  ],
+  "game": [
+   "tongs_*"
+  ],
+  "about": "Smith's tongs with leather-wrapped handles, for holding hot metal.",
+  "file": "tools/tongs.glb",
+  "bytes": 130632,
+  "tris": 1280,
+  "materials": [
+   "metal",
+   "metal_dark",
+   "grip"
+  ],
+  "size": [
+   0.073,
+   0.48,
+   0.03
+  ]
+ },
+ {
+  "id": "cooking_pot",
+  "name": "Cooking pot",
+  "cat": "Tools",
+  "swaps": [
+   "metal"
+  ],
+  "game": [
+   "pot_*"
+  ],
+  "about": "A round pot with a rolled rim and a wire handle, with some stew inside.",
+  "file": "tools/cooking_pot.glb",
+  "bytes": 50124,
+  "tris": 1020,
+  "materials": [
+   "metal",
+   "metal_dark",
+   "stew"
+  ],
+  "size": [
+   0.328,
+   0.345,
+   0.31
+  ]
+ },
+ {
+  "id": "sword",
+  "name": "Sword",
+  "cat": "Weapons",
+  "held": true,
+  "swaps": [
+   "metal",
+   "wood"
+  ],
+  "game": [
+   "sword_*"
+  ],
+  "about": "A one-handed sword with a raised spine, a curved crossguard with a little ruby, and a leather-wrapped grip.",
+  "file": "weapons/sword.glb",
+  "bytes": 189892,
+  "tris": 3044,
+  "materials": [
+   "grip",
+   "metal",
+   "metal_dark",
+   "gem"
+  ],
+  "size": [
+   0.252,
+   0.987,
+   0.051
+  ]
+ },
+ {
+  "id": "dagger",
+  "name": "Dagger",
+  "cat": "Weapons",
+  "held": true,
+  "swaps": [
+   "metal",
+   "wood"
+  ],
+  "game": [
+   "dagger_*"
+  ],
+  "about": "Short and quick, the same family look as the sword.",
+  "file": "weapons/dagger.glb",
+  "bytes": 178740,
+  "tris": 2708,
+  "materials": [
+   "grip",
+   "metal",
+   "metal_dark",
+   "gem"
+  ],
+  "size": [
+   0.162,
+   0.499,
+   0.046
+  ]
+ },
+ {
+  "id": "greatsword",
+  "name": "Two-handed sword",
+  "cat": "Weapons",
+  "held": true,
+  "swaps": [
+   "metal",
+   "wood"
+  ],
+  "game": [
+   "greatsword_*"
+  ],
+  "about": "A long two-handed blade with a wide guard and a long grip.",
+  "file": "weapons/greatsword.glb",
+  "bytes": 212208,
+  "tris": 3716,
+  "materials": [
+   "grip",
+   "metal",
+   "metal_dark",
+   "gem"
+  ],
+  "size": [
+   0.372,
+   1.612,
+   0.062
+  ]
+ },
+ {
+  "id": "mace",
+  "name": "Mace",
+  "cat": "Weapons",
+  "held": true,
+  "swaps": [
+   "metal",
+   "wood"
+  ],
+  "game": [
+   "mace_*"
+  ],
+  "about": "A round head with six soft flanges on a banded wooden haft.",
+  "file": "weapons/mace.glb",
+  "bytes": 191200,
+  "tris": 2800,
+  "materials": [
+   "grip",
+   "metal",
+   "metal_dark",
+   "wood"
+  ],
+  "size": [
+   0.251,
+   0.775,
+   0.231
+  ]
+ },
+ {
+  "id": "spear",
+  "name": "Spear",
+  "cat": "Weapons",
+  "held": true,
+  "swaps": [
+   "metal",
+   "wood"
+  ],
+  "game": [
+   "spear_*"
+  ],
+  "about": "A leaf-shaped head on a long shaft, with a red tassel.",
+  "file": "weapons/spear.glb",
+  "bytes": 196568,
+  "tris": 1668,
+  "materials": [
+   "wood",
+   "grip",
+   "metal_dark",
+   "metal",
+   "cloth"
+  ],
+  "size": [
+   0.12,
+   2.321,
+   0.06
+  ]
+ },
+ {
+  "id": "bow",
+  "name": "Bow",
+  "cat": "Weapons",
+  "held": true,
+  "swaps": [
+   "metal",
+   "wood"
+  ],
+  "game": [
+   "bow_*"
+  ],
+  "about": "A recurve bow with a wrapped grip, metal tip caps and an arrow rest.",
+  "file": "weapons/bow.glb",
+  "bytes": 169092,
+  "tris": 2516,
+  "materials": [
+   "wood",
+   "grip",
+   "metal",
+   "string",
+   "metal_dark"
+  ],
+  "size": [
+   0.327,
+   1.445,
+   0.06
+  ]
+ },
+ {
+  "id": "arrows",
+  "name": "Arrows",
+  "cat": "Weapons",
+  "swaps": [
+   "metal"
+  ],
+  "game": [
+   "arrows_*"
+  ],
+  "about": "A tied bundle of birch arrows with red fletching. The head is the metal.",
+  "file": "weapons/arrows.glb",
+  "bytes": 295500,
+  "tris": 1872,
+  "materials": [
+   "wood",
+   "metal",
+   "fletch",
+   "nock",
+   "tie"
+  ],
+  "size": [
+   0.08,
+   0.854,
+   0.075
+  ]
+ },
+ {
+  "id": "staff",
+  "name": "Staff",
+  "cat": "Weapons",
+  "held": true,
+  "swaps": [
+   "metal",
+   "wood",
+   "gem"
+  ],
+  "game": [
+   "staff_*"
+  ],
+  "about": "Three curling branches hold a glowing gem. The gem colour shows its enchantment.",
+  "file": "weapons/staff.glb",
+  "bytes": 145216,
+  "tris": 2204,
+  "materials": [
+   "wood",
+   "grip",
+   "metal",
+   "gem",
+   "metal_dark"
+  ],
+  "size": [
+   0.118,
+   1.951,
+   0.13
+  ]
+ },
+ {
+  "id": "sling",
+  "name": "Sling",
+  "cat": "Weapons",
+  "held": true,
+  "swaps": [
+   "metal"
+  ],
+  "game": [
+   "sling_*"
+  ],
+  "about": "A leather pouch on two cords, loaded with a metal shot.",
+  "file": "weapons/sling.glb",
+  "bytes": 75536,
+  "tris": 856,
+  "materials": [
+   "leather",
+   "cord",
+   "grip",
+   "metal"
+  ],
+  "size": [
+   0.101,
+   0.486,
+   0.076
+  ]
+ },
+ {
+  "id": "darts",
+  "name": "Darts",
+  "cat": "Weapons",
+  "held": true,
+  "swaps": [
+   "metal",
+   "wood"
+  ],
+  "game": [
+   "darts_*"
+  ],
+  "about": "Three throwing darts with blue fletching.",
+  "file": "weapons/darts.glb",
+  "bytes": 177868,
+  "tris": 900,
+  "materials": [
+   "wood",
+   "metal",
+   "fletch"
+  ],
+  "size": [
+   0.119,
+   0.228,
+   0.044
+  ]
+ },
+ {
+  "id": "helmet_plate",
+  "name": "Plate helmet",
+  "cat": "Armor",
+  "swaps": [
+   "metal"
+  ],
+  "game": [
+   "helmet_bronze",
+   "helmet_iron",
+   "helmet_steel",
+   "helmet_mithril"
+  ],
+  "about": "A rounded helm with a raised ridge, nose guard, cheek guards and a ring of rivets.",
+  "file": "armor/helmet_plate.glb",
+  "bytes": 123684,
+  "tris": 2268,
+  "materials": [
+   "metal",
+   "metal_dark"
+  ],
+  "size": [
+   0.298,
+   0.341,
+   0.304
+  ]
+ },
+ {
+  "id": "shield_round",
+  "name": "Round shield",
+  "cat": "Armor",
+  "swaps": [
+   "metal"
+  ],
+  "game": [
+   "shield_bronze",
+   "shield_iron",
+   "shield_steel",
+   "shield_mithril"
+  ],
+  "about": "Oak planks behind a domed face, with a metal rim, straps, rivets and a central boss.",
+  "file": "armor/shield_round.glb",
+  "bytes": 209712,
+  "tris": 2832,
+  "materials": [
+   "wood",
+   "metal",
+   "metal_dark",
+   "grip"
+  ],
+  "size": [
+   0.632,
+   0.632,
+   0.178
+  ]
+ },
+ {
+  "id": "logs",
+  "name": "Logs",
+  "cat": "Resources",
+  "swaps": [
+   "wood"
+  ],
+  "game": [
+   "*_logs"
+  ],
+  "about": "Three cut logs with bark, ringed end grain and a branch stub. Swap the wood for every tree.",
+  "file": "resources/logs.glb",
+  "bytes": 81772,
+  "tris": 600,
+  "materials": [
+   "bark",
+   "wood_end"
+  ],
+  "size": [
+   0.66,
+   0.286,
+   0.24
+  ]
+ },
+ {
+  "id": "bar",
+  "name": "Metal bar",
+  "cat": "Resources",
+  "swaps": [
+   "metal",
+   "jewel"
+  ],
+  "game": [
+   "*_bar"
+  ],
+  "about": "An ingot with soft edges and the smith's mark. One model for all eight bars.",
+  "file": "resources/bar.glb",
+  "bytes": 27648,
+  "tris": 104,
+  "materials": [
+   "metal"
+  ],
+  "size": [
+   0.195,
+   0.062,
+   0.075
+  ]
+ },
+ {
+  "id": "ore_copper",
+  "name": "Copper ore",
+  "cat": "Resources",
+  "game": [
+   "copper_ore"
+  ],
+  "about": "A rock chunk with copper nuggets showing.",
+  "file": "resources/ore_copper.glb",
+  "bytes": 54868,
+  "tris": 660,
+  "materials": [
+   "rock",
+   "ore"
+  ],
+  "size": [
+   0.177,
+   0.136,
+   0.174
+  ]
+ },
+ {
+  "id": "ore_mithril",
+  "name": "Mithril ore",
+  "cat": "Resources",
+  "game": [
+   "mithril_ore"
+  ],
+  "about": "Glowing blue mithril in grey rock.",
+  "file": "resources/ore_mithril.glb",
+  "bytes": 55064,
+  "tris": 660,
+  "materials": [
+   "rock",
+   "ore"
+  ],
+  "size": [
+   0.17,
+   0.13,
+   0.188
+  ]
+ },
+ {
+  "id": "coal",
+  "name": "Coal",
+  "cat": "Resources",
+  "game": [
+   "coal"
+  ],
+  "about": "Two glossy black lumps.",
+  "file": "resources/coal.glb",
+  "bytes": 6240,
+  "tris": 160,
+  "materials": [
+   "ore"
+  ],
+  "size": [
+   0.188,
+   0.134,
+   0.135
+  ]
+ },
+ {
+  "id": "health_potion",
+  "name": "Health potion",
+  "cat": "Potions",
+  "game": [
+   "health_potion"
+  ],
+  "about": "A round flask of glowing red liquid with a cork and a linen tie.",
+  "file": "potions/health_potion.glb",
+  "bytes": 125720,
+  "tris": 880,
+  "materials": [
+   "glass",
+   "liquid",
+   "cork",
+   "tie",
+   "bubble"
+  ],
+  "size": [
+   0.132,
+   0.18,
+   0.132
+  ]
+ },
+ {
+  "id": "trout",
+  "name": "Trout",
+  "cat": "Fish",
+  "game": [
+   "trout"
+  ],
+  "about": "Olive back, pink side stripe, dark spots. Lies on its side as caught.",
+  "file": "fish/trout.glb",
+  "bytes": 44324,
+  "tris": 664,
+  "materials": [
+   "fish_skin",
+   "fin",
+   "eye_white",
+   "eye"
+  ],
+  "size": [
+   0.379,
+   0.115,
+   0.045
+  ]
+ },
+ {
+  "id": "stew",
+  "name": "Stew",
+  "cat": "Food",
+  "game": [
+   "meal_stew*"
+  ],
+  "about": "A wooden bowl of stew with potato, carrot and meat, herbs and a spoon.",
+  "file": "food/stew.glb",
+  "bytes": 158972,
+  "tris": 2392,
+  "materials": [
+   "wood",
+   "stew_sauce",
+   "stew_bit",
+   "herb"
+  ],
+  "size": [
+   0.241,
+   0.156,
+   0.2
+  ]
+ },
+ {
+  "id": "red_cap",
+  "name": "Red cap mushroom",
+  "cat": "Foraging",
+  "game": [
+   "red_cap"
+  ],
+  "about": "A red-capped mushroom with cream spots, and a little one beside it.",
+  "file": "foraging/red_cap.glb",
+  "bytes": 71856,
+  "tris": 2944,
+  "materials": [
+   "stem",
+   "cap",
+   "gills",
+   "spots"
+  ],
+  "size": [
+   0.157,
+   0.107,
+   0.148
+  ]
+ },
+ {
+  "id": "ring",
+  "name": "Ring",
+  "cat": "Jewelry",
+  "swaps": [
+   "jewel",
+   "gem"
+  ],
+  "game": [
+   "ring_*"
+  ],
+  "about": "A band with a cut gem in four prongs. Swap the metal and the gem.",
+  "file": "jewelry/ring.glb",
+  "bytes": 47924,
+  "tris": 904,
+  "materials": [
+   "jewel_metal",
+   "gem"
+  ],
+  "size": [
+   0.027,
+   0.033,
+   0.013
+  ]
+ },
+ {
+  "id": "spell_book",
+  "name": "Spell book",
+  "cat": "Magic",
+  "game": [
+   "book_*"
+  ],
+  "about": "Leather covers, cream pages, bronze corners, a glowing gem on the cover and a red ribbon.",
+  "file": "magic/spell_book.glb",
+  "bytes": 303220,
+  "tris": 2020,
+  "materials": [
+   "cover",
+   "pages",
+   "metal",
+   "gem",
+   "ribbon"
+  ],
+  "size": [
+   0.167,
+   0.088,
+   0.226
+  ]
+ }
+]
