@@ -56,9 +56,9 @@ def vnoise(p, scale, seed=0):
 
 # ---------------- the creature ----------------
 class Creature:
-    def __init__(s, name, bones, shapes, paints, eyes, anims, cell=0.008, tris=10000, tex=1024, rules=None, ground=True, glow=None, fur=0.08):
+    def __init__(s, name, bones, shapes, paints, eyes, anims, cell=0.008, tris=10000, tex=1024, rules=None, ground=True, glow=None, fur=0.08, scale=1.0):
         s.name, s.bones, s.shapes, s.paints, s.eyes, s.anims = name, bones, shapes, paints, eyes, anims
-        s.cell, s.tris, s.tex, s.rules, s.ground, s.glow, s.fur = cell, tris, tex, rules or [], ground, glow, fur
+        s.cell, s.tris, s.tex, s.rules, s.ground, s.glow, s.fur, s.scale = cell, tris, tex, rules or [], ground, glow, fur, scale
 
     def sdf(s, p, each=False):
         ds = [sh.sdf(p) for sh in s.shapes]
@@ -235,7 +235,8 @@ def quat_from_to(a, b):
 # ---------------- glb writer ----------------
 def write_glb(cr, path, eyes_img, fps=30):
     bn = [b[0] for b in cr.bones]; par = [bn.index(b[1]) if b[1] else -1 for b in cr.bones]
-    head = np.array([b[2] for b in cr.bones], dtype=np.float64)
+    K = cr.scale  # the whole creature is drawn at this size
+    head = np.array([b[2] for b in cr.bones], dtype=np.float64) * K
     blob = bytearray(); views = []; accs = []
     def add(arr, target=None, comp=None, typ=None, minmax=False, norm=False):
         arr = np.ascontiguousarray(arr); off = len(blob); blob.extend(arr.tobytes())
@@ -262,7 +263,7 @@ def write_glb(cr, path, eyes_img, fps=30):
     materials.append({"name": cr.name + "_eye", "pbrMetallicRoughness": {"baseColorTexture": {"index": t_eye}, "metallicFactor": 0.0, "roughnessFactor": 0.08},
                       **({"emissiveTexture": {"index": t_eye}, "emissiveFactor": [0.6, 0.6, 0.6]} if cr.eyes and cr.eyes[0].get('glow') else {})})
     # body
-    prim = {"attributes": {"POSITION": add(cr.v.astype(np.float32), 34962, F, VEC3, True), "NORMAL": add(cr.n.astype(np.float32), 34962, F, VEC3),
+    prim = {"attributes": {"POSITION": add((cr.v * K).astype(np.float32), 34962, F, VEC3, True), "NORMAL": add(cr.n.astype(np.float32), 34962, F, VEC3),
                            "TEXCOORD_0": add(cr.uv_gl.astype(np.float32), 34962, F, VEC2), "JOINTS_0": add(cr.joints.astype(np.uint16), 34962, 5123, VEC4),
                            "WEIGHTS_0": add(cr.weights.astype(np.float32), 34962, F, VEC4)},
             "indices": add(cr.f.astype(np.uint32).reshape(-1), 34963, 5125, SCALAR), "material": 0}
@@ -278,8 +279,8 @@ def write_glb(cr, path, eyes_img, fps=30):
         ch = [j for j in range(len(bn)) if par[j] == i]
         if ch: nodes[i]["children"] = ch
     for k, e in enumerate(cr.eyes):
-        hb = bn.index(e['bone']); c = V(*e['c']) - head[hb]
-        nodes.append({"name": f"Eye_{'LR'[k]}", "mesh": 1, "translation": [float(x) for x in c], "scale": [float(x) for x in e['r']],
+        hb = bn.index(e['bone']); c = V(*e['c']) * K - head[hb]
+        nodes.append({"name": f"Eye_{'LR'[k]}" if len(cr.eyes) == 2 else f"Eye_{k + 1}", "mesh": 1, "translation": [float(x) for x in c], "scale": [float(x) * K for x in e['r']],
                       "rotation": [float(x) for x in e['quat']] if 'quat' in e else list(quat_euler(e.get('pitch', 0), e.get('yaw', 0), e.get('roll', 0)))})
         nodes[hb].setdefault("children", []).append(len(nodes) - 1)
     ibm = np.zeros((len(bn), 4, 4), np.float32)
@@ -299,7 +300,7 @@ def write_glb(cr, path, eyes_img, fps=30):
             q = np.array([quat_euler(*p.get(b, (0, 0, 0))) for p in poses], np.float32)
             sm.append({"input": ti, "output": add(q, None, F, VEC4), "interpolation": "LINEAR"}); ch.append({"sampler": len(sm) - 1, "target": {"node": bn.index(b), "path": "rotation"}})
         if any('@root' in p for p in poses):
-            tr = np.array([head[0] + V(*p.get('@root', (0, 0, 0))) for p in poses], np.float32)
+            tr = np.array([head[0] + V(*p.get('@root', (0, 0, 0))) * K for p in poses], np.float32)
             sm.append({"input": ti, "output": add(tr, None, F, VEC3), "interpolation": "LINEAR"}); ch.append({"sampler": len(sm) - 1, "target": {"node": 0, "path": "translation"}})
         for key in [k for k in poses[0] if k.startswith('@scale:')]:
             b = key.split(':')[1]; sc = np.array([p[key] for p in poses], np.float32)

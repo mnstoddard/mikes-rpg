@@ -1,0 +1,1933 @@
+[
+ {
+  "name": "Goblin",
+  "file": "foe_goblin",
+  "who": "man",
+  "cfg": {
+   "hair": "bald",
+   "elf": 1,
+   "ears": 1,
+   "nose": 0.8,
+   "eyeSize": 1,
+   "muscle": -0.3,
+   "weight": 0.3,
+   "belly": 0.6,
+   "jaw": -0.4,
+   "eye": 7
+  },
+  "outfit": [
+   {
+    "name": "Tunic",
+    "kind": "shirt",
+    "tex": "burlap",
+    "color": "#ffffff",
+    "sleeve": "short"
+   },
+   {
+    "name": "Trousers",
+    "kind": "trousers",
+    "tex": "leather",
+    "color": "#ffffff",
+    "length": "knee"
+   },
+   {
+    "name": "Belt",
+    "kind": "belt",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60"
+   }
+  ],
+  "motions": [
+   "idle",
+   "walk",
+   "run",
+   "sneak",
+   "jump",
+   "sword",
+   "slash",
+   "rising",
+   "thrust",
+   "block",
+   "dagger",
+   "spear",
+   "mace",
+   "greatsword",
+   "shield",
+   "spell",
+   "staff",
+   "archery",
+   "throw",
+   "hit",
+   "fall",
+   "defeat",
+   "talk",
+   "look"
+  ],
+  "dropCovered": true,
+  "skinColor": "#7fae4e",
+  "scale": 0.68
+ },
+ {
+  "name": "Ashbound_Scout",
+  "file": "foe_ashbound_scout",
+  "who": "man",
+  "cfg": {
+   "skin": 3,
+   "eye": 4,
+   "hair": "short",
+   "beard": "stubble",
+   "muscle": 0.2
+  },
+  "outfit": [
+   {
+    "name": "Shirt",
+    "kind": "shirt",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#8a7c6a",
+    "sleeve": "long"
+   },
+   {
+    "name": "Trousers",
+    "kind": "trousers",
+    "tex": "burlap",
+    "color": "#ffffff",
+    "tint": "#7a7068"
+   },
+   {
+    "name": "Boots",
+    "kind": "boots",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60",
+    "rough": 0.65,
+    "height": 0.28
+   },
+   {
+    "name": "Belt",
+    "kind": "belt",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60"
+   },
+   {
+    "name": "Gloves",
+    "kind": "gloves",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#8f8a84"
+   },
+   {
+    "name": "Hood",
+    "kind": "hood",
+    "tex": "burlap",
+    "color": "#ffffff",
+    "tint": "#6a6258"
+   },
+   {
+    "name": "Cape",
+    "kind": "cape",
+    "tex": "burlap",
+    "color": "#ffffff",
+    "tint": "#6a6258",
+    "double": true,
+    "hemUp": 0.45
+   }
+  ],
+  "motions": [
+   "idle",
+   "walk",
+   "run",
+   "sneak",
+   "jump",
+   "sword",
+   "slash",
+   "rising",
+   "thrust",
+   "block",
+   "dagger",
+   "spear",
+   "mace",
+   "greatsword",
+   "shield",
+   "spell",
+   "staff",
+   "archery",
+   "throw",
+   "hit",
+   "fall",
+   "defeat",
+   "talk",
+   "look"
+  ],
+  "dropCovered": true,
+  "hideHair": true
+ },
+ {
+  "name": "Ashbound_Raider",
+  "file": "foe_ashbound_raider",
+  "who": "man",
+  "cfg": {
+   "skin": 5,
+   "eye": 5,
+   "hair": "messy",
+   "beard": "full",
+   "hairCol": 1,
+   "muscle": 1,
+   "weight": 0.5,
+   "shoulders": 0.8,
+   "height": 0.5
+  },
+  "outfit": [
+   {
+    "name": "Shirt",
+    "kind": "shirt",
+    "tex": "burlap",
+    "color": "#ffffff",
+    "tint": "#5e5a52",
+    "sleeve": "long"
+   },
+   {
+    "name": "Breastplate",
+    "kind": "shirt",
+    "tex": "metal_rusty_iron",
+    "color": "#ffffff",
+    "sleeve": "none",
+    "push": 0.022,
+    "neck": 0.06,
+    "rough": 0.5
+   },
+   {
+    "name": "Trousers",
+    "kind": "trousers",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#5a5048"
+   },
+   {
+    "name": "Boots",
+    "kind": "boots",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#5a5048",
+    "rough": 0.65,
+    "height": 0.32
+   },
+   {
+    "name": "Belt",
+    "kind": "belt",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60"
+   },
+   {
+    "name": "Gloves",
+    "kind": "gloves",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#8f8a84"
+   },
+   {
+    "name": "Cape",
+    "kind": "cape",
+    "tex": "burlap",
+    "color": "#ffffff",
+    "tint": "#4a4640",
+    "double": true,
+    "hemUp": 0.3
+   }
+  ],
+  "motions": [
+   "idle",
+   "walk",
+   "run",
+   "sneak",
+   "jump",
+   "sword",
+   "slash",
+   "rising",
+   "thrust",
+   "block",
+   "dagger",
+   "spear",
+   "mace",
+   "greatsword",
+   "shield",
+   "spell",
+   "staff",
+   "archery",
+   "throw",
+   "hit",
+   "fall",
+   "defeat",
+   "talk",
+   "look"
+  ],
+  "dropCovered": true
+ },
+ {
+  "name": "Grave_Ghoul",
+  "file": "foe_grave_ghoul",
+  "who": "man",
+  "cfg": {
+   "hair": "messy",
+   "hairCol": 7,
+   "eye": 7,
+   "muscle": -1,
+   "weight": -1,
+   "cheeks": 1,
+   "eyeSize": 0.6,
+   "jaw": 0.5,
+   "height": -0.2
+  },
+  "outfit": [
+   {
+    "name": "Rags",
+    "kind": "shirt",
+    "tex": "burlap",
+    "color": "#ffffff",
+    "tint": "#8a8478",
+    "sleeve": "elbow"
+   },
+   {
+    "name": "Trousers",
+    "kind": "trousers",
+    "tex": "burlap",
+    "color": "#ffffff",
+    "tint": "#6a6458",
+    "length": "knee"
+   }
+  ],
+  "motions": [
+   "idle",
+   "walk",
+   "run",
+   "sneak",
+   "jump",
+   "sword",
+   "slash",
+   "rising",
+   "thrust",
+   "block",
+   "dagger",
+   "spear",
+   "mace",
+   "greatsword",
+   "shield",
+   "spell",
+   "staff",
+   "archery",
+   "throw",
+   "hit",
+   "fall",
+   "defeat",
+   "talk",
+   "look"
+  ],
+  "dropCovered": true,
+  "skinColor": "#a8b4a0"
+ },
+ {
+  "name": "Sable",
+  "file": "boss_sable",
+  "who": "woman",
+  "cfg": {
+   "skin": 3,
+   "hair": "ponytail",
+   "hairCol": 0,
+   "eye": 5,
+   "muscle": 0.6,
+   "jaw": 0.3,
+   "height": 0.4,
+   "browThick": 0.5
+  },
+  "outfit": [
+   {
+    "name": "Shirt",
+    "kind": "shirt",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#4a4450",
+    "sleeve": "long"
+   },
+   {
+    "name": "Trousers",
+    "kind": "trousers",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#3a3440"
+   },
+   {
+    "name": "Boots",
+    "kind": "boots",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#3a3440",
+    "rough": 0.65,
+    "height": 0.32
+   },
+   {
+    "name": "Belt",
+    "kind": "belt",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60"
+   },
+   {
+    "name": "Gloves",
+    "kind": "gloves",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#9a9690"
+   },
+   {
+    "name": "Cape",
+    "kind": "cape",
+    "tex": "wool_blue",
+    "color": "#ffffff",
+    "tint": "#3a3446",
+    "double": true,
+    "hemUp": 0.2
+   }
+  ],
+  "motions": [
+   "idle",
+   "walk",
+   "run",
+   "sneak",
+   "jump",
+   "sword",
+   "slash",
+   "rising",
+   "thrust",
+   "block",
+   "dagger",
+   "spear",
+   "mace",
+   "greatsword",
+   "shield",
+   "spell",
+   "staff",
+   "archery",
+   "throw",
+   "hit",
+   "fall",
+   "defeat",
+   "talk",
+   "look"
+  ],
+  "dropCovered": true
+ },
+ {
+  "name": "Vale",
+  "file": "boss_vale",
+  "who": "man",
+  "cfg": {
+   "skin": 0,
+   "hair": "long",
+   "hairCol": 6,
+   "beard": "full",
+   "eye": 7,
+   "height": 0.2,
+   "weight": -0.2,
+   "cheeks": 0.4
+  },
+  "outfit": [
+   {
+    "name": "Robe",
+    "kind": "shirt",
+    "tex": "linen",
+    "color": "#ffffff",
+    "tint": "#f6edd2",
+    "sleeve": "long"
+   },
+   {
+    "name": "RobeSkirt",
+    "kind": "skirt",
+    "tex": "linen",
+    "color": "#ffffff",
+    "tint": "#f6edd2",
+    "flare": 0.6,
+    "hemUp": 0.04,
+    "double": true
+   },
+   {
+    "name": "Mantle",
+    "kind": "shirt",
+    "tex": "linen",
+    "color": "#ffffff",
+    "sleeve": "none",
+    "push": 0.02,
+    "neck": 0.06,
+    "hem": "chest",
+    "tint": "#e2b23e"
+   },
+   {
+    "name": "Belt",
+    "kind": "belt",
+    "tex": "metal_gold",
+    "color": "#ffffff"
+   },
+   {
+    "name": "Cape",
+    "kind": "cape",
+    "tex": "linen",
+    "color": "#ffffff",
+    "tint": "#c9922a",
+    "double": true,
+    "hemUp": 0.06
+   },
+   {
+    "name": "Boots",
+    "kind": "boots",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60",
+    "rough": 0.65,
+    "height": 0.14
+   }
+  ],
+  "motions": [
+   "idle",
+   "walk",
+   "run",
+   "sneak",
+   "jump",
+   "sword",
+   "slash",
+   "rising",
+   "thrust",
+   "block",
+   "dagger",
+   "spear",
+   "mace",
+   "greatsword",
+   "shield",
+   "spell",
+   "staff",
+   "archery",
+   "throw",
+   "hit",
+   "fall",
+   "defeat",
+   "talk",
+   "look"
+  ],
+  "dropCovered": true
+ },
+ {
+  "name": "High_Keeper_Aldric",
+  "file": "npc_aldric",
+  "who": "man",
+  "cfg": {
+   "skin": 0,
+   "hair": "long",
+   "hairCol": 6,
+   "beard": "full",
+   "eye": 7,
+   "height": 0.2,
+   "weight": -0.2,
+   "cheeks": 0.4
+  },
+  "outfit": [
+   {
+    "name": "Robe",
+    "kind": "shirt",
+    "tex": "linen",
+    "color": "#ffffff",
+    "tint": "#f6edd2",
+    "sleeve": "long"
+   },
+   {
+    "name": "RobeSkirt",
+    "kind": "skirt",
+    "tex": "linen",
+    "color": "#ffffff",
+    "tint": "#f6edd2",
+    "flare": 0.6,
+    "hemUp": 0.04,
+    "double": true
+   },
+   {
+    "name": "Sash",
+    "kind": "shirt",
+    "tex": "wool_red",
+    "color": "#ffffff",
+    "sleeve": "none",
+    "push": 0.02,
+    "neck": 0.12
+   },
+   {
+    "name": "Belt",
+    "kind": "belt",
+    "tex": "metal_gold",
+    "color": "#ffffff"
+   },
+   {
+    "name": "Boots",
+    "kind": "boots",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60",
+    "rough": 0.65,
+    "height": 0.14
+   }
+  ],
+  "motions": [
+   "idle",
+   "walk",
+   "run",
+   "talk",
+   "wave",
+   "bow",
+   "look",
+   "sit",
+   "drink",
+   "eat",
+   "pickup",
+   "hit",
+   "fall",
+   "defeat",
+   "spell",
+   "staff"
+  ],
+  "dropCovered": true
+ },
+ {
+  "name": "Captain_Bryn",
+  "file": "npc_bryn",
+  "who": "man",
+  "cfg": {
+   "skin": 4,
+   "hair": "short",
+   "hairCol": 1,
+   "beard": "goatee",
+   "eye": 2,
+   "muscle": 0.8,
+   "shoulders": 0.5,
+   "height": 0.4
+  },
+  "outfit": [
+   {
+    "name": "Shirt",
+    "kind": "shirt",
+    "tex": "wool_blue",
+    "color": "#ffffff",
+    "sleeve": "long"
+   },
+   {
+    "name": "Breastplate",
+    "kind": "shirt",
+    "tex": "metal_steel",
+    "color": "#ffffff",
+    "sleeve": "none",
+    "push": 0.022,
+    "neck": 0.06,
+    "rough": 0.4
+   },
+   {
+    "name": "Trousers",
+    "kind": "trousers",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60"
+   },
+   {
+    "name": "Boots",
+    "kind": "boots",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60",
+    "rough": 0.65,
+    "height": 0.34
+   },
+   {
+    "name": "Belt",
+    "kind": "belt",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60"
+   },
+   {
+    "name": "Cape",
+    "kind": "cape",
+    "tex": "wool_blue",
+    "color": "#ffffff",
+    "double": true,
+    "hemUp": 0.3
+   }
+  ],
+  "motions": [
+   "idle",
+   "walk",
+   "run",
+   "talk",
+   "wave",
+   "bow",
+   "look",
+   "sit",
+   "drink",
+   "eat",
+   "pickup",
+   "hit",
+   "fall",
+   "defeat",
+   "sword",
+   "block"
+  ],
+  "dropCovered": true
+ },
+ {
+  "name": "Keeper_Celene",
+  "file": "npc_celene",
+  "who": "woman",
+  "cfg": {
+   "skin": 1,
+   "hair": "long",
+   "hairCol": 5,
+   "eye": 0,
+   "faceWidth": -0.3
+  },
+  "outfit": [
+   {
+    "name": "Robe",
+    "kind": "shirt",
+    "tex": "linen",
+    "color": "#ffffff",
+    "tint": "#f2ead8",
+    "sleeve": "long"
+   },
+   {
+    "name": "RobeSkirt",
+    "kind": "skirt",
+    "tex": "linen",
+    "color": "#ffffff",
+    "tint": "#f2ead8",
+    "flare": 0.6,
+    "hemUp": 0.04,
+    "double": true
+   },
+   {
+    "name": "Sash",
+    "kind": "shirt",
+    "tex": "wool_red",
+    "color": "#ffffff",
+    "sleeve": "none",
+    "push": 0.02,
+    "neck": 0.12
+   },
+   {
+    "name": "Belt",
+    "kind": "belt",
+    "tex": "wool_red",
+    "color": "#ffffff"
+   },
+   {
+    "name": "Boots",
+    "kind": "boots",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60",
+    "rough": 0.65,
+    "height": 0.14
+   }
+  ],
+  "motions": [
+   "idle",
+   "walk",
+   "run",
+   "talk",
+   "wave",
+   "bow",
+   "look",
+   "sit",
+   "drink",
+   "eat",
+   "pickup",
+   "hit",
+   "fall",
+   "defeat",
+   "spell"
+  ],
+  "dropCovered": true
+ },
+ {
+  "name": "Enchanter_Corwen",
+  "file": "npc_corwen",
+  "who": "man",
+  "cfg": {
+   "skin": 2,
+   "hair": "messy",
+   "hairCol": 8,
+   "beard": "goatee",
+   "eye": 6,
+   "muscle": -0.5,
+   "weight": -0.3
+  },
+  "outfit": [
+   {
+    "name": "Robe",
+    "kind": "shirt",
+    "tex": "wool_blue",
+    "color": "#ffffff",
+    "tint": "#8a78c8",
+    "sleeve": "long"
+   },
+   {
+    "name": "RobeSkirt",
+    "kind": "skirt",
+    "tex": "wool_blue",
+    "color": "#ffffff",
+    "tint": "#8a78c8",
+    "flare": 0.6,
+    "hemUp": 0.04,
+    "double": true
+   },
+   {
+    "name": "Belt",
+    "kind": "belt",
+    "tex": "metal_silver",
+    "color": "#ffffff"
+   },
+   {
+    "name": "Boots",
+    "kind": "boots",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60",
+    "rough": 0.65,
+    "height": 0.14
+   }
+  ],
+  "motions": [
+   "idle",
+   "walk",
+   "run",
+   "talk",
+   "wave",
+   "bow",
+   "look",
+   "sit",
+   "drink",
+   "eat",
+   "pickup",
+   "hit",
+   "fall",
+   "defeat",
+   "enchant",
+   "spell"
+  ],
+  "dropCovered": true
+ },
+ {
+  "name": "Miner_Greta",
+  "file": "npc_greta",
+  "who": "woman",
+  "cfg": {
+   "skin": 3,
+   "hair": "bun",
+   "hairCol": 4,
+   "eye": 2,
+   "muscle": 0.7,
+   "weight": 0.3,
+   "shoulders": 0.5
+  },
+  "outfit": [
+   {
+    "name": "Shirt",
+    "kind": "shirt",
+    "tex": "wool_red",
+    "color": "#ffffff",
+    "sleeve": "elbow"
+   },
+   {
+    "name": "Trousers",
+    "kind": "trousers",
+    "tex": "burlap",
+    "color": "#ffffff",
+    "tint": "#8a7a68"
+   },
+   {
+    "name": "Boots",
+    "kind": "boots",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60",
+    "rough": 0.65,
+    "height": 0.3
+   },
+   {
+    "name": "Apron",
+    "kind": "apron",
+    "tex": "leather",
+    "color": "#ffffff",
+    "push": 0.024
+   }
+  ],
+  "motions": [
+   "idle",
+   "walk",
+   "run",
+   "talk",
+   "wave",
+   "bow",
+   "look",
+   "sit",
+   "drink",
+   "eat",
+   "pickup",
+   "hit",
+   "fall",
+   "defeat",
+   "mine"
+  ],
+  "dropCovered": true
+ },
+ {
+  "name": "Forester_Holt",
+  "file": "npc_holt",
+  "who": "man",
+  "cfg": {
+   "skin": 2,
+   "hair": "short",
+   "hairCol": 3,
+   "beard": "full",
+   "eye": 1,
+   "muscle": 0.6,
+   "height": 0.3
+  },
+  "outfit": [
+   {
+    "name": "Shirt",
+    "kind": "shirt",
+    "tex": "wool_green",
+    "color": "#ffffff",
+    "sleeve": "long"
+   },
+   {
+    "name": "Vest",
+    "kind": "shirt",
+    "tex": "leather",
+    "color": "#ffffff",
+    "sleeve": "none",
+    "push": 0.016,
+    "neck": 0.08
+   },
+   {
+    "name": "Trousers",
+    "kind": "trousers",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60"
+   },
+   {
+    "name": "Boots",
+    "kind": "boots",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60",
+    "rough": 0.65,
+    "height": 0.32
+   },
+   {
+    "name": "Belt",
+    "kind": "belt",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60"
+   },
+   {
+    "name": "Cape",
+    "kind": "cape",
+    "tex": "wool_green",
+    "color": "#ffffff",
+    "tint": "#6a8a5a",
+    "double": true,
+    "hemUp": 0.4
+   }
+  ],
+  "motions": [
+   "idle",
+   "walk",
+   "run",
+   "talk",
+   "wave",
+   "bow",
+   "look",
+   "sit",
+   "drink",
+   "eat",
+   "pickup",
+   "hit",
+   "fall",
+   "defeat",
+   "chop"
+  ],
+  "dropCovered": true
+ },
+ {
+  "name": "Huntmaster_Kael",
+  "file": "npc_kael",
+  "who": "man",
+  "cfg": {
+   "skin": 5,
+   "hair": "mohawk",
+   "hairCol": 0,
+   "beard": "stubble",
+   "eye": 3,
+   "muscle": 1,
+   "shoulders": 0.6,
+   "jaw": 0.5
+  },
+  "outfit": [
+   {
+    "name": "Shirt",
+    "kind": "shirt",
+    "tex": "wool_green",
+    "color": "#ffffff",
+    "tint": "#7a9a6a",
+    "sleeve": "long"
+   },
+   {
+    "name": "Jerkin",
+    "kind": "shirt",
+    "tex": "leather",
+    "color": "#ffffff",
+    "sleeve": "none",
+    "push": 0.016,
+    "neck": 0.08
+   },
+   {
+    "name": "Trousers",
+    "kind": "trousers",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60"
+   },
+   {
+    "name": "Boots",
+    "kind": "boots",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60",
+    "rough": 0.65,
+    "height": 0.34
+   },
+   {
+    "name": "Belt",
+    "kind": "belt",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60"
+   },
+   {
+    "name": "Gloves",
+    "kind": "gloves",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60"
+   }
+  ],
+  "motions": [
+   "idle",
+   "walk",
+   "run",
+   "talk",
+   "wave",
+   "bow",
+   "look",
+   "sit",
+   "drink",
+   "eat",
+   "pickup",
+   "hit",
+   "fall",
+   "defeat",
+   "sword",
+   "slash",
+   "archery",
+   "block"
+  ],
+  "dropCovered": true
+ },
+ {
+  "name": "Keeper_Lisette",
+  "file": "npc_lisette",
+  "who": "woman",
+  "cfg": {
+   "skin": 2,
+   "hair": "bob",
+   "hairCol": 6,
+   "eye": 4,
+   "weight": 0.2,
+   "height": -0.4
+  },
+  "outfit": [
+   {
+    "name": "Robe",
+    "kind": "shirt",
+    "tex": "linen",
+    "color": "#ffffff",
+    "tint": "#f2ead8",
+    "sleeve": "long"
+   },
+   {
+    "name": "RobeSkirt",
+    "kind": "skirt",
+    "tex": "linen",
+    "color": "#ffffff",
+    "tint": "#f2ead8",
+    "flare": 0.6,
+    "hemUp": 0.04,
+    "double": true
+   },
+   {
+    "name": "Sash",
+    "kind": "shirt",
+    "tex": "wool_red",
+    "color": "#ffffff",
+    "sleeve": "none",
+    "push": 0.02,
+    "neck": 0.12
+   },
+   {
+    "name": "Belt",
+    "kind": "belt",
+    "tex": "wool_red",
+    "color": "#ffffff"
+   },
+   {
+    "name": "Boots",
+    "kind": "boots",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60",
+    "rough": 0.65,
+    "height": 0.14
+   }
+  ],
+  "motions": [
+   "idle",
+   "walk",
+   "run",
+   "talk",
+   "wave",
+   "bow",
+   "look",
+   "sit",
+   "drink",
+   "eat",
+   "pickup",
+   "hit",
+   "fall",
+   "defeat"
+  ],
+  "dropCovered": true
+ },
+ {
+  "name": "Alchemist_Moss",
+  "file": "npc_moss",
+  "who": "man",
+  "cfg": {
+   "skin": 1,
+   "hair": "messy",
+   "hairCol": 3,
+   "beard": "mustache",
+   "eye": 1,
+   "weight": -0.3
+  },
+  "outfit": [
+   {
+    "name": "Shirt",
+    "kind": "shirt",
+    "tex": "linen",
+    "color": "#ffffff",
+    "sleeve": "long"
+   },
+   {
+    "name": "Waistcoat",
+    "kind": "shirt",
+    "tex": "wool_green",
+    "color": "#ffffff",
+    "tint": "#6a8a5a",
+    "sleeve": "none",
+    "push": 0.016,
+    "neck": 0.08
+   },
+   {
+    "name": "Trousers",
+    "kind": "trousers",
+    "tex": "burlap",
+    "color": "#ffffff",
+    "tint": "#7a6a60"
+   },
+   {
+    "name": "Boots",
+    "kind": "boots",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60",
+    "rough": 0.65,
+    "height": 0.2
+   },
+   {
+    "name": "Apron",
+    "kind": "apron",
+    "tex": "linen",
+    "color": "#ffffff",
+    "tint": "#d8d0bc",
+    "push": 0.022
+   }
+  ],
+  "motions": [
+   "idle",
+   "walk",
+   "run",
+   "talk",
+   "wave",
+   "bow",
+   "look",
+   "sit",
+   "drink",
+   "eat",
+   "pickup",
+   "hit",
+   "fall",
+   "defeat",
+   "alchemy"
+  ],
+  "dropCovered": true
+ },
+ {
+  "name": "Farmer_Odo",
+  "file": "npc_odo",
+  "who": "man",
+  "cfg": {
+   "skin": 3,
+   "hair": "short",
+   "hairCol": 2,
+   "beard": "stubble",
+   "eye": 2,
+   "weight": 0.7,
+   "belly": 1,
+   "height": -0.2
+  },
+  "outfit": [
+   {
+    "name": "Shirt",
+    "kind": "shirt",
+    "tex": "linen",
+    "color": "#ffffff",
+    "sleeve": "elbow"
+   },
+   {
+    "name": "Trousers",
+    "kind": "trousers",
+    "tex": "burlap",
+    "color": "#ffffff"
+   },
+   {
+    "name": "Boots",
+    "kind": "boots",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60",
+    "rough": 0.65,
+    "height": 0.26
+   },
+   {
+    "name": "Belt",
+    "kind": "belt",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60"
+   }
+  ],
+  "motions": [
+   "idle",
+   "walk",
+   "run",
+   "talk",
+   "wave",
+   "bow",
+   "look",
+   "sit",
+   "drink",
+   "eat",
+   "pickup",
+   "hit",
+   "fall",
+   "defeat",
+   "plant",
+   "harvest",
+   "dig"
+  ],
+  "dropCovered": true
+ },
+ {
+  "name": "Keeper_Oren",
+  "file": "npc_oren",
+  "who": "man",
+  "cfg": {
+   "skin": 1,
+   "hair": "bald",
+   "beard": "full",
+   "hairCol": 7,
+   "eye": 0,
+   "weight": 0.4,
+   "belly": 0.5
+  },
+  "outfit": [
+   {
+    "name": "Robe",
+    "kind": "shirt",
+    "tex": "linen",
+    "color": "#ffffff",
+    "tint": "#f2ead8",
+    "sleeve": "long"
+   },
+   {
+    "name": "RobeSkirt",
+    "kind": "skirt",
+    "tex": "linen",
+    "color": "#ffffff",
+    "tint": "#f2ead8",
+    "flare": 0.6,
+    "hemUp": 0.04,
+    "double": true
+   },
+   {
+    "name": "Sash",
+    "kind": "shirt",
+    "tex": "wool_red",
+    "color": "#ffffff",
+    "sleeve": "none",
+    "push": 0.02,
+    "neck": 0.12
+   },
+   {
+    "name": "Belt",
+    "kind": "belt",
+    "tex": "wool_red",
+    "color": "#ffffff"
+   },
+   {
+    "name": "Boots",
+    "kind": "boots",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60",
+    "rough": 0.65,
+    "height": 0.14
+   }
+  ],
+  "motions": [
+   "idle",
+   "walk",
+   "run",
+   "talk",
+   "wave",
+   "bow",
+   "look",
+   "sit",
+   "drink",
+   "eat",
+   "pickup",
+   "hit",
+   "fall",
+   "defeat"
+  ],
+  "dropCovered": true
+ },
+ {
+  "name": "Rhys",
+  "file": "npc_rhys",
+  "who": "man",
+  "cfg": {
+   "skin": 2,
+   "hair": "messy",
+   "hairCol": 5,
+   "eye": 1,
+   "height": 0.1,
+   "muscle": 0.3
+  },
+  "outfit": [
+   {
+    "name": "Tunic",
+    "kind": "shirt",
+    "tex": "wool_blue",
+    "color": "#ffffff",
+    "sleeve": "long"
+   },
+   {
+    "name": "Trousers",
+    "kind": "trousers",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60"
+   },
+   {
+    "name": "Belt",
+    "kind": "belt",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60"
+   },
+   {
+    "name": "Boots",
+    "kind": "boots",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60",
+    "rough": 0.65,
+    "height": 0.3
+   }
+  ],
+  "motions": [
+   "idle",
+   "walk",
+   "run",
+   "talk",
+   "wave",
+   "bow",
+   "look",
+   "sit",
+   "drink",
+   "eat",
+   "pickup",
+   "hit",
+   "fall",
+   "defeat",
+   "idle",
+   "walk",
+   "run",
+   "sneak",
+   "jump",
+   "sword",
+   "slash",
+   "rising",
+   "thrust",
+   "block",
+   "dagger",
+   "spear"
+  ],
+  "dropCovered": true
+ },
+ {
+  "name": "Woodworker_Rook",
+  "file": "npc_rook",
+  "who": "man",
+  "cfg": {
+   "skin": 4,
+   "hair": "short",
+   "hairCol": 0,
+   "beard": "full",
+   "eye": 2,
+   "muscle": 0.4
+  },
+  "outfit": [
+   {
+    "name": "Shirt",
+    "kind": "shirt",
+    "tex": "linen",
+    "color": "#ffffff",
+    "sleeve": "elbow"
+   },
+   {
+    "name": "Trousers",
+    "kind": "trousers",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60"
+   },
+   {
+    "name": "Boots",
+    "kind": "boots",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60",
+    "rough": 0.65,
+    "height": 0.28
+   },
+   {
+    "name": "Apron",
+    "kind": "apron",
+    "tex": "leather",
+    "color": "#ffffff",
+    "push": 0.024
+   }
+  ],
+  "motions": [
+   "idle",
+   "walk",
+   "run",
+   "talk",
+   "wave",
+   "bow",
+   "look",
+   "sit",
+   "drink",
+   "eat",
+   "pickup",
+   "hit",
+   "fall",
+   "defeat",
+   "saw"
+  ],
+  "dropCovered": true
+ },
+ {
+  "name": "Archmage_Rowan",
+  "file": "npc_rowan",
+  "who": "woman",
+  "cfg": {
+   "skin": 4,
+   "hair": "long",
+   "hairCol": 7,
+   "eye": 6,
+   "height": 0.3
+  },
+  "outfit": [
+   {
+    "name": "Robe",
+    "kind": "shirt",
+    "tex": "wool_blue",
+    "color": "#ffffff",
+    "tint": "#6a50a0",
+    "sleeve": "long"
+   },
+   {
+    "name": "RobeSkirt",
+    "kind": "skirt",
+    "tex": "wool_blue",
+    "color": "#ffffff",
+    "tint": "#6a50a0",
+    "flare": 0.6,
+    "hemUp": 0.04,
+    "double": true
+   },
+   {
+    "name": "Belt",
+    "kind": "belt",
+    "tex": "metal_gold",
+    "color": "#ffffff"
+   },
+   {
+    "name": "Cape",
+    "kind": "cape",
+    "tex": "wool_blue",
+    "color": "#ffffff",
+    "tint": "#4a3a7a",
+    "double": true,
+    "hemUp": 0.04
+   },
+   {
+    "name": "Boots",
+    "kind": "boots",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60",
+    "rough": 0.65,
+    "height": 0.14
+   }
+  ],
+  "motions": [
+   "idle",
+   "walk",
+   "run",
+   "talk",
+   "wave",
+   "bow",
+   "look",
+   "sit",
+   "drink",
+   "eat",
+   "pickup",
+   "hit",
+   "fall",
+   "defeat",
+   "spell",
+   "staff",
+   "enchant"
+  ],
+  "dropCovered": true
+ },
+ {
+  "name": "Shopkeeper_Tam",
+  "file": "npc_tam",
+  "who": "woman",
+  "cfg": {
+   "skin": 2,
+   "hair": "bob",
+   "hairCol": 2,
+   "eye": 2,
+   "weight": 0.4
+  },
+  "outfit": [
+   {
+    "name": "Shirt",
+    "kind": "shirt",
+    "tex": "linen",
+    "color": "#ffffff",
+    "sleeve": "long"
+   },
+   {
+    "name": "Skirt",
+    "kind": "skirt",
+    "tex": "burlap",
+    "color": "#ffffff",
+    "flare": 0.7,
+    "double": true
+   },
+   {
+    "name": "Apron",
+    "kind": "apron",
+    "tex": "linen",
+    "color": "#ffffff",
+    "tint": "#d8d0bc",
+    "push": 0.02,
+    "lo": 0.75
+   },
+   {
+    "name": "Boots",
+    "kind": "boots",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60",
+    "rough": 0.65,
+    "height": 0.14
+   }
+  ],
+  "motions": [
+   "idle",
+   "walk",
+   "run",
+   "talk",
+   "wave",
+   "bow",
+   "look",
+   "sit",
+   "drink",
+   "eat",
+   "pickup",
+   "hit",
+   "fall",
+   "defeat"
+  ],
+  "dropCovered": true
+ },
+ {
+  "name": "Tamsin",
+  "file": "npc_tamsin",
+  "who": "woman",
+  "cfg": {
+   "skin": 4,
+   "hair": "pigtails",
+   "hairCol": 3,
+   "eye": 3,
+   "height": -0.7,
+   "muscle": 0.2
+  },
+  "outfit": [
+   {
+    "name": "Shirt",
+    "kind": "shirt",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#8a7c6a",
+    "sleeve": "long"
+   },
+   {
+    "name": "Trousers",
+    "kind": "trousers",
+    "tex": "burlap",
+    "color": "#ffffff",
+    "tint": "#7a7068"
+   },
+   {
+    "name": "Boots",
+    "kind": "boots",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60",
+    "rough": 0.65,
+    "height": 0.3
+   },
+   {
+    "name": "Belt",
+    "kind": "belt",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60"
+   },
+   {
+    "name": "Cape",
+    "kind": "cape",
+    "tex": "burlap",
+    "color": "#ffffff",
+    "tint": "#6a6258",
+    "double": true,
+    "hemUp": 0.45
+   }
+  ],
+  "motions": [
+   "idle",
+   "walk",
+   "run",
+   "talk",
+   "wave",
+   "bow",
+   "look",
+   "sit",
+   "drink",
+   "eat",
+   "pickup",
+   "hit",
+   "fall",
+   "defeat",
+   "idle",
+   "walk",
+   "run",
+   "sneak",
+   "jump",
+   "sword",
+   "slash",
+   "rising",
+   "thrust",
+   "block",
+   "dagger",
+   "spear"
+  ],
+  "dropCovered": true
+ },
+ {
+  "name": "Keeper_Tomas",
+  "file": "npc_tomas",
+  "who": "man",
+  "cfg": {
+   "skin": 0,
+   "hair": "short",
+   "hairCol": 7,
+   "beard": "mustache",
+   "eye": 4,
+   "height": -0.3,
+   "weight": -0.4
+  },
+  "outfit": [
+   {
+    "name": "Robe",
+    "kind": "shirt",
+    "tex": "linen",
+    "color": "#ffffff",
+    "tint": "#f2ead8",
+    "sleeve": "long"
+   },
+   {
+    "name": "RobeSkirt",
+    "kind": "skirt",
+    "tex": "linen",
+    "color": "#ffffff",
+    "tint": "#f2ead8",
+    "flare": 0.6,
+    "hemUp": 0.04,
+    "double": true
+   },
+   {
+    "name": "Sash",
+    "kind": "shirt",
+    "tex": "wool_red",
+    "color": "#ffffff",
+    "sleeve": "none",
+    "push": 0.02,
+    "neck": 0.12
+   },
+   {
+    "name": "Belt",
+    "kind": "belt",
+    "tex": "wool_red",
+    "color": "#ffffff"
+   },
+   {
+    "name": "Boots",
+    "kind": "boots",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60",
+    "rough": 0.65,
+    "height": 0.14
+   }
+  ],
+  "motions": [
+   "idle",
+   "walk",
+   "run",
+   "talk",
+   "wave",
+   "bow",
+   "look",
+   "sit",
+   "drink",
+   "eat",
+   "pickup",
+   "hit",
+   "fall",
+   "defeat"
+  ],
+  "dropCovered": true
+ },
+ {
+  "name": "Herbalist_Wren",
+  "file": "npc_wren",
+  "who": "woman",
+  "cfg": {
+   "skin": 1,
+   "hair": "long",
+   "hairCol": 3,
+   "eye": 1,
+   "weight": -0.2
+  },
+  "outfit": [
+   {
+    "name": "Shirt",
+    "kind": "shirt",
+    "tex": "wool_green",
+    "color": "#ffffff",
+    "sleeve": "long"
+   },
+   {
+    "name": "Skirt",
+    "kind": "skirt",
+    "tex": "burlap",
+    "color": "#ffffff",
+    "flare": 0.7,
+    "double": true
+   },
+   {
+    "name": "Belt",
+    "kind": "belt",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60"
+   },
+   {
+    "name": "Boots",
+    "kind": "boots",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60",
+    "rough": 0.65,
+    "height": 0.2
+   },
+   {
+    "name": "Cape",
+    "kind": "cape",
+    "tex": "wool_green",
+    "color": "#ffffff",
+    "tint": "#5a7a4a",
+    "double": true,
+    "hemUp": 0.35
+   }
+  ],
+  "motions": [
+   "idle",
+   "walk",
+   "run",
+   "talk",
+   "wave",
+   "bow",
+   "look",
+   "sit",
+   "drink",
+   "eat",
+   "pickup",
+   "hit",
+   "fall",
+   "defeat",
+   "harvest",
+   "pickup"
+  ],
+  "dropCovered": true
+ },
+ {
+  "name": "Keeper_Wynne",
+  "file": "npc_wynne",
+  "who": "woman",
+  "cfg": {
+   "skin": 5,
+   "hair": "bun",
+   "hairCol": 0,
+   "eye": 2,
+   "weight": 0.5,
+   "belly": 0.3
+  },
+  "outfit": [
+   {
+    "name": "Robe",
+    "kind": "shirt",
+    "tex": "linen",
+    "color": "#ffffff",
+    "tint": "#f2ead8",
+    "sleeve": "long"
+   },
+   {
+    "name": "RobeSkirt",
+    "kind": "skirt",
+    "tex": "linen",
+    "color": "#ffffff",
+    "tint": "#f2ead8",
+    "flare": 0.6,
+    "hemUp": 0.04,
+    "double": true
+   },
+   {
+    "name": "Sash",
+    "kind": "shirt",
+    "tex": "wool_red",
+    "color": "#ffffff",
+    "sleeve": "none",
+    "push": 0.02,
+    "neck": 0.12
+   },
+   {
+    "name": "Belt",
+    "kind": "belt",
+    "tex": "wool_red",
+    "color": "#ffffff"
+   },
+   {
+    "name": "Boots",
+    "kind": "boots",
+    "tex": "leather",
+    "color": "#ffffff",
+    "tint": "#7a6a60",
+    "rough": 0.65,
+    "height": 0.14
+   },
+   {
+    "name": "Apron",
+    "kind": "apron",
+    "tex": "linen",
+    "color": "#ffffff",
+    "push": 0.024
+   }
+  ],
+  "motions": [
+   "idle",
+   "walk",
+   "run",
+   "talk",
+   "wave",
+   "bow",
+   "look",
+   "sit",
+   "drink",
+   "eat",
+   "pickup",
+   "hit",
+   "fall",
+   "defeat"
+  ],
+  "dropCovered": true
+ }
+]

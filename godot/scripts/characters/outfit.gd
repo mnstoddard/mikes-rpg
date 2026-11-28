@@ -11,6 +11,9 @@ const COVERS := {
 	"Trousers": ["Body_Thighs", "Body_Shins"],
 	"Skirt": ["Body_Thighs", "Body_Shins"],
 	"Boots": ["Body_Feet"],
+	"Robe": ["Body_Torso", "Body_UpperArms", "Body_Forearms"],
+	"RobeSkirt": ["Body_Thighs", "Body_Shins"],
+	"Gloves": [],
 }
 
 func _ready() -> void:

@@ -10,19 +10,49 @@ the ground at the origin, facing +Z (Godot's "model front").
 
 ## People (`people/`)
 
-| File | Who | Notes |
+| File | Who | Where / role |
 |---|---|---|
-| `hero_man.glb` | The player hero, body 1 | From the approved lifelike hero, starter outfit |
-| `hero_woman.glb` | The player hero, body 2 | Same outfit |
-| `npc_maren.glb` | Old Maren | Blouse, green bodice, long blue skirt |
-| `npc_brann.glb` | Smith Brann | Red work shirt, leather apron, full beard |
-| `npc_oswin.glb` | Repairer Oswin | Blue shirt, leather waistcoat, moustache |
+| `hero_man.glb` | Hero | You (body 1) |
+| `hero_woman.glb` | Hero | You (body 2) |
+| `npc_rhys.glb` | Rhys | Your friendly rival |
+| `npc_aldric.glb` | High Keeper Aldric | Welcomes new Emberborn |
+| `npc_celene.glb` | Keeper Celene | Shrine healer |
+| `npc_lisette.glb` | Keeper Lisette | The library |
+| `npc_oren.glb` | Keeper Oren | Ember Circle tours |
+| `npc_tomas.glb` | Keeper Tomas | Keys and skills |
+| `npc_wynne.glb` | Keeper Wynne | The beds |
+| `npc_maren.glb` | Old Maren | Fishing and cooking |
+| `npc_brann.glb` | Smith Brann | Smelting and smithing |
+| `npc_oswin.glb` | Repairer Oswin | Mends tools |
+| `npc_greta.glb` | Miner Greta | Mining |
+| `npc_holt.glb` | Forester Holt | Woodcutting |
+| `npc_kael.glb` | Huntmaster Kael | Combat, the Wardens |
+| `npc_bryn.glb` | Captain Bryn | Bounty board and Renown |
+| `npc_rook.glb` | Woodworker Rook | Handicraft |
+| `npc_odo.glb` | Farmer Odo | Farming |
+| `npc_wren.glb` | Herbalist Wren | Foraging |
+| `npc_moss.glb` | Alchemist Moss | Alchemy |
+| `npc_corwen.glb` | Enchanter Corwen | Enchanting |
+| `npc_rowan.glb` | Archmage Rowan | Head of the Mages’ Guild |
+| `npc_tam.glb` | Shopkeeper Tam | General Store |
+| `npc_tamsin.glb` | Tamsin | Ashbound scout |
+
+Foes and the human bosses live in the same folder and use the same skeleton:
+
+| File | Who | Where / role |
+|---|---|---|
+| `foe_goblin.glb` | Goblin | Danger zones |
+| `foe_ashbound_scout.glb` | Ashbound scout | Danger zones |
+| `foe_ashbound_raider.glb` | Ashbound raider | Deep Thornwood |
+| `foe_grave_ghoul.glb` | Grave ghoul | Planned: the Graveyard at night |
+| `boss_sable.glb` | Sable | Act 4, Emberguard path |
+| `boss_vale.glb` | Vale | Act 4, Ashbound path |
 
 - **Skeleton**: the same 19 bones for everyone (root, spine, neck, head,
   shoulders, arms, wrists, legs, feet), so one set of motions fits every person.
-- **Motions**: all 42 motions from the Lifelike Heroes page (idle, walk, run,
+- **Motions**: the heroes have all 42 motions from the Lifelike Heroes page (idle, walk, run,
   combat swings, chop, mine, fish, smith, cook, sit, defeat and more).
-  Looping ones end in `_loop`, which Godot reads as "repeat".
+  Townsfolk have the town set (idle, walk, run, talk, wave, bow, look, sit, drink, eat, pick up, hit, fall, defeat) plus their own job motions; foes and bosses have the combat set. Looping ones end in `_loop`, which Godot reads as "repeat".
 - **Hands**: closed fists are a shape key (blend shape) on `Body`, driven by the
   motions, so tools and weapons can be held. Attach held things to `wrist_R` /
   `wrist_L` with a `BoneAttachment3D`.
@@ -31,7 +61,7 @@ the ground at the origin, facing +Z (Godot's "model front").
   (`Body_Torso`, `Body_UpperArms`, `Body_Forearms`, `Body_Thighs`, `Body_Shins`,
   `Body_Feet`) so skin under clothes can be hidden: no poking through, and
   fewer triangles to draw. `godot/scripts/characters/outfit.gd` does this.
-  For the NPCs the covered regions are already removed; the heroes keep them
+  For the NPCs, foes and bosses the covered regions are already removed; the heroes keep them
   all, because their armor and clothes will change.
 - **Triangles**: about 30-60k each with everything shown (the hair is the
   biggest part). Godot makes lower-detail versions (LODs) automatically on
@@ -39,13 +69,28 @@ the ground at the origin, facing +Z (Godot's "model front").
 
 ## Creatures (`creatures/`)
 
-| File | Creature | Size |
+| File | Creature | Where / role |
 |---|---|---|
-| `creature_wolf.glb` | Wolf | 1.0 m tall to the ear tips |
-| `creature_hollow_wolf.glb` | Hollow wolf (blighted) | Same, with glowing seams and eyes |
-| `creature_boar.glb` | Boar | 0.7 m |
-| `creature_chicken.glb` | Chicken | 0.55 m |
-| `creature_slime.glb` | Slime | 0.4 m |
+| `creature_chicken.glb` | Chicken | Near town |
+| `creature_rat.glb` | Rat | Near town |
+| `creature_cow.glb` | Cow | Near town |
+| `creature_slime.glb` | Slime | Near town |
+| `creature_boar.glb` | Boar | Near town |
+| `creature_giant_bat.glb` | Giant bat | Near town, at night |
+| `creature_wolf.glb` | Wolf | Danger zones |
+| `creature_hollow_wolf.glb` | Hollow wolf | Blighted |
+| `creature_alpha_wolf.glb` | Alpha wolf | Danger zones |
+| `creature_cave_spider.glb` | Cave spider | The cave |
+| `creature_giant_spider.glb` | Giant spider | Danger zones |
+| `creature_fire_beetle.glb` | Fire beetle | Planned: the quarry |
+| `creature_wisp.glb` | Will-o’-wisp | Planned: Dark Forest at night |
+| `creature_graveyard_ghost.glb` | Graveyard ghost | Planned: the Graveyard at night |
+| `creature_dire_wolf.glb` | Dire wolf | Planned: Wolf Hollow |
+| `creature_primeval_beast.glb` | Primeval beast | Planned: the Sundered Crown |
+| `creature_thornmother.glb` | The Thornmother | Thornwood, Act 2A |
+| `creature_frost_wyrm.glb` | Frost Wyrm | Greyspine Peaks, Act 2B |
+| `creature_deep_one.glb` | The Deep One | Saltmere Coast, Act 2C |
+| `creature_dust_titan.glb` | The Dust Titan | Ashen Barrens, Act 2D |
 
 - One smooth skin each (8-14k triangles) with painted textures: colour,
   ORM (ambient occlusion, roughness, metal) and glow where they glow.
